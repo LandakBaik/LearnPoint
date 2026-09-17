@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Siswa;
 use Illuminate\Http\Request;
 
 class SiswaController extends Controller
@@ -11,6 +12,9 @@ class SiswaController extends Controller
      */
     public function index()
     {
+        $siswa = Siswa::all();
+
+        return view('siswa.index', compact('siswa'));
         //
     }
 
@@ -19,6 +23,7 @@ class SiswaController extends Controller
      */
     public function create()
     {
+        return view('siswa.create');
         //
     }
 
@@ -27,38 +32,51 @@ class SiswaController extends Controller
      */
     public function store(Request $request)
     {
+        $data = $request->all();
+
+        Siswa::create($data);
+
+        return redirect()->route('siswa.index');
         //
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Siswa $siswa)
     {
+        return view('siswa.show', compact('siswa'));
         //
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(Siswa $siswa)
     {
+        return view('siswa.edit', compact('siswa'));
         //
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Siswa $siswa)
     {
+        $siswa->update($request->all());
+
+        return redirect()->route('siswa.index');
         //
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Siswa $siswa)
     {
+        $siswa->delete();
+
+        return redirect()->route('siswa.index');
         //
     }
 }
