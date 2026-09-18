@@ -38,7 +38,7 @@ class SiswaController extends Controller
             'alamat' => 'required',
             'tanggal_lahir' => 'required|date',
             'jenis_kelamin' => 'required|in:L,P',
-            'wali_murid' => 'required',
+            'wali_murid' => ['required','regex:/^[a-zA-Z\s]+$/'],
             'nohp_wali' => 'required|numeric',
         ]);
 

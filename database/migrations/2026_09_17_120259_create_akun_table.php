@@ -18,11 +18,17 @@ return new class extends Migration
             $table->enum('role', ['siswa', 'guru', 'operator', 'kepala_sekolah']);
             $table->string('nama', 100)->nullable();
 
-            $table->unsignedInteger('guru_id')->nullable();
-            $table->foreign('guru_id')->references('id')->on('guru')->nullOnDelete();
+            $table->unsignedBigInteger('id_guru')->nullable();
+            $table->foreign('id_guru')
+                ->references('id')
+                ->on('guru')
+                ->nullOnDelete();
 
-            $table->unsignedBigInteger('siswa_id')->nullable();
-            $table->foreign('siswa_id')->references('id')->on('siswa')->nullOnDelete();
+            $table->unsignedBigInteger('id_siswa')->nullable();
+            $table->foreign('id_siswa')
+                ->references('id')
+                ->on('siswa')
+                ->nullOnDelete();
 
             $table->timestamps();
 
