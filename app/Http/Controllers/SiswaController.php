@@ -46,8 +46,7 @@ class SiswaController extends Controller
 
         Siswa::create($data);
 
-        return redirect()->route('siswa.index');
-        //
+        return redirect()->route('siswa.index')->with('success', 'Data siswa berhasil ditambahkan!');
     }
 
     /**
@@ -56,16 +55,14 @@ class SiswaController extends Controller
     public function show(Siswa $siswa)
     {
         return view('siswa.show', compact('siswa'));
-        //
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Show the form for creating a new resource.
      */
     public function edit(Siswa $siswa)
     {
         return view('siswa.edit', compact('siswa'));
-        //
     }
 
     /**
@@ -73,10 +70,19 @@ class SiswaController extends Controller
      */
     public function update(Request $request, Siswa $siswa)
     {
+        $request->validate([
+            'nama_siswa' => 'required',
+            'nis' => 'required|unique:siswa,nis,' . $siswa->id,
+            'alamat' => 'required',
+            'tanggal_lahir' => 'required|date',
+            'jenis_kelamin' => 'required|in:L,P',
+            'wali_murid' => 'required',
+            'nohp_wali' => 'required',
+        ]);
+
         $siswa->update($request->all());
 
-        return redirect()->route('siswa.index');
-        //
+        return redirect()->route('siswa.index')->with('success', 'Data siswa berhasil diperbarui!');
     }
 
     /**
@@ -86,7 +92,6 @@ class SiswaController extends Controller
     {
         $siswa->delete();
 
-        return redirect()->route('siswa.index');
-        //
+        return redirect()->route('siswa.index')->with('success', 'Data siswa berhasil dihapus!');
     }
 }
