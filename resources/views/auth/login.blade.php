@@ -124,7 +124,7 @@
             </div>
 
             <!-- Checkbox & Lupa Password -->
-            <div class="flex items-center justify-between text-xs sm:text-sm mb-6">
+            {{-- <div class="flex items-center justify-between text-xs sm:text-sm mb-6">
                 <label class="flex items-center text-gray-500 cursor-pointer">
                     <input 
                         type="checkbox" 
@@ -138,7 +138,7 @@
                         Lupa Password?
                     </a>
                 @endif
-            </div>
+            </div> --}}
 
             <!-- Tombol Masuk -->
             <button 
@@ -158,7 +158,8 @@
 
         <!-- Tombol Login via Google SSO -->
         <a 
-            href="{{ route('google.login') }}" 
+            {{-- href="{{ route('google.login') }}" --}}
+            href=""  
             class="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-700 font-medium py-3 px-4 border border-gray-200 rounded-xl shadow-sm transition duration-200 active:scale-[0.98]"
         >
             <!-- Logo Icon Google SVG -->
