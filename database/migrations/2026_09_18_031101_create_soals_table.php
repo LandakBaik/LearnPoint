@@ -17,17 +17,20 @@ return new class extends Migration
             $table->text('pilihan');
             $table->string('kunci_jawaban', 10);
 
-            $table->foreignId('id_quiz')
+            $table->foreignId('quiz_id')
                 ->nullable()
-                ->constrained('quizzes');
+                ->constrained('quizzes')
+                ->cascadeOnDelete();
 
-            $table->foreignId('id_tugas')
+            $table->foreignId('tugas_id')
                 ->nullable()
-                ->constrained('tugas');
+                ->constrained('tugases')
+                ->cascadeOnDelete();
 
-            $table->foreignId('id_ujian')
+            $table->foreignId('ujian_id')
                 ->nullable()
-                ->constrained('ujians');
+                ->constrained('ujians')
+                ->cascadeOnDelete();
             $table->timestamps();
         });
     }

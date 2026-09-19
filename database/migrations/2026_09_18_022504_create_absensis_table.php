@@ -22,11 +22,14 @@ return new class extends Migration
                 'alpa'
             ]);
 
-            $table->foreignId('id_siswa')
-                ->constrained('siswa');
+            $table->foreignId('siswa_id')
+                ->constrained('siswas')
+                ->cascadeOnDelete();
 
-            $table->foreignId('id_akun')
-                ->constrained('akun');
+            $table->foreignId('user_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
             $table->timestamps();
         });
     }

@@ -17,8 +17,9 @@ return new class extends Migration
             $table->text('pesan');
             $table->unsignedBigInteger('id_referensi')->nullable();
 
-            $table->foreignId('id_akun')
-                ->constrained('akun');
+            $table->foreignId('user_id')
+                ->constrained('users')
+                ->cascadeOnDelete();
             $table->timestamps();
         });
     }

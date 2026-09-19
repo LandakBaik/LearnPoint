@@ -13,10 +13,15 @@ return new class extends Migration
     {
         Schema::create('ujians', function (Blueprint $table) {
             $table->id();
+            $table->string('judul', 200);
+            $table->text('deskripsi')->nullable();
+            $table->dateTime('waktu_mulai')->nullable();
             $table->dateTime('deadline');
+            $table->unsignedSmallInteger('durasi_menit')->default(60);
 
-            $table->foreignId('id_guru_mapel')
-                ->constrained('guru_mapels');
+            $table->foreignId('guru_mapel_id')
+                ->constrained('guru_mapels')
+                ->cascadeOnDelete();
             $table->timestamps();
         });
     }

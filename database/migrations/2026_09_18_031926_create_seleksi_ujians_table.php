@@ -17,11 +17,13 @@ return new class extends Migration
             $table->integer('jumlah_remidi')->default(0);
             $table->decimal('nilai_akhir', 5, 2);
 
-            $table->foreignId('id_siswa')
-                ->constrained('siswa');
+            $table->foreignId('siswa_id')
+                ->constrained('siswas')
+                ->cascadeOnDelete();
 
-            $table->foreignId('id_ujian')
-                ->constrained('ujians');
+            $table->foreignId('ujian_id')
+                ->constrained('ujians')
+                ->cascadeOnDelete();
             $table->timestamps();
         });
     }

@@ -13,11 +13,13 @@ return new class extends Migration
     {
         Schema::create('menjawabs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('id_soal')
-                ->constrained('soals');
+            $table->foreignId('soal_id')
+                ->constrained('soals')
+                ->cascadeOnDelete();
 
-            $table->foreignId('id_siswa')
-                ->constrained('siswa');
+            $table->foreignId('siswa_id')
+                ->constrained('siswas')
+                ->cascadeOnDelete();
 
             $table->string('jawaban_dipilih', 10);
             $table->boolean('benar');

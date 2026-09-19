@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Kelas;
 use App\Models\Siswa;
 use Illuminate\Http\Request;
 
@@ -12,10 +13,9 @@ class SiswaController extends Controller
      */
     public function index()
     {
-        $siswa = Siswa::all();
+        $siswa = Siswa::with('kelas')->get();
 
         return view('siswa.index', compact('siswa'));
-        //
     }
 
     /**
@@ -23,8 +23,9 @@ class SiswaController extends Controller
      */
     public function create()
     {
-        return view('siswa.create');
-        //
+        $kelases = Kelas::all();
+
+        return view('siswa.create', compact('kelases'));
     }
 
     /**
@@ -32,22 +33,20 @@ class SiswaController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'nama_siswa' => ['required', 'regex:/^[a-zA-Z\s]+$/'],
-            'nis' => 'required|unique:siswa,nis|numeric',
-            'alamat' => 'required',
+        $validated = $request->validate([
+            'nama_siswa'    => ['required', 'regex:/^[a-zA-Z\s]+$/'],
+            'nis'           => 'required|unique:siswas,nis|numeric',
+            'alamat'        => 'required',
             'tanggal_lahir' => 'required|date',
             'jenis_kelamin' => 'required|in:L,P',
-            'wali_murid' => ['required','regex:/^[a-zA-Z\s]+$/'],
-            'nohp_wali' => 'required|numeric',
+            'wali_murid'    => ['required', 'regex:/^[a-zA-Z\s]+$/'],
+            'nohp_wali'     => 'required|numeric',
+            'kelas_id'      => 'nullable|exists:kelases,id',
         ]);
 
-        $data = $request->all();
-
-        Siswa::create($data);
+        Siswa::create($validated);
 
         return redirect()->route('siswa.index');
-        //
     }
 
     /**
@@ -56,7 +55,6 @@ class SiswaController extends Controller
     public function show(Siswa $siswa)
     {
         return view('siswa.show', compact('siswa'));
-        //
     }
 
     /**
@@ -64,8 +62,9 @@ class SiswaController extends Controller
      */
     public function edit(Siswa $siswa)
     {
-        return view('siswa.edit', compact('siswa'));
-        //
+        $kelases = Kelas::all();
+
+        return view('siswa.edit', compact('siswa', 'kelases'));
     }
 
     /**
@@ -73,10 +72,20 @@ class SiswaController extends Controller
      */
     public function update(Request $request, Siswa $siswa)
     {
-        $siswa->update($request->all());
+        $validated = $request->validate([
+            'nama_siswa'    => ['required', 'regex:/^[a-zA-Z\s]+$/'],
+            'nis'           => 'required|numeric|unique:siswas,nis,' . $siswa->id,
+            'alamat'        => 'required',
+            'tanggal_lahir' => 'required|date',
+            'jenis_kelamin' => 'required|in:L,P',
+            'wali_murid'    => ['required', 'regex:/^[a-zA-Z\s]+$/'],
+            'nohp_wali'     => 'required|numeric',
+            'kelas_id'      => 'nullable|exists:kelases,id',
+        ]);
+
+        $siswa->update($validated);
 
         return redirect()->route('siswa.index');
-        //
     }
 
     /**
@@ -87,6 +96,5 @@ class SiswaController extends Controller
         $siswa->delete();
 
         return redirect()->route('siswa.index');
-        //
     }
 }

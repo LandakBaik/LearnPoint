@@ -11,14 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tugas', function (Blueprint $table) {
+        Schema::create('kelases', function (Blueprint $table) {
             $table->id();
-            $table->string('judul', 200);
-            $table->dateTime('deadline');
-            $table->enum('tipe', ['upload', 'pilihan_ganda']);
+            $table->string('nama_kelas', 20);
+            $table->integer('tingkatan');
 
-            $table->foreignId('id_guru_mapel')
-                ->constrained('guru_mapels');
+            $table->foreignId('guru_id')
+                ->nullable()
+                ->unique()
+                ->constrained('gurus')
+                ->nullOnDelete();
+
             $table->timestamps();
         });
     }
@@ -28,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tugas');
+        Schema::dropIfExists('kelases');
     }
 };

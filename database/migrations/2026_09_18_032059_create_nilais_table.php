@@ -18,20 +18,24 @@ return new class extends Migration
             $table->integer('durasi')->nullable();
             $table->string('file_jawaban', 255)->nullable();
 
-            $table->foreignId('id_siswa')
-                ->constrained('siswa');
+            $table->foreignId('siswa_id')
+                ->constrained('siswas')
+                ->cascadeOnDelete();
 
-            $table->foreignId('id_tugas')
+            $table->foreignId('tugas_id')
                 ->nullable()
-                ->constrained('tugas');
+                ->constrained('tugases')
+                ->cascadeOnDelete();
 
-            $table->foreignId('id_quiz')
+            $table->foreignId('quiz_id')
                 ->nullable()
-                ->constrained('quizzes');
+                ->constrained('quizzes')
+                ->cascadeOnDelete();
 
-            $table->foreignId('id_seleksi_ujian')
+            $table->foreignId('seleksi_ujian_id')
                 ->nullable()
-                ->constrained('seleksi_ujians');
+                ->constrained('seleksi_ujians')
+                ->cascadeOnDelete();
             $table->timestamps();
         });
     }

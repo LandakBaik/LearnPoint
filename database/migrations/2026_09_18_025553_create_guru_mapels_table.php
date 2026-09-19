@@ -13,16 +13,19 @@ return new class extends Migration
     {
         Schema::create('guru_mapels', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('id_guru')
-                ->constrained('guru');
+            $table->foreignId('guru_id')
+                ->constrained('gurus')
+                ->cascadeOnDelete();
 
-            $table->foreignId('id_mapel')
-                ->constrained('mapels');
+            $table->foreignId('mapel_id')
+                ->constrained('mapels')
+                ->cascadeOnDelete();
 
-            $table->foreignId('id_kelas')
-                ->constrained('kelas');
+            $table->foreignId('kelas_id')
+                ->constrained('kelases')
+                ->cascadeOnDelete();
 
-            $table->unique(['id_guru', 'id_mapel', 'id_kelas']);
+            $table->unique(['guru_id', 'mapel_id', 'kelas_id']);
             $table->timestamps();
         });
     }

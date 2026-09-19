@@ -17,8 +17,9 @@ return new class extends Migration
             $table->string('level', 50);
             $table->string('kesulitan', 50);
 
-            $table->foreignId('id_guru_mapel')
-                ->constrained('guru_mapels');
+            $table->foreignId('guru_mapel_id')
+                ->constrained('guru_mapels')
+                ->cascadeOnDelete();
             $table->timestamps();
         });
     }

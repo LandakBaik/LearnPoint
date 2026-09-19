@@ -16,8 +16,9 @@ return new class extends Migration
             $table->string('judul', 200);
             $table->string('file_materi', 255);
 
-            $table->foreignId('id_guru_mapel')
-                ->constrained('guru_mapels');
+            $table->foreignId('guru_mapel_id')
+                ->constrained('guru_mapels')
+                ->cascadeOnDelete();
             $table->timestamps();
         });
     }
