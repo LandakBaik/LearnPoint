@@ -11,15 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('siswa', function (Blueprint $table) {
+        Schema::create('quizzes', function (Blueprint $table) {
             $table->id();
-            $table->string('nama_siswa',100);
-            $table->string('nis',30);
-            $table->text('alamat');
-            $table->date('tanggal_lahir');
-            $table->enum('jenis_kelamin', ['L', 'P']);
-            $table->string('wali_murid', 100);
-            $table->string('nohp_wali', 20);
+            $table->string('judul', 200);
+            $table->string('level', 50);
+            $table->string('kesulitan', 50);
+
+            $table->foreignId('guru_mapel_id')
+                ->constrained('guru_mapels')
+                ->cascadeOnDelete();
             $table->timestamps();
         });
     }
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('siswa');
+        Schema::dropIfExists('quizzes');
     }
 };

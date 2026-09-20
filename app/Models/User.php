@@ -19,8 +19,12 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
+        'role',
+        'guru_id',
+        'siswa_id',
     ];
 
     /**
@@ -44,5 +48,45 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function guru()
+    {
+        return $this->belongsTo(Guru::class, 'guru_id');
+    }
+
+    public function siswa()
+    {
+        return $this->belongsTo(Siswa::class, 'siswa_id');
+    }
+
+    public function notifikasi()
+    {
+        return $this->hasMany(Notifikasi::class, 'user_id');
+    }
+
+    public function absensi()
+    {
+        return $this->hasMany(Absensi::class, 'user_id');
+    }
+
+    public function isSiswa(): bool
+    {
+        return $this->role === 'siswa';
+    }
+
+    public function isGuru(): bool
+    {
+        return $this->role === 'guru';
+    }
+
+    public function isOperator(): bool
+    {
+        return $this->role === 'operator';
+    }
+
+    public function isKepalaSekolah(): bool
+    {
+        return $this->role === 'kepala_sekolah';
     }
 }
