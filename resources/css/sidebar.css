@@ -1,0 +1,73 @@
+/* ==========================================================================
+   LearnPoint - Sidebar Custom Stylesheet
+   ========================================================================== */
+
+body {
+    font-family: 'Poppins', sans-serif;
+}
+
+/* Sidebar Wrapper & Background */
+.sidebar-container {
+    background-color: #0e2a5c;
+    color: #ffffff;
+}
+
+/* Brand Header */
+.sidebar-header {
+    border-bottom: 1px solid rgba(30, 58, 138, 0.4);
+}
+
+.sidebar-logo-box {
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+}
+
+.sidebar-logo-dot {
+    background-color: #fbbf24;
+    border: 2px solid #0e2a5c;
+}
+
+/* Profile Card */
+.sidebar-profile-card {
+    background-color: #173a77;
+    border: 1px solid rgba(96, 165, 250, 0.2);
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+}
+
+.sidebar-avatar {
+    background-color: #2563eb;
+    border: 1px solid rgba(147, 197, 253, 0.3);
+}
+
+/* Navigation Menu Items */
+.sidebar-nav-link {
+    color: rgba(219, 234, 254, 0.8);
+    transition: all 0.15s ease-in-out;
+}
+
+.sidebar-nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.sidebar-nav-link-active {
+    background-color: #2563eb;
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+}
+
+.sidebar-active-indicator {
+    background-color: #ffffff;
+}
+
+/* Notification Badge */
+.sidebar-badge-amber {
+    background-color: #f59e0b;
+    color: #ffffff;
+}
+
+/* Sidebar Footer Section */
+.sidebar-footer {
+    border-top: 1px solid rgba(30, 58, 138, 0.4);
+}
