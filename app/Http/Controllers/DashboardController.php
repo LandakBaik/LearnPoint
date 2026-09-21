@@ -36,10 +36,11 @@ class DashboardController extends Controller
         $totalSiswa = Siswa::count();
         $totalGuru = Guru::count();
         $totalKelas = Kelas::count();
-        $totalUser = User::count();
+        $totalMapel = Mapel::count();
 
-        return view('dashboard.admin', compact('totalSiswa', 'totalGuru', 'totalKelas', 'totalUser'));
+        return view('dashboard.admin', compact('totalSiswa', 'totalGuru', 'totalKelas', 'totalMapel'));
     }
+
 
     /**
      * Halaman Dashboard Guru.

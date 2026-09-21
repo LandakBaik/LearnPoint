@@ -8,6 +8,10 @@ use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SiswaController;
 use App\Http\Controllers\TugasController;
+use App\Http\Controllers\GuruController;
+use App\Http\Controllers\KelasController;
+use App\Http\Controllers\MapelController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -37,7 +41,19 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['role:operator,admin'])->group(function () {
         Route::get('/operator/dashboard', [DashboardController::class, 'operatorDashboard'])->name('operator.dashboard');
         Route::get('/admin/dashboard', [DashboardController::class, 'operatorDashboard'])->name('admin.dashboard');
+
+        Route::resource('users', UserController::class);
+        Route::resource('guru', GuruController::class);
         Route::resource('siswa', SiswaController::class);
+        Route::resource('kelas', KelasController::class);
+        Route::resource('mapel', MapelController::class);
+
+        // Jadwal (Foto)
+        Route::get('/kelola-jadwal', [JadwalController::class, 'adminIndex'])->name('admin.jadwal.index');
+        Route::post('/kelola-jadwal/kelas', [JadwalController::class, 'uploadJadwalKelas'])->name('admin.jadwal.upload_kelas');
+        Route::post('/kelola-jadwal/guru', [JadwalController::class, 'uploadJadwalGuru'])->name('admin.jadwal.upload_guru');
+        Route::delete('/kelola-jadwal/kelas/{kelas}', [JadwalController::class, 'destroyJadwalKelas'])->name('admin.jadwal.destroy_kelas');
+        Route::delete('/kelola-jadwal/guru/{guruMapel}', [JadwalController::class, 'destroyJadwalGuru'])->name('admin.jadwal.destroy_guru');
     });
 
     // Dashboard Guru

@@ -30,4 +30,19 @@ class Guru extends Model
     {
         return $this->hasMany(GuruMapel::class, 'guru_id');
     }
+
+    /**
+     * Get the latest schedule photo for this teacher from their teaching assignments
+     */
+    public function getJadwalAttribute(): ?string
+    {
+        return $this->guruMapels()->whereNotNull('jadwal')->latest()->value('jadwal');
+    }
+
+    public function getJadwalUrlAttribute(): ?string
+    {
+        $jadwal = $this->jadwal;
+        return $jadwal ? asset('storage/' . $jadwal) : null;
+    }
 }
+

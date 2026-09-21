@@ -31,8 +31,27 @@ class Kelas extends Model
         return $this->hasMany(Siswa::class, 'kelas_id');
     }
 
+    public function anggotaKelases(): HasMany
+    {
+        return $this->hasMany(AnggotaKelas::class, 'kelas_id');
+    }
+
     public function guruMapels(): HasMany
     {
         return $this->hasMany(GuruMapel::class, 'kelas_id');
+    }
+
+    /**
+     * Get the current active schedule image for this class
+     */
+    public function getJadwalAttribute(): ?string
+    {
+        return $this->anggotaKelases()->whereNotNull('jadwal')->latest()->value('jadwal');
+    }
+
+    public function getJadwalUrlAttribute(): ?string
+    {
+        $jadwal = $this->jadwal;
+        return $jadwal ? asset('storage/' . $jadwal) : null;
     }
 }

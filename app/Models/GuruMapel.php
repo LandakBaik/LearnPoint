@@ -15,7 +15,13 @@ class GuruMapel extends Model
         'guru_id',
         'mapel_id',
         'kelas_id',
+        'jadwal',
     ];
+
+    public function getJadwalUrlAttribute(): ?string
+    {
+        return $this->jadwal ? asset('storage/' . $this->jadwal) : null;
+    }
 
     public function guru()
     {

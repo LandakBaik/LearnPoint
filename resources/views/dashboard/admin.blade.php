@@ -70,20 +70,20 @@
             </div>
         </div>
 
-        <!-- Card Total Pengguna -->
+        <!-- Card Total Mapel (Revisi 2) -->
         <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total User</p>
-                    <h3 class="text-3xl font-extrabold text-gray-900 mt-1">{{ $totalUser }}</h3>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Mapel</p>
+                    <h3 class="text-3xl font-extrabold text-gray-900 mt-1">{{ $totalMapel }}</h3>
                 </div>
                 <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                 </div>
             </div>
             <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                <span>Seluruh akun sistem</span>
-                <span class="text-purple-600 font-semibold">Aktif</span>
+                <span>Mata pelajaran aktif</span>
+                <a href="{{ route('mapel.index') }}" class="text-purple-600 font-semibold hover:underline">Kelola Mapel &rarr;</a>
             </div>
         </div>
     </div>
@@ -91,35 +91,68 @@
     <!-- Quick Actions -->
     <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <h4 class="text-base font-bold text-gray-900 mb-4">Aksi Cepat Admin</h4>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <a href="{{ route('siswa.create') }}" class="p-4 rounded-xl bg-gray-50 border border-gray-200 hover:bg-indigo-50 hover:border-indigo-300 transition-all group flex items-center gap-3">
-                <div class="p-2 bg-indigo-600 text-white rounded-lg group-hover:scale-105 transition-transform">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <a href="{{ route('users.index') }}" class="p-4 rounded-xl bg-gray-50 border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-all group flex items-center gap-3">
+                <div class="p-2.5 bg-purple-600 text-white rounded-xl group-hover:scale-105 transition-transform shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                 </div>
                 <div>
-                    <p class="text-sm font-bold text-gray-800">Tambah Siswa Baru</p>
-                    <p class="text-xs text-gray-500">Daftarkan data siswa ke sistem</p>
+                    <p class="text-sm font-bold text-gray-800">Kelola Akun</p>
+                    <p class="text-xs text-gray-500">Akses pengguna sistem</p>
                 </div>
             </a>
+
+            <a href="{{ route('guru.index') }}" class="p-4 rounded-xl bg-gray-50 border border-gray-200 hover:bg-indigo-50 hover:border-indigo-300 transition-all group flex items-center gap-3">
+                <div class="p-2.5 bg-indigo-600 text-white rounded-xl group-hover:scale-105 transition-transform shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-gray-800">Data Guru</p>
+                    <p class="text-xs text-gray-500">Kelola pengajar & NIP</p>
+                </div>
+            </a>
+
             <a href="{{ route('siswa.index') }}" class="p-4 rounded-xl bg-gray-50 border border-gray-200 hover:bg-emerald-50 hover:border-emerald-300 transition-all group flex items-center gap-3">
-                <div class="p-2 bg-emerald-600 text-white rounded-lg group-hover:scale-105 transition-transform">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                <div class="p-2.5 bg-emerald-600 text-white rounded-xl group-hover:scale-105 transition-transform shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 </div>
                 <div>
-                    <p class="text-sm font-bold text-gray-800">Lihat Daftar Siswa</p>
-                    <p class="text-xs text-gray-500">Kelola dan update data siswa</p>
+                    <p class="text-sm font-bold text-gray-800">Data Siswa</p>
+                    <p class="text-xs text-gray-500">Daftar siswa & kelas</p>
                 </div>
             </a>
-            <div class="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-3 opacity-75">
-                <div class="p-2 bg-purple-600 text-white rounded-lg">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+
+            <a href="{{ route('kelas.index') }}" class="p-4 rounded-xl bg-gray-50 border border-gray-200 hover:bg-amber-50 hover:border-amber-300 transition-all group flex items-center gap-3">
+                <div class="p-2.5 bg-amber-600 text-white rounded-xl group-hover:scale-105 transition-transform shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h.01M9 16h.01M9 12h.01M9 8h.01M15 16h.01M15 12h.01M15 8h.01"/></svg>
                 </div>
                 <div>
-                    <p class="text-sm font-bold text-gray-800">Pengaturan Sistem</p>
-                    <p class="text-xs text-gray-500">Akses konfigurasi e-learning</p>
+                    <p class="text-sm font-bold text-gray-800">Kelola Kelas</p>
+                    <p class="text-xs text-gray-500">Rombel & wali kelas</p>
                 </div>
-            </div>
+            </a>
+
+            <a href="{{ route('mapel.index') }}" class="p-4 rounded-xl bg-gray-50 border border-gray-200 hover:bg-rose-50 hover:border-rose-300 transition-all group flex items-center gap-3">
+                <div class="p-2.5 bg-rose-600 text-white rounded-xl group-hover:scale-105 transition-transform shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-gray-800">Mata Pelajaran</p>
+                    <p class="text-xs text-gray-500">Daftar mapel & nilai KKM</p>
+                </div>
+            </a>
+
+            <a href="{{ route('admin.jadwal.index') }}" class="p-4 rounded-xl bg-gray-50 border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-all group flex items-center gap-3">
+                <div class="p-2.5 bg-blue-600 text-white rounded-xl group-hover:scale-105 transition-transform shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-gray-800">Jadwal (Foto)</p>
+                    <p class="text-xs text-gray-500">Upload jadwal kelas & guru</p>
+                </div>
+            </a>
         </div>
     </div>
 </div>
+
 @endsection
