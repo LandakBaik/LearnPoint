@@ -34,7 +34,16 @@ class UserController extends Controller
             });
         }
 
-        $users = $query->latest()->paginate(10)->withQueryString();
+        // Urutkan default berdasarkan prioritas role: Admin/Operator -> Kepala Sekolah -> Guru -> Siswa
+        $users = $query->orderByRaw("CASE 
+            WHEN role = 'operator' THEN 1 
+            WHEN role = 'kepala_sekolah' THEN 2 
+            WHEN role = 'guru' THEN 3 
+            WHEN role = 'siswa' THEN 4 
+            ELSE 5 END ASC")
+            ->orderBy('name', 'asc')
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admin.users.index', compact('users'));
     }
@@ -59,14 +68,19 @@ class UserController extends Controller
         $validated = $request->validate([
             'name'      => 'required|string|max:255',
             'username'  => 'required|string|max:50|unique:users,username|alpha_dash',
-            'email'     => 'required|string|email|max:255|unique:users,email',
+            'email'     => ['required', 'string', 'email:rfc', 'regex:/^[^@\s]+@[^@\s]+\.[^@\s]+$/', 'max:255', 'unique:users,email'],
             'password'  => 'required|string|min:4',
             'role'      => 'required|in:operator,guru,siswa,kepala_sekolah',
+            'status'    => 'nullable|in:aktif,nonaktif',
             'guru_id'   => 'nullable|exists:gurus,id',
             'siswa_id'  => 'nullable|exists:siswas,id',
+        ], [
+            'email.regex' => 'Format email harus valid dan wajib menyertakan simbol @ serta nama domain.',
+            'email.email' => 'Format email tidak valid.',
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
+        $validated['status'] = $validated['status'] ?? 'aktif';
 
         // Sesuaikan relasi jika role bukan guru atau siswa
         if ($validated['role'] !== 'guru') {
@@ -105,11 +119,15 @@ class UserController extends Controller
         $validated = $request->validate([
             'name'      => 'required|string|max:255',
             'username'  => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('users')->ignore($user->id)],
-            'email'     => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'email'     => ['required', 'string', 'email:rfc', 'regex:/^[^@\s]+@[^@\s]+\.[^@\s]+$/', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password'  => 'nullable|string|min:4',
             'role'      => 'required|in:operator,guru,siswa,kepala_sekolah',
+            'status'    => 'nullable|in:aktif,nonaktif',
             'guru_id'   => 'nullable|exists:gurus,id',
             'siswa_id'  => 'nullable|exists:siswas,id',
+        ], [
+            'email.regex' => 'Format email harus valid dan wajib menyertakan simbol @ serta nama domain.',
+            'email.email' => 'Format email tidak valid.',
         ]);
 
         if (!empty($validated['password'])) {
@@ -131,16 +149,26 @@ class UserController extends Controller
     }
 
     /**
-     * Hapus akun pengguna.
+     * Ubah status akun pengguna menjadi aktif atau nonaktif (menggantikan fungsi hapus akun).
+     */
+    public function toggleStatus(User $user)
+    {
+        if (Auth::id() === $user->id) {
+            return redirect()->route('users.index')->with('warning', 'Anda tidak dapat menonaktifkan akun Anda sendiri yang sedang aktif!');
+        }
+
+        $user->status = ($user->status === 'aktif') ? 'nonaktif' : 'aktif';
+        $user->save();
+
+        $statusText = $user->status === 'aktif' ? 'diaktifkan kembali' : 'dinonaktifkan';
+        return redirect()->route('users.index')->with('success', "Akun {$user->name} berhasil {$statusText}!");
+    }
+
+    /**
+     * Hapus akun pengguna (diarahkan ke toggleStatus nonaktif agar data riwayat tetap aman).
      */
     public function destroy(User $user)
     {
-        if (Auth::id() === $user->id) {
-            return redirect()->route('users.index')->with('warning', 'Anda tidak dapat menghapus akun Anda sendiri yang sedang aktif!');
-        }
-
-        $user->delete();
-
-        return redirect()->route('users.index')->with('success', 'Akun pengguna berhasil dihapus!');
+        return $this->toggleStatus($user);
     }
 }

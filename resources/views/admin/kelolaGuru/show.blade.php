@@ -3,7 +3,7 @@
 @section('title', 'Detail Guru: ' . $guru->nama)
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6" x-data="{ modalOpen: false, modalImg: '' }">
+<div class="max-w-4xl mx-auto space-y-6" x-data="{ modalOpen: false, modalImg: '', assignModalOpen: false }">
 
     <!-- Header Navigation -->
     <div class="flex items-center justify-between">
@@ -17,12 +17,37 @@
             </div>
         </div>
         <div class="flex items-center gap-2">
+            <button 
+                @click="assignModalOpen = true" 
+                type="button" 
+                class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-xl shadow-md shadow-rose-200 transition-all flex items-center gap-1.5"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span>+ Tugas Mengajar</span>
+            </button>
             <a href="{{ route('guru.edit', $guru->id) }}" class="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-semibold rounded-xl border border-indigo-200 transition-colors flex items-center gap-1.5">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 <span>Edit Data</span>
             </a>
         </div>
     </div>
+
+    <!-- Alert Messages -->
+    @if(session('success'))
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-3">
+            <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
+    @if($errors->any())
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm">
+            <ul class="list-disc pl-5 space-y-1">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     <!-- Profile Summary Card -->
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
@@ -78,7 +103,21 @@
 
     <!-- Mata Pelajaran Diampu Table -->
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
-        <h3 class="text-base font-bold text-gray-900">Daftar Mata Pelajaran & Kelas Mengajar</h3>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <h3 class="text-base font-bold text-gray-900">Daftar Mata Pelajaran & Kelas Mengajar</h3>
+                <p class="text-xs text-gray-500">Mata pelajaran dan rombel kelas yang diampu oleh {{ $guru->nama }}.</p>
+            </div>
+            <button 
+                @click="assignModalOpen = true" 
+                type="button" 
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition-colors shrink-0"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span>+ Tugaskan Mapel & Kelas</span>
+            </button>
+        </div>
+
         @if($guru->guruMapels->count() > 0)
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-sm">
@@ -87,13 +126,25 @@
                             <th class="py-2.5 px-4">Mata Pelajaran</th>
                             <th class="py-2.5 px-4">Kelas</th>
                             <th class="py-2.5 px-4">Foto Jadwal</th>
+                            <th class="py-2.5 px-4 text-right pr-4">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @foreach($guru->guruMapels as $gm)
-                            <tr>
-                                <td class="py-3 px-4 font-semibold text-gray-800">{{ $gm->mapel->nama_mapel ?? '-' }}</td>
-                                <td class="py-3 px-4 font-medium text-indigo-600">{{ $gm->kelas->nama_kelas ?? '-' }}</td>
+                            <tr class="hover:bg-gray-50/50 transition-colors">
+                                <td class="py-3 px-4 font-bold text-gray-800">
+                                    <div class="flex items-center gap-2">
+                                        <span>{{ $gm->mapel->nama_mapel ?? '-' }}</span>
+                                        @if($gm->mapel)
+                                            <a href="{{ route('mapel.show', $gm->mapel->id) }}" class="text-[10px] font-normal text-rose-600 hover:underline">(Detail)</a>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 font-semibold text-indigo-600">
+                                    <a href="{{ route('kelas.show', $gm->kelas->id) }}" class="hover:underline">
+                                        {{ $gm->kelas->nama_kelas ?? '-' }}
+                                    </a>
+                                </td>
                                 <td class="py-3 px-4">
                                     @if($gm->jadwal)
                                         <button 
@@ -108,13 +159,25 @@
                                         <span class="text-xs text-gray-400 italic">Belum diupload</span>
                                     @endif
                                 </td>
+                                <td class="py-3 px-4 text-right pr-4 whitespace-nowrap">
+                                    <form action="{{ route('guru-mapel.destroy', $gm->id) }}" method="POST" data-confirm="Hapus penugasan mengajar mapel {{ $gm->mapel->nama_mapel ?? '' }} di kelas {{ $gm->kelas->nama_kelas ?? '' }}?" class="inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors" title="Hapus Penugasan">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
             </div>
         @else
-            <p class="text-sm text-gray-400 italic">Guru ini belum memiliki alokasi mapel atau kelas mengajar.</p>
+            <div class="p-6 text-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50">
+                <p class="text-sm font-semibold text-gray-600">Guru ini belum memiliki alokasi mapel atau kelas mengajar.</p>
+                <p class="text-xs text-gray-400 mt-1">Gunakan tombol "+ Tugaskan Mapel & Kelas" untuk menugaskan guru ini.</p>
+            </div>
         @endif
     </div>
 
@@ -160,6 +223,95 @@
             </div>
             <div class="p-4 text-center max-h-[80vh] overflow-auto">
                 <img :src="modalImg" alt="Jadwal Zoom" class="mx-auto max-h-[70vh] object-contain rounded-lg">
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Penugasan Mapel & Kelas (Poin 9) -->
+    <div 
+        x-show="assignModalOpen" 
+        class="fixed inset-0 z-50 overflow-y-auto"
+        style="display: none;"
+    >
+        <div class="min-h-screen px-4 text-center flex items-center justify-center">
+            <!-- Backdrop -->
+            <div 
+                class="fixed inset-0 bg-gray-900/60 transition-opacity" 
+                @click="assignModalOpen = false"
+            ></div>
+
+            <!-- Modal Content -->
+            <div class="relative bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 text-left shadow-2xl border border-gray-100 z-10 space-y-5">
+                <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                    <div>
+                        <h3 class="text-lg font-extrabold text-gray-900">Tugaskan Mengajar Mapel & Kelas</h3>
+                        <p class="text-xs text-gray-500">Pilih mapel dan rombel kelas untuk {{ $guru->nama }}.</p>
+                    </div>
+                    <button 
+                        type="button" 
+                        @click="assignModalOpen = false"
+                        class="p-2 text-gray-400 hover:text-gray-700 rounded-xl hover:bg-gray-100"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <form action="{{ route('guru-mapel.store') }}" method="POST" class="space-y-4">
+                    @csrf
+                    <input type="hidden" name="guru_id" value="{{ $guru->id }}">
+
+                    <!-- Pilih Mapel -->
+                    <div>
+                        <label for="guru_modal_mapel_id" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                            Pilih Mata Pelajaran <span class="text-rose-500">*</span>
+                        </label>
+                        <select 
+                            id="guru_modal_mapel_id" 
+                            name="mapel_id" 
+                            required 
+                            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-gray-800"
+                        >
+                            <option value="">-- Pilih Mata Pelajaran --</option>
+                            @foreach($allMapels as $mapel)
+                                <option value="{{ $mapel->id }}">{{ $mapel->nama_mapel }} (KKM: {{ $mapel->kkm }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Pilih Kelas -->
+                    <div>
+                        <label for="guru_modal_kelas_id" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                            Pilih Rombongan Belajar (Kelas) <span class="text-rose-500">*</span>
+                        </label>
+                        <select 
+                            id="guru_modal_kelas_id" 
+                            name="kelas_id" 
+                            required 
+                            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-gray-800"
+                        >
+                            <option value="">-- Pilih Kelas --</option>
+                            @foreach($allKelases as $kelas)
+                                <option value="{{ $kelas->id }}">{{ $kelas->nama_kelas }} (Tingkat {{ $kelas->tingkatan }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="pt-3 flex items-center justify-end gap-3">
+                        <button 
+                            type="button" 
+                            @click="assignModalOpen = false"
+                            class="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold transition-colors"
+                        >
+                            Batal
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-md shadow-indigo-200 transition-all"
+                        >
+                            Simpan Penugasan
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

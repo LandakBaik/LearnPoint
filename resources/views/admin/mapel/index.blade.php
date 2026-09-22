@@ -68,7 +68,9 @@
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                                     </div>
                                     <div>
-                                        <p class="font-bold text-gray-900 leading-snug">{{ $mapel->nama_mapel }}</p>
+                                        <a href="{{ route('mapel.show', $mapel->id) }}" class="font-bold text-gray-900 leading-snug hover:text-rose-600 transition-colors">
+                                            {{ $mapel->nama_mapel }}
+                                        </a>
                                         <p class="text-xs text-gray-400">ID Mapel: #{{ $mapel->id }}</p>
                                     </div>
                                 </div>
@@ -79,17 +81,20 @@
                                 </span>
                             </td>
                             <td class="py-4 px-4 font-semibold text-gray-600 text-xs">
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700">
+                                <a href="{{ route('mapel.show', $mapel->id) }}" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-rose-50 hover:text-rose-600 text-gray-700 transition-colors">
                                     <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                                    {{ $mapel->guru_mapels_count }} Guru Pengampu
-                                </span>
+                                    {{ $mapel->guru_mapels_count }} Guru Pengampu &rarr;
+                                </a>
                             </td>
                             <td class="py-4 px-4 text-right pr-6 whitespace-nowrap">
                                 <div class="flex items-center justify-end gap-2">
+                                    <a href="{{ route('mapel.show', $mapel->id) }}" class="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors" title="Detail Pengampu Mapel">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    </a>
                                     <a href="{{ route('mapel.edit', $mapel->id) }}" class="p-1.5 text-rose-600 hover:text-rose-900 hover:bg-rose-50 rounded-lg transition-colors" title="Edit Mapel">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </a>
-                                    <form action="{{ route('mapel.destroy', $mapel->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus mata pelajaran {{ $mapel->nama_mapel }}? Materi dan tugas yang berelasi akan ikut terhapus.');" class="inline">
+                                    <form action="{{ route('mapel.destroy', $mapel->id) }}" method="POST" data-confirm="Apakah Anda yakin ingin menghapus mata pelajaran {{ $mapel->nama_mapel }}? Materi dan tugas yang berelasi akan ikut terhapus." class="inline">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors" title="Hapus Mapel">

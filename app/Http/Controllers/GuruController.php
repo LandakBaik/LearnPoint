@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Guru;
+use App\Models\Kelas;
+use App\Models\Mapel;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -27,7 +29,7 @@ class GuruController extends Controller
 
         $gurus = $query->latest()->paginate(10)->withQueryString();
 
-        return view('admin.guru.index', compact('gurus'));
+        return view('admin.kelolaGuru.index', compact('gurus'));
     }
 
     /**
@@ -35,21 +37,27 @@ class GuruController extends Controller
      */
     public function create()
     {
-        return view('admin.guru.create');
+        $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
+        $kelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();
+
+        return view('admin.kelolaGuru.create', compact('mapels', 'kelases'));
     }
 
     /**
-     * Simpan data guru baru.
+     * Simpan data guru baru beserta akun dan penugasan mapel otomatis.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama'              => 'required|string|max:100',
-            'nip'               => 'required|numeric|digits_between:5,30|unique:gurus,nip',
-            'buat_akun'         => 'nullable|boolean',
-            'email'             => 'nullable|required_if:buat_akun,1|email|unique:users,email',
-            'username'          => 'nullable|required_if:buat_akun,1|alpha_dash|unique:users,username',
-            'password'          => 'nullable|required_if:buat_akun,1|min:4',
+            'nama'                   => 'required|string|max:100',
+            'nip'                    => 'required|numeric|digits_between:5,30|unique:gurus,nip',
+            'assignments'            => 'nullable|array',
+            'assignments.*.mapel_id' => 'nullable|exists:mapels,id',
+            'assignments.*.kelas_id' => 'nullable|exists:kelases,id',
+        ], [
+            'nip.numeric'        => 'NIP guru harus berupa angka.',
+            'nip.digits_between' => 'NIP guru harus terdiri dari 5 hingga 30 digit angka.',
+            'nip.unique'         => 'NIP ini sudah terdaftar untuk guru lain.',
         ]);
 
         $guru = Guru::create([
@@ -57,19 +65,34 @@ class GuruController extends Controller
             'nip'  => $validated['nip'],
         ]);
 
-        // Buat akun otomatis jika dicentang
-        if ($request->boolean('buat_akun')) {
-            User::create([
-                'name'      => $validated['nama'],
-                'username'  => $validated['username'],
-                'email'     => $validated['email'],
-                'password'  => Hash::make($validated['password']),
-                'role'      => 'guru',
-                'guru_id'   => $guru->id,
-            ]);
+        // Auto Create Akun User Guru (Poin 5)
+        $autoEmail = $validated['nip'] . '@guru.learnpoint.sch.id';
+        User::firstOrCreate(
+            ['username' => $validated['nip']],
+            [
+                'name'     => $validated['nama'],
+                'email'    => $autoEmail,
+                'password' => Hash::make($validated['nip']),
+                'role'     => 'guru',
+                'status'   => 'aktif',
+                'guru_id'  => $guru->id,
+            ]
+        );
+
+        // Tambah penugasan mapel yang diampu sekaligus jika ada
+        if (!empty($validated['assignments'])) {
+            foreach ($validated['assignments'] as $assign) {
+                if (!empty($assign['mapel_id']) && !empty($assign['kelas_id'])) {
+                    \App\Models\GuruMapel::firstOrCreate([
+                        'guru_id'  => $guru->id,
+                        'mapel_id' => $assign['mapel_id'],
+                        'kelas_id' => $assign['kelas_id'],
+                    ]);
+                }
+            }
         }
 
-        return redirect()->route('guru.index')->with('success', 'Data guru berhasil ditambahkan!');
+        return redirect()->route('guru.index')->with('success', 'Data guru dan akun pengguna berhasil ditambahkan secara otomatis!');
     }
 
     /**
@@ -79,35 +102,60 @@ class GuruController extends Controller
     {
         $guru->load(['user', 'kelas.siswas', 'guruMapels.mapel', 'guruMapels.kelas']);
 
-        return view('admin.guru.show', compact('guru'));
+        $allMapels = Mapel::orderBy('nama_mapel', 'asc')->get();
+        $allKelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();
+
+        return view('admin.kelolaGuru.show', compact('guru', 'allMapels', 'allKelases'));
     }
 
     /**
-     * Form edit guru.
+     * Form edit guru beserta penugasan mapelnya.
      */
     public function edit(Guru $guru)
     {
-        return view('admin.guru.edit', compact('guru'));
+        $guru->load(['user', 'guruMapels.mapel', 'guruMapels.kelas']);
+        $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
+        $kelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();
+
+        return view('admin.kelolaGuru.edit', compact('guru', 'mapels', 'kelases'));
     }
 
     /**
-     * Update data guru.
+     * Update data guru dan penugasan mapel.
      */
     public function update(Request $request, Guru $guru)
     {
         $validated = $request->validate([
-            'nama' => 'required|string|max:100',
-            'nip'  => ['required', 'numeric', 'digits_between:5,30', Rule::unique('gurus')->ignore($guru->id)],
+            'nama'         => 'required|string|max:100',
+            'nip'          => ['required', 'numeric', 'digits_between:5,30', Rule::unique('gurus')->ignore($guru->id)],
+            'new_mapel_id' => 'nullable|exists:mapels,id',
+            'new_kelas_id' => 'nullable|exists:kelases,id',
+        ], [
+            'nip.numeric'        => 'NIP guru harus berupa angka.',
+            'nip.digits_between' => 'NIP guru harus terdiri dari 5 hingga 30 digit angka.',
+            'nip.unique'         => 'NIP ini sudah terdaftar untuk guru lain.',
         ]);
 
-        $guru->update($validated);
+        $guru->update([
+            'nama' => $validated['nama'],
+            'nip'  => $validated['nip'],
+        ]);
 
-        // Update nama user jika terhubung
+        // Update user name jika terhubung
         if ($guru->user) {
             $guru->user->update(['name' => $validated['nama']]);
         }
 
-        return redirect()->route('guru.index')->with('success', 'Data guru berhasil diperbarui!');
+        // Tambah penugasan baru jika dipilih
+        if (!empty($validated['new_mapel_id']) && !empty($validated['new_kelas_id'])) {
+            \App\Models\GuruMapel::firstOrCreate([
+                'guru_id'  => $guru->id,
+                'mapel_id' => $validated['new_mapel_id'],
+                'kelas_id' => $validated['new_kelas_id'],
+            ]);
+        }
+
+        return redirect()->route('guru.edit', $guru->id)->with('success', 'Data guru dan penugasan mengajar berhasil diperbarui!');
     }
 
     /**
@@ -118,5 +166,125 @@ class GuruController extends Controller
         $guru->delete();
 
         return redirect()->route('guru.index')->with('success', 'Data guru berhasil dihapus!');
+    }
+
+    /**
+     * Import data guru via file CSV dan otomatis buat akun login.
+     */
+    public function importCsv(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:5120',
+        ]);
+
+        $file = $request->file('csv_file');
+        $handle = fopen($file->getRealPath(), 'r');
+
+        if (!$handle) {
+            return back()->with('error', 'Gagal membaca file CSV.');
+        }
+
+        $header = fgetcsv($handle, 1000, ',');
+        if (!$header) {
+            fclose($handle);
+            return back()->with('error', 'File CSV kosong.');
+        }
+
+        $header = array_map(function ($col) {
+            return strtolower(trim($col, "\xEF\xBB\xBF \t\n\r\0\x0B"));
+        }, $header);
+
+        $nameIdx = array_search('nama', $header) !== false ? array_search('nama', $header) : array_search('name', $header);
+        $nipIdx = array_search('nip', $header);
+
+        if ($nameIdx === false || $nipIdx === false) {
+            fclose($handle);
+            return back()->with('error', 'Format header CSV harus memuat: nama, nip');
+        }
+
+        $successCount = 0;
+        $skipCount = 0;
+        $rowNumber = 1;
+
+        while (($row = fgetcsv($handle, 1000, ',')) !== false) {
+            $rowNumber++;
+            $nama = trim($row[$nameIdx] ?? '');
+            $nip = trim($row[$nipIdx] ?? '');
+
+            if (empty($nama) || empty($nip)) {
+                continue;
+            }
+
+            // Bersihkan NIP agar hanya angka
+            $nip = preg_replace('/[^0-9]/', '', $nip);
+            if (empty($nip)) {
+                $skipCount++;
+                continue;
+            }
+
+            // Cek jika guru sudah ada
+            if (Guru::where('nip', $nip)->exists()) {
+                $skipCount++;
+                continue;
+            }
+
+            $guru = Guru::create([
+                'nama' => $nama,
+                'nip'  => $nip,
+            ]);
+
+            // Auto create akun User
+            User::firstOrCreate(
+                ['username' => $nip],
+                [
+                    'name'     => $nama,
+                    'email'    => $nip . '@guru.learnpoint.sch.id',
+                    'password' => Hash::make($nip),
+                    'role'     => 'guru',
+                    'status'   => 'aktif',
+                    'guru_id'  => $guru->id,
+                ]
+            );
+
+            $successCount++;
+        }
+
+        fclose($handle);
+
+        $msg = "Import berhasil: {$successCount} data guru dan akun pengguna berhasil ditambahkan.";
+        if ($skipCount > 0) {
+            $msg .= " ({$skipCount} baris dilewati karena NIP duplikat atau tidak valid).";
+        }
+
+        return redirect()->route('guru.index')->with('success', $msg);
+    }
+
+    /**
+     * Unduh contoh template CSV untuk import guru.
+     */
+    public function downloadTemplateCsv()
+    {
+        $headers = [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="template_import_guru_learnpoint.csv"',
+        ];
+
+        $columns = ['nama', 'nip'];
+        $sampleData = [
+            ['Dra. Siti Nurhaliza, M.Pd.', '198501012010012001'],
+            ['Ahmad Fauzi, S.Pd.', '198803152014021002'],
+            ['Bambang Pamungkas, M.Kom.', '199005202018031003'],
+        ];
+
+        $callback = function () use ($columns, $sampleData) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+            foreach ($sampleData as $row) {
+                fputcsv($file, $row);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

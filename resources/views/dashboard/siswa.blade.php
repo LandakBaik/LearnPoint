@@ -74,6 +74,47 @@
         </div>
     </div>
 
+    <!-- Guru Pengampu Mata Pelajaran di Kelas Saya (Poin 7) -->
+    <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h4 class="text-base font-bold text-gray-900">Guru Pengampu Mata Pelajaran</h4>
+                <p class="text-xs text-gray-500 mt-0.5">
+                    Daftar bapak/ibu guru pengampu pelajaran untuk rombel <strong class="text-emerald-700">{{ $siswa->kelas->nama_kelas ?? 'Kelas Belum Ditentukan' }}</strong>.
+                </p>
+            </div>
+            @if($siswa && $siswa->kelas)
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Tingkat {{ $siswa->kelas->tingkatan }}
+                </span>
+            @endif
+        </div>
+
+        @if(isset($guruPengampus) && $guruPengampus->count() > 0)
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                @foreach($guruPengampus as $gp)
+                    <div class="p-4 rounded-xl bg-gray-50/70 border border-gray-200/80 hover:border-emerald-300 hover:bg-emerald-50/20 transition-all flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white font-bold text-xs flex items-center justify-center shadow-sm shrink-0">
+                            {{ strtoupper(substr($gp->guru->nama ?? 'G', 0, 2)) }}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase tracking-wider mb-1">
+                                {{ $gp->mapel->nama_mapel ?? 'Mapel' }}
+                            </span>
+                            <h5 class="text-sm font-bold text-gray-900 truncate leading-tight">{{ $gp->guru->nama ?? 'Belum Ditentukan' }}</h5>
+                            <p class="text-xs text-gray-400 font-mono mt-0.5">NIP: {{ $gp->guru->nip ?? '-' }}</p>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <div class="p-6 text-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50">
+                <p class="text-sm font-semibold text-gray-600">Belum ada guru pengampu yang terdaftar untuk kelas Anda</p>
+                <p class="text-xs text-gray-400 mt-1">Administrator sekolah sedang mengatur jadwal dan pengampu mata pelajaran.</p>
+            </div>
+        @endif
+    </div>
+
     <!-- Quick Features for Siswa -->
     <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <h4 class="text-base font-bold text-gray-900 mb-4">Aktivitas Siswa</h4>

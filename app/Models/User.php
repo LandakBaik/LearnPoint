@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'status',
         'guru_id',
         'siswa_id',
     ];
@@ -88,5 +89,10 @@ class User extends Authenticatable
     public function isKepalaSekolah(): bool
     {
         return $this->role === 'kepala_sekolah';
+    }
+
+    public function isAktif(): bool
+    {
+        return ($this->status ?? 'aktif') === 'aktif';
     }
 }

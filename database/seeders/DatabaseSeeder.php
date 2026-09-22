@@ -46,9 +46,9 @@ class DatabaseSeeder extends Seeder
 
         // 3. Akun Siswa & Kelas
         $kelas = Kelas::firstOrCreate(
-            ['nama_kelas' => 'X IPA 1'],
+            ['nama_kelas' => 'VII IPA 1'],
             [
-                'tingkatan' => 10,
+                'tingkatan' => 7,
                 'guru_id' => $guru->id,
             ]
         );

@@ -41,9 +41,6 @@
                     <option value="7" {{ request('tingkatan') == '7' ? 'selected' : '' }}>Tingkat 7 (Kelas VII)</option>
                     <option value="8" {{ request('tingkatan') == '8' ? 'selected' : '' }}>Tingkat 8 (Kelas VIII)</option>
                     <option value="9" {{ request('tingkatan') == '9' ? 'selected' : '' }}>Tingkat 9 (Kelas IX)</option>
-                    <option value="10" {{ request('tingkatan') == '10' ? 'selected' : '' }}>Tingkat 10 (Kelas X)</option>
-                    <option value="11" {{ request('tingkatan') == '11' ? 'selected' : '' }}>Tingkat 11 (Kelas XI)</option>
-                    <option value="12" {{ request('tingkatan') == '12' ? 'selected' : '' }}>Tingkat 12 (Kelas XII)</option>
                 </select>
             </div>
 
@@ -69,6 +66,7 @@
                         <th class="py-3.5 px-4 sm:px-6">Nama Kelas</th>
                         <th class="py-3.5 px-4">Tingkatan</th>
                         <th class="py-3.5 px-4">Wali Kelas</th>
+                        <th class="py-3.5 px-4">Guru Mapel</th>
                         <th class="py-3.5 px-4">Jumlah Siswa</th>
                         <th class="py-3.5 px-4">Jadwal (Foto)</th>
                         <th class="py-3.5 px-4 text-right pr-6">Aksi</th>
@@ -102,6 +100,12 @@
                                     <span class="text-gray-400 italic text-xs">- Belum Ada Wali Kelas -</span>
                                 @endif
                             </td>
+                            <td class="py-4 px-4 text-xs font-semibold">
+                                <a href="{{ route('kelas.show', $item->id) }}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                                    <span>{{ $item->guru_mapels_count }} Mapel &rarr;</span>
+                                </a>
+                            </td>
                             <td class="py-4 px-4 font-semibold text-gray-700">
                                 <span class="inline-flex items-center gap-1">
                                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
@@ -126,7 +130,7 @@
                                     <a href="{{ route('kelas.edit', $item->id) }}" class="p-1.5 text-amber-600 hover:text-amber-900 hover:bg-amber-50 rounded-lg transition-colors" title="Edit Kelas">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </a>
-                                    <form action="{{ route('kelas.destroy', $item->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus kelas {{ $item->nama_kelas }}?');" class="inline">
+                                    <form action="{{ route('kelas.destroy', $item->id) }}" method="POST" data-confirm="Apakah Anda yakin ingin menghapus kelas {{ $item->nama_kelas }}?" class="inline">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors" title="Hapus Kelas">

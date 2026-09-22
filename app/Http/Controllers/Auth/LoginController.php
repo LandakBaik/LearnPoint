@@ -27,6 +27,17 @@ class LoginController extends Controller
 
         // Attempt login
         if (Auth::attempt([$fieldType => $request->login, 'password' => $request->password], $request->boolean('remember'))) {
+            // Periksa apakah akun dalam status aktif
+            if (Auth::user()->status === 'nonaktif') {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors([
+                    'login' => 'Akun Anda saat ini berstatus NONAKTIF. Silakan hubungi pihak administrator/sekolah.',
+                ])->onlyInput('login');
+            }
+
             $request->session()->regenerate();
 
             return redirect()->intended('/dashboard');

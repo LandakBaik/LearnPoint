@@ -9,6 +9,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Font Poppins & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -99,5 +101,63 @@
         </main>
     </div>
 
+    <!-- SweetAlert2 Handler Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            @if(session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: {!! json_encode(session('success')) !!},
+                    confirmButtonColor: '#10b981',
+                    timer: 3500,
+                    timerProgressBar: true
+                });
+            @endif
+
+            @if(session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Terjadi Kesalahan',
+                    text: {!! json_encode(session('error')) !!},
+                    confirmButtonColor: '#ef4444'
+                });
+            @endif
+
+            @if(session('warning'))
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan',
+                    text: {!! json_encode(session('warning')) !!},
+                    confirmButtonColor: '#f59e0b'
+                });
+            @endif
+
+            // Global Confirmation Handler for Forms with data-confirm
+            document.addEventListener('submit', function (e) {
+                const form = e.target;
+                const confirmMessage = form.getAttribute('data-confirm');
+                if (confirmMessage && !form.dataset.confirmed) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: 'Konfirmasi Tindakan',
+                        text: confirmMessage,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#4f46e5',
+                        cancelButtonColor: '#6b7280',
+                        confirmButtonText: 'Ya, Lanjutkan!',
+                        cancelButtonText: 'Batal',
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.dataset.confirmed = 'true';
+                            form.submit();
+                        }
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 </html>

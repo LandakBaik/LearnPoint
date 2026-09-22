@@ -87,23 +87,40 @@
                 @enderror
             </div>
 
-            <!-- Role Selector -->
-            <div>
-                <label for="role" class="block text-sm font-bold text-gray-700 mb-1">Peran Pengguna (Role) <span class="text-rose-500">*</span></label>
-                <select 
-                    id="role" 
-                    name="role" 
-                    x-model="selectedRole" 
-                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-gray-800"
-                >
-                    <option value="operator">Operator / Administrator</option>
-                    <option value="guru">Guru (Tenaga Pengajar)</option>
-                    <option value="siswa">Siswa (Peserta Didik)</option>
-                    <option value="kepala_sekolah">Kepala Sekolah</option>
-                </select>
-                @error('role')
-                    <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
-                @enderror
+            <!-- Role & Status Selector -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="role" class="block text-sm font-bold text-gray-700 mb-1">Peran Pengguna (Role) <span class="text-rose-500">*</span></label>
+                    <select 
+                        id="role" 
+                        name="role" 
+                        x-model="selectedRole" 
+                        class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-gray-800"
+                    >
+                        <option value="operator">Operator / Administrator</option>
+                        <option value="guru">Guru (Tenaga Pengajar)</option>
+                        <option value="siswa">Siswa (Peserta Didik)</option>
+                        <option value="kepala_sekolah">Kepala Sekolah</option>
+                    </select>
+                    @error('role')
+                        <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="status" class="block text-sm font-bold text-gray-700 mb-1">Status Akun <span class="text-rose-500">*</span></label>
+                    <select 
+                        id="status" 
+                        name="status" 
+                        class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-gray-800"
+                    >
+                        <option value="aktif" {{ old('status', $user->status ?? 'aktif') === 'aktif' ? 'selected' : '' }}>Aktif (Dapat Login)</option>
+                        <option value="nonaktif" {{ old('status', $user->status ?? 'aktif') === 'nonaktif' ? 'selected' : '' }}>Nonaktif (Diblokir)</option>
+                    </select>
+                    @error('status')
+                        <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
             </div>
 
             <!-- Tautan ke Data Guru -->

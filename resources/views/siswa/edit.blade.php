@@ -45,6 +45,8 @@
                         type="text" 
                         id="nis" 
                         name="nis" 
+                        inputmode="numeric"
+                        pattern="[0-9]*"
                         value="{{ old('nis', $siswa->nis) }}" 
                         required 
                         class="w-full px-4 py-2.5 rounded-xl border @error('nis') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
@@ -122,6 +124,8 @@
                         type="text" 
                         id="nohp_wali" 
                         name="nohp_wali" 
+                        inputmode="numeric"
+                        pattern="[0-9]*"
                         value="{{ old('nohp_wali', $siswa->nohp_wali) }}" 
                         required 
                         class="w-full px-4 py-2.5 rounded-xl border @error('nohp_wali') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"

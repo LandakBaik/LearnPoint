@@ -3,7 +3,7 @@
 @section('title', 'Tambah Data Siswa')
 
 @section('content')
-<div class="max-w-3xl mx-auto space-y-6" x-data="{ buatAkun: {{ old('buat_akun') ? 'true' : 'false' }} }">
+<div class="max-w-3xl mx-auto space-y-6">
 
     <!-- Header Navigation -->
     <div class="flex items-center gap-3">
@@ -45,14 +45,17 @@
                         type="text" 
                         id="nis" 
                         name="nis" 
+                        inputmode="numeric"
+                        pattern="[0-9]*"
                         value="{{ old('nis') }}" 
                         required 
-                        placeholder="Contoh: 20241001"
+                        placeholder="Contoh: 20241001 (Hanya angka)"
                         class="w-full px-4 py-2.5 rounded-xl border @error('nis') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
                     >
                     @error('nis')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror
+                    <p class="text-xs text-gray-400 mt-1">NIS harus berupa karakter angka (3-30 digit).</p>
                 </div>
             </div>
 
@@ -124,14 +127,17 @@
                         type="text" 
                         id="nohp_wali" 
                         name="nohp_wali" 
+                        inputmode="numeric"
+                        pattern="[0-9]*"
                         value="{{ old('nohp_wali') }}" 
                         required 
-                        placeholder="Contoh: 08123456789"
+                        placeholder="Contoh: 081234567890 (Hanya angka)"
                         class="w-full px-4 py-2.5 rounded-xl border @error('nohp_wali') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
                     >
                     @error('nohp_wali')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror
+                    <p class="text-xs text-gray-400 mt-1">Nomor telepon harus berupa karakter angka (8-20 digit).</p>
                 </div>
             </div>
 
@@ -151,68 +157,20 @@
                 @enderror
             </div>
 
-            <!-- Option Buat Akun Sekaligus -->
-            <div class="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-4">
-                <div class="flex items-center gap-3">
-                    <input 
-                        type="checkbox" 
-                        id="buat_akun" 
-                        name="buat_akun" 
-                        value="1" 
-                        x-model="buatAkun"
-                        class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300"
-                    >
-                    <label for="buat_akun" class="text-sm font-bold text-gray-800 cursor-pointer">
-                        Buatkan akun login pengguna untuk siswa ini secara otomatis
-                    </label>
+            <!-- Auto Account Generation Notice (Poin 5) -->
+            <div class="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex items-start gap-3">
+                <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                 </div>
-
-                <div x-show="buatAkun" x-transition class="space-y-4 pt-3 border-t border-gray-200">
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div>
-                            <label for="username" class="block text-xs font-bold text-gray-700 mb-1">Username Login <span class="text-rose-500">*</span></label>
-                            <input 
-                                type="text" 
-                                id="username" 
-                                name="username" 
-                                value="{{ old('username') }}" 
-                                placeholder="Contoh: rizky2024"
-                                class="w-full px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-                            >
-                            @error('username')
-                                <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div>
-                            <label for="email" class="block text-xs font-bold text-gray-700 mb-1">Email <span class="text-rose-500">*</span></label>
-                            <input 
-                                type="email" 
-                                id="email" 
-                                name="email" 
-                                value="{{ old('email') }}" 
-                                placeholder="Contoh: rizky@siswa.sch.id"
-                                class="w-full px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            >
-                            @error('email')
-                                <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div>
-                            <label for="password" class="block text-xs font-bold text-gray-700 mb-1">Password <span class="text-rose-500">*</span></label>
-                            <input 
-                                type="password" 
-                                id="password" 
-                                name="password" 
-                                placeholder="Minimal 4 karakter"
-                                class="w-full px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            >
-                            @error('password')
-                                <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
+                <div>
+                    <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-900">Akun Siswa Dibuat Otomatis</h4>
+                    <p class="text-xs text-emerald-700 mt-0.5 leading-relaxed">
+                        Akun login untuk siswa ini akan dibuatkan otomatis oleh sistem dengan rincian:<br>
+                        <span class="font-mono font-bold text-emerald-900">Username: NIS</span> &bull; 
+                        <span class="font-mono font-bold text-emerald-900">Password: NIS</span> &bull; 
+                        <span class="font-mono font-bold text-emerald-900">Email: NIS@siswa.learnpoint.sch.id</span> &bull; 
+                        <span class="font-bold text-emerald-800">Status: Aktif</span>
+                    </p>
                 </div>
             </div>
 

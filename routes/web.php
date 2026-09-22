@@ -12,6 +12,7 @@ use App\Http\Controllers\GuruController;
 use App\Http\Controllers\KelasController;
 use App\Http\Controllers\MapelController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\GuruMapelController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -42,11 +43,26 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/operator/dashboard', [DashboardController::class, 'operatorDashboard'])->name('operator.dashboard');
         Route::get('/admin/dashboard', [DashboardController::class, 'operatorDashboard'])->name('admin.dashboard');
 
+        // User Toggle Status
+        Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
         Route::resource('users', UserController::class);
+
+        // Guru CSV & Resource
+        Route::get('/guru/template-csv', [GuruController::class, 'downloadTemplateCsv'])->name('guru.template-csv');
+        Route::post('/guru/import-csv', [GuruController::class, 'importCsv'])->name('guru.import-csv');
         Route::resource('guru', GuruController::class);
+
+        // Siswa CSV & Resource
+        Route::get('/siswa/template-csv', [SiswaController::class, 'downloadTemplateCsv'])->name('siswa.template-csv');
+        Route::post('/siswa/import-csv', [SiswaController::class, 'importCsv'])->name('siswa.import-csv');
         Route::resource('siswa', SiswaController::class);
+
         Route::resource('kelas', KelasController::class);
         Route::resource('mapel', MapelController::class);
+
+        // Guru Mapel Assignment
+        Route::post('/guru-mapel', [GuruMapelController::class, 'store'])->name('guru-mapel.store');
+        Route::delete('/guru-mapel/{guruMapel}', [GuruMapelController::class, 'destroy'])->name('guru-mapel.destroy');
 
         // Jadwal (Foto)
         Route::get('/kelola-jadwal', [JadwalController::class, 'adminIndex'])->name('admin.jadwal.index');
