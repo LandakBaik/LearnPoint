@@ -7,6 +7,7 @@ use App\Models\Kelas;
 use App\Models\Mapel;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -202,61 +203,88 @@ class GuruController extends Controller
             return back()->with('error', 'Format header CSV harus memuat: nama, nip');
         }
 
-        $successCount = 0;
-        $skipCount = 0;
+        $validationErrors = [];
+        $rowsToImport = [];
+        $seenNip = [];
         $rowNumber = 1;
 
         while (($row = fgetcsv($handle, 1000, ',')) !== false) {
             $rowNumber++;
+
+            // Skip baris kosong
+            if (empty(array_filter($row))) {
+                continue;
+            }
+
             $nama = trim($row[$nameIdx] ?? '');
-            $nip = trim($row[$nipIdx] ?? '');
+            $rawNip = trim($row[$nipIdx] ?? '');
+            $rowErrors = [];
 
-            if (empty($nama) || empty($nip)) {
-                continue;
+            if (empty($nama)) {
+                $rowErrors[] = 'Nama guru wajib diisi.';
             }
 
-            // Bersihkan NIP agar hanya angka
-            $nip = preg_replace('/[^0-9]/', '', $nip);
-            if (empty($nip)) {
-                $skipCount++;
-                continue;
+            if (empty($rawNip)) {
+                $rowErrors[] = 'NIP wajib diisi.';
+            } else {
+                $nip = preg_replace('/[^0-9]/', '', $rawNip);
+                if (empty($nip)) {
+                    $rowErrors[] = "NIP '{$rawNip}' tidak valid (harus berupa angka).";
+                } elseif (in_array($nip, $seenNip)) {
+                    $rowErrors[] = "NIP '{$nip}' duplikat dalam file CSV ini.";
+                } elseif (Guru::where('nip', $nip)->exists()) {
+                    $rowErrors[] = "NIP '{$nip}' sudah terdaftar dalam sistem.";
+                } else {
+                    $seenNip[] = $nip;
+                }
             }
 
-            // Cek jika guru sudah ada
-            if (Guru::where('nip', $nip)->exists()) {
-                $skipCount++;
-                continue;
+            if (!empty($rowErrors)) {
+                $validationErrors[] = "Baris {$rowNumber}: " . implode(' ', $rowErrors);
+            } else {
+                $rowsToImport[] = [
+                    'nama' => $nama,
+                    'nip'  => $nip,
+                ];
             }
-
-            $guru = Guru::create([
-                'nama' => $nama,
-                'nip'  => $nip,
-            ]);
-
-            // Auto create akun User
-            User::firstOrCreate(
-                ['username' => $nip],
-                [
-                    'name'     => $nama,
-                    'email'    => $nip . '@guru.learnpoint.sch.id',
-                    'password' => Hash::make($nip),
-                    'role'     => 'guru',
-                    'status'   => 'aktif',
-                    'guru_id'  => $guru->id,
-                ]
-            );
-
-            $successCount++;
         }
 
         fclose($handle);
 
-        $msg = "Import berhasil: {$successCount} data guru dan akun pengguna berhasil ditambahkan.";
-        if ($skipCount > 0) {
-            $msg .= " ({$skipCount} baris dilewati karena NIP duplikat atau tidak valid).";
+        if (!empty($validationErrors)) {
+            return back()
+                ->with('csv_errors', $validationErrors)
+                ->with('error', 'Import CSV dibatalkan karena terdapat ' . count($validationErrors) . ' kesalahan data.');
         }
 
-        return redirect()->route('guru.index')->with('success', $msg);
+        if (empty($rowsToImport)) {
+            return back()->with('error', 'Tidak ada data valid yang dapat di-import.');
+        }
+
+        // Eksekusi penyimpan data dalam transaksi
+        DB::transaction(function () use ($rowsToImport) {
+            foreach ($rowsToImport as $data) {
+                $guru = Guru::create([
+                    'nama' => $data['nama'],
+                    'nip'  => $data['nip'],
+                ]);
+
+                User::firstOrCreate(
+                    ['username' => $data['nip']],
+                    [
+                        'name'     => $data['nama'],
+                        'email'    => $data['nip'] . '@guru.learnpoint.sch.id',
+                        'password' => Hash::make($data['nip']),
+                        'role'     => 'guru',
+                        'status'   => 'aktif',
+                        'guru_id'  => $guru->id,
+                    ]
+                );
+            }
+        });
+
+        $count = count($rowsToImport);
+        return redirect()->route('guru.index')->with('success', "Import berhasil: {$count} data guru dan akun pengguna berhasil ditambahkan.");
     }
 
     /**

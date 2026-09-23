@@ -78,8 +78,20 @@
 
         <!-- Main Body -->
         <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-gray-50">
-            <!-- Flash Message Warning / Success -->
-            @if(session('warning'))
+            <!-- Flash Message Warning / Success / CSV Errors -->
+            @if(session('csv_errors'))
+                <div class="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 shadow-sm">
+                    <div class="flex items-center gap-2 mb-2 font-bold text-red-900 text-sm">
+                        <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>{{ session('error') ?? 'Import CSV Dibatalkan' }}</span>
+                    </div>
+                    <ul class="list-disc list-inside text-xs font-mono space-y-1 text-red-700 max-h-48 overflow-y-auto pl-1">
+                        @foreach(session('csv_errors') as $err)
+                            <li>{{ $err }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @elseif(session('warning'))
                 <div class="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start justify-between shadow-sm">
                     <div class="flex items-center gap-3">
                         <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
@@ -115,7 +127,25 @@
                 });
             @endif
 
-            @if(session('error'))
+            @if(session('csv_errors'))
+                @php
+                    $csvErrList = session('csv_errors');
+                    $htmlList = '<div style="text-align: left; font-size: 12px; background-color: #fef2f2; padding: 12px; border-radius: 10px; border: 1px solid #fecaca; max-height: 200px; overflow-y: auto; font-family: monospace; color: #b91c1c;">';
+                    foreach ($csvErrList as $err) {
+                        $htmlList .= '<div style="margin-bottom: 4px;">&bull; ' . e($err) . '</div>';
+                    }
+                    $htmlList .= '</div>';
+                @endphp
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Import CSV Dibatalkan',
+                    text: {!! json_encode(session('error') ?? 'Terdapat data tidak valid pada file CSV.') !!},
+                    html: {!! json_encode($htmlList) !!},
+                    confirmButtonColor: '#ef4444',
+                    confirmButtonText: 'Tutup & Perbaiki CSV',
+                    width: '32rem'
+                });
+            @elseif(session('error'))
                 Swal.fire({
                     icon: 'error',
                     title: 'Terjadi Kesalahan',
