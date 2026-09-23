@@ -12,7 +12,7 @@
         </a>
         <div>
             <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">Edit Kelas</h1>
-            <p class="text-sm text-gray-500">Perbarui informasi rombel kelas <span class="font-bold text-gray-800">{{ $kelas->nama_kelas }}</span>.</p>
+            <p class="text-sm text-gray-500">Perbarui informasi kelas <span class="font-bold text-gray-800">{{ $kelas->nama_kelas }}</span>.</p>
         </div>
     </div>
 
@@ -24,7 +24,7 @@
 
             <!-- Nama Kelas -->
             <div>
-                <label for="nama_kelas" class="block text-sm font-bold text-gray-700 mb-1">Nama Rombel / Kelas <span class="text-rose-500">*</span></label>
+                <label for="nama_kelas" class="block text-sm font-bold text-gray-700 mb-1">Nama Kelas <span class="text-rose-500">*</span></label>
                 <input 
                     type="text" 
                     id="nama_kelas" 

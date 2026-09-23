@@ -60,7 +60,7 @@
             <!-- Kelas & Jenis Kelamin & Tanggal Lahir (Grid 3 Kolom) -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label for="kelas_id" class="block text-sm font-bold text-gray-700 mb-1">Kelas Rombel</label>
+                    <label for="kelas_id" class="block text-sm font-bold text-gray-700 mb-1">Kelas</label>
                     <select id="kelas_id" name="kelas_id" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-gray-800">
                         <option value="">-- Pilih Kelas --</option>
                         @foreach($kelases as $k)

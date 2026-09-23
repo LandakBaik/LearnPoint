@@ -13,7 +13,7 @@
             </a>
             <div>
                 <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">Detail Data Siswa</h1>
-                <p class="text-sm text-gray-500">Informasi biodata, kelas rombel, kontak wali, dan jadwal pelajaran.</p>
+                <p class="text-sm text-gray-500">Informasi biodata, kelas, kontak wali, dan jadwal pelajaran.</p>
             </div>
         </div>
         <div>

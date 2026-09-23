@@ -66,11 +66,10 @@
                 </div>
             </div>
 
-            <!-- Tambah Penugasan Mapel Sekaligus (Poin 3) -->
             <div class="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
                 <div class="flex items-center gap-2 text-gray-800">
                     <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                    <span class="text-xs font-bold uppercase tracking-wider">Tambah Penugasan Mapel & Rombel Baru (Opsional)</span>
+                    <span class="text-xs font-bold uppercase tracking-wider">Tambah Penugasan Mapel & Kelas Baru (Opsional)</span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -83,7 +82,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1">Kelas Rombel</label>
+                        <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1">Kelas</label>
                         <select name="new_kelas_id" class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-indigo-500">
                             <option value="">-- Pilih Kelas --</option>
                             @foreach($kelases as $k)
@@ -125,7 +124,7 @@
                     <tr class="bg-gray-50/80 border-b border-gray-200 text-[11px] font-bold uppercase tracking-wider text-gray-500">
                         <th class="py-3 px-6">Mata Pelajaran</th>
                         <th class="py-3 px-4">KKM</th>
-                        <th class="py-3 px-4">Kelas Rombel</th>
+                        <th class="py-3 px-4">Kelas</th>
                         <th class="py-3 px-6 text-right">Aksi</th>
                     </tr>
                 </thead>

@@ -80,7 +80,7 @@
             <div>
                 <h4 class="text-base font-bold text-gray-900">Guru Pengampu Mata Pelajaran</h4>
                 <p class="text-xs text-gray-500 mt-0.5">
-                    Daftar bapak/ibu guru pengampu pelajaran untuk rombel <strong class="text-emerald-700">{{ $siswa->kelas->nama_kelas ?? 'Kelas Belum Ditentukan' }}</strong>.
+                    Daftar bapak/ibu guru pengampu pelajaran untuk kelas <strong class="text-emerald-700">{{ $siswa->kelas->nama_kelas ?? 'Kelas Belum Ditentukan' }}</strong>.
                 </p>
             </div>
             @if($siswa && $siswa->kelas)

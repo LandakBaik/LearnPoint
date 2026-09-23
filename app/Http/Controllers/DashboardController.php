@@ -46,7 +46,7 @@ class DashboardController extends Controller
             'kepala_sekolah' => User::where('role', 'kepala_sekolah')->count(),
         ];
 
-        // Data Chart 2: Persebaran Siswa dan Rombel per Tingkatan (Bar Chart)
+        // Data Chart 2: Persebaran Siswa dan Kelas per Tingkatan (Bar Chart)
         $tingkatans = Kelas::select('tingkatan')
             ->distinct()
             ->orderBy('tingkatan', 'asc')

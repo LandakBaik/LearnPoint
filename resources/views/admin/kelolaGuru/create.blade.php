@@ -80,7 +80,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <label class="block text-sm font-bold text-gray-800">Mata Pelajaran & Kelas yang Diampu (Opsional)</label>
-                        <p class="text-xs text-gray-500">Pilih mata pelajaran yang diajarkan oleh guru ini beserta rombel kelasnya.</p>
+                        <p class="text-xs text-gray-500">Pilih mata pelajaran yang diajarkan oleh guru ini beserta kelasnya.</p>
                     </div>
                     <button 
                         type="button" 
@@ -105,7 +105,7 @@
                                 </select>
                             </div>
                             <div class="w-full sm:flex-1">
-                                <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1">Kelas Rombel</label>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1">Kelas</label>
                                 <select :name="'assignments[' + index + '][kelas_id]'" x-model="item.kelas_id" required class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-indigo-500">
                                     <option value="">-- Pilih Kelas --</option>
                                     @foreach($kelases as $k)

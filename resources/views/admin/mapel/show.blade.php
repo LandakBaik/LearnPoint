@@ -70,7 +70,7 @@
         <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Penugasan Mengajar</p>
             <h3 class="text-3xl font-extrabold text-indigo-600">{{ $mapel->guruMapels->count() }} Kelas</h3>
-            <p class="text-xs text-gray-500 mt-1">Rombel aktif terlayani guru pengampu</p>
+            <p class="text-xs text-gray-500 mt-1">Kelas aktif terlayani guru pengampu</p>
         </div>
     </div>
 
@@ -182,7 +182,7 @@
                 <div class="flex items-center justify-between pb-3 border-b border-gray-100">
                     <div>
                         <h3 class="text-lg font-extrabold text-gray-900">Tugaskan Guru Pengampu Mapel</h3>
-                        <p class="text-xs text-gray-500">Pilih guru dan rombel kelas untuk mata pelajaran {{ $mapel->nama_mapel }}.</p>
+                        <p class="text-xs text-gray-500">Pilih guru dan kelas untuk mata pelajaran {{ $mapel->nama_mapel }}.</p>
                     </div>
                     <button 
                         type="button" 
@@ -218,7 +218,7 @@
                     <!-- Pilih Kelas -->
                     <div>
                         <label for="kelas_id" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                            Pilih Rombongan Belajar (Kelas) <span class="text-rose-500">*</span>
+                            Pilih Kelas <span class="text-rose-500">*</span>
                         </label>
                         <select 
                             id="kelas_id" 

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Tambah Rombel Kelas')
+@section('title', 'Tambah Kelas')
 
 @section('content')
 <div class="max-w-2xl mx-auto space-y-6">
@@ -12,7 +12,7 @@
         </a>
         <div>
             <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">Tambah Kelas Baru</h1>
-            <p class="text-sm text-gray-500">Buat rombongan belajar baru dan tentukan guru wali kelas.</p>
+            <p class="text-sm text-gray-500">Buat kelas baru dan tentukan guru wali kelas.</p>
         </div>
     </div>
 
@@ -23,7 +23,7 @@
 
             <!-- Nama Kelas -->
             <div>
-                <label for="nama_kelas" class="block text-sm font-bold text-gray-700 mb-1">Nama Rombel / Kelas <span class="text-rose-500">*</span></label>
+                <label for="nama_kelas" class="block text-sm font-bold text-gray-700 mb-1">Nama Kelas <span class="text-rose-500">*</span></label>
                 <input 
                     type="text" 
                     id="nama_kelas" 

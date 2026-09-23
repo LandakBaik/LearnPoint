@@ -83,7 +83,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1">Pilih Kelas Rombel</label>
+                        <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1">Pilih Kelas</label>
                         <select name="new_kelas_id" class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-rose-500">
                             <option value="">-- Pilih Kelas --</option>
                             @foreach($kelases as $k)
@@ -112,7 +112,7 @@
         <div class="p-6 border-b border-gray-100 flex items-center justify-between">
             <div>
                 <h3 class="text-base font-extrabold text-gray-900">Daftar Guru Pengampu Mapel {{ $mapel->nama_mapel }}</h3>
-                <p class="text-xs text-gray-500 mt-0.5">Seluruh tenaga pendidik yang saat ini mengajar mapel ini pada masing-masing rombel.</p>
+                <p class="text-xs text-gray-500 mt-0.5">Seluruh tenaga pendidik yang saat ini mengajar mapel ini pada masing-masing kelas.</p>
             </div>
             <span class="px-3 py-1 bg-rose-50 text-rose-700 rounded-full text-xs font-bold">
                 {{ $mapel->guruMapels->count() }} Penugasan

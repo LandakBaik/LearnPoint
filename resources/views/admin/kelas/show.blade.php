@@ -12,7 +12,7 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             </a>
             <div>
-                <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">Detail Rombel {{ $kelas->nama_kelas }}</h1>
+                <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">Detail Kelas {{ $kelas->nama_kelas }}</h1>
                 <p class="text-sm text-gray-500">Tingkat {{ $kelas->tingkatan }} &bull; Wali Kelas, Guru Pengampu, dan Siswa Terdaftar.</p>
             </div>
         </div>
@@ -51,9 +51,9 @@
 
     <!-- Summary Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <!-- Rombel Info -->
+        <!-- Kelas Info -->
         <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Rombongan Belajar</p>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Nama Kelas</p>
             <h3 class="text-2xl font-extrabold text-gray-900">{{ $kelas->nama_kelas }}</h3>
             <span class="inline-block mt-2 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
                 Jenjang Tingkat {{ $kelas->tingkatan }}
@@ -204,7 +204,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-base font-bold text-gray-900">Daftar Siswa di Kelas Ini</h3>
-                <p class="text-xs text-gray-500">Seluruh siswa yang terdaftar dalam rombel {{ $kelas->nama_kelas }}.</p>
+                <p class="text-xs text-gray-500">Seluruh siswa yang terdaftar dalam kelas {{ $kelas->nama_kelas }}.</p>
             </div>
             <a href="{{ route('siswa.create') }}" class="text-xs font-semibold text-emerald-600 hover:underline">
                 + Tambah Siswa Baru

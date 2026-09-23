@@ -9,7 +9,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Data Siswa</h1>
-            <p class="text-sm text-gray-500 mt-1">Daftar peserta didik aktif, kelas rombel, dan informasi wali murid.</p>
+            <p class="text-sm text-gray-500 mt-1">Daftar peserta didik aktif, kelas, dan informasi wali murid.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <a href="{{ route('siswa.template-csv') }}" class="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl transition-colors" title="Unduh contoh template CSV Siswa">

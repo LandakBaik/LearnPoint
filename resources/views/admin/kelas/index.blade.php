@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Kelola Rombongan Belajar (Kelas)')
+@section('title', 'Kelola Kelas')
 
 @section('content')
 <div class="space-y-6">
@@ -9,7 +9,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Kelola Kelas</h1>
-            <p class="text-sm text-gray-500 mt-1">Daftar rombongan belajar (rombel), tingkatan kelas, dan guru wali kelas.</p>
+            <p class="text-sm text-gray-500 mt-1">Daftar kelas, tingkatan kelas, dan guru wali kelas.</p>
         </div>
         <div>
             <a href="{{ route('kelas.create') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-xl shadow-md shadow-amber-200 transition-all hover:shadow-lg hover:-translate-y-0.5">
@@ -148,7 +148,7 @@
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h.01M9 16h.01M9 12h.01M9 8h.01M15 16h.01M15 12h.01M15 8h.01"/></svg>
                                     </div>
                                     <p class="font-semibold text-gray-700">Tidak ada data kelas ditemukan</p>
-                                    <p class="text-xs text-gray-400">Coba ubah kata kunci pencarian atau buat rombel kelas baru.</p>
+                                    <p class="text-xs text-gray-400">Coba ubah kata kunci pencarian atau buat kelas baru.</p>
                                 </div>
                             </td>
                         </tr>

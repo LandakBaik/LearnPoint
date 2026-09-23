@@ -106,7 +106,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
                 <h3 class="text-base font-bold text-gray-900">Daftar Mata Pelajaran & Kelas Mengajar</h3>
-                <p class="text-xs text-gray-500">Mata pelajaran dan rombel kelas yang diampu oleh {{ $guru->nama }}.</p>
+                <p class="text-xs text-gray-500">Mata pelajaran dan kelas yang diampu oleh {{ $guru->nama }}.</p>
             </div>
             <button 
                 @click="assignModalOpen = true" 
@@ -245,7 +245,7 @@
                 <div class="flex items-center justify-between pb-3 border-b border-gray-100">
                     <div>
                         <h3 class="text-lg font-extrabold text-gray-900">Tugaskan Mengajar Mapel & Kelas</h3>
-                        <p class="text-xs text-gray-500">Pilih mapel dan rombel kelas untuk {{ $guru->nama }}.</p>
+                        <p class="text-xs text-gray-500">Pilih mapel dan kelas untuk {{ $guru->nama }}.</p>
                     </div>
                     <button 
                         type="button" 
@@ -281,7 +281,7 @@
                     <!-- Pilih Kelas -->
                     <div>
                         <label for="guru_modal_kelas_id" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                            Pilih Rombongan Belajar (Kelas) <span class="text-rose-500">*</span>
+                            Pilih Kelas <span class="text-rose-500">*</span>
                         </label>
                         <select 
                             id="guru_modal_kelas_id" 
