@@ -77,32 +77,12 @@ class JadwalController extends Controller
         $path = $request->file('foto_jadwal')->store('jadwal/kelas', 'public');
 
         // Hapus file lama jika ada
-        $oldJadwal = AnggotaKelas::where('kelas_id', $kelas->id)
-            ->whereNotNull('jadwal')
-            ->value('jadwal');
-
-        if ($oldJadwal && Storage::disk('public')->exists($oldJadwal)) {
-            Storage::disk('public')->delete($oldJadwal);
+        if ($kelas->jadwal && Storage::disk('public')->exists($kelas->jadwal)) {
+            Storage::disk('public')->delete($kelas->jadwal);
         }
 
-        // Perbarui semua anggota kelas di kelas tersebut
-        $anggotaCount = AnggotaKelas::where('kelas_id', $kelas->id)->count();
-
-        if ($anggotaCount > 0) {
-            AnggotaKelas::where('kelas_id', $kelas->id)->update(['jadwal' => $path]);
-        } else {
-            // Jika ada siswa di kelas tersebut tapi belum tercatat di anggota_kelases
-            $siswas = $kelas->siswas;
-            foreach ($siswas as $siswa) {
-                AnggotaKelas::create([
-                    'kelas_id'     => $kelas->id,
-                    'siswa_id'     => $siswa->id,
-                    'tahun_ajaran' => '2026/2027',
-                    'semester'     => 'ganjil',
-                    'jadwal'       => $path,
-                ]);
-            }
-        }
+        // Simpan langsung pada tabel kelases
+        $kelas->update(['jadwal' => $path]);
 
         return redirect()->route('admin.jadwal.index', ['tab' => 'kelas'])
             ->with('success', "Foto jadwal untuk kelas {$kelas->nama_kelas} berhasil diunggah!");
@@ -161,15 +141,11 @@ class JadwalController extends Controller
      */
     public function destroyJadwalKelas(Kelas $kelas)
     {
-        $jadwal = AnggotaKelas::where('kelas_id', $kelas->id)
-            ->whereNotNull('jadwal')
-            ->value('jadwal');
-
-        if ($jadwal && Storage::disk('public')->exists($jadwal)) {
-            Storage::disk('public')->delete($jadwal);
+        if ($kelas->jadwal && Storage::disk('public')->exists($kelas->jadwal)) {
+            Storage::disk('public')->delete($kelas->jadwal);
         }
 
-        AnggotaKelas::where('kelas_id', $kelas->id)->update(['jadwal' => null]);
+        $kelas->update(['jadwal' => null]);
 
         return redirect()->route('admin.jadwal.index', ['tab' => 'kelas'])
             ->with('success', "Foto jadwal kelas {$kelas->nama_kelas} berhasil dihapus!");

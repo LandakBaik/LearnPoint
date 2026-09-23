@@ -87,22 +87,12 @@ class SiswaController extends Controller
 
         // Jika kelas dipilih, daftarkan otomatis ke anggota_kelases
         if (!empty($validated['kelas_id'])) {
-            $jadwalFoto = AnggotaKelas::where('kelas_id', $validated['kelas_id'])
-                ->whereNotNull('jadwal')
-                ->latest()
-                ->value('jadwal');
-
-            AnggotaKelas::firstOrCreate(
-                [
-                    'kelas_id'     => $validated['kelas_id'],
-                    'siswa_id'     => $siswa->id,
-                    'tahun_ajaran' => '2026/2027',
-                    'semester'     => 'ganjil',
-                ],
-                [
-                    'jadwal'       => $jadwalFoto,
-                ]
-            );
+            AnggotaKelas::firstOrCreate([
+                'kelas_id'     => $validated['kelas_id'],
+                'siswa_id'     => $siswa->id,
+                'tahun_ajaran' => '2026/2027',
+                'semester'     => 'ganjil',
+            ]);
         }
 
         // Auto Create Akun User Siswa (Poin 5)
@@ -168,11 +158,6 @@ class SiswaController extends Controller
 
         // Sinkronisasi ke anggota_kelases
         if (!empty($validated['kelas_id'])) {
-            $jadwalFoto = AnggotaKelas::where('kelas_id', $validated['kelas_id'])
-                ->whereNotNull('jadwal')
-                ->latest()
-                ->value('jadwal');
-
             AnggotaKelas::updateOrCreate(
                 [
                     'siswa_id'     => $siswa->id,
@@ -181,7 +166,6 @@ class SiswaController extends Controller
                 ],
                 [
                     'kelas_id'     => $validated['kelas_id'],
-                    'jadwal'       => $jadwalFoto,
                 ]
             );
         }

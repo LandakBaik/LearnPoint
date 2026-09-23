@@ -17,7 +17,6 @@ class AnggotaKelas extends Model
         'siswa_id',
         'tahun_ajaran',
         'semester',
-        'jadwal',
     ];
 
     public function kelas(): BelongsTo
@@ -28,13 +27,5 @@ class AnggotaKelas extends Model
     public function siswa(): BelongsTo
     {
         return $this->belongsTo(Siswa::class, 'siswa_id');
-    }
-
-    /**
-     * Helper to get full storage URL for jadwal image
-     */
-    public function getJadwalUrlAttribute(): ?string
-    {
-        return $this->jadwal ? asset('storage/' . $this->jadwal) : null;
     }
 }

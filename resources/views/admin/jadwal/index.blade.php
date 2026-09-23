@@ -11,7 +11,8 @@
     uploadModalOpen: false,
     uploadType: 'kelas',
     selectedId: '',
-    selectedName: ''
+    selectedName: '',
+    filePreview: null
 }">
 
     <!-- Header Title -->
@@ -279,13 +280,13 @@
         x-show="uploadModalOpen"
         style="display: none;"
         class="fixed inset-0 z-50 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4"
-        @click.self="uploadModalOpen = false">
+        @click.self="uploadModalOpen = false; filePreview = null">
         <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl p-6 space-y-5">
             <div class="flex items-center justify-between border-b border-gray-100 pb-3">
                 <h3 class="text-base font-bold text-gray-900">
                     Upload Foto Jadwal <span x-text="selectedName" class="text-indigo-600 font-extrabold"></span>
                 </h3>
-                <button @click="uploadModalOpen = false" class="p-1 text-gray-400 hover:text-gray-700 rounded-lg">
+                <button @click="uploadModalOpen = false; filePreview = null" class="p-1 text-gray-400 hover:text-gray-700 rounded-lg">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -309,11 +310,20 @@
                         name="foto_jadwal"
                         required
                         accept="image/jpeg,image/png,image/jpg,image/webp"
+                        @change="const f = $event.target.files[0]; filePreview = f ? URL.createObjectURL(f) : null;"
                         class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-gray-200 rounded-xl p-2 bg-gray-50/50">
                 </div>
 
+                <!-- Live Preview Image Box -->
+                <template x-if="filePreview">
+                    <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 text-center space-y-1.5">
+                        <p class="text-[11px] font-bold text-gray-500">Preview Foto Yang Dipilih:</p>
+                        <img :src="filePreview" alt="Live Preview" class="max-h-48 mx-auto rounded-lg object-contain shadow-sm border border-gray-100">
+                    </div>
+                </template>
+
                 <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-                    <button type="button" @click="uploadModalOpen = false" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold">
+                    <button type="button" @click="uploadModalOpen = false; filePreview = null" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold">
                         Batal
                     </button>
                     <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-200">
@@ -340,11 +350,20 @@
                         name="foto_jadwal"
                         required
                         accept="image/jpeg,image/png,image/jpg,image/webp"
+                        @change="const f = $event.target.files[0]; filePreview = f ? URL.createObjectURL(f) : null;"
                         class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-gray-200 rounded-xl p-2 bg-gray-50/50">
                 </div>
 
+                <!-- Live Preview Image Box -->
+                <template x-if="filePreview">
+                    <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 text-center space-y-1.5">
+                        <p class="text-[11px] font-bold text-gray-500">Preview Foto Yang Dipilih:</p>
+                        <img :src="filePreview" alt="Live Preview" class="max-h-48 mx-auto rounded-lg object-contain shadow-sm border border-gray-100">
+                    </div>
+                </template>
+
                 <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-                    <button type="button" @click="uploadModalOpen = false" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold">
+                    <button type="button" @click="uploadModalOpen = false; filePreview = null" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold">
                         Batal
                     </button>
                     <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-200">

@@ -19,6 +19,7 @@ class Kelas extends Model
         'nama_kelas',
         'tingkatan',
         'guru_id',
+        'jadwal',
     ];
 
     public function guru(): BelongsTo
@@ -42,16 +43,10 @@ class Kelas extends Model
     }
 
     /**
-     * Get the current active schedule image for this class
+     * Get the current active schedule image URL for this class
      */
-    public function getJadwalAttribute(): ?string
-    {
-        return $this->anggotaKelases()->whereNotNull('jadwal')->latest()->value('jadwal');
-    }
-
     public function getJadwalUrlAttribute(): ?string
     {
-        $jadwal = $this->jadwal;
-        return $jadwal ? asset('storage/' . $jadwal) : null;
+        return $this->jadwal ? asset('storage/' . $this->jadwal) : null;
     }
 }
