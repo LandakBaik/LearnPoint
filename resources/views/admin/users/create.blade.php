@@ -31,6 +31,9 @@
         <form action="{{ route('users.store') }}" method="POST" class="space-y-6">
             @csrf
 
+            <!-- Hidden Status (Auto Aktif) -->
+            <input type="hidden" name="status" value="aktif">
+
             <!-- Nama Lengkap -->
             <div>
                 <label for="name" class="block text-sm font-bold text-gray-700 mb-1">Nama Lengkap <span class="text-rose-500">*</span></label>
@@ -41,8 +44,10 @@
                     value="{{ old('name') }}" 
                     required 
                     placeholder="Contoh: Budi Santoso, M.Pd."
+                    oninput="this.value = this.value.replace(/[^a-zA-Z\s\.,]/g, '')"
                     class="w-full px-4 py-2.5 rounded-xl border @error('name') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
+                <p class="text-xs text-gray-500 mt-1">Hanya boleh berisi huruf, spasi, koma (,), dan titik (.).</p>
                 @error('name')
                     <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                 @enderror
@@ -99,34 +104,20 @@
                 @enderror
             </div>
 
-            <!-- Role Selector & Status -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label for="role" class="block text-sm font-bold text-gray-700 mb-1">Peran Pengguna (Role) <span class="text-rose-500">*</span></label>
-                    <select 
-                        id="role" 
-                        name="role" 
-                        x-model="selectedRole" 
-                        class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-gray-800"
-                    >
-                        <option value="operator">Operator / Administrator</option>
-                        <option value="kepala_sekolah">Kepala Sekolah</option>
-                        <option value="guru">Guru (Tenaga Pengajar)</option>
-                        <option value="siswa">Siswa (Peserta Didik)</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label for="status" class="block text-sm font-bold text-gray-700 mb-1">Status Awal Akun <span class="text-rose-500">*</span></label>
-                    <select 
-                        id="status" 
-                        name="status" 
-                        class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-gray-800"
-                    >
-                        <option value="aktif">Aktif (Dapat Login)</option>
-                        <option value="nonaktif">Nonaktif (Diblokir Sementara)</option>
-                    </select>
-                </div>
+            <!-- Role Selector -->
+            <div>
+                <label for="role" class="block text-sm font-bold text-gray-700 mb-1">Peran Pengguna (Role) <span class="text-rose-500">*</span></label>
+                <select 
+                    id="role" 
+                    name="role" 
+                    x-model="selectedRole" 
+                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-gray-800"
+                >
+                    <option value="operator">Operator / Administrator</option>
+                    <option value="kepala_sekolah">Kepala Sekolah</option>
+                    <option value="guru">Guru (Tenaga Pengajar)</option>
+                    <option value="siswa">Siswa (Peserta Didik)</option>
+                </select>
             </div>
 
             <!-- Tautan ke Data Guru (Kondisional jika role == guru) -->

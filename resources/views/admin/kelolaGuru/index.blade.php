@@ -33,8 +33,8 @@
 
     <!-- Filter & Search Card -->
     <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
-        <form method="GET" action="{{ route('guru.index') }}" class="flex flex-col sm:flex-row gap-3">
-            <div class="flex-1 relative">
+        <form method="GET" action="{{ route('guru.index') }}" class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+            <div class="sm:col-span-6 relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </div>
@@ -46,17 +46,38 @@
                     class="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50/50"
                 >
             </div>
-            <div class="flex gap-2">
-                <button type="submit" class="py-2 px-5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl text-sm font-medium transition-colors">
-                    Cari
+
+            <!-- Filter Tingkatan (7,8,9) (Manager Requirement) -->
+            <div class="sm:col-span-4">
+                <select name="tingkatan" class="w-full py-2 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50/50 text-gray-700">
+                    <option value="">Semua Tingkatan (7, 8, 9)</option>
+                    <option value="7" {{ request('tingkatan') == '7' ? 'selected' : '' }}>Tingkatan 7</option>
+                    <option value="8" {{ request('tingkatan') == '8' ? 'selected' : '' }}>Tingkatan 8</option>
+                    <option value="9" {{ request('tingkatan') == '9' ? 'selected' : '' }}>Tingkatan 9</option>
+                </select>
+            </div>
+
+            <div class="sm:col-span-2 flex gap-2">
+                <button type="submit" class="flex-1 py-2 px-4 bg-gray-800 hover:bg-gray-900 text-white rounded-xl text-sm font-medium transition-colors">
+                    Filter
                 </button>
-                @if(request('search'))
-                    <a href="{{ route('guru.index') }}" class="py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-medium transition-colors flex items-center justify-center">
+                @if(request()->hasAny(['search', 'tingkatan']))
+                    <a href="{{ route('guru.index') }}" class="py-2 px-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-medium transition-colors flex items-center justify-center">
                         Reset
                     </a>
                 @endif
             </div>
         </form>
+
+        <!-- Total Data Counter (Persyaratan Manager Poin 3) -->
+        <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 font-medium">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold text-xs">
+                    Total: {{ $gurus->total() }} / {{ $totalGuru }}
+                </span>
+                <span>Menampilkan <strong>{{ $gurus->total() }}</strong> dari total <strong>{{ $totalGuru }}</strong> data guru{{ request()->hasAny(['search', 'tingkatan']) ? ' (setelah difilter)' : '' }}.</span>
+            </div>
+        </div>
     </div>
 
     <!-- Table Card -->
@@ -66,6 +87,7 @@
                 <thead>
                     <tr class="bg-gray-50/80 border-b border-gray-200 text-[11px] font-bold uppercase tracking-wider text-gray-500">
                         <th class="py-3.5 px-4 sm:px-6">Nama & NIP</th>
+                        <th class="py-3.5 px-4">Status Data</th>
                         <th class="py-3.5 px-4">Akun Pengguna</th>
                         <th class="py-3.5 px-4">Wali Kelas</th>
                         <th class="py-3.5 px-4">Mapel Diampu</th>
@@ -74,10 +96,10 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100 text-sm">
                     @forelse($gurus as $guru)
-                        <tr class="hover:bg-gray-50/60 transition-colors">
+                        <tr class="hover:bg-gray-50/60 transition-colors {{ ($guru->status ?? 'aktif') === 'nonaktif' ? 'bg-gray-50/60 opacity-75' : '' }}">
                             <td class="py-4 px-4 sm:px-6">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm shrink-0">
+                                    <div class="w-10 h-10 rounded-full {{ ($guru->status ?? 'aktif') === 'nonaktif' ? 'bg-gray-300 text-gray-600' : 'bg-indigo-100 text-indigo-700' }} flex items-center justify-center font-bold text-sm shrink-0">
                                         {{ strtoupper(substr($guru->nama, 0, 1)) }}
                                     </div>
                                     <div>
@@ -87,11 +109,24 @@
                                 </div>
                             </td>
                             <td class="py-4 px-4">
+                                @if(($guru->status ?? 'aktif') === 'aktif')
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        Aktif
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                        Nonaktif
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="py-4 px-4">
                                 @if($guru->user)
                                     <div class="flex items-center gap-1.5 text-xs text-gray-600">
                                         <span class="w-2 h-2 rounded-full {{ ($guru->user->status ?? 'aktif') === 'aktif' ? 'bg-emerald-500' : 'bg-rose-500' }}"></span>
                                         <span class="font-mono text-gray-800 font-semibold">{{ $guru->user->username }}</span>
-                                        <span class="text-gray-400">({{ $guru->user->role }})</span>
+                                        <span class="text-gray-400">({{ $guru->user->status }})</span>
                                     </div>
                                 @else
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
@@ -134,12 +169,20 @@
                                     <a href="{{ route('guru.edit', $guru->id) }}" class="p-1.5 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded-lg transition-colors" title="Edit Guru & Mapel">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </a>
-                                    <form action="{{ route('guru.destroy', $guru->id) }}" method="POST" data-confirm="Apakah Anda yakin ingin menghapus data guru {{ $guru->nama }}? Data penugasan mengajar dan akun terkait akan terpengaruh." class="inline">
+                                    
+                                    <!-- Tombol Toggle Status Nonaktif / Aktif (Menggantikan Hapus Permanen) -->
+                                    <form action="{{ route('guru.toggle-status', $guru->id) }}" method="POST" data-confirm="{{ ($guru->status ?? 'aktif') === 'aktif' ? 'Apakah Anda yakin ingin menonaktifkan data guru ' . $guru->nama . '? Akun login yang terikat juga akan otomatis dinonaktifkan.' : 'Apakah Anda yakin ingin mengaktifkan kembali data guru ' . $guru->nama . '? Akun login yang terikat juga akan kembali aktif.' }}" class="inline">
                                         @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors" title="Hapus Guru">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                        </button>
+                                        @method('PATCH')
+                                        @if(($guru->status ?? 'aktif') === 'aktif')
+                                            <button type="submit" class="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition-colors" title="Nonaktifkan Guru">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                                            </button>
+                                        @else
+                                            <button type="submit" class="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors" title="Aktifkan Guru">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            </button>
+                                        @endif
                                     </form>
                                 </div>
                             </td>

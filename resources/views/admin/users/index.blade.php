@@ -95,6 +95,16 @@
                 @endif
             </div>
         </form>
+
+        <!-- Total Data Counter (Persyaratan Manager Poin 3) -->
+        <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 font-medium">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold text-xs">
+                    Total: {{ $users->total() }} / {{ $totalUsers }}
+                </span>
+                <span>Menampilkan <strong>{{ $users->total() }}</strong> dari total <strong>{{ $totalUsers }}</strong> akun pengguna{{ request()->hasAny(['search', 'role']) ? ' (setelah difilter)' : '' }}.</span>
+            </div>
+        </div>
     </div>
 
     <!-- Table Card -->
@@ -188,8 +198,8 @@
                                     </a>
 
                                     @if(auth()->id() !== $user->id)
-                                        <!-- Tombol Toggle Status Nonaktif / Aktif (Poin 4) -->
-                                        <form action="{{ route('users.toggle-status', $user->id) }}" method="POST" data-confirm="{{ ($user->status ?? 'aktif') === 'aktif' ? 'Nonaktifkan akun ' . $user->name . '? Pengguna tidak akan bisa login ke sistem.' : 'Aktifkan kembali akun ' . $user->name . '?' }}" class="inline">
+                                        <!-- Tombol Toggle Status Nonaktif / Aktif -->
+                                        <form action="{{ route('users.toggle-status', $user->id) }}" method="POST" data-confirm="{{ ($user->status ?? 'aktif') === 'aktif' ? 'Apakah Anda yakin ingin menonaktifkan akun ' . $user->name . '? Data terikat (guru/siswa) dan akses login pengguna akan otomatis dinonaktifkan.' : 'Apakah Anda yakin ingin mengaktifkan kembali akun ' . $user->name . '? Data terikat (guru/siswa) dan akses login pengguna akan kembali aktif.' }}" class="inline">
                                             @csrf
                                             @method('PATCH')
                                             @if(($user->status ?? 'aktif') === 'aktif')

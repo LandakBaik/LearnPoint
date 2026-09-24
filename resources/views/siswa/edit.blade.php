@@ -39,6 +39,7 @@
                     @enderror
                 </div>
 
+                <!-- NIS Siswa (Min 4, Max 10 Digit) -->
                 <div>
                     <label for="nis" class="block text-sm font-bold text-gray-700 mb-1">Nomor Induk Siswa (NIS) <span class="text-rose-500">*</span></label>
                     <input 
@@ -46,11 +47,15 @@
                         id="nis" 
                         name="nis" 
                         inputmode="numeric"
-                        pattern="[0-9]*"
+                        pattern="[0-9]{4,10}"
+                        minlength="4"
+                        maxlength="10"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)"
                         value="{{ old('nis', $siswa->nis) }}" 
                         required 
                         class="w-full px-4 py-2.5 rounded-xl border @error('nis') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
                     >
+                    <p class="text-xs text-gray-500 mt-1">NIS harus terdiri dari 4 hingga 10 digit angka.</p>
                     @error('nis')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror
@@ -91,10 +96,13 @@
                         type="date" 
                         id="tanggal_lahir" 
                         name="tanggal_lahir" 
+                        min="{{ now()->subYears(16)->format('Y-m-d') }}"
+                        max="{{ now()->subYears(10)->format('Y-m-d') }}"
                         value="{{ old('tanggal_lahir', $siswa->tanggal_lahir) }}" 
                         required 
                         class="w-full px-4 py-2.5 rounded-xl border @error('tanggal_lahir') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
+                    <p class="text-xs text-gray-500 mt-1">Usia siswa harus antara 10 hingga 16 tahun.</p>
                     @error('tanggal_lahir')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror

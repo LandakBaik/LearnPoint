@@ -31,8 +31,10 @@
                     name="name" 
                     value="{{ old('name', $user->name) }}" 
                     required 
+                    oninput="this.value = this.value.replace(/[^a-zA-Z\s\.,]/g, '')"
                     class="w-full px-4 py-2.5 rounded-xl border @error('name') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
+                <p class="text-xs text-gray-500 mt-1">Hanya boleh berisi huruf, spasi, koma (,), dan titik (.).</p>
                 @error('name')
                     <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                 @enderror

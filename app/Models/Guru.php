@@ -14,6 +14,7 @@ class Guru extends Model
     protected $fillable = [
         'nama',
         'nip',
+        'status',
     ];
 
     public function user()

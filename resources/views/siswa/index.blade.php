@@ -34,7 +34,7 @@
     <!-- Filter & Search Card -->
     <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
         <form method="GET" action="{{ route('siswa.index') }}" class="grid grid-cols-1 sm:grid-cols-12 gap-3">
-            <div class="sm:col-span-6 relative">
+            <div class="sm:col-span-5 relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </div>
@@ -42,12 +42,23 @@
                     type="text" 
                     name="search" 
                     value="{{ request('search') }}" 
-                    placeholder="Cari berdasarkan nama, NIS, atau wali murid..."
+                    placeholder="Cari nama, NIS, atau wali murid..."
                     class="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-gray-50/50"
                 >
             </div>
 
-            <div class="sm:col-span-4">
+            <!-- Filter Tingkatan (7,8,9) (Manager Requirement) -->
+            <div class="sm:col-span-3">
+                <select name="tingkatan" class="w-full py-2 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-gray-50/50 text-gray-700">
+                    <option value="">Semua Tingkatan</option>
+                    <option value="7" {{ request('tingkatan') == '7' ? 'selected' : '' }}>Tingkatan 7</option>
+                    <option value="8" {{ request('tingkatan') == '8' ? 'selected' : '' }}>Tingkatan 8</option>
+                    <option value="9" {{ request('tingkatan') == '9' ? 'selected' : '' }}>Tingkatan 9</option>
+                </select>
+            </div>
+
+            <!-- Filter Kelas -->
+            <div class="sm:col-span-2">
                 <select name="kelas_id" class="w-full py-2 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-gray-50/50 text-gray-700">
                     <option value="">Semua Kelas</option>
                     @foreach($kelases as $k)
@@ -60,15 +71,25 @@
 
             <div class="sm:col-span-2 flex gap-2">
                 <button type="submit" class="flex-1 py-2 px-4 bg-gray-800 hover:bg-gray-900 text-white rounded-xl text-sm font-medium transition-colors">
-                    Cari
+                    Filter
                 </button>
-                @if(request()->hasAny(['search', 'kelas_id']))
+                @if(request()->hasAny(['search', 'kelas_id', 'tingkatan']))
                     <a href="{{ route('siswa.index') }}" class="py-2 px-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-medium transition-colors flex items-center justify-center">
                         Reset
                     </a>
                 @endif
             </div>
         </form>
+
+        <!-- Total Data Counter (Persyaratan Manager Poin 3) -->
+        <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 font-medium">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-xs">
+                    Total: {{ $siswa->total() }} / {{ $totalSiswa }}
+                </span>
+                <span>Menampilkan <strong>{{ $siswa->total() }}</strong> dari total <strong>{{ $totalSiswa }}</strong> data siswa{{ request()->hasAny(['search', 'kelas_id', 'tingkatan']) ? ' (setelah difilter)' : '' }}.</span>
+            </div>
+        </div>
     </div>
 
     <!-- Table Card -->
@@ -78,6 +99,7 @@
                 <thead>
                     <tr class="bg-gray-50/80 border-b border-gray-200 text-[11px] font-bold uppercase tracking-wider text-gray-500">
                         <th class="py-3.5 px-4 sm:px-6">Nama & NIS</th>
+                        <th class="py-3.5 px-4">Status Data</th>
                         <th class="py-3.5 px-4">Akun Login</th>
                         <th class="py-3.5 px-4">Kelas</th>
                         <th class="py-3.5 px-4">L/P</th>
@@ -87,10 +109,10 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100 text-sm">
                     @forelse($siswa as $data)
-                        <tr class="hover:bg-gray-50/60 transition-colors">
+                        <tr class="hover:bg-gray-50/60 transition-colors {{ ($data->status ?? 'aktif') === 'nonaktif' ? 'bg-gray-50/60 opacity-75' : '' }}">
                             <td class="py-4 px-4 sm:px-6">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0">
+                                    <div class="w-9 h-9 rounded-full {{ ($data->status ?? 'aktif') === 'nonaktif' ? 'bg-gray-300 text-gray-600' : 'bg-emerald-100 text-emerald-700' }} flex items-center justify-center font-bold text-xs shrink-0">
                                         {{ strtoupper(substr($data->nama_siswa, 0, 1)) }}
                                     </div>
                                     <div>
@@ -98,6 +120,19 @@
                                         <p class="text-xs text-gray-500 font-mono">NIS: {{ $data->nis }}</p>
                                     </div>
                                 </div>
+                            </td>
+                            <td class="py-4 px-4">
+                                @if(($data->status ?? 'aktif') === 'aktif')
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        Aktif
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                        Nonaktif
+                                    </span>
+                                @endif
                             </td>
                             <td class="py-4 px-4">
                                 @if($data->user)
@@ -141,12 +176,20 @@
                                     <a href="{{ route('siswa.edit', $data->id) }}" class="p-1.5 text-emerald-600 hover:text-emerald-900 hover:bg-emerald-50 rounded-lg transition-colors" title="Edit Siswa">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </a>
-                                    <form action="{{ route('siswa.destroy', $data->id) }}" method="POST" data-confirm="Apakah Anda yakin ingin menghapus data siswa {{ $data->nama_siswa }}? Akun dan data nilai terkait akan terpengaruh." class="inline">
+                                    
+                                    <!-- Tombol Toggle Status Nonaktif / Aktif (Menggantikan Hapus Permanen) -->
+                                    <form action="{{ route('siswa.toggle-status', $data->id) }}" method="POST" data-confirm="{{ ($data->status ?? 'aktif') === 'aktif' ? 'Apakah Anda yakin ingin menonaktifkan data siswa ' . $data->nama_siswa . '? Akun login yang terikat juga akan otomatis dinonaktifkan.' : 'Apakah Anda yakin ingin mengaktifkan kembali data siswa ' . $data->nama_siswa . '? Akun login yang terikat juga akan kembali aktif.' }}" class="inline">
                                         @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors" title="Hapus Siswa">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                        </button>
+                                        @method('PATCH')
+                                        @if(($data->status ?? 'aktif') === 'aktif')
+                                            <button type="submit" class="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition-colors" title="Nonaktifkan Siswa">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                                            </button>
+                                        @else
+                                            <button type="submit" class="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors" title="Aktifkan Siswa">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            </button>
+                                        @endif
                                     </form>
                                 </div>
                             </td>

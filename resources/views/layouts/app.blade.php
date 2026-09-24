@@ -20,7 +20,7 @@
     <!-- Sidebar & Layout Custom CSS -->
     <link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans antialiased min-h-screen flex" x-data="{ sidebarOpen: false }">
+<body class="bg-gray-100 text-gray-800 font-sans antialiased h-screen flex overflow-hidden" x-data="{ sidebarOpen: false }">
 
     <!-- Mobile Sidebar Backdrop -->
     <div 
@@ -39,7 +39,7 @@
     <!-- Sidebar Navigation -->
     <aside 
         :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-        class="sidebar-container fixed lg:static inset-y-0 left-0 w-64 z-50 transform transition-transform duration-300 ease-in-out flex flex-col shadow-2xl shrink-0"
+        class="sidebar-container fixed lg:sticky top-0 left-0 h-screen w-64 z-50 lg:z-30 transform transition-transform duration-300 ease-in-out flex flex-col shadow-2xl shrink-0"
     >
         @php
             $userRole = auth()->user()->role ?? 'guru';

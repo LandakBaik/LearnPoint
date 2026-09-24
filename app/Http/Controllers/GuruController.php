@@ -28,9 +28,22 @@ class GuruController extends Controller
             });
         }
 
+        // Filter berdasarkan tingkatan (7, 8, 9)
+        if ($request->filled('tingkatan')) {
+            $tingkatan = $request->tingkatan;
+            $query->where(function ($q) use ($tingkatan) {
+                $q->whereHas('guruMapels.kelas', function ($q2) use ($tingkatan) {
+                    $q2->where('tingkatan', $tingkatan);
+                })->orWhereHas('kelas', function ($q2) use ($tingkatan) {
+                    $q2->where('tingkatan', $tingkatan);
+                });
+            });
+        }
+
+        $totalGuru = Guru::count();
         $gurus = $query->latest()->paginate(10)->withQueryString();
 
-        return view('admin.kelolaGuru.index', compact('gurus'));
+        return view('admin.kelolaGuru.index', compact('gurus', 'totalGuru'));
     }
 
     /**
@@ -51,19 +64,20 @@ class GuruController extends Controller
     {
         $validated = $request->validate([
             'nama'                   => 'required|string|max:100',
-            'nip'                    => 'required|numeric|digits_between:5,30|unique:gurus,nip',
+            'nip'                    => 'required|numeric|digits:18|unique:gurus,nip',
             'assignments'            => 'nullable|array',
             'assignments.*.mapel_id' => 'nullable|exists:mapels,id',
             'assignments.*.kelas_id' => 'nullable|exists:kelases,id',
         ], [
-            'nip.numeric'        => 'NIP guru harus berupa angka.',
-            'nip.digits_between' => 'NIP guru harus terdiri dari 5 hingga 30 digit angka.',
-            'nip.unique'         => 'NIP ini sudah terdaftar untuk guru lain.',
+            'nip.numeric' => 'NIP guru harus berupa angka.',
+            'nip.digits'  => 'NIP guru harus tepat 18 digit angka.',
+            'nip.unique'  => 'NIP ini sudah terdaftar untuk guru lain.',
         ]);
 
         $guru = Guru::create([
-            'nama' => $validated['nama'],
-            'nip'  => $validated['nip'],
+            'nama'   => $validated['nama'],
+            'nip'    => $validated['nip'],
+            'status' => 'aktif',
         ]);
 
         // Auto Create Akun User Guru (Poin 5)
@@ -128,13 +142,13 @@ class GuruController extends Controller
     {
         $validated = $request->validate([
             'nama'         => 'required|string|max:100',
-            'nip'          => ['required', 'numeric', 'digits_between:5,30', Rule::unique('gurus')->ignore($guru->id)],
+            'nip'          => ['required', 'numeric', 'digits:18', Rule::unique('gurus')->ignore($guru->id)],
             'new_mapel_id' => 'nullable|exists:mapels,id',
             'new_kelas_id' => 'nullable|exists:kelases,id',
         ], [
-            'nip.numeric'        => 'NIP guru harus berupa angka.',
-            'nip.digits_between' => 'NIP guru harus terdiri dari 5 hingga 30 digit angka.',
-            'nip.unique'         => 'NIP ini sudah terdaftar untuk guru lain.',
+            'nip.numeric' => 'NIP guru harus berupa angka.',
+            'nip.digits'  => 'NIP guru harus tepat 18 digit angka.',
+            'nip.unique'  => 'NIP ini sudah terdaftar untuk guru lain.',
         ]);
 
         $guru->update([
@@ -160,13 +174,27 @@ class GuruController extends Controller
     }
 
     /**
-     * Hapus data guru.
+     * Ubah status guru menjadi aktif atau nonaktif (dan otomatis sinkronkan status akun user terikat).
+     */
+    public function toggleStatus(Guru $guru)
+    {
+        $guru->status = ($guru->status === 'aktif') ? 'nonaktif' : 'aktif';
+        $guru->save();
+
+        if ($guru->user) {
+            $guru->user->update(['status' => $guru->status]);
+        }
+
+        $statusText = $guru->status === 'aktif' ? 'diaktifkan kembali' : 'dinonaktifkan';
+        return redirect()->route('guru.index')->with('success', "Data guru {$guru->nama} dan akun terikat berhasil {$statusText}!");
+    }
+
+    /**
+     * Menonaktifkan data guru (menggantikan fungsi hapus permanen).
      */
     public function destroy(Guru $guru)
     {
-        $guru->delete();
-
-        return redirect()->route('guru.index')->with('success', 'Data guru berhasil dihapus!');
+        return $this->toggleStatus($guru);
     }
 
     /**
@@ -230,6 +258,8 @@ class GuruController extends Controller
                 $nip = preg_replace('/[^0-9]/', '', $rawNip);
                 if (empty($nip)) {
                     $rowErrors[] = "NIP '{$rawNip}' tidak valid (harus berupa angka).";
+                } elseif (strlen($nip) !== 18) {
+                    $rowErrors[] = "NIP '{$nip}' harus tepat 18 digit angka.";
                 } elseif (in_array($nip, $seenNip)) {
                     $rowErrors[] = "NIP '{$nip}' duplikat dalam file CSV ini.";
                 } elseif (Guru::where('nip', $nip)->exists()) {

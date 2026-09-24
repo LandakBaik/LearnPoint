@@ -50,11 +50,13 @@ Route::middleware(['auth'])->group(function () {
         // Guru CSV & Resource
         Route::get('/guru/template-csv', [GuruController::class, 'downloadTemplateCsv'])->name('guru.template-csv');
         Route::post('/guru/import-csv', [GuruController::class, 'importCsv'])->name('guru.import-csv');
+        Route::patch('/guru/{guru}/toggle-status', [GuruController::class, 'toggleStatus'])->name('guru.toggle-status');
         Route::resource('guru', GuruController::class);
 
         // Siswa CSV & Resource
         Route::get('/siswa/template-csv', [SiswaController::class, 'downloadTemplateCsv'])->name('siswa.template-csv');
         Route::post('/siswa/import-csv', [SiswaController::class, 'importCsv'])->name('siswa.import-csv');
+        Route::patch('/siswa/{siswa}/toggle-status', [SiswaController::class, 'toggleStatus'])->name('siswa.toggle-status');
         Route::resource('siswa', SiswaController::class);
 
         Route::resource('kelas', KelasController::class);

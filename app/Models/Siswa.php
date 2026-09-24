@@ -20,6 +20,7 @@ class Siswa extends Model
         'wali_murid',
         'nohp_wali',
         'kelas_id',
+        'status',
     ];
 
     public function kelas()

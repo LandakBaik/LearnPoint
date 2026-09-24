@@ -26,6 +26,13 @@ class SiswaController extends Controller
             $query->where('kelas_id', $request->kelas_id);
         }
 
+        // Filter tingkatan (7, 8, 9)
+        if ($request->filled('tingkatan')) {
+            $query->whereHas('kelas', function ($q) use ($request) {
+                $q->where('tingkatan', $request->tingkatan);
+            });
+        }
+
         // Search
         if ($request->filled('search')) {
             $search = $request->search;
@@ -36,10 +43,11 @@ class SiswaController extends Controller
             });
         }
 
+        $totalSiswa = Siswa::count();
         $siswa = $query->latest()->paginate(10)->withQueryString();
         $kelases = Kelas::all();
 
-        return view('siswa.index', compact('siswa', 'kelases'));
+        return view('siswa.index', compact('siswa', 'kelases', 'totalSiswa'));
     }
 
     /**
@@ -57,21 +65,26 @@ class SiswaController extends Controller
      */
     public function store(Request $request)
     {
+        $maxDate = now()->subYears(10)->format('Y-m-d');
+        $minDate = now()->subYears(16)->format('Y-m-d');
+
         $validated = $request->validate([
             'nama_siswa'    => ['required', 'string', 'max:100'],
-            'nis'           => 'required|numeric|digits_between:3,30|unique:siswas,nis',
+            'nis'           => 'required|numeric|digits_between:4,10|unique:siswas,nis',
             'alamat'        => 'required|string',
-            'tanggal_lahir' => 'required|date',
+            'tanggal_lahir' => ['required', 'date', 'before_or_equal:' . $maxDate, 'after_or_equal:' . $minDate],
             'jenis_kelamin' => 'required|in:L,P',
             'wali_murid'    => ['required', 'string', 'max:100'],
             'nohp_wali'     => 'required|numeric|digits_between:8,20',
             'kelas_id'      => 'nullable|exists:kelases,id',
         ], [
-            'nis.numeric'              => 'NIS siswa harus berupa angka.',
-            'nis.digits_between'       => 'NIS siswa harus terdiri dari 3 hingga 30 digit angka.',
-            'nis.unique'               => 'NIS ini sudah terdaftar untuk siswa lain.',
-            'nohp_wali.numeric'        => 'Nomor telepon / WhatsApp wali murid harus berupa angka.',
-            'nohp_wali.digits_between' => 'Nomor telepon wali murid harus terdiri dari 8 hingga 20 digit angka.',
+            'nis.numeric'                   => 'NIS siswa harus berupa angka.',
+            'nis.digits_between'            => 'NIS siswa harus terdiri dari 4 hingga 10 digit angka.',
+            'nis.unique'                    => 'NIS ini sudah terdaftar untuk siswa lain.',
+            'tanggal_lahir.before_or_equal' => 'Usia siswa minimal harus 10 tahun (tanggal lahir tidak boleh setelah ' . now()->subYears(10)->translatedFormat('d F Y') . ').',
+            'tanggal_lahir.after_or_equal'  => 'Usia siswa maksimal 16 tahun (tanggal lahir tidak boleh sebelum ' . now()->subYears(16)->translatedFormat('d F Y') . ').',
+            'nohp_wali.numeric'             => 'Nomor telepon / WhatsApp wali murid harus berupa angka.',
+            'nohp_wali.digits_between'      => 'Nomor telepon wali murid harus terdiri dari 8 hingga 20 digit angka.',
         ]);
 
         $siswa = Siswa::create([
@@ -83,6 +96,7 @@ class SiswaController extends Controller
             'wali_murid'    => $validated['wali_murid'],
             'nohp_wali'     => $validated['nohp_wali'],
             'kelas_id'      => $validated['kelas_id'] ?? null,
+            'status'        => 'aktif',
         ]);
 
         // Jika kelas dipilih, daftarkan otomatis ke anggota_kelases
@@ -137,21 +151,26 @@ class SiswaController extends Controller
      */
     public function update(Request $request, Siswa $siswa)
     {
+        $maxDate = now()->subYears(10)->format('Y-m-d');
+        $minDate = now()->subYears(16)->format('Y-m-d');
+
         $validated = $request->validate([
             'nama_siswa'    => ['required', 'string', 'max:100'],
-            'nis'           => ['required', 'numeric', 'digits_between:3,30', Rule::unique('siswas')->ignore($siswa->id)],
+            'nis'           => ['required', 'numeric', 'digits_between:4,10', Rule::unique('siswas')->ignore($siswa->id)],
             'alamat'        => 'required|string',
-            'tanggal_lahir' => 'required|date',
+            'tanggal_lahir' => ['required', 'date', 'before_or_equal:' . $maxDate, 'after_or_equal:' . $minDate],
             'jenis_kelamin' => 'required|in:L,P',
             'wali_murid'    => ['required', 'string', 'max:100'],
             'nohp_wali'     => 'required|numeric|digits_between:8,20',
             'kelas_id'      => 'nullable|exists:kelases,id',
         ], [
-            'nis.numeric'              => 'NIS siswa harus berupa angka.',
-            'nis.digits_between'       => 'NIS siswa harus terdiri dari 3 hingga 30 digit angka.',
-            'nis.unique'               => 'NIS ini sudah terdaftar untuk siswa lain.',
-            'nohp_wali.numeric'        => 'Nomor telepon / WhatsApp wali murid harus berupa angka.',
-            'nohp_wali.digits_between' => 'Nomor telepon wali murid harus terdiri dari 8 hingga 20 digit angka.',
+            'nis.numeric'                   => 'NIS siswa harus berupa angka.',
+            'nis.digits_between'            => 'NIS siswa harus terdiri dari 4 hingga 10 digit angka.',
+            'nis.unique'                    => 'NIS ini sudah terdaftar untuk siswa lain.',
+            'tanggal_lahir.before_or_equal' => 'Usia siswa minimal harus 10 tahun (tanggal lahir tidak boleh setelah ' . now()->subYears(10)->translatedFormat('d F Y') . ').',
+            'tanggal_lahir.after_or_equal'  => 'Usia siswa maksimal 16 tahun (tanggal lahir tidak boleh sebelum ' . now()->subYears(16)->translatedFormat('d F Y') . ').',
+            'nohp_wali.numeric'             => 'Nomor telepon / WhatsApp wali murid harus berupa angka.',
+            'nohp_wali.digits_between'      => 'Nomor telepon wali murid harus terdiri dari 8 hingga 20 digit angka.',
         ]);
 
         $siswa->update($validated);
@@ -178,13 +197,27 @@ class SiswaController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Ubah status siswa menjadi aktif atau nonaktif (dan otomatis sinkronkan status akun user terikat).
+     */
+    public function toggleStatus(Siswa $siswa)
+    {
+        $siswa->status = ($siswa->status === 'aktif') ? 'nonaktif' : 'aktif';
+        $siswa->save();
+
+        if ($siswa->user) {
+            $siswa->user->update(['status' => $siswa->status]);
+        }
+
+        $statusText = $siswa->status === 'aktif' ? 'diaktifkan kembali' : 'dinonaktifkan';
+        return redirect()->route('siswa.index')->with('success', "Data siswa {$siswa->nama_siswa} dan akun terikat berhasil {$statusText}!");
+    }
+
+    /**
+     * Menonaktifkan data siswa (menggantikan fungsi hapus permanen).
      */
     public function destroy(Siswa $siswa)
     {
-        $siswa->delete();
-
-        return redirect()->route('siswa.index')->with('success', 'Data siswa berhasil dihapus!');
+        return $this->toggleStatus($siswa);
     }
 
     /**
@@ -254,6 +287,8 @@ class SiswaController extends Controller
                 $nis = preg_replace('/[^0-9]/', '', $rawNis);
                 if (empty($nis)) {
                     $rowErrors[] = "NIS '{$rawNis}' tidak valid (harus berupa angka).";
+                } elseif (strlen($nis) < 4 || strlen($nis) > 10) {
+                    $rowErrors[] = "NIS '{$nis}' harus terdiri dari 4 hingga 10 digit angka.";
                 } elseif (in_array($nis, $seenNis)) {
                     $rowErrors[] = "NIS '{$nis}' duplikat dalam file CSV ini.";
                 } elseif (Siswa::where('nis', $nis)->exists()) {
@@ -263,15 +298,23 @@ class SiswaController extends Controller
                 }
             }
 
-            // Normalisasi & validasi Tanggal Lahir
+            // Normalisasi & validasi Tanggal Lahir (Usia 10-16 tahun)
             $rawTgl = $tglIdx !== false ? trim($row[$tglIdx] ?? '') : '';
-            $normalizedTgl = '2010-01-01'; // Default jika kosong
-            if (!empty($rawTgl)) {
+            $normalizedTgl = null;
+            if (empty($rawTgl)) {
+                $rowErrors[] = 'Tanggal lahir wajib diisi.';
+            } else {
                 $parsedTgl = DateHelper::normalize($rawTgl);
                 if (!$parsedTgl) {
                     $rowErrors[] = "Format tanggal lahir '{$rawTgl}' tidak valid.";
                 } else {
-                    $normalizedTgl = $parsedTgl;
+                    $birthDate = \Carbon\Carbon::parse($parsedTgl);
+                    $age = $birthDate->age;
+                    if ($age < 10 || $age > 16) {
+                        $rowErrors[] = "Tanggal lahir '{$rawTgl}' ({$parsedTgl}) tidak memenuhi syarat. Usia siswa harus antara 10 hingga 16 tahun (terdeteksi usia: {$age} tahun).";
+                    } else {
+                        $normalizedTgl = $parsedTgl;
+                    }
                 }
             }
 

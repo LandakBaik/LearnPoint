@@ -47,7 +47,7 @@
                     @enderror
                 </div>
 
-                <!-- NIP Guru -->
+                <!-- NIP Guru (Wajib 18 Digit Angka) -->
                 <div>
                     <label for="nip" class="block text-sm font-bold text-gray-700 mb-1">Nomor Induk Pegawai (NIP) <span class="text-rose-500">*</span></label>
                     <input 
@@ -55,11 +55,15 @@
                         id="nip" 
                         name="nip" 
                         inputmode="numeric"
-                        pattern="[0-9]*"
+                        pattern="[0-9]{18}"
+                        minlength="18"
+                        maxlength="18"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 18)"
                         value="{{ old('nip', $guru->nip) }}" 
                         required 
                         class="w-full px-4 py-2.5 rounded-xl border @error('nip') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                     >
+                    <p class="text-xs text-gray-500 mt-1">NIP harus tepat 18 digit angka.</p>
                     @error('nip')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror

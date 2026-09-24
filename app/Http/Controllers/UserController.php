@@ -34,6 +34,8 @@ class UserController extends Controller
             });
         }
 
+        $totalUsers = User::count();
+
         // Urutkan default berdasarkan prioritas role: Admin/Operator -> Kepala Sekolah -> Guru -> Siswa
         $users = $query->orderByRaw("CASE 
             WHEN role = 'operator' THEN 1 
@@ -45,7 +47,7 @@ class UserController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return view('admin.users.index', compact('users'));
+        return view('admin.users.index', compact('users', 'totalUsers'));
     }
 
     /**
@@ -66,7 +68,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'      => 'required|string|max:255',
+            'name'      => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s\.,]+$/u'],
             'username'  => 'required|string|max:50|unique:users,username|alpha_dash',
             'email'     => ['required', 'string', 'email:rfc', 'regex:/^[^@\s]+@[^@\s]+\.[^@\s]+$/', 'max:255', 'unique:users,email'],
             'password'  => 'required|string|min:4',
@@ -75,12 +77,13 @@ class UserController extends Controller
             'guru_id'   => 'nullable|exists:gurus,id',
             'siswa_id'  => 'nullable|exists:siswas,id',
         ], [
+            'name.regex'  => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
             'email.regex' => 'Format email harus valid dan wajib menyertakan simbol @ serta nama domain.',
             'email.email' => 'Format email tidak valid.',
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
-        $validated['status'] = $validated['status'] ?? 'aktif';
+        $validated['status'] = 'aktif';
 
         // Sesuaikan relasi jika role bukan guru atau siswa
         if ($validated['role'] !== 'guru') {
@@ -117,7 +120,7 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
-            'name'      => 'required|string|max:255',
+            'name'      => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s\.,]+$/u'],
             'username'  => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('users')->ignore($user->id)],
             'email'     => ['required', 'string', 'email:rfc', 'regex:/^[^@\s]+@[^@\s]+\.[^@\s]+$/', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password'  => 'nullable|string|min:4',
@@ -126,6 +129,7 @@ class UserController extends Controller
             'guru_id'   => 'nullable|exists:gurus,id',
             'siswa_id'  => 'nullable|exists:siswas,id',
         ], [
+            'name.regex'  => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
             'email.regex' => 'Format email harus valid dan wajib menyertakan simbol @ serta nama domain.',
             'email.email' => 'Format email tidak valid.',
         ]);
@@ -149,7 +153,7 @@ class UserController extends Controller
     }
 
     /**
-     * Ubah status akun pengguna menjadi aktif atau nonaktif (menggantikan fungsi hapus akun).
+     * Ubah status akun pengguna menjadi aktif atau nonaktif (menggantikan fungsi hapus akun) dan otomatis sinkronkan data terikat.
      */
     public function toggleStatus(User $user)
     {
@@ -160,8 +164,16 @@ class UserController extends Controller
         $user->status = ($user->status === 'aktif') ? 'nonaktif' : 'aktif';
         $user->save();
 
+        // Otomatis nonaktifkan/aktifkan data guru atau siswa yang terikat
+        if ($user->guru) {
+            $user->guru->update(['status' => $user->status]);
+        }
+        if ($user->siswa) {
+            $user->siswa->update(['status' => $user->status]);
+        }
+
         $statusText = $user->status === 'aktif' ? 'diaktifkan kembali' : 'dinonaktifkan';
-        return redirect()->route('users.index')->with('success', "Akun {$user->name} berhasil {$statusText}!");
+        return redirect()->route('users.index')->with('success', "Akun {$user->name} dan data terkait berhasil {$statusText}!");
     }
 
     /**
