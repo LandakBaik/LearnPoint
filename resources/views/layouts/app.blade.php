@@ -162,7 +162,7 @@
                     confirmButtonColor: '#f59e0b'
                 });
             @endif
-
+ 
             // Global Confirmation Handler for Forms with data-confirm
             document.addEventListener('submit', function (e) {
                 const form = e.target;

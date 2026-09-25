@@ -62,7 +62,6 @@ class DatabaseSeeder extends Seeder
                 'jenis_kelamin' => 'L',
                 'wali_murid' => 'Orang Tua Budi',
                 'nohp_wali' => '081234567890',
-                'kelas_id' => $kelas->id,
             ]
         );
 
