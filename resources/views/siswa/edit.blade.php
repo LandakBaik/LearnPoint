@@ -26,12 +26,12 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label for="nama_siswa" class="block text-sm font-bold text-gray-700 mb-1">Nama Lengkap Siswa <span class="text-rose-500">*</span></label>
-                    <input 
-                        type="text" 
-                        id="nama_siswa" 
-                        name="nama_siswa" 
-                        value="{{ old('nama_siswa', $siswa->nama_siswa) }}" 
-                        required 
+                    <input
+                        type="text"
+                        id="nama_siswa"
+                        name="nama_siswa"
+                        value="{{ old('nama_siswa', $siswa->nama_siswa) }}"
+                        required
                         class="w-full px-4 py-2.5 rounded-xl border @error('nama_siswa') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                     @error('nama_siswa')
@@ -42,17 +42,17 @@
                 <!-- NIS Siswa (Min 4, Max 10 Digit) -->
                 <div>
                     <label for="nis" class="block text-sm font-bold text-gray-700 mb-1">Nomor Induk Siswa (NIS) <span class="text-rose-500">*</span></label>
-                    <input 
-                        type="text" 
-                        id="nis" 
-                        name="nis" 
+                    <input
+                        type="text"
+                        id="nis"
+                        name="nis"
                         inputmode="numeric"
                         pattern="[0-9]{4,10}"
                         minlength="4"
                         maxlength="10"
                         oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)"
-                        value="{{ old('nis', $siswa->nis) }}" 
-                        required 
+                        value="{{ old('nis', $siswa->nis) }}"
+                        required
                         class="w-full px-4 py-2.5 rounded-xl border @error('nis') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
                     >
                     <p class="text-xs text-gray-500 mt-1">NIS harus terdiri dari 4 hingga 10 digit angka.</p>
@@ -69,7 +69,7 @@
                     <select id="kelas_id" name="kelas_id" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-gray-800">
                         <option value="">-- Pilih Kelas --</option>
                         @foreach($kelases as $k)
-                            <option value="{{ $k->id }}" {{ old('kelas_id', $siswa->kelas_id) == $k->id ? 'selected' : '' }}>
+                            <option value="{{ $k->id }}" {{ old('kelas_id', $siswa->kelas?->id) == $k->id ? 'selected' : '' }}>
                                 {{ $k->nama_kelas }} (Tingkat {{ $k->tingkatan }})
                             </option>
                         @endforeach
@@ -92,14 +92,14 @@
 
                 <div>
                     <label for="tanggal_lahir" class="block text-sm font-bold text-gray-700 mb-1">Tanggal Lahir <span class="text-rose-500">*</span></label>
-                    <input 
-                        type="date" 
-                        id="tanggal_lahir" 
-                        name="tanggal_lahir" 
+                    <input
+                        type="date"
+                        id="tanggal_lahir"
+                        name="tanggal_lahir"
                         min="{{ now()->subYears(16)->format('Y-m-d') }}"
                         max="{{ now()->subYears(10)->format('Y-m-d') }}"
-                        value="{{ old('tanggal_lahir', $siswa->tanggal_lahir) }}" 
-                        required 
+                        value="{{ old('tanggal_lahir', $siswa->tanggal_lahir) }}"
+                        required
                         class="w-full px-4 py-2.5 rounded-xl border @error('tanggal_lahir') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                     <p class="text-xs text-gray-500 mt-1">Usia siswa harus antara 10 hingga 16 tahun.</p>
@@ -113,12 +113,12 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label for="wali_murid" class="block text-sm font-bold text-gray-700 mb-1">Nama Orang Tua / Wali <span class="text-rose-500">*</span></label>
-                    <input 
-                        type="text" 
-                        id="wali_murid" 
-                        name="wali_murid" 
-                        value="{{ old('wali_murid', $siswa->wali_murid) }}" 
-                        required 
+                    <input
+                        type="text"
+                        id="wali_murid"
+                        name="wali_murid"
+                        value="{{ old('wali_murid', $siswa->wali_murid) }}"
+                        required
                         class="w-full px-4 py-2.5 rounded-xl border @error('wali_murid') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                     @error('wali_murid')
@@ -128,14 +128,14 @@
 
                 <div>
                     <label for="nohp_wali" class="block text-sm font-bold text-gray-700 mb-1">No. HP / WhatsApp Wali <span class="text-rose-500">*</span></label>
-                    <input 
-                        type="text" 
-                        id="nohp_wali" 
-                        name="nohp_wali" 
+                    <input
+                        type="text"
+                        id="nohp_wali"
+                        name="nohp_wali"
                         inputmode="numeric"
                         pattern="[0-9]*"
-                        value="{{ old('nohp_wali', $siswa->nohp_wali) }}" 
-                        required 
+                        value="{{ old('nohp_wali', $siswa->nohp_wali) }}"
+                        required
                         class="w-full px-4 py-2.5 rounded-xl border @error('nohp_wali') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
                     >
                     @error('nohp_wali')
@@ -147,11 +147,11 @@
             <!-- Alamat Lengkap -->
             <div>
                 <label for="alamat" class="block text-sm font-bold text-gray-700 mb-1">Alamat Tempat Tinggal <span class="text-rose-500">*</span></label>
-                <textarea 
-                    id="alamat" 
-                    name="alamat" 
-                    rows="3" 
-                    required 
+                <textarea
+                    id="alamat"
+                    name="alamat"
+                    rows="3"
+                    required
                     class="w-full px-4 py-2.5 rounded-xl border @error('alamat') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >{{ old('alamat', $siswa->alamat) }}</textarea>
                 @error('alamat')

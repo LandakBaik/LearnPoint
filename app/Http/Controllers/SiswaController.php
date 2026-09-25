@@ -23,7 +23,9 @@ class SiswaController extends Controller
 
         // Filter kelas
         if ($request->filled('kelas_id')) {
-            $query->where('kelas_id', $request->kelas_id);
+            $query->whereHas('anggotaKelases', function ($q) use ($request) {
+                $q->where('kelas_id', $request->kelas_id);
+            });
         }
 
         // Filter tingkatan (7, 8, 9)
@@ -95,7 +97,6 @@ class SiswaController extends Controller
             'jenis_kelamin' => $validated['jenis_kelamin'],
             'wali_murid'    => $validated['wali_murid'],
             'nohp_wali'     => $validated['nohp_wali'],
-            'kelas_id'      => $validated['kelas_id'] ?? null,
             'status'        => 'aktif',
         ]);
 
@@ -173,7 +174,7 @@ class SiswaController extends Controller
             'nohp_wali.digits_between'      => 'Nomor telepon wali murid harus terdiri dari 8 hingga 20 digit angka.',
         ]);
 
-        $siswa->update($validated);
+        $siswa->update(array_diff_key($validated, ['kelas_id' => true]));
 
         // Sinkronisasi ke anggota_kelases
         if (!empty($validated['kelas_id'])) {
@@ -187,6 +188,11 @@ class SiswaController extends Controller
                     'kelas_id'     => $validated['kelas_id'],
                 ]
             );
+        } else {
+            AnggotaKelas::where('siswa_id', $siswa->id)
+                ->where('tahun_ajaran', '2026/2027')
+                ->where('semester', 'ganjil')
+                ->delete();
         }
 
         if ($siswa->user) {
@@ -275,6 +281,7 @@ class SiswaController extends Controller
 
             $nama = trim($row[$nameIdx] ?? '');
             $rawNis = trim($row[$nisIdx] ?? '');
+            $nis = null;
             $rowErrors = [];
 
             if (empty($nama)) {
@@ -379,7 +386,7 @@ class SiswaController extends Controller
         // Eksekusi penyimpan data dalam transaksi
         DB::transaction(function () use ($rowsToImport) {
             foreach ($rowsToImport as $data) {
-                $siswa = Siswa::create($data);
+                $siswa = Siswa::create(array_diff_key($data, ['kelas_id' => true]));
 
                 if ($data['kelas_id']) {
                     AnggotaKelas::firstOrCreate(
@@ -422,9 +429,9 @@ class SiswaController extends Controller
 
         $columns = ['nama_siswa', 'nis', 'alamat', 'tanggal_lahir', 'jenis_kelamin', 'wali_murid', 'nohp_wali', 'kelas'];
         $sampleData = [
-            ['Muhammad Rizky', '20241001', 'Jl. Merpati Putih No. 12', '2012-05-14', 'L', 'Hendra Kusuma', '081234567891', '7-A'],
-            ['Siti Aisyah', '20241002', 'Jl. Kenanga Indah No. 5', '2012-08-20', 'P', 'Rahmat Hidayat', '081234567892', '7-A'],
-            ['Budi Santoso', '20241003', 'Jl. Dahlia No. 44', '2012-03-10', 'L', 'Sutrisno', '081234567893', '7-B'],
+            ['Muhammad Rizky', '20241001', 'Jl. Merpati Putih No. 12', '2012-05-14', 'L', 'Hendra Kusuma', '081234567891', ''],
+            ['Siti Aisyah', '20241002', 'Jl. Kenanga Indah No. 5', '2012-08-20', 'P', 'Rahmat Hidayat', '081234567892', ''],
+            ['Budi Santoso', '20241003', 'Jl. Dahlia No. 44', '2012-03-10', 'L', 'Sutrisno', '081234567893', ''],
         ];
 
         $callback = function () use ($columns, $sampleData) {

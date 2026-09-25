@@ -9,6 +9,17 @@ class Soal extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::saving(function (Soal $soal): void {
+            $activityForeignKeys = [$soal->quiz_id, $soal->tugas_id, $soal->ujian_id];
+
+            if (count(array_filter($activityForeignKeys, static fn ($value) => $value !== null)) !== 1) {
+                throw new \InvalidArgumentException('Soal harus terhubung tepat ke satu aktivitas.');
+            }
+        });
+    }
+
     protected $table = 'soals';
 
     protected $fillable = [

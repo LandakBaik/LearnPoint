@@ -19,13 +19,21 @@ class Siswa extends Model
         'jenis_kelamin',
         'wali_murid',
         'nohp_wali',
-        'kelas_id',
         'status',
     ];
 
     public function kelas()
     {
-        return $this->belongsTo(Kelas::class, 'kelas_id');
+        return $this->hasOneThrough(
+            Kelas::class,
+            AnggotaKelas::class,
+            'siswa_id',
+            'id',
+            'id',
+            'kelas_id'
+        )
+            ->where('anggota_kelases.tahun_ajaran', '2026/2027')
+            ->where('anggota_kelases.semester', 'ganjil');
     }
 
     public function anggotaKelases()
