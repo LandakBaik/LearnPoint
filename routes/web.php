@@ -38,6 +38,27 @@ Route::middleware(['auth'])->group(function () {
     // Main Dashboard Router
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // ==========================================
+    // 💡 ROUTE DASHBOARD KHUSUS (TARUH DI ATAS RESOURCE)
+    // ==========================================
+    Route::get('/guru/dashboard', [DashboardController::class, 'guruDashboard'])->name('guru.dashboard');
+    Route::get('/siswa/dashboard', [DashboardController::class, 'siswaDashboard'])->name('siswa.dashboard');
+
+    // Dashboard Guru Fitur
+    Route::middleware(['role:guru'])->group(function () {
+        Route::get('/guru/materi', [MateriController::class, 'index'])->name('guru.materi');
+        Route::get('/guru/tugas', [TugasController::class, 'index'])->name('guru.tugas');
+        Route::get('/guru/jadwal', [JadwalController::class, 'index'])->name('guru.jadwal');
+    });
+
+    // Dashboard Siswa Fitur
+    Route::middleware(['auth', 'role:siswa'])->group(function() {
+        Route::get('/siswa/materi', [MateriController::class, 'indexSiswa'])->name('siswa.materi');
+        Route::get('/siswa/materi/{id}', [MateriController::class, 'showSiswa'])->name('siswa.materi.show');
+        Route::get('/siswa/tugas', [TugasController::class, 'indexSiswa'])->name('siswa.tugas');
+        Route::get('/siswa/jadwal', [JadwalController::class, 'index'])->name('siswa.jadwal');
+    });
+
     // Dashboard Admin / Operator
     Route::middleware(['role:operator,admin'])->group(function () {
         Route::get('/operator/dashboard', [DashboardController::class, 'operatorDashboard'])->name('operator.dashboard');
@@ -72,19 +93,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/kelola-jadwal/guru', [JadwalController::class, 'uploadJadwalGuru'])->name('admin.jadwal.upload_guru');
         Route::delete('/kelola-jadwal/kelas/{kelas}', [JadwalController::class, 'destroyJadwalKelas'])->name('admin.jadwal.destroy_kelas');
         Route::delete('/kelola-jadwal/guru/{guruMapel}', [JadwalController::class, 'destroyJadwalGuru'])->name('admin.jadwal.destroy_guru');
-    });
-
-    // Dashboard Guru
-    Route::middleware(['role:guru'])->group(function () {
-        Route::get('/guru/dashboard', [DashboardController::class, 'guruDashboard'])->name('guru.dashboard');
-        Route::get('/guru/materi', [MateriController::class, 'index'])->name('guru.materi');
-        Route::get('/guru/tugas', [TugasController::class, 'index'])->name('guru.tugas');
-        Route::get('/guru/jadwal', [JadwalController::class, 'index'])->name('guru.jadwal');
-    });
-
-    // Dashboard Siswa
-    Route::middleware(['role:siswa'])->group(function () {
-        Route::get('/siswa/dashboard', [DashboardController::class, 'siswaDashboard'])->name('siswa.dashboard');
     });
 
     // Dashboard Kepala Sekolah
