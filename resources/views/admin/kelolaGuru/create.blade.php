@@ -95,36 +95,53 @@
                     </button>
                 </div>
 
-                <div class="space-y-2.5">
+                <div class="space-y-3">
                     <template x-for="(item, index) in assignments" :key="index">
-                        <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 flex flex-col sm:flex-row items-center gap-3">
-                            <div class="w-full sm:flex-1">
-                                <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1">Mata Pelajaran</label>
-                                <select :name="'assignments[' + index + '][mapel_id]'" x-model="item.mapel_id" required class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-indigo-500">
-                                    <option value="">-- Pilih Mata Pelajaran --</option>
-                                    @foreach($mapels as $m)
-                                        <option value="{{ $m->id }}">{{ $m->nama_mapel }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="w-full sm:flex-1">
-                                <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1">Kelas</label>
-                                <select :name="'assignments[' + index + '][kelas_id]'" x-model="item.kelas_id" required class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-indigo-500">
-                                    <option value="">-- Pilih Kelas --</option>
-                                    @foreach($kelases as $k)
-                                        <option value="{{ $k->id }}">{{ $k->nama_kelas }} (Tingkat {{ $k->tingkatan }})</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="pt-2 sm:pt-4 self-end sm:self-center">
+                        <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
+                            <div class="flex items-center justify-between pb-2 border-b border-gray-200/60">
+                                <span class="text-xs font-bold text-gray-800" x-text="'Penugasan Mapel #' + (index + 1)"></span>
                                 <button 
                                     type="button" 
                                     @click="assignments.splice(index, 1)"
-                                    class="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors"
+                                    class="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors inline-flex items-center gap-1 text-xs font-semibold"
                                     title="Hapus penugasan ini"
                                 >
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    <span>Hapus</span>
                                 </button>
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1">Mata Pelajaran <span class="text-rose-500">*</span></label>
+                                <select :name="'assignments[' + index + '][mapel_id]'" x-model="item.mapel_id" required class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-indigo-500">
+                                    <option value="">-- Pilih Mata Pelajaran --</option>
+                                    @foreach($mapels as $m)
+                                        <option value="{{ $m->id }}">{{ $m->nama_mapel }} (KKM: {{ $m->kkm }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1.5">Pilih Kelas yang Diampu (Bisa Lebih Dari Satu) <span class="text-rose-500">*</span></label>
+                                <div class="max-h-44 overflow-y-auto p-2.5 bg-white rounded-xl border border-gray-200 space-y-2.5">
+                                    @foreach($kelases->groupBy('tingkatan') as $tingkat => $kelasList)
+                                        <div>
+                                            <p class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 mb-1">Tingkat {{ $tingkat }}</p>
+                                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                @foreach($kelasList as $k)
+                                                    <label class="flex items-center gap-2 p-1.5 rounded-lg bg-gray-50 border border-gray-100 hover:border-indigo-300 hover:bg-indigo-50/30 cursor-pointer text-xs text-gray-700 font-medium">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            :name="'assignments[' + index + '][kelas_ids][]'" 
+                                                            value="{{ $k->id }}"
+                                                            class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                                        <span>{{ $k->nama_kelas }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </div>
                         </div>
                     </template>

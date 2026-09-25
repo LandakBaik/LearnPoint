@@ -13,9 +13,9 @@ class MateriController extends Controller
     public function index()
     {
         $materis = Materi::with([
-            'guruMapel.guru',
-            'guruMapel.mapel',
-            'guruMapel.kelas',
+            'pengampuKelas.guruMapel.guru',
+            'pengampuKelas.guruMapel.mapel',
+            'pengampuKelas.kelas',
         ])->latest()->get();
 
         return view('guru.materi', compact('materis'));

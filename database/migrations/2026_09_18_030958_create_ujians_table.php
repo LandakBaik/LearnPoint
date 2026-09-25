@@ -19,8 +19,8 @@ return new class extends Migration
             $table->dateTime('deadline');
             $table->unsignedSmallInteger('durasi_menit')->default(60);
 
-            $table->foreignId('guru_mapel_id')
-                ->constrained('guru_mapels')
+            $table->foreignId('pengampu_kelas_id')
+                ->constrained('pengampu_kelas')
                 ->cascadeOnDelete();
             $table->timestamps();
         });

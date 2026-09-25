@@ -39,9 +39,9 @@ class Kelas extends Model
         return $this->hasMany(AnggotaKelas::class, 'kelas_id');
     }
 
-    public function guruMapels(): HasMany
+    public function pengampuKelases(): HasMany
     {
-        return $this->hasMany(GuruMapel::class, 'kelas_id');
+        return $this->hasMany(PengampuKelas::class, 'kelas_id');
     }
 
     /**
