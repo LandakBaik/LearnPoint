@@ -14,7 +14,6 @@ class GuruMapel extends Model
     protected $fillable = [
         'guru_id',
         'mapel_id',
-        'kelas_id',
         'jadwal',
     ];
 
@@ -33,28 +32,13 @@ class GuruMapel extends Model
         return $this->belongsTo(Mapel::class, 'mapel_id');
     }
 
-    public function kelas()
+    public function pengampuKelases()
     {
-        return $this->belongsTo(Kelas::class, 'kelas_id');
+        return $this->hasMany(PengampuKelas::class, 'guru_mapel_id');
     }
 
-    public function tugases()
+    public function kelases()
     {
-        return $this->hasMany(Tugas::class, 'guru_mapel_id');
-    }
-
-    public function quizzes()
-    {
-        return $this->hasMany(Quiz::class, 'guru_mapel_id');
-    }
-
-    public function ujians()
-    {
-        return $this->hasMany(Ujian::class, 'guru_mapel_id');
-    }
-
-    public function materis()
-    {
-        return $this->hasMany(Materi::class, 'guru_mapel_id');
+        return $this->belongsToMany(Kelas::class, 'pengampu_kelas', 'guru_mapel_id', 'kelas_id');
     }
 }

@@ -18,7 +18,7 @@ class GuruController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Guru::query()->with(['user', 'kelas', 'guruMapels.mapel', 'guruMapels.kelas']);
+        $query = Guru::query()->with(['user', 'kelas', 'pengampuKelases.guruMapel.mapel', 'pengampuKelases.kelas']);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -32,7 +32,7 @@ class GuruController extends Controller
         if ($request->filled('tingkatan')) {
             $tingkatan = $request->tingkatan;
             $query->where(function ($q) use ($tingkatan) {
-                $q->whereHas('guruMapels.kelas', function ($q2) use ($tingkatan) {
+                $q->whereHas('pengampuKelases.kelas', function ($q2) use ($tingkatan) {
                     $q2->where('tingkatan', $tingkatan);
                 })->orWhereHas('kelas', function ($q2) use ($tingkatan) {
                     $q2->where('tingkatan', $tingkatan);
@@ -63,11 +63,13 @@ class GuruController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama'                   => 'required|string|max:100',
-            'nip'                    => 'required|numeric|digits:18|unique:gurus,nip',
-            'assignments'            => 'nullable|array',
-            'assignments.*.mapel_id' => 'nullable|exists:mapels,id',
-            'assignments.*.kelas_id' => 'nullable|exists:kelases,id',
+            'nama'                      => 'required|string|max:100',
+            'nip'                       => 'required|numeric|digits:18|unique:gurus,nip',
+            'assignments'               => 'nullable|array',
+            'assignments.*.mapel_id'    => 'nullable|exists:mapels,id',
+            'assignments.*.kelas_id'    => 'nullable|exists:kelases,id',
+            'assignments.*.kelas_ids'   => 'nullable|array',
+            'assignments.*.kelas_ids.*' => 'exists:kelases,id',
         ], [
             'nip.numeric' => 'NIP guru harus berupa angka.',
             'nip.digits'  => 'NIP guru harus tepat 18 digit angka.',
@@ -97,12 +99,24 @@ class GuruController extends Controller
         // Tambah penugasan mapel yang diampu sekaligus jika ada
         if (!empty($validated['assignments'])) {
             foreach ($validated['assignments'] as $assign) {
-                if (!empty($assign['mapel_id']) && !empty($assign['kelas_id'])) {
-                    \App\Models\GuruMapel::firstOrCreate([
-                        'guru_id'  => $guru->id,
-                        'mapel_id' => $assign['mapel_id'],
-                        'kelas_id' => $assign['kelas_id'],
-                    ]);
+                if (!empty($assign['mapel_id'])) {
+                    $kelasIds = $assign['kelas_ids'] ?? [];
+                    if (!empty($assign['kelas_id']) && !in_array($assign['kelas_id'], $kelasIds)) {
+                        $kelasIds[] = $assign['kelas_id'];
+                    }
+
+                    if (!empty($kelasIds)) {
+                        $gm = \App\Models\GuruMapel::firstOrCreate([
+                            'guru_id'  => $guru->id,
+                            'mapel_id' => $assign['mapel_id'],
+                        ]);
+                        foreach ($kelasIds as $kId) {
+                            \App\Models\PengampuKelas::firstOrCreate([
+                                'guru_mapel_id' => $gm->id,
+                                'kelas_id'      => $kId,
+                            ]);
+                        }
+                    }
                 }
             }
         }
@@ -115,7 +129,7 @@ class GuruController extends Controller
      */
     public function show(Guru $guru)
     {
-        $guru->load(['user', 'kelas.siswas', 'guruMapels.mapel', 'guruMapels.kelas']);
+        $guru->load(['user', 'kelas.siswas', 'pengampuKelases.guruMapel.mapel', 'pengampuKelases.kelas']);
 
         $allMapels = Mapel::orderBy('nama_mapel', 'asc')->get();
         $allKelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();
@@ -128,7 +142,7 @@ class GuruController extends Controller
      */
     public function edit(Guru $guru)
     {
-        $guru->load(['user', 'guruMapels.mapel', 'guruMapels.kelas']);
+        $guru->load(['user', 'pengampuKelases.guruMapel.mapel', 'pengampuKelases.kelas']);
         $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
         $kelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();
 
@@ -141,10 +155,12 @@ class GuruController extends Controller
     public function update(Request $request, Guru $guru)
     {
         $validated = $request->validate([
-            'nama'         => 'required|string|max:100',
-            'nip'          => ['required', 'numeric', 'digits:18', Rule::unique('gurus')->ignore($guru->id)],
-            'new_mapel_id' => 'nullable|exists:mapels,id',
-            'new_kelas_id' => 'nullable|exists:kelases,id',
+            'nama'            => 'required|string|max:100',
+            'nip'             => ['required', 'numeric', 'digits:18', Rule::unique('gurus')->ignore($guru->id)],
+            'new_mapel_id'    => 'nullable|exists:mapels,id',
+            'new_kelas_ids'   => 'nullable|array',
+            'new_kelas_ids.*' => 'exists:kelases,id',
+            'new_kelas_id'    => 'nullable|exists:kelases,id',
         ], [
             'nip.numeric' => 'NIP guru harus berupa angka.',
             'nip.digits'  => 'NIP guru harus tepat 18 digit angka.',
@@ -162,12 +178,22 @@ class GuruController extends Controller
         }
 
         // Tambah penugasan baru jika dipilih
-        if (!empty($validated['new_mapel_id']) && !empty($validated['new_kelas_id'])) {
-            \App\Models\GuruMapel::firstOrCreate([
+        $newKelasIds = $request->input('new_kelas_ids', []);
+        if ($request->filled('new_kelas_id') && !in_array($request->new_kelas_id, $newKelasIds)) {
+            $newKelasIds[] = $request->new_kelas_id;
+        }
+
+        if (!empty($validated['new_mapel_id']) && !empty($newKelasIds)) {
+            $gm = \App\Models\GuruMapel::firstOrCreate([
                 'guru_id'  => $guru->id,
                 'mapel_id' => $validated['new_mapel_id'],
-                'kelas_id' => $validated['new_kelas_id'],
             ]);
+            foreach ($newKelasIds as $kId) {
+                \App\Models\PengampuKelas::firstOrCreate([
+                    'guru_mapel_id' => $gm->id,
+                    'kelas_id'      => $kId,
+                ]);
+            }
         }
 
         return redirect()->route('guru.edit', $guru->id)->with('success', 'Data guru dan penugasan mengajar berhasil diperbarui!');

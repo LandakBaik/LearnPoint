@@ -99,7 +99,7 @@
             </button>
         </div>
 
-        @if($kelas->guruMapels->count() > 0)
+        @if($kelas->pengampuKelases->count() > 0)
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-sm">
                     <thead>
@@ -112,7 +112,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        @foreach($kelas->guruMapels as $gm)
+                        @foreach($kelas->pengampuKelases as $gm)
                             <tr class="hover:bg-gray-50/50 transition-colors">
                                 <td class="py-3.5 px-4 font-bold text-gray-900">
                                     <div class="flex items-center gap-2.5">

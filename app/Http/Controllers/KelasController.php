@@ -15,7 +15,7 @@ class KelasController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Kelas::query()->with(['guru', 'siswas', 'anggotaKelases.siswa'])->withCount('guruMapels');
+        $query = Kelas::query()->with(['guru', 'siswas', 'anggotaKelases.siswa'])->withCount('pengampuKelases');
 
         if ($request->filled('tingkatan')) {
             $query->where('tingkatan', $request->tingkatan);
@@ -65,7 +65,7 @@ class KelasController extends Controller
     {
         // Parameter binding route 'kelas' returns $kela
         $kelas = $kela;
-        $kelas->load(['guru', 'siswas', 'anggotaKelases.siswa', 'guruMapels.guru', 'guruMapels.mapel']);
+        $kelas->load(['guru', 'siswas', 'anggotaKelases.siswa', 'pengampuKelases.guruMapel.guru', 'pengampuKelases.guruMapel.mapel']);
 
         $allGurus = Guru::orderBy('nama', 'asc')->get();
         $allMapels = Mapel::orderBy('nama_mapel', 'asc')->get();
