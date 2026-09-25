@@ -54,6 +54,8 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['auth', 'role:siswa'])->group(function() {
         Route::get('/siswa/materi', [MateriController::class, 'indexSiswa'])->name('siswa.materi');
         Route::get('/siswa/materi/{id}', [MateriController::class, 'showSiswa'])->name('siswa.materi.show');
+        Route::get('/siswa/tugas', [TugasController::class, 'indexSiswa'])->name('siswa.tugas');
+        Route::get('/siswa/jadwal', [JadwalContoller::class, 'index'])->name('siswa.jadwal');
     });
 
     // Dashboard Admin / Operator

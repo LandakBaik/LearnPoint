@@ -25,25 +25,29 @@ class MateriController extends Controller
     }
 
     /**
-     * Halaman Daftar Mapel untuk Siswa.
+     * Halaman Detail Bab & File Materi per Mapel untuk Siswa.
      */
-    public function indexSiswa()
+   public function indexSiswa()
     {
-        return view('siswa.materi.index');
+        // Ambil data mapel beserta relasi guru
+        $daftarMapel = Mapel::with(['guruMapels.guru'])->get();
+
+        // Kirim variabel $daftarMapel ke view siswa.materi.index
+        return view('siswa.materi.index', compact('daftarMapel'));
     }
 
     /**
-     * Halaman Detail Bab & File Materi per Mapel untuk Siswa.
+     * Method milikmu untuk menampilkan detail materi dari mapel yang dipilih
      */
     public function showSiswa($id)
-{
-    $mapel = Mapel::find($id);
+    {
+        $mapel = Mapel::findOrFail($id);
 
-    // Ambil data materi berdasarkan guru_mapel_id atau mapel_id
-    $materis = Materi::whereHas('guruMapel', function ($query) use ($id) {
-        $query->where('mapel_id', $id);
-    })->get();
+        // Ambil data materi berdasarkan guru_mapel_id atau mapel_id
+        $materis = Materi::whereHas('guruMapel', function ($query) use ($id) {
+            $query->where('mapel_id', $id);
+        })->get();
 
-    return view('siswa.materi.show', compact('mapel', 'materis', 'id'));
-}
+        return view('siswa.materi.show', compact('mapel', 'materis', 'id'));
+    }
 }
