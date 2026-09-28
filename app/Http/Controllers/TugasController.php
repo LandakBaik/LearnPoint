@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\Tugas;
 use Illuminate\Http\Request;
 
@@ -19,14 +20,28 @@ class TugasController extends Controller
  /**
      * Halaman Daftar Tugas Siswa.
      */
-    public function indexSiswa()
+    public function indexSiswa(Request $request)
     {
-        $siswaId = auth()->user()->siswa->id ?? null;
+        $siswa = $request->user()?->siswa;
+        $kelasId = $siswa?->kelas?->id;
 
-        // Ambil semua tugas beserta relasi pengumpulan siswa yang sedang login
-        $daftarTugas = Tugas::with(['guruMapel.mapel', 'pengumpulanSiswa' => function($query) use ($siswaId) {
-            $query->where('siswa_id', $siswaId);
-        }])->latest()->get();
+        $daftarTugas = $kelasId
+            ? Tugas::with([
+                'pengampuKelas.guruMapel.mapel',
+                'nilais' => function ($query) use ($siswa) {
+                    $query->where('siswa_id', $siswa->id);
+                },
+            ])
+                ->whereHas('pengampuKelas', function ($query) use ($kelasId) {
+                    $query->where('kelas_id', $kelasId);
+                })
+                ->latest()
+                ->get()
+            : collect();
+
+        $daftarTugas->each(function (Tugas $tugas): void {
+            $tugas->setRelation('pengumpulanSiswa', $tugas->nilais->first());
+        });
 
         return view('siswa.tugas.index', compact('daftarTugas'));
     }
