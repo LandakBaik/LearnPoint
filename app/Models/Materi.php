@@ -14,11 +14,16 @@ class Materi extends Model
     protected $fillable = [
         'judul',
         'file_materi',
-        'guru_mapel_id',
+        'pengampu_kelas_id',
     ];
 
-    public function guruMapel()
+    public function pengampuKelas()
     {
-        return $this->belongsTo(GuruMapel::class, 'guru_mapel_id');
+        return $this->belongsTo(PengampuKelas::class, 'pengampu_kelas_id');
+    }
+
+    public function getGuruMapelAttribute()
+    {
+        return $this->pengampuKelas?->guruMapel;
     }
 }

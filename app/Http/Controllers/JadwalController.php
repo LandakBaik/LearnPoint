@@ -7,6 +7,7 @@ use App\Models\Guru;
 use App\Models\GuruMapel;
 use App\Models\Kelas;
 use App\Models\Mapel;
+use App\Models\PengampuKelas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -25,8 +26,9 @@ class JadwalController extends Controller
         $jadwalUrl = null;
 
         if ($guru) {
-            $guruMapels = GuruMapel::with(['mapel', 'kelas'])
-                ->where('guru_id', $guru->id)
+            $guruMapels = $guru->guruMapels()
+                ->has('pengampuKelases')
+                ->with(['mapel', 'pengampuKelases.kelas'])
                 ->get();
 
             $jadwalUrl = $guru->jadwal_url;
@@ -45,20 +47,18 @@ class JadwalController extends Controller
             ->latest()
             ->get();
 
-        // 2. Data Jadwal Guru (dari Guru & GuruMapel)
-        $gurus = Guru::with(['guruMapels.mapel', 'guruMapels.kelas'])
-            ->latest()
-            ->get();
+        // 2. Data Jadwal Guru (dari Guru & GuruMapel yang aktif mengajar di kelas)
+        $gurus = Guru::with([
+            'guruMapels' => function ($q) {
+                $q->has('pengampuKelases')->with(['mapel', 'pengampuKelases.kelas']);
+            }
+        ])->latest()->get();
 
-        $guruMapels = GuruMapel::with(['guru', 'mapel', 'kelas'])
-            ->latest()
-            ->get();
-
-        $mapels = Mapel::all();
+        $mapels = Mapel::orderBy('nama_mapel')->get();
 
         $activeTab = $request->query('tab', 'kelas');
 
-        return view('admin.jadwal.index', compact('kelases', 'gurus', 'guruMapels', 'mapels', 'activeTab'));
+        return view('admin.jadwal.index', compact('kelases', 'gurus', 'mapels', 'activeTab'));
     }
 
     /**
@@ -89,51 +89,70 @@ class JadwalController extends Controller
     }
 
     /**
-     * Upload/Ganti Foto Jadwal Guru.
+     * Upload/Ganti Foto Jadwal Guru (Spesifik per Mata Pelajaran).
      */
     public function uploadJadwalGuru(Request $request)
     {
         $request->validate([
-            'guru_id'       => 'required|exists:gurus,id',
-            'guru_mapel_id' => 'nullable|exists:guru_mapels,id',
-            'foto_jadwal'   => 'required|image|mimes:jpeg,png,jpg,webp|max:3072',
+            'guru_id'           => 'required|exists:gurus,id',
+            'guru_mapel_id'     => 'nullable',
+            'mapel_id'          => 'nullable|exists:mapels,id',
+            'foto_jadwal'       => 'required|image|mimes:jpeg,png,jpg,webp|max:3072',
         ]);
 
         $guru = Guru::findOrFail($request->guru_id);
         $path = $request->file('foto_jadwal')->store('jadwal/guru', 'public');
 
-        if ($request->filled('guru_mapel_id')) {
-            $guruMapel = GuruMapel::findOrFail($request->guru_mapel_id);
+        // 1. Jika dipilih guru_mapel_id spesifik (ID numerik valid)
+        if ($request->filled('guru_mapel_id') && is_numeric($request->guru_mapel_id) && (int)$request->guru_mapel_id > 0) {
+            $guruMapel = GuruMapel::where('guru_id', $guru->id)->findOrFail($request->guru_mapel_id);
             if ($guruMapel->jadwal && Storage::disk('public')->exists($guruMapel->jadwal)) {
                 Storage::disk('public')->delete($guruMapel->jadwal);
             }
             $guruMapel->update(['jadwal' => $path]);
-        } else {
-            // Update ke seluruh guru_mapel guru tersebut atau guru_mapel pertama
-            $oldJadwal = $guru->jadwal;
-            if ($oldJadwal && Storage::disk('public')->exists($oldJadwal)) {
-                Storage::disk('public')->delete($oldJadwal);
+            $mapelName = $guruMapel->mapel->nama_mapel ?? 'Mata Pelajaran';
+            $message = "Foto jadwal mata pelajaran {$mapelName} untuk Guru {$guru->nama} berhasil diunggah!";
+        }
+        // 2. Jika dipilih opsi tambah mapel baru (mapel_id dikirim)
+        elseif ($request->filled('mapel_id')) {
+            $guruMapel = GuruMapel::firstOrCreate(
+                ['guru_id' => $guru->id, 'mapel_id' => $request->mapel_id]
+            );
+            if ($guruMapel->jadwal && Storage::disk('public')->exists($guruMapel->jadwal)) {
+                Storage::disk('public')->delete($guruMapel->jadwal);
             }
-
-            if ($guru->guruMapels()->count() > 0) {
-                $guru->guruMapels()->update(['jadwal' => $path]);
+            $guruMapel->update(['jadwal' => $path]);
+            $mapelName = $guruMapel->mapel->nama_mapel ?? 'Mata Pelajaran';
+            $message = "Foto jadwal mata pelajaran {$mapelName} untuk Guru {$guru->nama} berhasil diunggah!";
+        }
+        // 3. Fallback jika tidak memilih spesifik
+        else {
+            $firstGm = $guru->guruMapels()->has('pengampuKelases')->first();
+            if ($firstGm) {
+                if ($firstGm->jadwal && Storage::disk('public')->exists($firstGm->jadwal)) {
+                    Storage::disk('public')->delete($firstGm->jadwal);
+                }
+                $firstGm->update(['jadwal' => $path]);
+                $mapelName = $firstGm->mapel->nama_mapel ?? 'Mata Pelajaran';
+                $message = "Foto jadwal mata pelajaran {$mapelName} untuk Guru {$guru->nama} berhasil diunggah!";
             } else {
-                // Jika belum punya penugasan guru_mapel, buatkan penugasan umum dengan mapel & kelas pertama
                 $firstMapel = Mapel::first();
-                $firstKelas = Kelas::first();
-                if ($firstMapel && $firstKelas) {
-                    GuruMapel::create([
+                if ($firstMapel) {
+                    $gm = GuruMapel::firstOrCreate([
                         'guru_id'  => $guru->id,
                         'mapel_id' => $firstMapel->id,
-                        'kelas_id' => $firstKelas->id,
-                        'jadwal'   => $path,
                     ]);
+                    if ($gm->jadwal && Storage::disk('public')->exists($gm->jadwal)) {
+                        Storage::disk('public')->delete($gm->jadwal);
+                    }
+                    $gm->update(['jadwal' => $path]);
                 }
+                $message = "Foto jadwal mengajar untuk Guru {$guru->nama} berhasil diunggah!";
             }
         }
 
         return redirect()->route('admin.jadwal.index', ['tab' => 'guru'])
-            ->with('success', "Foto jadwal mengajar untuk Guru {$guru->nama} berhasil diunggah!");
+            ->with('success', $message);
     }
 
     /**
@@ -152,17 +171,32 @@ class JadwalController extends Controller
     }
 
     /**
-     * Hapus Foto Jadwal Guru.
+     * Hapus Foto Jadwal Guru (Per GuruMapel atau Per Guru).
      */
-    public function destroyJadwalGuru(GuruMapel $guruMapel)
+    public function destroyJadwalGuru($id)
     {
-        if ($guruMapel->jadwal && Storage::disk('public')->exists($guruMapel->jadwal)) {
-            Storage::disk('public')->delete($guruMapel->jadwal);
+        $guruMapel = GuruMapel::find($id);
+        if ($guruMapel) {
+            if ($guruMapel->jadwal && Storage::disk('public')->exists($guruMapel->jadwal)) {
+                Storage::disk('public')->delete($guruMapel->jadwal);
+            }
+            $guruMapel->update(['jadwal' => null]);
+            $mapelName = $guruMapel->mapel->nama_mapel ?? 'Mata Pelajaran';
+            $message = "Foto jadwal mapel {$mapelName} berhasil dihapus!";
+        } else {
+            $guru = Guru::find($id);
+            if ($guru) {
+                foreach ($guru->guruMapels as $gm) {
+                    if ($gm->jadwal && Storage::disk('public')->exists($gm->jadwal)) {
+                        Storage::disk('public')->delete($gm->jadwal);
+                    }
+                    $gm->update(['jadwal' => null]);
+                }
+            }
+            $message = "Foto jadwal guru berhasil dihapus!";
         }
 
-        $guruMapel->update(['jadwal' => null]);
-
         return redirect()->route('admin.jadwal.index', ['tab' => 'guru'])
-            ->with('success', "Foto jadwal guru berhasil dihapus!");
+            ->with('success', $message);
     }
 }

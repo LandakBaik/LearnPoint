@@ -15,7 +15,11 @@ class MapelController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Mapel::query()->withCount('guruMapels');
+        $query = Mapel::query()->withCount([
+            'guruMapels' => function ($q) {
+                $q->has('pengampuKelases');
+            }
+        ]);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -55,7 +59,7 @@ class MapelController extends Controller
      */
     public function show(Mapel $mapel)
     {
-        $mapel->load(['guruMapels.guru', 'guruMapels.kelas']);
+        $mapel->load(['pengampuKelases.guruMapel.guru', 'pengampuKelases.kelas']);
 
         $gurus = Guru::orderBy('nama', 'asc')->get();
         $kelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();
@@ -68,7 +72,7 @@ class MapelController extends Controller
      */
     public function edit(Mapel $mapel)
     {
-        $mapel->load(['guruMapels.guru', 'guruMapels.kelas']);
+        $mapel->load(['pengampuKelases.guruMapel.guru', 'pengampuKelases.kelas']);
         $gurus = Guru::orderBy('nama', 'asc')->get();
         $kelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();
 
@@ -81,10 +85,12 @@ class MapelController extends Controller
     public function update(Request $request, Mapel $mapel)
     {
         $validated = $request->validate([
-            'nama_mapel'   => ['required', 'string', 'max:100', Rule::unique('mapels')->ignore($mapel->id)],
-            'kkm'          => 'required|integer|min:0|max:100',
-            'new_guru_id'  => 'nullable|exists:gurus,id',
-            'new_kelas_id' => 'nullable|exists:kelases,id',
+            'nama_mapel'      => ['required', 'string', 'max:100', Rule::unique('mapels')->ignore($mapel->id)],
+            'kkm'             => 'required|integer|min:0|max:100',
+            'new_guru_id'     => 'nullable|exists:gurus,id',
+            'new_kelas_ids'   => 'nullable|array',
+            'new_kelas_ids.*' => 'exists:kelases,id',
+            'new_kelas_id'    => 'nullable|exists:kelases,id',
         ]);
 
         $mapel->update([
@@ -92,12 +98,22 @@ class MapelController extends Controller
             'kkm'        => $validated['kkm'],
         ]);
 
-        if (!empty($validated['new_guru_id']) && !empty($validated['new_kelas_id'])) {
-            \App\Models\GuruMapel::firstOrCreate([
+        $newKelasIds = $request->input('new_kelas_ids', []);
+        if ($request->filled('new_kelas_id') && !in_array($request->new_kelas_id, $newKelasIds)) {
+            $newKelasIds[] = $request->new_kelas_id;
+        }
+
+        if (!empty($validated['new_guru_id']) && !empty($newKelasIds)) {
+            $gm = \App\Models\GuruMapel::firstOrCreate([
                 'guru_id'  => $validated['new_guru_id'],
                 'mapel_id' => $mapel->id,
-                'kelas_id' => $validated['new_kelas_id'],
             ]);
+            foreach ($newKelasIds as $kId) {
+                \App\Models\PengampuKelas::firstOrCreate([
+                    'guru_mapel_id' => $gm->id,
+                    'kelas_id'      => $kId,
+                ]);
+            }
         }
 
         return redirect()->route('mapel.edit', $mapel->id)->with('success', 'Mata pelajaran dan guru pengampu berhasil diperbarui!');
