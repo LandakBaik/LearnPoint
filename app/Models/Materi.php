@@ -13,7 +13,9 @@ class Materi extends Model
 
     protected $fillable = [
         'judul',
+        'deskripsi',
         'file_materi',
+        'url_youtube',
         'pengampu_kelas_id',
     ];
 
