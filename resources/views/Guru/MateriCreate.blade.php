@@ -112,6 +112,7 @@
                             value="{{ old('judul') }}"
                             placeholder="Contoh: Sistem Persamaan Linear"
                             class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm font-medium text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-400"
+                            maxlength="255"
                             required
                         >
                     </div>
@@ -125,6 +126,7 @@
                             rows="3"
                             placeholder="Tambahkan petunjuk untuk siswa mengenai materi ini..."
                             class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm font-medium text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-400"
+                            maxlength="1000"
                         >{{ old('deskripsi') }}</textarea>
                     </div>
                 </div>

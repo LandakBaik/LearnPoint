@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Tugas;
+use App\Models\GuruMapel;
+use App\Models\Nilai;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;

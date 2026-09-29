@@ -48,6 +48,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/guru/materi', [MateriController::class, 'index'])->name('guru.materi');
         Route::get('/guru/materi/create', [MateriController::class, 'create'])->name('guru.materi.create');
         Route::post('/guru/materi', [MateriController::class, 'store'])->name('guru.materi.store');
+        Route::get('/guru/materi/{id_grub_materi}/edit', [MateriController::class, 'edit'])->name('guru.materi.edit');
+        Route::put('/guru/materi/{id_grub_materi}', [MateriController::class, 'update'])->name('guru.materi.update');
+        Route::delete('/guru/materi/{id_grub_materi}', [MateriController::class, 'destroy'])->name('guru.materi.destroy');
         Route::get('/guru/tugas', [TugasController::class, 'index'])->name('guru.tugas');
         Route::post('/guru/tugas', [TugasController::class, 'store'])->name('guru.tugas.store');
         Route::get('/guru/tugas/{id}', [TugasController::class, 'show'])->name('guru.tugas.show');

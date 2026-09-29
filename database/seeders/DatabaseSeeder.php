@@ -86,6 +86,8 @@ class DatabaseSeeder extends Seeder
                 'role' => 'kepala_sekolah',
             ]
         );
+        // 5. Seeder Materi & Kelas Guru Amba
+        $this->call(MateriGuruSeeder::class);
     }
 }
 
