@@ -58,10 +58,73 @@
         </div>
     </div>
 
-    <!-- Filter & Search Bar -->
+    <!-- Section Filter Mapel (Kolom Pilihan Warna-Warni Mapel Diampu Guru) -->
+    <div class="space-y-2">
+        <div class="flex items-center justify-between px-1">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                Pilih Mata Pelajaran
+            </h3>
+            <span class="text-[11px] text-gray-400 font-medium">{{ $mapels->count() }} Mata Pelajaran Diampu</span>
+        </div>
+
+        @php
+            $selectedMapelId = $filters['mapel_id'] ?? '';
+            $colorSchemes = [
+                ['active' => 'bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-500/20 border-indigo-600', 'inactive' => 'bg-white text-gray-700 border-gray-200 hover:bg-indigo-50/60 hover:border-indigo-300 hover:text-indigo-700', 'iconBg' => 'bg-indigo-100 text-indigo-600'],
+                ['active' => 'bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20 border-emerald-600', 'inactive' => 'bg-white text-gray-700 border-gray-200 hover:bg-emerald-50/60 hover:border-emerald-300 hover:text-emerald-700', 'iconBg' => 'bg-emerald-100 text-emerald-600'],
+                ['active' => 'bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/20 border-amber-500', 'inactive' => 'bg-white text-gray-700 border-gray-200 hover:bg-amber-50/60 hover:border-amber-300 hover:text-amber-700', 'iconBg' => 'bg-amber-100 text-amber-600'],
+                ['active' => 'bg-gradient-to-br from-purple-600 to-pink-600 text-white shadow-md shadow-purple-500/20 border-purple-600', 'inactive' => 'bg-white text-gray-700 border-gray-200 hover:bg-purple-50/60 hover:border-purple-300 hover:text-purple-700', 'iconBg' => 'bg-purple-100 text-purple-600'],
+                ['active' => 'bg-gradient-to-br from-rose-600 to-red-600 text-white shadow-md shadow-rose-500/20 border-rose-600', 'inactive' => 'bg-white text-gray-700 border-gray-200 hover:bg-rose-50/60 hover:border-rose-300 hover:text-rose-700', 'iconBg' => 'bg-rose-100 text-rose-600'],
+                ['active' => 'bg-gradient-to-br from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-500/20 border-cyan-600', 'inactive' => 'bg-white text-gray-700 border-gray-200 hover:bg-cyan-50/60 hover:border-cyan-300 hover:text-cyan-700', 'iconBg' => 'bg-cyan-100 text-cyan-600'],
+            ];
+        @endphp
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-3">
+            {{-- Tombol: Semua Mapel --}}
+            <button
+                type="button"
+                onclick="setMapelFilter('')"
+                class="group relative flex items-center gap-3 p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer text-left font-semibold text-xs {{ empty($selectedMapelId) ? 'bg-gray-900 text-white shadow-md shadow-gray-900/20 border-gray-900' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300' }}"
+            >
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors {{ empty($selectedMapelId) ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200' }}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="truncate font-bold leading-tight">Semua Mapel</p>
+                    <p class="text-[10px] mt-0.5 opacity-80 font-normal">Tampilkan Semua</p>
+                </div>
+            </button>
+
+            {{-- Tombol per Mapel yang diampu Guru --}}
+            @foreach($mapels as $index => $mapel)
+                @php
+                    $isSelected = (string)$selectedMapelId === (string)$mapel->id;
+                    $scheme = $colorSchemes[$index % count($colorSchemes)];
+                @endphp
+                <button
+                    type="button"
+                    onclick="setMapelFilter('{{ $mapel->id }}')"
+                    class="group relative flex items-center gap-3 p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer text-left font-semibold text-xs {{ $isSelected ? $scheme['active'] : $scheme['inactive'] }}"
+                >
+                    <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors {{ $isSelected ? 'bg-white/20 text-white' : $scheme['iconBg'] }}">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="truncate font-bold leading-tight">{{ $mapel->nama_mapel }}</p>
+                        <p class="text-[10px] mt-0.5 opacity-80 font-normal">Mapel Diampu</p>
+                    </div>
+                </button>
+            @endforeach
+        </div>
+    </div>
+
+    <!-- Filter Bar Tambahan (Search, Tingkatan, Kelas) -->
     <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
-        <form method="GET" action="{{ route('guru.materi') }}" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
-            <div class="relative sm:col-span-2 xl:col-span-2">
+        <form id="materiFilterForm" method="GET" action="{{ route('guru.materi') }}" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            <input type="hidden" name="mapel_id" id="filter_mapel_id" value="{{ $filters['mapel_id'] ?? '' }}">
+
+            <div class="relative sm:col-span-2">
                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </span>
@@ -69,38 +132,38 @@
                     type="search"
                     name="search"
                     value="{{ $filters['search'] ?? '' }}"
-                    placeholder="Cari judul materi"
+                    placeholder="Cari judul materi..."
                     class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all placeholder-gray-400"
                 >
             </div>
 
-            <select name="mapel_id" class="rounded-full border border-gray-200 px-4 py-2 text-xs font-medium bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                <option value="">Semua Mata Pelajaran</option>
-                @foreach($mapels as $mapel)
-                    <option value="{{ $mapel->id }}" @selected(($filters['mapel_id'] ?? '') == $mapel->id)>{{ $mapel->nama_mapel }}</option>
-                @endforeach
-            </select>
-
-            <select name="tingkatan" class="rounded-full border border-gray-200 px-4 py-2 text-xs font-medium bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+            <select name="tingkatan" onchange="document.getElementById('materiFilterForm').submit()" class="rounded-full border border-gray-200 px-4 py-2 text-xs font-medium bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
                 <option value="">Semua Tingkatan</option>
                 @foreach($tingkatanOptions as $tingkatan)
                     <option value="{{ $tingkatan }}" @selected(($filters['tingkatan'] ?? '') == $tingkatan)>Tingkat {{ $tingkatan }}</option>
                 @endforeach
             </select>
 
-            <select name="kelas_id" class="rounded-full border border-gray-200 px-4 py-2 text-xs font-medium bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+            <select name="kelas_id" onchange="document.getElementById('materiFilterForm').submit()" class="rounded-full border border-gray-200 px-4 py-2 text-xs font-medium bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
                 <option value="">Semua Kelas</option>
                 @foreach($kelasOptions as $kelas)
                     <option value="{{ $kelas->id }}" @selected(($filters['kelas_id'] ?? '') == $kelas->id)>{{ $kelas->nama_kelas }} (Tingkat {{ $kelas->tingkatan }})</option>
                 @endforeach
             </select>
 
-            <div class="sm:col-span-2 xl:col-span-5 flex items-center justify-end gap-2">
-                <a href="{{ route('guru.materi') }}" class="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-full">Reset</a>
-                <button type="submit" class="px-5 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-full text-xs font-semibold">Terapkan Filter</button>
+            <div class="sm:col-span-2 xl:col-span-4 flex items-center justify-end gap-2 pt-1 border-t border-gray-100">
+                <a href="{{ route('guru.materi') }}" class="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-full transition-colors">Reset Filter</a>
+                <button type="submit" class="px-5 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-full text-xs font-semibold transition-colors">Cari Materi</button>
             </div>
         </form>
     </div>
+
+    <script>
+        function setMapelFilter(mapelId) {
+            document.getElementById('filter_mapel_id').value = mapelId;
+            document.getElementById('materiFilterForm').submit();
+        }
+    </script>
 
     <!-- Data Table Container -->
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -194,20 +257,6 @@
             <p class="text-xs text-gray-500">
                 Menampilkan <span class="font-bold text-gray-800">{{ $materiGroups->count() }}</span> grup materi
             </p>
-        </div>
-    </div>
-
-    <!-- Page Footer -->
-    <div class="pt-6 border-t border-gray-200/80 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-400">
-        <div>
-            <p class="font-bold text-gray-700">LearnPoint SMP</p>
-            <p class="mt-0.5">&copy; 2024 LearnPoint Indonesia &bull; Terintegrasi dengan Kurikulum Merdeka SMP. Hak Cipta Dilindungi Undang-Undang.</p>
-        </div>
-        <div class="flex items-center gap-4 flex-wrap">
-            <a href="#" class="hover:text-gray-600">Kebijakan Privasi</a>
-            <a href="#" class="hover:text-gray-600">Syarat & Ketentuan Layanan</a>
-            <a href="#" class="hover:text-gray-600">Pusat Bantuan Sekolah</a>
-            <a href="#" class="hover:text-gray-600">Kontak Admin</a>
         </div>
     </div>
 

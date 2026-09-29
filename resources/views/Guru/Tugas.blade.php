@@ -192,10 +192,10 @@
                             <div class="space-y-1">
                                 <div class="flex items-center gap-2">
                                     <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-600 text-[11px] font-bold">
-                                        {{ $tugas->guruMapel?->mapel?->nama_mapel ?? 'Mapel' }}
+                                        {{ $tugas->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mapel' }}
                                     </span>
                                     <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] font-bold">
-                                        {{ $tugas->guruMapel?->kelas?->nama_kelas ?? 'Kelas' }}
+                                        {{ $tugas->pengampuKelas?->kelas?->nama_kelas ?? 'Kelas' }}
                                     </span>
                                 </div>
                                 <h4 class="font-bold text-gray-800 text-sm">{{ $tugas->judul }}</h4>
@@ -274,7 +274,7 @@
                 judul: '{{ addslashes($tugas->judul) }}',
                 deskripsi: '{{ addslashes($tugas->deskripsi ?? '') }}',
                 deadline: '{{ \Carbon\Carbon::parse($tugas->deadline)->format('Y-m-d\TH:i') }}',
-                guru_mapel_id: {{ $tugas->guru_mapel_id }},
+                pengampu_kelas_id: {{ $tugas->pengampu_kelas_id }},
                 tipe: '{{ $tugas->tipe }}'
             })"
                                     class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors">
@@ -383,16 +383,16 @@
 
                 <!-- Field 2: Mata Pelajaran & Kelas Sasaran -->
                 <div class="space-y-1.5">
-                    <label for="guru_mapel_id" class="block text-xs font-bold text-slate-700">Mata Pelajaran & Kelas <span class="text-red-500">*</span></label>
+                    <label for="pengampu_kelas_id" class="block text-xs font-bold text-slate-700">Mata Pelajaran & Kelas <span class="text-red-500">*</span></label>
                     <select
-                        name="guru_mapel_id"
-                        id="guru_mapel_id"
+                        name="pengampu_kelas_id"
+                        id="pengampu_kelas_id"
                         required
                         class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer">
                         <option value="" disabled selected>-- Pilih Mapel & Kelas --</option>
-                        @foreach($guruMapels as $gm)
-                        <option value="{{ $gm->id }}">
-                            {{ $gm->mapel->nama_mapel ?? 'Mapel' }} - {{ $gm->kelas->nama_kelas ?? 'Kelas' }}
+                        @foreach($pengampuKelases as $pk)
+                        <option value="{{ $pk->id }}">
+                            {{ $pk->guruMapel?->mapel?->nama_mapel ?? 'Mapel' }} - {{ $pk->kelas?->nama_kelas ?? 'Kelas' }}
                         </option>
                         @endforeach
                     </select>
@@ -549,15 +549,15 @@
 
                 <!-- Field 2: Mata Pelajaran & Kelas Sasaran -->
                 <div class="space-y-1.5">
-                    <label for="edit_guru_mapel_id" class="block text-xs font-bold text-slate-700">Mata Pelajaran & Kelas <span class="text-red-500">*</span></label>
+                    <label for="edit_pengampu_kelas_id" class="block text-xs font-bold text-slate-700">Mata Pelajaran & Kelas <span class="text-red-500">*</span></label>
                     <select
-                        name="guru_mapel_id"
-                        id="edit_guru_mapel_id"
+                        name="pengampu_kelas_id"
+                        id="edit_pengampu_kelas_id"
                         required
                         class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer">
-                        @foreach($guruMapels as $gm)
-                        <option value="{{ $gm->id }}" :selected="editData.guru_mapel_id == {{ $gm->id }}">
-                            {{ $gm->mapel->nama_mapel ?? 'Mapel' }} - {{ $gm->kelas->nama_kelas ?? 'Kelas' }}
+                        @foreach($pengampuKelases as $pk)
+                        <option value="{{ $pk->id }}" :selected="editData.pengampu_kelas_id == {{ $pk->id }}">
+                            {{ $pk->guruMapel?->mapel?->nama_mapel ?? 'Mapel' }} - {{ $pk->kelas?->nama_kelas ?? 'Kelas' }}
                         </option>
                         @endforeach
                     </select>

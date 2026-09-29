@@ -2,32 +2,44 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Tugas;
-use App\Models\GuruMapel;
 use App\Models\Nilai;
+use App\Models\PengampuKelas;
+use App\Models\Tugas;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Carbon\Carbon;
 
 class TugasController extends Controller
 {
     // 1. Menampilkan Halaman Utama Daftar Tugas & Statistik Dynamic Cards
-    public function index()
+    public function index(Request $request)
     {
-        $tugases = Tugas::with(['guruMapel.mapel', 'guruMapel.kelas'])
+        $user = $request->user();
+        $guru_id = $user?->guru?->id;
+        abort_unless($user?->role === 'guru' && $guru_id, 403);
+
+        $tugases = Tugas::with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.kelas'])
+            ->whereHas('pengampuKelas.guruMapel', function ($query) use ($guru_id) {
+                $query->where('guru_id', $guru_id);
+            })
             ->withCount([
                 'nilais as pengumpulans_count',
                 'nilais as pengumpulans_dinilai_count' => function ($query) {
                     $query->whereNotNull('nilai');
-                }
+                },
             ])
             ->latest()
             ->get();
 
-        $guruMapels = GuruMapel::with(['mapel', 'kelas'])->get();
+        $pengampuKelases = PengampuKelas::with(['guruMapel.mapel', 'kelas'])
+            ->whereHas('guruMapel', function ($query) use ($guru_id) {
+                $query->where('guru_id', $guru_id);
+            })
+            ->get();
 
-        $kelases = $guruMapels->pluck('kelas')->unique('id')->filter();
-        $mapels  = $guruMapels->pluck('mapel')->unique('id')->filter();
+        $kelases = $pengampuKelases->pluck('kelas')->unique('id')->filter();
+        $mapels = $pengampuKelases->pluck('guruMapel.mapel')->unique('id')->filter();
+
         // Hitung Total Tugas
         $totalTugas = $tugases->count();
 
@@ -40,7 +52,11 @@ class TugasController extends Controller
         $totalSelesai = $totalTugas - $totalAktif;
 
         // Hitung Pengumpulan yang Perlu Dinilai
-        $perluDinilai = Nilai::whereNull('nilai')->whereNotNull('tugas_id')->count();
+        $perluDinilai = Nilai::whereNull('nilai')
+            ->whereHas('tugas.pengampuKelas.guruMapel', function ($query) use ($guru_id) {
+                $query->where('guru_id', $guru_id);
+            })
+            ->count();
 
         // Hitung Tugas Mendesak (Kurang dari 24 Jam / 1 Hari)
         $deadlineTerdekat = $tugasAktif->filter(function ($item) {
@@ -50,7 +66,7 @@ class TugasController extends Controller
 
         return view('Guru.Tugas', compact(
             'tugases',
-            'guruMapels',
+            'pengampuKelases',
             'kelases',
             'mapels',
             'totalTugas',
@@ -64,28 +80,41 @@ class TugasController extends Controller
     // 2. Menyimpan Tugas Baru (CREATE)
     public function store(Request $request)
     {
+        $user = $request->user();
+        $guru_id = $user?->guru?->id;
+        abort_unless($user?->role === 'guru' && $guru_id, 403);
+
         $request->validate([
-            'judul'            => 'required|string|max:200',
-            'deskripsi'        => 'nullable|string',
-            'deadline'         => 'required',
-            'tipe'             => 'required|in:upload,pilihan_ganda',
-            'guru_mapel_id'    => 'required|exists:guru_mapels,id',
+            'judul' => 'required|string|max:200',
+            'deskripsi' => 'nullable|string',
+            'deadline' => 'required',
+            'tipe' => 'required|in:upload,pilihan_ganda',
+            'pengampu_kelas_id' => 'required|exists:pengampu_kelas,id',
             'file_tugas_input' => 'nullable|file|mimes:pdf,docx,jpg,png|max:10240',
         ]);
 
-        $filePath = null;
+        // Verifikasi kepemilikan pengampu_kelas
+        $pengampu = PengampuKelas::where('id', $request->pengampu_kelas_id)
+            ->whereHas('guruMapel', function ($query) use ($guru_id) {
+                $query->where('guru_id', $guru_id);
+            })->first();
 
+        if (! $pengampu) {
+            return back()->withInput()->withErrors(['pengampu_kelas_id' => 'Kelas/Mapel tidak valid atau bukan wewenang Anda.']);
+        }
+
+        $filePath = null;
         if ($request->hasFile('file_tugas_input')) {
             $filePath = $request->file('file_tugas_input')->store('lampiran_tugas', 'public');
         }
 
         Tugas::create([
-            'judul'         => $request->judul,
-            'deskripsi'     => $request->deskripsi,
-            'deadline'      => Carbon::parse($request->deadline),
-            'tipe'          => $request->tipe,
+            'judul' => $request->judul,
+            'deskripsi' => $request->deskripsi,
+            'deadline' => Carbon::parse($request->deadline),
+            'tipe' => $request->tipe,
             'file_lampiran' => $filePath,
-            'guru_mapel_id' => $request->guru_mapel_id,
+            'pengampu_kelas_id' => $request->pengampu_kelas_id,
         ]);
 
         return redirect()->back()->with('success', 'Tugas berhasil dipublikasikan!');
@@ -94,7 +123,16 @@ class TugasController extends Controller
     // 3. Menampilkan Detail Tugas & Pengumpulan Siswa (READ DETAIL)
     public function show(string $id)
     {
-        $tugas = Tugas::with(['guruMapel.mapel', 'guruMapel.kelas'])->findOrFail($id);
+        $user = request()->user();
+        $guru_id = $user?->guru?->id;
+        abort_unless($user?->role === 'guru' && $guru_id, 403);
+
+        $tugas = Tugas::with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.kelas'])->findOrFail($id);
+
+        if ($tugas->pengampuKelas?->guruMapel?->guru_id !== $guru_id) {
+            abort(403, 'Akses ditolak');
+        }
+
         $pengumpulans = Nilai::with('siswa')->where('tugas_id', $id)->get();
 
         return view('Guru.DetailTugas', compact('tugas', 'pengumpulans'));
@@ -103,16 +141,34 @@ class TugasController extends Controller
     // 4. Memperbarui Data Tugas (UPDATE)
     public function update(Request $request, string $id)
     {
-        $tugas = Tugas::findOrFail($id);
+        $user = $request->user();
+        $guru_id = $user?->guru?->id;
+        abort_unless($user?->role === 'guru' && $guru_id, 403);
+
+        $tugas = Tugas::with('pengampuKelas.guruMapel')->findOrFail($id);
+
+        if ($tugas->pengampuKelas?->guruMapel?->guru_id !== $guru_id) {
+            abort(403, 'Akses ditolak');
+        }
 
         $request->validate([
-            'judul'            => 'required|string|max:200',
-            'deskripsi'        => 'nullable|string',
-            'deadline'         => 'required',
-            'tipe'             => 'required|in:upload,pilihan_ganda',
-            'guru_mapel_id'    => 'required|exists:guru_mapels,id',
+            'judul' => 'required|string|max:200',
+            'deskripsi' => 'nullable|string',
+            'deadline' => 'required',
+            'tipe' => 'required|in:upload,pilihan_ganda',
+            'pengampu_kelas_id' => 'required|exists:pengampu_kelas,id',
             'file_tugas_input' => 'nullable|file|mimes:pdf,docx,jpg,png|max:10240',
         ]);
+
+        // Verifikasi kepemilikan pengampu_kelas
+        $pengampu = PengampuKelas::where('id', $request->pengampu_kelas_id)
+            ->whereHas('guruMapel', function ($query) use ($guru_id) {
+                $query->where('guru_id', $guru_id);
+            })->first();
+
+        if (! $pengampu) {
+            return back()->withInput()->withErrors(['pengampu_kelas_id' => 'Kelas/Mapel tidak valid atau bukan wewenang Anda.']);
+        }
 
         $filePath = $tugas->file_lampiran;
 
@@ -124,12 +180,12 @@ class TugasController extends Controller
         }
 
         $tugas->update([
-            'judul'         => $request->judul,
-            'deskripsi'     => $request->deskripsi,
-            'deadline'      => Carbon::parse($request->deadline),
-            'tipe'          => $request->tipe,
+            'judul' => $request->judul,
+            'deskripsi' => $request->deskripsi,
+            'deadline' => Carbon::parse($request->deadline),
+            'tipe' => $request->tipe,
             'file_lampiran' => $filePath,
-            'guru_mapel_id' => $request->guru_mapel_id,
+            'pengampu_kelas_id' => $request->pengampu_kelas_id,
         ]);
 
         return redirect()->back()->with('success', 'Tugas berhasil diperbarui!');
@@ -138,7 +194,15 @@ class TugasController extends Controller
     // 5. Menghapus Tugas (DELETE)
     public function destroy(string $id)
     {
-        $tugas = Tugas::findOrFail($id);
+        $user = request()->user();
+        $guru_id = $user?->guru?->id;
+        abort_unless($user?->role === 'guru' && $guru_id, 403);
+
+        $tugas = Tugas::with('pengampuKelas.guruMapel')->findOrFail($id);
+
+        if ($tugas->pengampuKelas?->guruMapel?->guru_id !== $guru_id) {
+            abort(403, 'Akses ditolak');
+        }
 
         if ($tugas->file_lampiran && Storage::disk('public')->exists($tugas->file_lampiran)) {
             Storage::disk('public')->delete($tugas->file_lampiran);
@@ -152,22 +216,29 @@ class TugasController extends Controller
     // 6. Menyimpan / Memperbarui Nilai Siswa (UPDATE NILAI)
     public function berikanNilai(Request $request, string $id)
     {
+        $user = $request->user();
+        $guru_id = $user?->guru?->id;
+        abort_unless($user?->role === 'guru' && $guru_id, 403);
+
         $request->validate([
             'nilai' => 'required|numeric|min:0|max:100',
         ]);
 
-        $pengumpulan = Nilai::findOrFail($id);
+        $pengumpulan = Nilai::with('tugas.pengampuKelas.guruMapel')->findOrFail($id);
+
+        if ($pengumpulan->tugas?->pengampuKelas?->guruMapel?->guru_id !== $guru_id) {
+            abort(403, 'Akses ditolak');
+        }
+
         $pengumpulan->update([
-            'nilai'  => $request->nilai,
+            'nilai' => $request->nilai,
             'status' => 'selesai',
         ]);
 
         return redirect()->back()->with('success', 'Nilai siswa berhasil disimpan!');
     }
 
-
-
- /**
+    /**
      * Halaman Daftar Tugas Siswa.
      */
     public function indexSiswa(Request $request)

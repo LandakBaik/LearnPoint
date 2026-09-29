@@ -9,11 +9,11 @@
     selectedTingkatan: '{{ old('tingkatan') }}',
     tingkatans: [],
     kelases: [],
-    
+
     fileName: '',
     fileSize: '',
     hasFile: false,
-    
+
     init() {
         if (this.selectedMapel) {
             this.updateTingkatan();
@@ -30,7 +30,7 @@
         } else {
             this.tingkatans = [];
         }
-        
+
         // Reset kelas kalau ganti mapel
         if (!this.selectedTingkatan || !this.tingkatans.includes(this.selectedTingkatan)) {
             this.selectedTingkatan = '';
@@ -39,7 +39,7 @@
             this.updateKelas();
         }
     },
-    
+
     updateKelas() {
         let mapel = this.mapelData.find(m => m.id == this.selectedMapel);
         if (mapel && this.selectedTingkatan && mapel.tingkatans[this.selectedTingkatan]) {
@@ -100,7 +100,7 @@
             <!-- Section 1: Detail Dasar -->
             <div>
                 <h3 class="text-lg font-bold text-gray-900 mb-4 pb-2 border-b border-gray-100">Informasi Dasar</h3>
-                
+
                 <div class="space-y-4">
                     <!-- Judul Materi -->
                     <div class="space-y-1.5">
@@ -112,7 +112,7 @@
                             value="{{ old('judul') }}"
                             placeholder="Contoh: Sistem Persamaan Linear"
                             class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm font-medium text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-400"
-                            maxlength="255"
+                            maxlength="50"
                             required
                         >
                     </div>
@@ -135,7 +135,7 @@
             <!-- Section 2: Sasaran Kelas -->
             <div class="pt-2">
                 <h3 class="text-lg font-bold text-gray-900 mb-4 pb-2 border-b border-gray-100">Sasaran Kelas</h3>
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                     <!-- Mata Pelajaran -->
                     <div class="space-y-1.5">
@@ -178,7 +178,7 @@
                 <!-- Checkbox Kelas -->
                 <div class="space-y-2">
                     <label class="block text-sm font-bold text-gray-700">Pilih Kelas <span class="text-red-500">*</span></label>
-                    
+
                     <div x-show="!selectedTingkatan" class="p-4 bg-gray-50 border border-gray-200 rounded-xl text-center text-sm text-gray-500">
                         Silakan pilih mata pelajaran dan tingkatan kelas terlebih dahulu.
                     </div>
@@ -186,9 +186,9 @@
                     <div x-show="selectedTingkatan" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" style="display: none;">
                         <template x-for="kelas in kelases" :key="kelas.pengampu_kelas_id">
                             <label class="relative flex items-center p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-colors">
-                                <input 
-                                    type="checkbox" 
-                                    name="pengampu_kelas_ids[]" 
+                                <input
+                                    type="checkbox"
+                                    name="pengampu_kelas_ids[]"
                                     :value="kelas.pengampu_kelas_id"
                                     class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                                 >
@@ -202,12 +202,12 @@
             <!-- Section 3: Unggah Berkas -->
             <div class="pt-2">
                 <h3 class="text-lg font-bold text-gray-900 mb-4 pb-2 border-b border-gray-100">Berkas Materi</h3>
-                
+
                 <div class="space-y-4">
                     <!-- Upload File PDF/PPT -->
                     <div class="space-y-1.5">
                         <label class="block text-sm font-bold text-gray-700">Dokumen Materi (PDF / PPT / PPTX) <span class="text-red-500">*</span></label>
-                        
+
                         <div class="border-2 border-dashed border-blue-200/80 bg-blue-50/20 rounded-2xl p-6 text-center space-y-2 hover:bg-blue-50/40 transition-colors cursor-pointer relative">
                             <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-2">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
@@ -216,13 +216,13 @@
                                 Klik atau tarik berkas ke sini
                             </p>
                             <p class="text-xs text-gray-400">Maksimal ukuran file: 10 MB (.pdf, .ppt, .pptx)</p>
-                            
-                            <input 
-                                type="file" 
-                                id="file_materi" 
-                                name="file_materi" 
-                                accept=".pdf,.ppt,.pptx" 
-                                @change="handleFileChange($event)" 
+
+                            <input
+                                type="file"
+                                id="file_materi"
+                                name="file_materi"
+                                accept=".pdf,.ppt,.pptx"
+                                @change="handleFileChange($event)"
                                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                 required
                             >

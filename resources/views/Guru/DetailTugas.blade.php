@@ -33,10 +33,10 @@
         <div class="flex items-center justify-between flex-wrap gap-2">
             <div class="flex items-center gap-2">
                 <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold">
-                    {{ $tugas->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran' }}
+                    {{ $tugas->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran' }}
                 </span>
                 <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold">
-                    {{ $tugas->guruMapel?->kelas?->nama_kelas ?? 'Kelas' }}
+                    {{ $tugas->pengampuKelas?->kelas?->nama_kelas ?? 'Kelas' }}
                 </span>
                 <span class="px-3 py-1 bg-purple-50 text-purple-600 rounded-lg text-xs font-bold capitalize">
                     {{ str_replace('_', ' ', $tugas->tipe) }}
