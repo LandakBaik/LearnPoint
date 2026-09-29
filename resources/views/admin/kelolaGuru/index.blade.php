@@ -144,16 +144,23 @@
                                 @endif
                             </td>
                             <td class="py-4 px-4">
-                                @if($guru->guruMapels->count() > 0)
-                                    <div class="flex flex-wrap gap-1 max-w-xs">
-                                        @foreach($guru->guruMapels->take(2) as $gm)
-                                            <span class="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 text-xs font-medium">
-                                                {{ $gm->mapel->nama_mapel ?? '-' }} ({{ $gm->kelas->nama_kelas ?? '-' }})
+                                @php
+                                    $groupedMapels = $guru->pengampuKelases->groupBy('guru_mapel_id');
+                                @endphp
+                                @if($groupedMapels->count() > 0)
+                                    <div class="flex flex-wrap gap-1.5 max-w-sm">
+                                        @foreach($groupedMapels->take(2) as $gmId => $items)
+                                            @php
+                                                $mapelName = $items->first()->mapel->nama_mapel ?? '-';
+                                                $kelasList = $items->map(fn($i) => $i->kelas->nama_kelas ?? '-')->filter()->join(', ');
+                                            @endphp
+                                            <span class="px-2 py-0.5 rounded-md bg-gray-100 text-gray-800 text-xs font-medium border border-gray-200/60">
+                                                <strong class="font-bold text-gray-900">{{ $mapelName }}</strong> ({{ $kelasList }})
                                             </span>
                                         @endforeach
-                                        @if($guru->guruMapels->count() > 2)
-                                            <span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 font-semibold text-[11px]">
-                                                +{{ $guru->guruMapels->count() - 2 }} lainnya
+                                        @if($groupedMapels->count() > 2)
+                                            <span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 font-semibold text-[11px] self-center">
+                                                +{{ $groupedMapels->count() - 2 }} mapel lainnya
                                             </span>
                                         @endif
                                     </div>

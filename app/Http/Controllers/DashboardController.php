@@ -108,7 +108,7 @@ class DashboardController extends Controller
 
         $guruPengampus = collect();
         if ($siswa && $siswa->kelas) {
-            $guruPengampus = $siswa->kelas->guruMapels()->with(['guru', 'mapel'])->get();
+            $guruPengampus = $siswa->kelas->pengampuKelases()->with(['guruMapel.guru', 'guruMapel.mapel'])->get();
         }
 
         return view('dashboard.siswa', compact('user', 'siswa', 'totalMapel', 'guruPengampus'));

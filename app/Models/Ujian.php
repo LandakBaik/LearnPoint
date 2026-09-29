@@ -17,7 +17,7 @@ class Ujian extends Model
         'waktu_mulai',
         'deadline',
         'durasi_menit',
-        'guru_mapel_id',
+        'pengampu_kelas_id',
     ];
 
     protected function casts(): array
@@ -28,9 +28,14 @@ class Ujian extends Model
         ];
     }
 
-    public function guruMapel()
+    public function pengampuKelas()
     {
-        return $this->belongsTo(GuruMapel::class, 'guru_mapel_id');
+        return $this->belongsTo(PengampuKelas::class, 'pengampu_kelas_id');
+    }
+
+    public function getGuruMapelAttribute()
+    {
+        return $this->pengampuKelas?->guruMapel;
     }
 
     public function soals()

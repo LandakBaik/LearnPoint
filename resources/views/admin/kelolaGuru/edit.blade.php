@@ -70,32 +70,66 @@
                 </div>
             </div>
 
-            <div class="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
+            <div class="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-4">
                 <div class="flex items-center gap-2 text-gray-800">
                     <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                     <span class="text-xs font-bold uppercase tracking-wider">Tambah Penugasan Mapel & Kelas Baru (Opsional)</span>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1">Mata Pelajaran</label>
-                        <select name="new_mapel_id" class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-indigo-500">
-                            <option value="">-- Pilih Mata Pelajaran --</option>
-                            @foreach($mapels as $m)
-                                <option value="{{ $m->id }}">{{ $m->nama_mapel }} (KKM: {{ $m->kkm }})</option>
-                            @endforeach
-                        </select>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1">Mata Pelajaran</label>
+                    <select name="new_mapel_id" class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-indigo-500">
+                        <option value="">-- Pilih Mata Pelajaran --</option>
+                        @foreach($mapels as $m)
+                            <option value="{{ $m->id }}">{{ $m->nama_mapel }} (KKM: {{ $m->kkm }})</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Multi-select Checkbox Kelas -->
+                <div x-data="{
+                    selectedClasses: [],
+                    allClassIds: {{ $kelases->pluck('id')->toJson() }},
+                    toggleAll() {
+                        if (this.selectedClasses.length === this.allClassIds.length) {
+                            this.selectedClasses = [];
+                        } else {
+                            this.selectedClasses = [...this.allClassIds];
+                        }
+                    }
+                }" class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-[11px] font-bold text-gray-500 uppercase">Pilih Kelas yang Diampu</label>
+                        <button 
+                            type="button" 
+                            @click="toggleAll()" 
+                            class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
+                            <span x-text="selectedClasses.length === allClassIds.length ? 'Batalkan Semua' : 'Pilih Semua Kelas'"></span>
+                        </button>
                     </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1">Kelas</label>
-                        <select name="new_kelas_id" class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-indigo-500">
-                            <option value="">-- Pilih Kelas --</option>
-                            @foreach($kelases as $k)
-                                <option value="{{ $k->id }}">{{ $k->nama_kelas }} (Tingkat {{ $k->tingkatan }})</option>
-                            @endforeach
-                        </select>
+
+                    <div class="max-h-52 overflow-y-auto p-3 rounded-xl border border-gray-200 bg-white space-y-3">
+                        @foreach($kelases->groupBy('tingkatan') as $tingkat => $kelasList)
+                            <div>
+                                <p class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 mb-1.5">Tingkat {{ $tingkat }}</p>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    @foreach($kelasList as $kelas)
+                                        <label class="flex items-center gap-2 p-2 rounded-lg bg-gray-50 border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/30 cursor-pointer transition-all text-xs font-medium text-gray-800">
+                                            <input 
+                                                type="checkbox" 
+                                                name="new_kelas_ids[]" 
+                                                value="{{ $kelas->id }}"
+                                                x-model="selectedClasses"
+                                                class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                            <span>{{ $kelas->nama_kelas }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
                 </div>
-                <p class="text-[11px] text-gray-500">Pilih Mapel dan Kelas untuk menambahkan tugas mengajar baru saat menekan tombol simpan.</p>
+                <p class="text-[11px] text-gray-500">Pilih Mapel dan centang satu atau lebih Kelas untuk menambahkan tugas mengajar baru saat menekan tombol simpan.</p>
             </div>
 
             <!-- Action Buttons -->
@@ -118,9 +152,13 @@
                 <p class="text-xs text-gray-500 mt-0.5">Penugasan mengajar aktif untuk guru {{ $guru->nama }}.</p>
             </div>
             <span class="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold">
-                {{ $guru->guruMapels->count() }} Penugasan
+                {{ $guru->guruMapels()->has('pengampuKelases')->count() }} Mata Pelajaran ({{ $guru->pengampuKelases->count() }} Kelas)
             </span>
         </div>
+
+        @php
+            $groupedPengampu = $guru->pengampuKelases->groupBy('guru_mapel_id');
+        @endphp
 
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
@@ -128,33 +166,40 @@
                     <tr class="bg-gray-50/80 border-b border-gray-200 text-[11px] font-bold uppercase tracking-wider text-gray-500">
                         <th class="py-3 px-6">Mata Pelajaran</th>
                         <th class="py-3 px-4">KKM</th>
-                        <th class="py-3 px-4">Kelas</th>
-                        <th class="py-3 px-6 text-right">Aksi</th>
+                        <th class="py-3 px-4">Kelas yang Diampu</th>
+                        <th class="py-3 px-4 text-center">Total Kelas</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                    @forelse($guru->guruMapels as $gm)
+                    @forelse($groupedPengampu as $gmId => $items)
+                        @php $first = $items->first(); @endphp
                         <tr class="hover:bg-gray-50/60 transition-colors">
                             <td class="py-3.5 px-6 font-bold text-gray-900">
-                                {{ $gm->mapel->nama_mapel ?? '-' }}
+                                {{ $first->mapel->nama_mapel ?? '-' }}
                             </td>
                             <td class="py-3.5 px-4 font-mono font-bold text-amber-600">
-                                {{ $gm->mapel->kkm ?? '-' }}
+                                {{ $first->mapel->kkm ?? '-' }}
                             </td>
                             <td class="py-3.5 px-4">
-                                <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-bold text-xs rounded-lg">
-                                    {{ $gm->kelas->nama_kelas ?? '-' }} (Tingkat {{ $gm->kelas->tingkatan ?? '-' }})
-                                </span>
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    @foreach($items as $gm)
+                                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-800 font-bold text-xs rounded-lg border border-indigo-100">
+                                            <span>{{ $gm->kelas->nama_kelas ?? '-' }}</span>
+                                            <form action="{{ route('guru-mapel.destroy', $gm->id) }}" method="POST" data-confirm="Hapus penugasan mengajar mapel {{ $first->mapel->nama_mapel ?? '' }} di kelas {{ $gm->kelas->nama_kelas ?? '' }} untuk guru ini?" class="inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-indigo-400 hover:text-rose-600 transition-colors ml-0.5" title="Lepas kelas {{ $gm->kelas->nama_kelas ?? '' }}">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </td>
-                            <td class="py-3.5 px-6 text-right">
-                                <form action="{{ route('guru-mapel.destroy', $gm->id) }}" method="POST" data-confirm="Hapus penugasan mengajar mapel {{ $gm->mapel->nama_mapel ?? '' }} di kelas {{ $gm->kelas->nama_kelas ?? '' }} untuk guru ini?" class="inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="px-3 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors inline-flex items-center gap-1">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                        <span>Lepas Penugasan</span>
-                                    </button>
-                                </form>
+                            <td class="py-3.5 px-4 text-center">
+                                <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700">
+                                    {{ $items->count() }} Kelas
+                                </span>
                             </td>
                         </tr>
                     @empty
