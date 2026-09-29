@@ -129,7 +129,14 @@ class GuruController extends Controller
      */
     public function show(Guru $guru)
     {
-        $guru->load(['user', 'kelas.siswas', 'pengampuKelases.guruMapel.mapel', 'pengampuKelases.kelas']);
+        $guru->load([
+            'user', 
+            'kelas.siswas', 
+            'guruMapels.mapel', 
+            'guruMapels.pengampuKelases.kelas', 
+            'pengampuKelases.guruMapel.mapel', 
+            'pengampuKelases.kelas'
+        ]);
 
         $allMapels = Mapel::orderBy('nama_mapel', 'asc')->get();
         $allKelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();

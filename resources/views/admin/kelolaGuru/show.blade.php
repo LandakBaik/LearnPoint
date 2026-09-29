@@ -3,7 +3,7 @@
 @section('title', 'Detail Guru: ' . $guru->nama)
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6" x-data="{ modalOpen: false, modalImg: '', assignModalOpen: false }">
+<div class="max-w-4xl mx-auto space-y-6" x-data="{ modalOpen: false, modalImg: '', modalTitle: '', assignModalOpen: false }">
 
     <!-- Header Navigation -->
     <div class="flex items-center justify-between">
@@ -183,28 +183,130 @@
         @endif
     </div>
 
-    <!-- Foto Jadwal Mengajar Guru Card -->
-    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
-        <div class="flex items-center justify-between">
+    <!-- Foto Jadwal Mengajar Guru per Mata Pelajaran Card -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-gray-100">
             <div>
-                <h3 class="text-base font-bold text-gray-900">Foto Jadwal Mengajar Guru</h3>
-                <p class="text-xs text-gray-500">Jadwal ini akan dilihat oleh guru saat membuka menu Jadwal.</p>
+                <div class="flex items-center gap-2">
+                    <h3 class="text-base font-bold text-gray-900">Foto Jadwal Mengajar Guru</h3>
+                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        {{ $guru->guruMapels->count() }} Mata Pelajaran
+                    </span>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Daftar foto jadwal resmi per mata pelajaran yang diampu oleh {{ $guru->nama }}.</p>
             </div>
-            <a href="{{ route('admin.jadwal.index', ['tab' => 'guru']) }}" class="text-xs font-semibold text-indigo-600 hover:underline">
-                Upload / Ganti di Kelola Jadwal &rarr;
+            <a href="{{ route('admin.jadwal.index', ['tab' => 'guru']) }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200 transition-colors shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                <span>Kelola / Upload di Jadwal &rarr;</span>
             </a>
         </div>
 
-        @if($guru->jadwal_url)
-            <div class="relative group rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 p-2 text-center max-w-lg mx-auto">
-                <img src="{{ $guru->jadwal_url }}" alt="Jadwal {{ $guru->nama }}" class="max-h-72 w-auto mx-auto rounded-xl object-contain shadow-sm cursor-pointer hover:opacity-95 transition-opacity" @click="modalOpen = true; modalImg = '{{ $guru->jadwal_url }}'">
-                <p class="text-xs text-gray-400 mt-2">Klik gambar untuk melihat resolusi penuh</p>
+        @if($guru->guruMapels->count() > 0)
+            <div class="grid grid-cols-1 {{ $guru->guruMapels->count() > 1 ? 'md:grid-cols-2' : '' }} gap-5">
+                @foreach($guru->guruMapels as $gm)
+                    <div class="rounded-2xl border {{ $gm->jadwal_url ? 'border-indigo-100 bg-indigo-50/15' : 'border-gray-200 bg-gray-50/40' }} p-5 flex flex-col justify-between space-y-4 hover:shadow-xs transition-all">
+                        <!-- Top Header Info -->
+                        <div class="space-y-2.5">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded">
+                                        Mata Pelajaran
+                                    </span>
+                                    <h4 class="font-extrabold text-gray-900 text-base mt-1.5">
+                                        {{ $gm->mapel->nama_mapel ?? 'Mapel #' . $gm->id }}
+                                    </h4>
+                                </div>
+                                <div class="flex flex-col items-end gap-1">
+                                    @if($gm->jadwal_url)
+                                        <span class="px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            Ada Jadwal
+                                        </span>
+                                    @else
+                                        <span class="px-2.5 py-0.5 text-[11px] font-medium rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                                            Belum Ada Jadwal
+                                        </span>
+                                    @endif
+                                    @if($gm->mapel)
+                                        <span class="text-[10px] text-gray-400 font-mono">KKM: {{ $gm->mapel->kkm }}</span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <!-- Kelas yang Diampu -->
+                            <div>
+                                <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Kelas Diampu:</p>
+                                @if($gm->pengampuKelases->count() > 0)
+                                    <div class="flex flex-wrap gap-1.5 mt-1">
+                                        @foreach($gm->pengampuKelases as $pk)
+                                            <span class="px-2 py-0.5 rounded-md bg-white border border-gray-200 text-gray-700 text-xs font-semibold shadow-2xs">
+                                                {{ $pk->kelas->nama_kelas ?? '-' }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <p class="text-xs text-gray-400 italic mt-0.5">Belum dialokasikan ke kelas</p>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Foto Jadwal Preview -->
+                        @if($gm->jadwal_url)
+                            <div class="space-y-3">
+                                <div 
+                                    class="relative group rounded-xl overflow-hidden border border-gray-200 bg-white p-2 text-center cursor-pointer shadow-2xs hover:border-indigo-300 transition-all"
+                                    @click="modalOpen = true; modalImg = '{{ $gm->jadwal_url }}'; modalTitle = 'Jadwal {{ addslashes($gm->mapel->nama_mapel ?? 'Mapel') }} - {{ addslashes($guru->nama) }}'"
+                                >
+                                    <img 
+                                        src="{{ $gm->jadwal_url }}" 
+                                        alt="Jadwal {{ $gm->mapel->nama_mapel ?? 'Mapel' }} - {{ $guru->nama }}" 
+                                        class="max-h-60 w-auto mx-auto rounded-lg object-contain transition-transform duration-200 group-hover:scale-[1.02]"
+                                    >
+                                    <div class="absolute inset-0 bg-indigo-900/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                                        <span class="px-3 py-1.5 bg-white/95 text-indigo-900 text-xs font-bold rounded-lg shadow-md flex items-center gap-1.5">
+                                            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+                                            Perbesar Foto
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between pt-1">
+                                    <button 
+                                        type="button" 
+                                        @click="modalOpen = true; modalImg = '{{ $gm->jadwal_url }}'; modalTitle = 'Jadwal {{ addslashes($gm->mapel->nama_mapel ?? 'Mapel') }} - {{ addslashes($guru->nama) }}'"
+                                        class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                                    >
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                        <span>Lihat Penuh</span>
+                                    </button>
+
+                                    <a 
+                                        href="{{ $gm->jadwal_url }}" 
+                                        download 
+                                        class="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-white hover:bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-200 transition-colors shadow-2xs"
+                                    >
+                                        <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                        <span>Unduh</span>
+                                    </a>
+                                </div>
+                            </div>
+                        @else
+                            <div class="p-6 text-center rounded-xl border border-dashed border-gray-200 bg-white space-y-2">
+                                <svg class="w-8 h-8 text-gray-300 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <p class="text-xs font-semibold text-gray-600">Belum ada foto jadwal untuk mapel ini</p>
+                                <a href="{{ route('admin.jadwal.index', ['tab' => 'guru']) }}" class="inline-block text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
+                                    + Upload di Menu Jadwal &rarr;
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+                @endforeach
             </div>
         @else
             <div class="p-8 text-center rounded-2xl border border-dashed border-gray-200 bg-gray-50/50">
                 <svg class="w-10 h-10 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                <p class="text-sm font-semibold text-gray-600">Belum ada foto jadwal yang diunggah</p>
-                <p class="text-xs text-gray-400 mt-0.5">Admin dapat mengunggah foto jadwal mengajar di menu Kelola Jadwal.</p>
+                <p class="text-sm font-semibold text-gray-600">Guru ini belum memiliki alokasi mata pelajaran</p>
+                <p class="text-xs text-gray-400 mt-0.5">Tugaskan mata pelajaran terlebih dahulu untuk mengunggah foto jadwal mengajar.</p>
             </div>
         @endif
     </div>
@@ -218,13 +320,19 @@
     >
         <div class="relative max-w-4xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden p-2">
             <div class="flex items-center justify-between p-3 border-b border-gray-100">
-                <h4 class="font-bold text-gray-800 text-sm">Foto Jadwal</h4>
-                <button @click="modalOpen = false" class="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
+                <h4 class="font-bold text-gray-800 text-sm" x-text="modalTitle || 'Foto Jadwal Mengajar'"></h4>
+                <div class="flex items-center gap-2">
+                    <a :href="modalImg" download class="p-1.5 text-xs text-indigo-600 hover:bg-indigo-50 rounded-lg flex items-center gap-1 font-semibold" title="Unduh Foto">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <span>Unduh</span>
+                    </a>
+                    <button @click="modalOpen = false" class="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
             </div>
             <div class="p-4 text-center max-h-[80vh] overflow-auto">
-                <img :src="modalImg" alt="Jadwal Zoom" class="mx-auto max-h-[70vh] object-contain rounded-lg">
+                <img :src="modalImg" :alt="modalTitle || 'Jadwal Zoom'" class="mx-auto max-h-[70vh] object-contain rounded-lg">
             </div>
         </div>
     </div>
