@@ -40,11 +40,16 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('siswa', SiswaController::class);
     });
 
-    // Dashboard Guru
     Route::middleware(['role:guru'])->group(function () {
         Route::get('/guru/dashboard', [DashboardController::class, 'guruDashboard'])->name('guru.dashboard');
         Route::get('/guru/materi', [MateriController::class, 'index'])->name('guru.materi');
+
+        // --- ROUTE TUGAS GURU ---
         Route::get('/guru/tugas', [TugasController::class, 'index'])->name('guru.tugas');
+        Route::post('/guru/tugas', [TugasController::class, 'store'])->name('guru.tugas.store');
+        Route::get('/guru/tugas/{id}', [TugasController::class, 'show'])->name('guru.tugas.show');
+        Route::put('/guru/tugas/{id}', [TugasController::class, 'update'])->name('guru.tugas.update');
+        Route::delete('/guru/tugas/{id}', [TugasController::class, 'destroy'])->name('guru.tugas.destroy');
         Route::get('/guru/jadwal', [JadwalController::class, 'index'])->name('guru.jadwal');
     });
 

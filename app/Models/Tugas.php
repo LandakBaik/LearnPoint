@@ -13,8 +13,10 @@ class Tugas extends Model
 
     protected $fillable = [
         'judul',
+        'deskripsi',
         'deadline',
         'tipe',
+        'file_lampiran',
         'guru_mapel_id',
     ];
 
@@ -27,7 +29,7 @@ class Tugas extends Model
 
     public function guruMapel()
     {
-        return $this->belongsTo(GuruMapel::class, 'guru_mapel_id');
+        return $this->belongsTo(GuruMapel::class, 'guru_mapel_id')->withDefault();
     }
 
     public function soals()
