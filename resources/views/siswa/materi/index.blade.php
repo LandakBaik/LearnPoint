@@ -25,10 +25,10 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
         @forelse ($daftarMapel as $mapel)
             @php
-                // Ambil nama guru dari relasi
-                $guruModel = $mapel->guruMapels->first()->guru ?? null;
+                $pengampuKelas = $mapel->pengampuKelases->first();
+                $guruModel = $pengampuKelas?->guruMapel?->guru;
                 $namaGuru = $guruModel->nama ?? $guruModel->name ?? 'Guru Pengampu';
-                
+
                 // Ambil inisial nama guru
                 $nameParts = explode(' ', trim(str_replace(['Dra.', 'Drs.', 'M.Pd', 'S.Pd', 'M.Kom', ','], '', $namaGuru)));
                 $initial = strtoupper(substr($nameParts[0] ?? 'G', 0, 1));
@@ -37,18 +37,17 @@
                 $avatarColors = ['bg-red-500', 'bg-amber-500', 'bg-emerald-600', 'bg-blue-600', 'bg-indigo-600', 'bg-rose-600', 'bg-teal-600', 'bg-fuchsia-600', 'bg-slate-800'];
                 $avatarColor = $avatarColors[$mapel->id % count($avatarColors)];
 
-                // Hitung Bab & Materi secara Dinamis
-                $jumlahBab = $mapel->babs_count ?? (isset($mapel->babs) ? count($mapel->babs) : 0);
-                $jumlahMateri = $mapel->materis_count ?? (isset($mapel->materis) ? count($mapel->materis) : 0);
+                $jumlahBab = 0;
+                $jumlahMateri = $mapel->pengampuKelases->sum(fn ($assignment) => $assignment->materis->count());
             @endphp
 
             {{-- Seluruh Kartu Dibuat Link--}}
-            <a 
+            <a
                 href="{{ route('siswa.materi.show', $mapel->id) }}"
-                style="box-shadow: -5px 5px 10px rgba(37, 99, 235, 0.5);" 
+                style="box-shadow: -5px 5px 10px rgba(37, 99, 235, 0.5);"
                 class="group bg-white rounded-2xl border border-slate-100 transition-all duration-300 p-5 flex flex-col justify-between h-full space-y-5 hover:-translate-y-1 block"
             >
-                
+
                 <!-- Card Header -->
                 <div class="flex items-center justify-between">
                     <!-- Icon Box: Abu-abu default, berubah jadi biru saat kartu di-hover / dipencet -->
