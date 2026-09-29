@@ -51,11 +51,14 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Dashboard Siswa Fitur
-    Route::middleware(['auth', 'role:siswa'])->group(function() {
+    Route::middleware(['auth', 'role:siswa'])->group(function () {
         Route::get('/siswa/materi', [MateriController::class, 'indexSiswa'])->name('siswa.materi');
         Route::get('/siswa/materi/{id}', [MateriController::class, 'showSiswa'])->name('siswa.materi.show');
         Route::get('/siswa/tugas', [TugasController::class, 'indexSiswa'])->name('siswa.tugas');
-        Route::get('/siswa/jadwal', [JadwalContoller::class, 'index'])->name('siswa.jadwal');
+        Route::get('/siswa/tugas/{id}', [TugasController::class, 'showSiswa'])->name('siswa.tugas.show');
+        Route::post('/siswa/tugas/{id}/kumpulkan', [TugasController::class, 'kumpulkanTugas'])->name('siswa.tugas.kumpulkan');
+        Route::delete('/siswa/tugas/{id}/batalkan', [TugasController::class, 'batalkanPengumpulan'])->name('siswa.tugas.batalkan');
+        Route::get('/siswa/jadwal', [JadwalController::class, 'index'])->name('siswa.jadwal');
     });
 
     // Dashboard Admin / Operator
