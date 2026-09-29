@@ -47,6 +47,8 @@ Route::middleware(['auth'])->group(function () {
     // Dashboard Guru Fitur
     Route::middleware(['role:guru'])->group(function () {
         Route::get('/guru/materi', [MateriController::class, 'index'])->name('guru.materi');
+        Route::get('/guru/materi/create', [MateriController::class, 'create'])->name('guru.materi.create');
+        Route::post('/guru/materi', [MateriController::class, 'store'])->name('guru.materi.store');
         Route::get('/guru/tugas', [TugasController::class, 'index'])->name('guru.tugas');
         Route::get('/guru/jadwal', [JadwalController::class, 'index'])->name('guru.jadwal');
     });
