@@ -44,12 +44,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/guru/dashboard', [DashboardController::class, 'guruDashboard'])->name('guru.dashboard');
     Route::get('/siswa/dashboard', [DashboardController::class, 'siswaDashboard'])->name('siswa.dashboard');
 
-    // Dashboard Guru Fitur
     Route::middleware(['role:guru'])->group(function () {
         Route::get('/guru/materi', [MateriController::class, 'index'])->name('guru.materi');
         Route::get('/guru/materi/create', [MateriController::class, 'create'])->name('guru.materi.create');
         Route::post('/guru/materi', [MateriController::class, 'store'])->name('guru.materi.store');
         Route::get('/guru/tugas', [TugasController::class, 'index'])->name('guru.tugas');
+        Route::post('/guru/tugas', [TugasController::class, 'store'])->name('guru.tugas.store');
+        Route::get('/guru/tugas/{id}', [TugasController::class, 'show'])->name('guru.tugas.show');
+        Route::put('/guru/tugas/{id}', [TugasController::class, 'update'])->name('guru.tugas.update');
+        Route::delete('/guru/tugas/{id}', [TugasController::class, 'destroy'])->name('guru.tugas.destroy');
         Route::get('/guru/jadwal', [JadwalController::class, 'index'])->name('guru.jadwal');
     });
 
