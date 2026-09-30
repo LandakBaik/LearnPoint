@@ -14,6 +14,7 @@ use App\Http\Controllers\MapelController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\GuruMapelController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UjianController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -45,11 +46,58 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/siswa/dashboard', [DashboardController::class, 'siswaDashboard'])->name('siswa.dashboard');
 
     // Dashboard Guru Fitur
-    Route::middleware(['role:guru'])->group(function () {
-        Route::get('/guru/materi', [MateriController::class, 'index'])->name('guru.materi');
-        Route::get('/guru/tugas', [TugasController::class, 'index'])->name('guru.tugas');
-        Route::get('/guru/jadwal', [JadwalController::class, 'index'])->name('guru.jadwal');
-    });
+Route::middleware(['role:guru'])->group(function () {
+
+    Route::get('/guru/materi', [MateriController::class, 'index'])
+        ->name('guru.materi');
+
+    Route::get('/guru/tugas', [TugasController::class, 'index'])
+        ->name('guru.tugas');
+
+    Route::get('/guru/jadwal', [JadwalController::class, 'index'])
+        ->name('guru.jadwal');
+
+
+    // ==========================================
+    // UJIAN GURU
+    // ==========================================
+
+    // Daftar semua ujian
+    Route::get('/guru/ujian', [UjianController::class, 'index'])
+        ->name('guru.ujian.index');
+
+    // Halaman tambah ujian
+    Route::get('/guru/ujian/create', [UjianController::class, 'create'])
+        ->name('guru.ujian.create');
+
+    // Simpan ujian baru
+    Route::post('/guru/ujian', [UjianController::class, 'store'])
+        ->name('guru.ujian.store');
+
+    // Detail ujian
+    Route::get('/guru/ujian/{ujian}', [UjianController::class, 'show'])
+        ->name('guru.ujian.show');
+
+    // Halaman edit ujian
+    Route::get('/guru/ujian/{ujian}/edit', [UjianController::class, 'edit'])
+        ->name('guru.ujian.edit');
+
+    // Update ujian
+    Route::put('/guru/ujian/{ujian}', [UjianController::class, 'update'])
+        ->name('guru.ujian.update');
+
+    // Hapus ujian
+    Route::delete('/guru/ujian/{ujian}', [UjianController::class, 'destroy'])
+        ->name('guru.ujian.destroy');
+
+    // Publikasi ujian sekarang
+    Route::post('/guru/ujian/{ujian}/publish', [UjianController::class, 'publish'])
+        ->name('guru.ujian.publish');
+
+    // Jadwalkan ujian
+    Route::post('/guru/ujian/{ujian}/schedule', [UjianController::class, 'schedule'])
+        ->name('guru.ujian.schedule');
+});
 
     // Dashboard Siswa Fitur
     Route::middleware(['auth', 'role:siswa'])->group(function() {
