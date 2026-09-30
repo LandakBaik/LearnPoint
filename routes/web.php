@@ -37,10 +37,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Main Dashboard Router
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-    // ==========================================
-    // 💡 ROUTE DASHBOARD KHUSUS (TARUH DI ATAS RESOURCE)
-    // ==========================================
+    // Dashboard Guru
     Route::get('/guru/dashboard', [DashboardController::class, 'guruDashboard'])->name('guru.dashboard');
     Route::get('/siswa/dashboard', [DashboardController::class, 'siswaDashboard'])->name('siswa.dashboard');
 
