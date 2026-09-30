@@ -12,6 +12,7 @@
     fileSize: '',
     hasFile: false,
 
+
     handleFileChange(event) {
         const file = event.target.files[0];
         if (file) {
@@ -19,6 +20,7 @@
             this.fileSize = (file.size / (1024 * 1024)).toFixed(1) + ' MB • Siap diunggah';
             this.hasFile = true;
         }
+    }
 }">
 
     <!-- Header Title & Action Button -->
