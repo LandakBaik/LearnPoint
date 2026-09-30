@@ -17,6 +17,7 @@ class Materi extends Model
         'file_materi',
         'url_youtube',
         'pengampu_kelas_id',
+        'id_grub_materi',
     ];
 
     public function pengampuKelas()
