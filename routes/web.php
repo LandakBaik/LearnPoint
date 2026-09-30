@@ -14,6 +14,7 @@ use App\Http\Controllers\MapelController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\GuruMapelController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UjianController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -54,10 +55,46 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/guru/tugas/{id}', [TugasController::class, 'update'])->name('guru.tugas.update');
         Route::delete('/guru/tugas/{id}', [TugasController::class, 'destroy'])->name('guru.tugas.destroy');
         Route::get('/guru/jadwal', [JadwalController::class, 'index'])->name('guru.jadwal');
+
+        // Daftar semua ujian
+        Route::get('/guru/ujian', [UjianController::class, 'index'])
+            ->name('guru.ujian.index');
+
+        // Halaman tambah ujian
+        Route::get('/guru/ujian/create', [UjianController::class, 'create'])
+            ->name('guru.ujian.create');
+
+        // Simpan ujian baru
+        Route::post('/guru/ujian', [UjianController::class, 'store'])
+            ->name('guru.ujian.store');
+
+        // Detail ujian
+        Route::get('/guru/ujian/{ujian}', [UjianController::class, 'show'])
+            ->name('guru.ujian.show');
+
+        // Halaman edit ujian
+        Route::get('/guru/ujian/{ujian}/edit', [UjianController::class, 'edit'])
+            ->name('guru.ujian.edit');
+
+        // Update ujian
+        Route::put('/guru/ujian/{ujian}', [UjianController::class, 'update'])
+            ->name('guru.ujian.update');
+
+        // Hapus ujian
+        Route::delete('/guru/ujian/{ujian}', [UjianController::class, 'destroy'])
+            ->name('guru.ujian.destroy');
+
+        // Publikasi ujian sekarang
+        Route::post('/guru/ujian/{ujian}/publish', [UjianController::class, 'publish'])
+            ->name('guru.ujian.publish');
+
+        // Jadwalkan ujian
+        Route::post('/guru/ujian/{ujian}/schedule', [UjianController::class, 'schedule'])
+            ->name('guru.ujian.schedule');
     });
 
     // Dashboard Siswa Fitur
-    Route::middleware(['auth', 'role:siswa'])->group(function() {
+    Route::middleware(['auth', 'role:siswa'])->group(function () {
         Route::get('/siswa/materi', [MateriController::class, 'indexSiswa'])->name('siswa.materi');
         Route::get('/siswa/materi/{id}', [MateriController::class, 'showSiswa'])->name('siswa.materi.show');
         Route::get('/siswa/tugas', [TugasController::class, 'indexSiswa'])->name('siswa.tugas');
