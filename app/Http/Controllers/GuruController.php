@@ -64,7 +64,7 @@ class GuruController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama'                      => 'required|string|max:100',
+            'nama'                      => 'required|string|max:100|regex:/^[a-zA-Z\s\.,]+$/u',
             'nip'                       => 'required|numeric|digits:18|unique:gurus,nip',
             'assignments'               => 'nullable|array',
             'assignments.*.mapel_id'    => 'nullable|exists:mapels,id',
@@ -72,6 +72,7 @@ class GuruController extends Controller
             'assignments.*.kelas_ids'   => 'nullable|array',
             'assignments.*.kelas_ids.*' => 'exists:kelases,id',
         ], [
+            'nama.regex'  => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
             'nip.numeric' => 'NIP guru harus berupa angka.',
             'nip.digits'  => 'NIP guru harus tepat 18 digit angka.',
             'nip.unique'  => 'NIP ini sudah terdaftar untuk guru lain.',
@@ -163,13 +164,14 @@ class GuruController extends Controller
     public function update(Request $request, Guru $guru)
     {
         $validated = $request->validate([
-            'nama'            => 'required|string|max:100',
+            'nama'            => 'required|string|max:100|regex:/^[a-zA-Z\s\.,]+$/u',
             'nip'             => ['required', 'numeric', 'digits:18', Rule::unique('gurus')->ignore($guru->id)],
             'new_mapel_id'    => 'nullable|exists:mapels,id',
             'new_kelas_ids'   => 'nullable|array',
             'new_kelas_ids.*' => 'exists:kelases,id',
             'new_kelas_id'    => 'nullable|exists:kelases,id',
         ], [
+            'nama.regex'  => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
             'nip.numeric' => 'NIP guru harus berupa angka.',
             'nip.digits'  => 'NIP guru harus tepat 18 digit angka.',
             'nip.unique'  => 'NIP ini sudah terdaftar untuk guru lain.',
