@@ -15,6 +15,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\GuruMapelController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UjianController;
+use App\Http\Controllers\QuizController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -91,6 +92,18 @@ Route::middleware(['auth'])->group(function () {
         // Jadwalkan ujian
         Route::post('/guru/ujian/{ujian}/schedule', [UjianController::class, 'schedule'])
             ->name('guru.ujian.schedule');
+
+        // Kuis Guru
+        Route::get('/guru/kuis', [QuizController::class, 'index'])
+            ->name('guru.kuis.index');
+        Route::post('/guru/kuis', [QuizController::class, 'store'])
+            ->name('guru.kuis.store');
+        Route::get('/guru/kuis/{quiz}', [QuizController::class, 'show'])
+            ->name('guru.kuis.show');
+        Route::put('/guru/kuis/{quiz}', [QuizController::class, 'update'])
+            ->name('guru.kuis.update');
+        Route::delete('/guru/kuis/{quiz}', [QuizController::class, 'destroy'])
+            ->name('guru.kuis.destroy');
     });
 
     // Dashboard Siswa Fitur
