@@ -6,6 +6,7 @@ use App\Models\Quiz;
 use App\Models\Soal;
 use App\Models\PengampuKelas;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class QuizController extends Controller
 {
@@ -24,6 +25,7 @@ class QuizController extends Controller
             'soals',
             'nilais',
         ])
+        ->withCount('soals')
         ->whereHas('pengampuKelas.guruMapel', function ($q) use ($guruId) {
             $q->where('guru_id', $guruId);
         });
@@ -109,13 +111,13 @@ class QuizController extends Controller
             return back()->with('error', 'Anda tidak memiliki hak akses pada kelas/mata pelajaran ini.');
         }
 
-        Quiz::create($validated);
+        $quiz = Quiz::create($validated);
 
-        return redirect()->route('guru.kuis.index')->with('success', 'Kuis berhasil ditambahkan!');
+        return redirect()->route('guru.kuis.show', $quiz)->with('success', 'Kuis berhasil dibuat! Silakan tambahkan butir soal di bawah.');
     }
 
     /**
-     * Menampilkan detail kuis.
+     * Menampilkan detail kuis & daftar soal.
      */
     public function show(Quiz $quiz)
     {
@@ -181,6 +183,141 @@ class QuizController extends Controller
         $quiz->delete();
 
         return redirect()->route('guru.kuis.index')->with('success', 'Kuis berhasil dihapus!');
+    }
+
+    /**
+     * Menambahkan butir soal ke dalam Kuis.
+     */
+    public function storeSoal(Request $request, Quiz $quiz)
+    {
+        $user = auth()->user();
+        $guruId = $user->guru?->id ?? $user->guru_id;
+        abort_unless($user->role === 'guru' && $guruId, 403);
+
+        $this->authorizeGuru($quiz, $guruId);
+
+        $validated = $request->validate([
+            'pertanyaan'    => ['required', 'string'],
+            'tipe_soal'     => ['required', 'in:single_choice,multiple_choice,essay,matching'],
+            'pilihan'       => ['nullable', 'array'],
+            'kunci_jawaban' => ['required'],
+            'bobot'         => ['nullable', 'numeric', 'min:1'],
+            'gambar'        => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $gambarPath = null;
+        if ($request->hasFile('gambar')) {
+            $gambarPath = $request->file('gambar')->store('soals', 'public');
+        }
+
+        $nextUrutan = ($quiz->soals()->max('urutan') ?? 0) + 1;
+
+        $pilihanFormatted = null;
+        if (in_array($validated['tipe_soal'], ['single_choice', 'multiple_choice'])) {
+            $pilihanFormatted = [
+                'a' => $request->input('pilihan.a', ''),
+                'b' => $request->input('pilihan.b', ''),
+                'c' => $request->input('pilihan.c', ''),
+                'd' => $request->input('pilihan.d', ''),
+            ];
+        }
+
+        $kunci = $validated['kunci_jawaban'];
+        if (is_array($kunci)) {
+            $kunci = json_encode($kunci);
+        }
+
+        Soal::create([
+            'pertanyaan'    => $validated['pertanyaan'],
+            'tipe_soal'     => $validated['tipe_soal'],
+            'pilihan'       => $pilihanFormatted,
+            'kunci_jawaban' => $kunci,
+            'bobot'         => $validated['bobot'] ?? 10,
+            'urutan'        => $nextUrutan,
+            'gambar'        => $gambarPath,
+            'quiz_id'       => $quiz->id,
+            'tugas_id'      => null,
+            'ujian_id'      => null,
+        ]);
+
+        return redirect()->route('guru.kuis.show', $quiz)->with('success', 'Soal berhasil ditambahkan ke kuis!');
+    }
+
+    /**
+     * Memperbarui butir soal kuis.
+     */
+    public function updateSoal(Request $request, Quiz $quiz, Soal $soal)
+    {
+        $user = auth()->user();
+        $guruId = $user->guru?->id ?? $user->guru_id;
+        abort_unless($user->role === 'guru' && $guruId, 403);
+
+        $this->authorizeGuru($quiz, $guruId);
+        abort_unless($soal->quiz_id === $quiz->id, 404);
+
+        $validated = $request->validate([
+            'pertanyaan'    => ['required', 'string'],
+            'tipe_soal'     => ['required', 'in:single_choice,multiple_choice,essay,matching'],
+            'pilihan'       => ['nullable', 'array'],
+            'kunci_jawaban' => ['required'],
+            'bobot'         => ['nullable', 'numeric', 'min:1'],
+            'gambar'        => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $gambarPath = $soal->gambar;
+        if ($request->hasFile('gambar')) {
+            if ($soal->gambar && Storage::disk('public')->exists($soal->gambar)) {
+                Storage::disk('public')->delete($soal->gambar);
+            }
+            $gambarPath = $request->file('gambar')->store('soals', 'public');
+        }
+
+        $pilihanFormatted = $soal->pilihan;
+        if (in_array($validated['tipe_soal'], ['single_choice', 'multiple_choice'])) {
+            $pilihanFormatted = [
+                'a' => $request->input('pilihan.a', ''),
+                'b' => $request->input('pilihan.b', ''),
+                'c' => $request->input('pilihan.c', ''),
+                'd' => $request->input('pilihan.d', ''),
+            ];
+        }
+
+        $kunci = $validated['kunci_jawaban'];
+        if (is_array($kunci)) {
+            $kunci = json_encode($kunci);
+        }
+
+        $soal->update([
+            'pertanyaan'    => $validated['pertanyaan'],
+            'tipe_soal'     => $validated['tipe_soal'],
+            'pilihan'       => $pilihanFormatted,
+            'kunci_jawaban' => $kunci,
+            'bobot'         => $validated['bobot'] ?? $soal->bobot,
+            'gambar'        => $gambarPath,
+        ]);
+
+        return redirect()->route('guru.kuis.show', $quiz)->with('success', 'Soal berhasil diperbarui!');
+    }
+
+    /**
+     * Menghapus butir soal kuis.
+     */
+    public function destroySoal(Quiz $quiz, Soal $soal)
+    {
+        $user = auth()->user();
+        $guruId = $user->guru?->id ?? $user->guru_id;
+        abort_unless($user->role === 'guru' && $guruId, 403);
+
+        $this->authorizeGuru($quiz, $guruId);
+        abort_unless($soal->quiz_id === $quiz->id, 404);
+
+        if ($soal->gambar && Storage::disk('public')->exists($soal->gambar)) {
+            Storage::disk('public')->delete($soal->gambar);
+        }
+
+        $soal->delete();
+
+        return redirect()->route('guru.kuis.show', $quiz)->with('success', 'Soal berhasil dihapus!');
     }
 
     /**

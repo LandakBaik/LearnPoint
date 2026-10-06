@@ -104,6 +104,14 @@ Route::middleware(['auth'])->group(function () {
             ->name('guru.kuis.update');
         Route::delete('/guru/kuis/{quiz}', [QuizController::class, 'destroy'])
             ->name('guru.kuis.destroy');
+
+        // Soal Kuis Guru
+        Route::post('/guru/kuis/{quiz}/soal', [QuizController::class, 'storeSoal'])
+            ->name('guru.kuis.soal.store');
+        Route::put('/guru/kuis/{quiz}/soal/{soal}', [QuizController::class, 'updateSoal'])
+            ->name('guru.kuis.soal.update');
+        Route::delete('/guru/kuis/{quiz}/soal/{soal}', [QuizController::class, 'destroySoal'])
+            ->name('guru.kuis.soal.destroy');
     });
 
     // Dashboard Siswa Fitur
