@@ -209,13 +209,34 @@ class MateriController extends Controller
             return back()->withInput()->withErrors(['pengampu_kelas_ids' => 'Terdapat kelas sasaran yang tidak valid atau bukan wewenang Anda.']);
         }
 
+        $judul = trim($validated['judul']);
+
+        $duplicateMateris = Materi::with('pengampuKelas.kelas')
+            ->whereIn('pengampu_kelas_id', $validPengampu)
+            ->whereRaw('LOWER(judul) = ?', [Str::lower($judul)])
+            ->get();
+
+        if ($duplicateMateris->isNotEmpty()) {
+            $namaKelasBentrok = $duplicateMateris
+                ->map(fn ($m) => $m->pengampuKelas?->kelas?->nama_kelas)
+                ->filter()
+                ->unique()
+                ->implode(', ');
+
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'judul' => "Materi dengan judul \"{$judul}\" sudah ada pada kelas: {$namaKelasBentrok}.",
+                ]);
+        }
+
         $path = $request->file('file_materi')->store('materi_files', 'public');
         $idGrubMateri = (string) Str::uuid();
 
-        DB::transaction(function () use ($validated, $validPengampu, $path, $idGrubMateri) {
+        DB::transaction(function () use ($validated, $judul, $validPengampu, $path, $idGrubMateri) {
             foreach ($validPengampu as $pkId) {
                 Materi::create([
-                    'judul' => $validated['judul'],
+                    'judul' => $judul,
                     'deskripsi' => $validated['deskripsi'],
                     'file_materi' => $path,
                     'url_youtube' => $validated['url_youtube'],
@@ -340,6 +361,28 @@ class MateriController extends Controller
             return back()->withInput()->withErrors(['pengampu_kelas_ids' => 'Terdapat kelas yang tidak valid atau bukan wewenang Anda.']);
         }
 
+        $judul = trim($request->judul);
+
+        $duplicateMateris = Materi::with('pengampuKelas.kelas')
+            ->whereIn('pengampu_kelas_id', $validPengampu)
+            ->where('id_grub_materi', '!=', $id_grub_materi)
+            ->whereRaw('LOWER(judul) = ?', [Str::lower($judul)])
+            ->get();
+
+        if ($duplicateMateris->isNotEmpty()) {
+            $namaKelasBentrok = $duplicateMateris
+                ->map(fn ($m) => $m->pengampuKelas?->kelas?->nama_kelas)
+                ->filter()
+                ->unique()
+                ->implode(', ');
+
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'judul' => "Materi dengan judul \"{$judul}\" sudah ada pada kelas: {$namaKelasBentrok}.",
+                ]);
+        }
+
         $filePath = $firstMateri->file_materi;
         if ($request->hasFile('file_materi')) {
             if ($filePath && Storage::disk('public')->exists($filePath)) {
@@ -348,7 +391,7 @@ class MateriController extends Controller
             $filePath = $request->file('file_materi')->store('materi_files', 'public');
         }
 
-        DB::transaction(function () use ($request, $id_grub_materi, $materis, $validPengampu, $filePath) {
+        DB::transaction(function () use ($request, $judul, $id_grub_materi, $materis, $validPengampu, $filePath) {
             $existingKelasIds = $materis->pluck('pengampu_kelas_id')->toArray();
 
             $removedIds = array_diff($existingKelasIds, $validPengampu);
@@ -363,7 +406,7 @@ class MateriController extends Controller
                 Materi::where('id_grub_materi', $id_grub_materi)
                     ->whereIn('pengampu_kelas_id', $keptIds)
                     ->update([
-                        'judul' => $request->judul,
+                        'judul' => $judul,
                         'deskripsi' => $request->deskripsi,
                         'file_materi' => $filePath,
                         'url_youtube' => $request->url_youtube,
@@ -373,7 +416,7 @@ class MateriController extends Controller
             $addedIds = array_diff($validPengampu, $existingKelasIds);
             foreach ($addedIds as $pkId) {
                 Materi::create([
-                    'judul' => $request->judul,
+                    'judul' => $judul,
                     'deskripsi' => $request->deskripsi,
                     'file_materi' => $filePath,
                     'url_youtube' => $request->url_youtube,
