@@ -57,13 +57,25 @@
             </div>
             <div class="flex-1">
                 <h2 class="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight">{{ $guru->nama }}</h2>
-                <div class="flex flex-wrap items-center gap-3 mt-1 text-sm text-gray-500">
-                    <span class="font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-700 text-xs font-semibold">NIP: {{ $guru->nip }}</span>
+                <div class="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-gray-500">
+                    <span class="font-mono bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded text-indigo-700 text-xs font-semibold">NIP: {{ $guru->nip }}</span>
+                    @if($guru->jenis_kelamin)
+                        <span>&bull;</span>
+                        <span class="inline-flex items-center gap-1 text-xs font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded">
+                            {{ $guru->jenis_kelamin }}
+                        </span>
+                    @endif
+                    @if($guru->tanggal_lahir)
+                        <span>&bull;</span>
+                        <span class="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+                            Lahir: {{ $guru->tanggal_lahir }}
+                        </span>
+                    @endif
                     <span>&bull;</span>
                     @if($guru->user)
                         <span class="inline-flex items-center gap-1 text-emerald-600 font-semibold text-xs">
                             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            Akun Sistem: {{ $guru->user->email }}
+                            Akun: {{ $guru->user->email }}
                         </span>
                     @else
                         <span class="text-amber-600 font-medium text-xs">Belum memiliki akun login</span>
@@ -72,31 +84,51 @@
             </div>
         </div>
 
-        <!-- Grid Info -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6">
+        <!-- Grid Info (Profil Terintegrasi NIP) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-6">
+            <!-- Tanggal Lahir (8 Digit Pertama NIP) -->
+            <div class="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                <div class="flex items-center justify-between mb-1">
+                    <p class="text-xs font-bold uppercase tracking-wider text-gray-500">Tanggal Lahir</p>
+                    <span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">8 Digit NIP</span>
+                </div>
+                <h4 class="text-base font-extrabold text-gray-900">{{ $guru->tanggal_lahir ?? '-' }}</h4>
+                <p class="text-[11px] text-gray-500 mt-0.5">Diambil dari 8 digit pertama NIP</p>
+            </div>
+
+            <!-- Jenis Kelamin (1 Digit Ketiga NIP) -->
+            <div class="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                <div class="flex items-center justify-between mb-1">
+                    <p class="text-xs font-bold uppercase tracking-wider text-gray-500">Jenis Kelamin</p>
+                    <span class="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full">Digit Ketiga NIP</span>
+                </div>
+                <h4 class="text-base font-extrabold text-gray-900">{{ $guru->jenis_kelamin ?? '-' }}</h4>
+                <p class="text-[11px] text-gray-500 mt-0.5">Diambil dari 1 digit ketiga NIP (digit ke-15)</p>
+            </div>
+
             <!-- Wali Kelas Info -->
             <div class="p-4 rounded-xl bg-gray-50 border border-gray-200">
                 <p class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Status Wali Kelas</p>
                 @if($guru->kelas)
                     <div class="flex items-center justify-between">
                         <div>
-                            <h4 class="text-lg font-extrabold text-indigo-700">{{ $guru->kelas->nama_kelas }}</h4>
-                            <p class="text-xs text-gray-500">{{ $guru->kelas->siswas->count() }} Siswa terdaftar</p>
+                            <h4 class="text-base font-extrabold text-indigo-700">{{ $guru->kelas->nama_kelas }}</h4>
+                            <p class="text-[11px] text-gray-500">{{ $guru->kelas->siswas->count() }} Siswa terdaftar</p>
                         </div>
                         <a href="{{ route('kelas.show', $guru->kelas->id) }}" class="text-xs font-semibold text-indigo-600 hover:underline">
-                            Lihat Kelas &rarr;
+                            Lihat &rarr;
                         </a>
                     </div>
                 @else
-                    <p class="text-sm text-gray-500 italic">Tidak ditugaskan sebagai wali kelas.</p>
+                    <p class="text-sm text-gray-500 italic">Bukan wali kelas</p>
                 @endif
             </div>
 
             <!-- Total Mapel Diampu -->
             <div class="p-4 rounded-xl bg-gray-50 border border-gray-200">
                 <p class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Mata Pelajaran Diampu</p>
-                <h4 class="text-lg font-extrabold text-gray-900">{{ $guru->guruMapels()->has('pengampuKelases')->count() }} Mata Pelajaran</h4>
-                <p class="text-xs text-gray-500">{{ $guru->pengampuKelases->count() }} total kelas diampu</p>
+                <h4 class="text-base font-extrabold text-gray-900">{{ $guru->guruMapels()->has('pengampuKelases')->count() }} Mata Pelajaran</h4>
+                <p class="text-[11px] text-gray-500 mt-0.5">{{ $guru->pengampuKelases->count() }} total kelas diampu</p>
             </div>
         </div>
     </div>

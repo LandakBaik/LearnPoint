@@ -96,4 +96,52 @@ class User extends Authenticatable
     {
         return ($this->status ?? 'aktif') === 'aktif';
     }
+
+    public function getNipAttribute(): ?string
+    {
+        if ($this->isGuru()) {
+            return $this->guru?->nip ?? $this->username;
+        }
+        return null;
+    }
+
+    public function getTanggalLahirAttribute(): ?string
+    {
+        if ($this->isGuru()) {
+            return $this->guru?->tanggal_lahir ?? Guru::extractTanggalLahirFromNip($this->username);
+        }
+
+        if ($this->isSiswa() && $this->siswa && $this->siswa->tanggal_lahir) {
+            try {
+                return \Carbon\Carbon::parse($this->siswa->tanggal_lahir)->locale('id')->translatedFormat('d F Y');
+            } catch (\Throwable $e) {
+                return $this->siswa->tanggal_lahir;
+            }
+        }
+
+        return null;
+    }
+
+    public function getBirthdateAttribute(): ?string
+    {
+        return $this->tanggal_lahir;
+    }
+
+    public function getJenisKelaminAttribute(): ?string
+    {
+        if ($this->isGuru()) {
+            return $this->guru?->jenis_kelamin ?? Guru::extractJenisKelaminFromNip($this->username);
+        }
+
+        if ($this->isSiswa() && $this->siswa) {
+            return $this->siswa->jenis_kelamin;
+        }
+
+        return null;
+    }
+
+    public function getGenderAttribute(): ?string
+    {
+        return $this->jenis_kelamin;
+    }
 }

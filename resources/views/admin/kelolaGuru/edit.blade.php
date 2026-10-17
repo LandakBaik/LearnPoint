@@ -58,12 +58,31 @@
                         pattern="[0-9]{18}"
                         minlength="18"
                         maxlength="18"
-                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 18)"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 18); updateNipPreview(this.value);"
                         value="{{ old('nip', $guru->nip) }}" 
                         required 
                         class="w-full px-4 py-2.5 rounded-xl border @error('nip') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                     >
                     <p class="text-xs text-gray-500 mt-1">NIP harus tepat 18 digit angka.</p>
+
+                    <!-- Live Preview NIP: Tanggal Lahir & Jenis Kelamin -->
+                    <div id="nip-preview" class="mt-2.5 p-3.5 rounded-xl bg-blue-50/80 border border-blue-200 text-xs space-y-1.5 transition-all">
+                        <div class="font-bold text-blue-900 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>Deteksi Otomatis Profil Guru dari NIP:</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-700 pt-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-gray-500 font-medium">Tanggal Lahir (8 Digit Pertama):</span>
+                                <span id="preview-tgl-lahir" class="font-bold text-blue-800">{{ $guru->tanggal_lahir ?? '-' }}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-gray-500 font-medium">Jenis Kelamin (1 Digit Ketiga):</span>
+                                <span id="preview-jenis-kelamin" class="font-bold text-indigo-800">{{ $guru->jenis_kelamin ?? '-' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
                     @error('nip')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror
@@ -216,4 +235,57 @@
     </div>
 
 </div>
+
+<script>
+function updateNipPreview(nip) {
+    const clean = (nip || '').replace(/[^0-9]/g, '');
+    const previewBox = document.getElementById('nip-preview');
+    const tglEl = document.getElementById('preview-tgl-lahir');
+    const jkEl = document.getElementById('preview-jenis-kelamin');
+    if (!previewBox || !tglEl || !jkEl) return;
+
+    if (clean.length < 8) {
+        previewBox.classList.add('hidden');
+        return;
+    }
+
+    previewBox.classList.remove('hidden');
+
+    // 8 digit pertama: YYYYMMDD
+    const y = clean.substring(0, 4);
+    const m = clean.substring(4, 6);
+    const d = clean.substring(6, 8);
+    const months = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const mInt = parseInt(m, 10);
+    const dInt = parseInt(d, 10);
+
+    if (mInt >= 1 && mInt <= 12 && dInt >= 1 && dInt <= 31) {
+        tglEl.textContent = `${dInt} ${months[mInt]} ${y}`;
+    } else {
+        tglEl.textContent = `${d}-${m}-${y} (Tanggal tidak valid)`;
+    }
+
+    // 1 digit ketiga: index 14 (digit ke-15)
+    if (clean.length >= 15) {
+        const jkCode = clean.charAt(14);
+        if (jkCode === '1') {
+            jkEl.textContent = 'Laki-laki (Kode 1)';
+        } else if (jkCode === '2') {
+            jkEl.textContent = 'Perempuan (Kode 2)';
+        } else {
+            jkEl.textContent = `Kode ${jkCode} (Tidak dikenal)`;
+        }
+    } else {
+        jkEl.textContent = 'Menunggu input hingga 15 digit...';
+    }
+}
+
+// Inisialisasi awal
+document.addEventListener('DOMContentLoaded', function() {
+    const nipInput = document.getElementById('nip');
+    if (nipInput && nipInput.value) {
+        updateNipPreview(nipInput.value);
+    }
+});
+</script>
 @endsection
