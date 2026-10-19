@@ -178,7 +178,7 @@
                     </div>
                     <div>
                         <p class="text-sm font-bold text-gray-800">Data Guru</p>
-                        <p class="text-xs text-gray-500">Kelola pengajar & NIP</p>
+                        <p class="text-xs text-gray-500">Kelola pengajar & NUPTK</p>
                     </div>
                 </a>
 

@@ -102,7 +102,7 @@
                             <td class="py-4 px-4">
                                 @if($k->guru)
                                 <p class="font-medium text-xs text-gray-800">{{ $k->guru->nama }}</p>
-                                <p class="text-[10px] text-gray-400 font-mono">NIP: {{ $k->guru->nip }}</p>
+                                <p class="text-[10px] text-gray-400 font-mono">NUPTK: {{ $k->guru->nuptk }}</p>
                                 @else
                                 <span class="text-xs text-gray-400 italic">Belum ada wali kelas</span>
                                 @endif
@@ -206,7 +206,7 @@
                                     {{ $g->guruMapels->count() }} Mata Pelajaran
                                 </span>
                             </div>
-                            <p class="text-xs text-gray-500 font-mono mt-0.5">NIP: {{ $g->nip }}</p>
+                            <p class="text-xs text-gray-500 font-mono mt-0.5">NUPTK: {{ $g->nuptk }}</p>
                         </div>
                     </div>
                     <div>

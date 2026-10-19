@@ -25,7 +25,7 @@ class GuruController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nama', 'like', "%{$search}%")
-                  ->orWhere('nip', 'like', "%{$search}%");
+                  ->orWhere('nuptk', 'like', "%{$search}%");
             });
         }
 
@@ -65,33 +65,33 @@ class GuruController extends Controller
     {
         $validated = $request->validate([
             'nama'                      => 'required|string|max:100|regex:/^[a-zA-Z\s\.,]+$/u',
-            'nip'                       => 'required|numeric|digits:18|unique:gurus,nip',
+            'nuptk'                     => 'required|numeric|digits:16|unique:gurus,nuptk',
             'assignments'               => 'nullable|array',
             'assignments.*.mapel_id'    => 'nullable|exists:mapels,id',
             'assignments.*.kelas_id'    => 'nullable|exists:kelases,id',
             'assignments.*.kelas_ids'   => 'nullable|array',
             'assignments.*.kelas_ids.*' => 'exists:kelases,id',
         ], [
-            'nama.regex'  => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
-            'nip.numeric' => 'NIP guru harus berupa angka.',
-            'nip.digits'  => 'NIP guru harus tepat 18 digit angka.',
-            'nip.unique'  => 'NIP ini sudah terdaftar untuk guru lain.',
+            'nama.regex'    => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nuptk.numeric' => 'NUPTK guru harus berupa angka.',
+            'nuptk.digits'  => 'NUPTK guru harus tepat 16 digit angka.',
+            'nuptk.unique'  => 'NUPTK ini sudah terdaftar untuk guru lain.',
         ]);
 
         $guru = Guru::create([
             'nama'   => $validated['nama'],
-            'nip'    => $validated['nip'],
+            'nuptk'  => $validated['nuptk'],
             'status' => 'aktif',
         ]);
 
         // Auto Create Akun User Guru (Poin 5)
-        $autoEmail = $validated['nip'] . '@guru.learnpoint.sch.id';
+        $autoEmail = $validated['nuptk'] . '@guru.learnpoint.sch.id';
         User::firstOrCreate(
-            ['username' => $validated['nip']],
+            ['username' => $validated['nuptk']],
             [
                 'name'     => $validated['nama'],
                 'email'    => $autoEmail,
-                'password' => Hash::make($validated['nip']),
+                'password' => Hash::make($validated['nuptk']),
                 'role'     => 'guru',
                 'status'   => 'aktif',
                 'guru_id'  => $guru->id,
@@ -165,21 +165,21 @@ class GuruController extends Controller
     {
         $validated = $request->validate([
             'nama'            => 'required|string|max:100|regex:/^[a-zA-Z\s\.,]+$/u',
-            'nip'             => ['required', 'numeric', 'digits:18', Rule::unique('gurus')->ignore($guru->id)],
+            'nuptk'           => ['required', 'numeric', 'digits:16', Rule::unique('gurus')->ignore($guru->id)],
             'new_mapel_id'    => 'nullable|exists:mapels,id',
             'new_kelas_ids'   => 'nullable|array',
             'new_kelas_ids.*' => 'exists:kelases,id',
             'new_kelas_id'    => 'nullable|exists:kelases,id',
         ], [
-            'nama.regex'  => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
-            'nip.numeric' => 'NIP guru harus berupa angka.',
-            'nip.digits'  => 'NIP guru harus tepat 18 digit angka.',
-            'nip.unique'  => 'NIP ini sudah terdaftar untuk guru lain.',
+            'nama.regex'    => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nuptk.numeric' => 'NUPTK guru harus berupa angka.',
+            'nuptk.digits'  => 'NUPTK guru harus tepat 16 digit angka.',
+            'nuptk.unique'  => 'NUPTK ini sudah terdaftar untuk guru lain.',
         ]);
 
         $guru->update([
-            'nama' => $validated['nama'],
-            'nip'  => $validated['nip'],
+            'nama'  => $validated['nama'],
+            'nuptk' => $validated['nuptk'],
         ]);
 
         // Update user name jika terhubung
@@ -260,16 +260,16 @@ class GuruController extends Controller
         }, $header);
 
         $nameIdx = array_search('nama', $header) !== false ? array_search('nama', $header) : array_search('name', $header);
-        $nipIdx = array_search('nip', $header);
+        $nuptkIdx = array_search('nuptk', $header) !== false ? array_search('nuptk', $header) : array_search('nip', $header);
 
-        if ($nameIdx === false || $nipIdx === false) {
+        if ($nameIdx === false || $nuptkIdx === false) {
             fclose($handle);
-            return back()->with('error', 'Format header CSV harus memuat: nama, nip');
+            return back()->with('error', 'Format header CSV harus memuat: nama, nuptk');
         }
 
         $validationErrors = [];
         $rowsToImport = [];
-        $seenNip = [];
+        $seenNuptk = [];
         $rowNumber = 1;
 
         while (($row = fgetcsv($handle, 1000, ',')) !== false) {
@@ -281,27 +281,27 @@ class GuruController extends Controller
             }
 
             $nama = trim($row[$nameIdx] ?? '');
-            $rawNip = trim($row[$nipIdx] ?? '');
+            $rawNuptk = trim($row[$nuptkIdx] ?? '');
             $rowErrors = [];
 
             if (empty($nama)) {
                 $rowErrors[] = 'Nama guru wajib diisi.';
             }
 
-            if (empty($rawNip)) {
-                $rowErrors[] = 'NIP wajib diisi.';
+            if (empty($rawNuptk)) {
+                $rowErrors[] = 'NUPTK wajib diisi.';
             } else {
-                $nip = preg_replace('/[^0-9]/', '', $rawNip);
-                if (empty($nip)) {
-                    $rowErrors[] = "NIP '{$rawNip}' tidak valid (harus berupa angka).";
-                } elseif (strlen($nip) !== 18) {
-                    $rowErrors[] = "NIP '{$nip}' harus tepat 18 digit angka.";
-                } elseif (in_array($nip, $seenNip)) {
-                    $rowErrors[] = "NIP '{$nip}' duplikat dalam file CSV ini.";
-                } elseif (Guru::where('nip', $nip)->exists()) {
-                    $rowErrors[] = "NIP '{$nip}' sudah terdaftar dalam sistem.";
+                $nuptk = preg_replace('/[^0-9]/', '', $rawNuptk);
+                if (empty($nuptk)) {
+                    $rowErrors[] = "NUPTK '{$rawNuptk}' tidak valid (harus berupa angka).";
+                } elseif (strlen($nuptk) !== 16) {
+                    $rowErrors[] = "NUPTK '{$nuptk}' harus tepat 16 digit angka.";
+                } elseif (in_array($nuptk, $seenNuptk)) {
+                    $rowErrors[] = "NUPTK '{$nuptk}' duplikat dalam file CSV ini.";
+                } elseif (Guru::where('nuptk', $nuptk)->exists()) {
+                    $rowErrors[] = "NUPTK '{$nuptk}' sudah terdaftar dalam sistem.";
                 } else {
-                    $seenNip[] = $nip;
+                    $seenNuptk[] = $nuptk;
                 }
             }
 
@@ -309,8 +309,8 @@ class GuruController extends Controller
                 $validationErrors[] = "Baris {$rowNumber}: " . implode(' ', $rowErrors);
             } else {
                 $rowsToImport[] = [
-                    'nama' => $nama,
-                    'nip'  => $nip,
+                    'nama'  => $nama,
+                    'nuptk' => $nuptk,
                 ];
             }
         }
@@ -331,16 +331,16 @@ class GuruController extends Controller
         DB::transaction(function () use ($rowsToImport) {
             foreach ($rowsToImport as $data) {
                 $guru = Guru::create([
-                    'nama' => $data['nama'],
-                    'nip'  => $data['nip'],
+                    'nama'  => $data['nama'],
+                    'nuptk' => $data['nuptk'],
                 ]);
 
                 User::firstOrCreate(
-                    ['username' => $data['nip']],
+                    ['username' => $data['nuptk']],
                     [
                         'name'     => $data['nama'],
-                        'email'    => $data['nip'] . '@guru.learnpoint.sch.id',
-                        'password' => Hash::make($data['nip']),
+                        'email'    => $data['nuptk'] . '@guru.learnpoint.sch.id',
+                        'password' => Hash::make($data['nuptk']),
                         'role'     => 'guru',
                         'status'   => 'aktif',
                         'guru_id'  => $guru->id,
@@ -363,11 +363,11 @@ class GuruController extends Controller
             'Content-Disposition' => 'attachment; filename="template_import_guru_learnpoint.csv"',
         ];
 
-        $columns = ['nama', 'nip'];
+        $columns = ['nama', 'nuptk'];
         $sampleData = [
-            ['Dra. Siti Nurhaliza, M.Pd.', '198501012010012001'],
-            ['Ahmad Fauzi, S.Pd.', '198803152014021002'],
-            ['Bambang Pamungkas, M.Kom.', '199005202018031003'],
+            ['Dra. Siti Nurhaliza, M.Pd.', '1234567890123456'],
+            ['Ahmad Fauzi, S.Pd.', '2345678901234567'],
+            ['Bambang Pamungkas, M.Kom.', '3456789012345678'],
         ];
 
         $callback = function () use ($columns, $sampleData) {

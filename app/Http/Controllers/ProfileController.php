@@ -44,10 +44,20 @@ class ProfileController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
-        $validated = $request->validate([
+        $rules = [
             'name'     => 'required|string|max:100',
             'email'    => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => 'nullable|string|min:6|confirmed',
+        ];
+
+        if ($user->isGuru()) {
+            $rules['nomor_telepon'] = 'nullable|string|max:20|regex:/^[0-9+\-\s]+$/';
+            $rules['jenis_kelamin'] = 'nullable|in:Laki-laki,Perempuan';
+        }
+
+        $validated = $request->validate($rules, [
+            'nomor_telepon.regex' => 'Nomor telepon hanya boleh berisi angka, tanda plus (+), minus (-), atau spasi.',
+            'jenis_kelamin.in'    => 'Pilihan jenis kelamin tidak valid.',
         ]);
 
         $updateData = [
@@ -61,9 +71,16 @@ class ProfileController extends Controller
 
         $user->update($updateData);
 
-        // Jika guru, sinkronkan nama di tabel gurus
+        // Jika guru, sinkronkan nama, nomor telepon, dan jenis kelamin di tabel gurus
         if ($user->isGuru() && $user->guru) {
-            $user->guru->update(['nama' => $validated['name']]);
+            $guruData = ['nama' => $validated['name']];
+            if ($request->has('nomor_telepon')) {
+                $guruData['nomor_telepon'] = $validated['nomor_telepon'] ?? null;
+            }
+            if ($request->has('jenis_kelamin')) {
+                $guruData['jenis_kelamin'] = $validated['jenis_kelamin'] ?? null;
+            }
+            $user->guru->update($guruData);
         }
 
         return redirect()->route('profile.show')->with('success', 'Profil Anda berhasil diperbarui.');

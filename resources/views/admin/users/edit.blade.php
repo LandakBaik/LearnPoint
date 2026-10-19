@@ -132,7 +132,7 @@
                     <option value="">-- Tidak Terhubung ke Guru Tertentu --</option>
                     @foreach($unlinkedGurus as $g)
                         <option value="{{ $g->id }}" {{ old('guru_id', $user->guru_id) == $g->id ? 'selected' : '' }}>
-                            {{ $g->nama }} (NIP: {{ $g->nip }})
+                            {{ $g->nama }} (NUPTK: {{ $g->nuptk }})
                         </option>
                     @endforeach
                 </select>

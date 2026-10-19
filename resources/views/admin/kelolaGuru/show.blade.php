@@ -58,17 +58,17 @@
             <div class="flex-1">
                 <h2 class="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight">{{ $guru->nama }}</h2>
                 <div class="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-gray-500">
-                    <span class="font-mono bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded text-indigo-700 text-xs font-semibold">NIP: {{ $guru->nip }}</span>
+                    <span class="font-mono bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded text-indigo-700 text-xs font-semibold">NUPTK: {{ $guru->nuptk }}</span>
                     @if($guru->jenis_kelamin)
                         <span>&bull;</span>
                         <span class="inline-flex items-center gap-1 text-xs font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded">
                             {{ $guru->jenis_kelamin }}
                         </span>
                     @endif
-                    @if($guru->tanggal_lahir)
+                    @if($guru->nomor_telepon)
                         <span>&bull;</span>
                         <span class="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
-                            Lahir: {{ $guru->tanggal_lahir }}
+                            Telp: {{ $guru->nomor_telepon }}
                         </span>
                     @endif
                     <span>&bull;</span>
@@ -84,26 +84,20 @@
             </div>
         </div>
 
-        <!-- Grid Info (Profil Terintegrasi NIP) -->
+        <!-- Grid Info -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-6">
-            <!-- Tanggal Lahir (8 Digit Pertama NIP) -->
+            <!-- Nomor Telepon -->
             <div class="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                <div class="flex items-center justify-between mb-1">
-                    <p class="text-xs font-bold uppercase tracking-wider text-gray-500">Tanggal Lahir</p>
-                    <span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">8 Digit NIP</span>
-                </div>
-                <h4 class="text-base font-extrabold text-gray-900">{{ $guru->tanggal_lahir ?? '-' }}</h4>
-                <p class="text-[11px] text-gray-500 mt-0.5">Diambil dari 8 digit pertama NIP</p>
+                <p class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Nomor Telepon</p>
+                <h4 class="text-base font-extrabold text-gray-900">{{ $guru->nomor_telepon ?? '-' }}</h4>
+                <p class="text-[11px] text-gray-500 mt-0.5">Diisi oleh guru pada profil</p>
             </div>
 
-            <!-- Jenis Kelamin (1 Digit Ketiga NIP) -->
+            <!-- Jenis Kelamin -->
             <div class="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                <div class="flex items-center justify-between mb-1">
-                    <p class="text-xs font-bold uppercase tracking-wider text-gray-500">Jenis Kelamin</p>
-                    <span class="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full">Digit Ketiga NIP</span>
-                </div>
+                <p class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Jenis Kelamin</p>
                 <h4 class="text-base font-extrabold text-gray-900">{{ $guru->jenis_kelamin ?? '-' }}</h4>
-                <p class="text-[11px] text-gray-500 mt-0.5">Diambil dari 1 digit ketiga NIP (digit ke-15)</p>
+                <p class="text-[11px] text-gray-500 mt-0.5">Diisi oleh guru pada profil</p>
             </div>
 
             <!-- Wali Kelas Info -->

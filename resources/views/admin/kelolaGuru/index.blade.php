@@ -9,7 +9,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Data Guru</h1>
-            <p class="text-sm text-gray-500 mt-1">Daftar tenaga pendidik, NIP, tugas wali kelas, dan akun sistem.</p>
+            <p class="text-sm text-gray-500 mt-1">Daftar tenaga pendidik, NUPTK, tugas wali kelas, dan akun sistem.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <a href="{{ route('guru.template-csv') }}" class="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl transition-colors" title="Unduh contoh template CSV Guru">
@@ -42,7 +42,7 @@
                     type="text" 
                     name="search" 
                     value="{{ request('search') }}" 
-                    placeholder="Cari berdasarkan nama atau NIP guru..."
+                    placeholder="Cari berdasarkan nama atau NUPTK guru..."
                     class="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50/50"
                 >
             </div>
@@ -104,7 +104,7 @@
                                     </div>
                                     <div>
                                         <p class="font-bold text-gray-900">{{ $guru->nama }}</p>
-                                        <p class="text-xs text-gray-500 font-mono">NIP: {{ $guru->nip }}</p>
+                                        <p class="text-xs text-gray-500 font-mono">NUPTK: {{ $guru->nuptk }}</p>
                                     </div>
                                 </div>
                             </td>
@@ -258,10 +258,10 @@
                         Format Kolom Wajib CSV Guru:
                     </p>
                     <code class="block font-mono bg-white p-2 rounded-xl border border-indigo-200 text-indigo-700 text-[11px] overflow-x-auto font-bold">
-                        nama,nip
+                        nama,nuptk
                     </code>
                     <p class="text-indigo-600 text-[11px]">
-                        * Setiap baris guru akan otomatis dibuatkan akun user (Username: NIP, Password: NIP, Role: Guru, Status: Aktif).
+                        * Setiap baris guru akan otomatis dibuatkan akun user (Username: NUPTK, Password: NUPTK, Role: Guru, Status: Aktif).
                     </p>
                     <div class="pt-1">
                         <a href="{{ route('guru.template-csv') }}" class="text-indigo-700 font-bold underline hover:text-indigo-900 flex items-center gap-1">

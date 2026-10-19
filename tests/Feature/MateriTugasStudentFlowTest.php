@@ -28,12 +28,12 @@ class MateriTugasStudentFlowTest extends TestCase
         $kelasDelapan = Kelas::create(['nama_kelas' => '8-A', 'tingkatan' => 8]);
         $guru = Guru::create([
             'nama' => 'Guru Index',
-            'nip' => '1980012345678902',
+            'nuptk' => '1234567890123452',
             'status' => 'aktif',
         ]);
         $guruLain = Guru::create([
             'nama' => 'Guru Lain',
-            'nip' => '1980012345678903',
+            'nuptk' => '1234567890123453',
             'status' => 'aktif',
         ]);
         $guruUser = User::factory()->create([
@@ -124,7 +124,7 @@ class MateriTugasStudentFlowTest extends TestCase
         ]);
         $guru = Guru::create([
             'nama' => 'Guru Uji',
-            'nip' => '1980012345678901',
+            'nuptk' => '1234567890123451',
             'status' => 'aktif',
         ]);
         $mapel = Mapel::create([

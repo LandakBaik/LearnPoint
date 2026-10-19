@@ -127,7 +127,7 @@
                     <option value="">-- Pilih Data Guru yang Belum Memiliki Akun --</option>
                     @foreach($unlinkedGurus as $g)
                         <option value="{{ $g->id }}" {{ old('guru_id') == $g->id ? 'selected' : '' }}>
-                            {{ $g->nama }} (NIP: {{ $g->nip }})
+                            {{ $g->nama }} (NUPTK: {{ $g->nuptk }})
                         </option>
                     @endforeach
                 </select>

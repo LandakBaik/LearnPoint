@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
 
         // 2. Akun Guru (Amba)
         $guru = Guru::firstOrCreate(
-            ['nip' => '198501012024011001'],
+            ['nuptk' => '1234567890123456'],
             ['nama' => 'Amba']
         );
 

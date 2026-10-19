@@ -97,20 +97,21 @@ class User extends Authenticatable
         return ($this->status ?? 'aktif') === 'aktif';
     }
 
-    public function getNipAttribute(): ?string
+    public function getNuptkAttribute(): ?string
     {
         if ($this->isGuru()) {
-            return $this->guru?->nip ?? $this->username;
+            return $this->guru?->nuptk ?? $this->username;
         }
         return null;
     }
 
+    public function getNipAttribute(): ?string
+    {
+        return $this->nuptk;
+    }
+
     public function getTanggalLahirAttribute(): ?string
     {
-        if ($this->isGuru()) {
-            return $this->guru?->tanggal_lahir ?? Guru::extractTanggalLahirFromNip($this->username);
-        }
-
         if ($this->isSiswa() && $this->siswa && $this->siswa->tanggal_lahir) {
             try {
                 return \Carbon\Carbon::parse($this->siswa->tanggal_lahir)->locale('id')->translatedFormat('d F Y');
@@ -130,7 +131,7 @@ class User extends Authenticatable
     public function getJenisKelaminAttribute(): ?string
     {
         if ($this->isGuru()) {
-            return $this->guru?->jenis_kelamin ?? Guru::extractJenisKelaminFromNip($this->username);
+            return $this->guru?->jenis_kelamin;
         }
 
         if ($this->isSiswa() && $this->siswa) {
@@ -143,5 +144,14 @@ class User extends Authenticatable
     public function getGenderAttribute(): ?string
     {
         return $this->jenis_kelamin;
+    }
+
+    public function getNomorTeleponAttribute(): ?string
+    {
+        if ($this->isGuru()) {
+            return $this->guru?->nomor_telepon;
+        }
+
+        return null;
     }
 }

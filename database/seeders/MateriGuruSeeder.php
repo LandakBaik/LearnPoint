@@ -22,7 +22,7 @@ class MateriGuruSeeder extends Seeder
     {
         // 1. Dapatkan atau buat Guru Amba & akun User
         $guru = Guru::firstOrCreate(
-            ['nip' => '198501012024011001'],
+            ['nuptk' => '1234567890123456'],
             ['nama' => 'Amba', 'status' => 'aktif']
         );
 

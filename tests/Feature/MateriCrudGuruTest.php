@@ -23,7 +23,7 @@ class MateriCrudGuruTest extends TestCase
     {
         $guru = Guru::create([
             'nama' => 'Guru Test',
-            'nip' => '198501012010011001',
+            'nuptk' => '1234567890123456',
             'status' => 'aktif',
         ]);
 

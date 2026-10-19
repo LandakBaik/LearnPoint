@@ -36,30 +36,8 @@
         @method('PUT')
 
         @php
-            $nipGuru = $user->nip ?? $user->guru?->nip ?? ($user->isGuru() ? $user->username : null);
+            $nuptkGuru = $user->nuptk ?? $user->guru?->nuptk ?? ($user->isGuru() ? $user->username : null);
         @endphp
-
-        @if($user->isGuru() && $nipGuru)
-            <!-- NIP Verified Info Box -->
-            <div class="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="flex items-start gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                    </div>
-                    <div>
-                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-indigo-900">Identitas NIP Terverifikasi</h4>
-                        <p class="text-xs text-indigo-700 mt-0.5">
-                            NIP: <span class="font-mono font-bold">{{ $nipGuru }}</span> &bull; 
-                            Tgl Lahir: <span class="font-bold">{{ $user->tanggal_lahir ?? '-' }}</span> &bull; 
-                            Jenis Kelamin: <span class="font-bold">{{ $user->jenis_kelamin ?? '-' }}</span>
-                        </p>
-                    </div>
-                </div>
-                <span class="text-[11px] font-semibold text-indigo-600 bg-white px-3 py-1 rounded-full border border-indigo-200 self-start sm:self-auto">
-                    Data NIP Resmi
-                </span>
-            </div>
-        @endif
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Nama Lengkap -->
@@ -73,6 +51,9 @@
                     required 
                     class="w-full px-4 py-2.5 rounded-xl border @error('name') border-rose-400 bg-rose-50/30 @else border-gray-300 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
+                @error('name')
+                    <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             <!-- Email -->
@@ -86,48 +67,55 @@
                     required 
                     class="w-full px-4 py-2.5 rounded-xl border @error('email') border-rose-400 bg-rose-50/30 @else border-gray-300 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
+                @error('email')
+                    <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             @if($user->isGuru())
-                <!-- NIP (Read-only) -->
+                <!-- NUPTK (Read-only) -->
                 <div class="space-y-1.5">
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">NIP (Tidak dapat diubah)</label>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">NUPTK (Tidak dapat diubah)</label>
                     <input 
                         type="text" 
-                        value="{{ $nipGuru ?? '-' }}" 
+                        value="{{ $nuptkGuru ?? '-' }}" 
                         disabled 
                         class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-100 text-gray-500 font-mono cursor-not-allowed"
                     >
                 </div>
 
-                <!-- Tanggal Lahir (Otomatis dari 8 digit pertama NIP) -->
+                <!-- Nomor Telepon (Hanya role guru di halaman profil) -->
                 <div class="space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Tanggal Lahir</label>
-                        <span class="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-full">8 Digit NIP</span>
-                    </div>
+                    <label for="nomor_telepon" class="block text-xs font-bold text-gray-700 uppercase tracking-wider">Nomor Telepon</label>
                     <input 
                         type="text" 
-                        value="{{ $user->tanggal_lahir ?? '-' }}" 
-                        disabled 
-                        class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-100 text-gray-700 font-medium cursor-not-allowed"
+                        id="nomor_telepon" 
+                        name="nomor_telepon" 
+                        inputmode="tel"
+                        placeholder="Contoh: 081234567890"
+                        value="{{ old('nomor_telepon', $user->guru?->nomor_telepon) }}" 
+                        class="w-full px-4 py-2.5 rounded-xl border @error('nomor_telepon') border-rose-400 bg-rose-50/30 @else border-gray-300 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                    <p class="text-[11px] text-gray-400">Diambil otomatis dari 8 digit pertama NIP.</p>
+                    @error('nomor_telepon')
+                        <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
-                <!-- Jenis Kelamin (Otomatis dari 1 digit ketiga NIP) -->
+                <!-- Jenis Kelamin (Hanya role guru di halaman profil) -->
                 <div class="space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Jenis Kelamin</label>
-                        <span class="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-full">Digit Ketiga NIP</span>
-                    </div>
-                    <input 
-                        type="text" 
-                        value="{{ $user->jenis_kelamin ?? '-' }}" 
-                        disabled 
-                        class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-100 text-gray-700 font-medium cursor-not-allowed"
+                    <label for="jenis_kelamin" class="block text-xs font-bold text-gray-700 uppercase tracking-wider">Jenis Kelamin</label>
+                    <select 
+                        id="jenis_kelamin" 
+                        name="jenis_kelamin" 
+                        class="w-full px-4 py-2.5 rounded-xl border @error('jenis_kelamin') border-rose-400 bg-rose-50/30 @else border-gray-300 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                    <p class="text-[11px] text-gray-400">Diambil otomatis dari 1 digit ketiga NIP (digit ke-15).</p>
+                        <option value="">-- Pilih Jenis Kelamin --</option>
+                        <option value="Laki-laki" {{ old('jenis_kelamin', $user->guru?->jenis_kelamin) === 'Laki-laki' ? 'selected' : '' }}>Laki-laki</option>
+                        <option value="Perempuan" {{ old('jenis_kelamin', $user->guru?->jenis_kelamin) === 'Perempuan' ? 'selected' : '' }}>Perempuan</option>
+                    </select>
+                    @error('jenis_kelamin')
+                        <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
             @endif
         </div>

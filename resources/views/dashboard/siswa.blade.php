@@ -104,7 +104,7 @@
                                 {{ $gp->mapel->nama_mapel ?? 'Mapel' }}
                             </span>
                             <h5 class="text-sm font-bold text-gray-900 truncate leading-tight">{{ $gp->guru->nama ?? 'Belum Ditentukan' }}</h5>
-                            <p class="text-xs text-gray-400 font-mono mt-0.5">NIP: {{ $gp->guru->nip ?? '-' }}</p>
+                            <p class="text-xs text-gray-400 font-mono mt-0.5">NUPTK: {{ $gp->guru->nuptk ?? '-' }}</p>
                         </div>
                     </div>
                 @endforeach

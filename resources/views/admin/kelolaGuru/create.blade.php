@@ -38,49 +38,31 @@
                 @enderror
             </div>
 
-            <!-- NIP Guru (Wajib 18 Digit Angka) -->
+            <!-- NUPTK Guru (Wajib 16 Digit Angka) -->
             <div>
-                <label for="nip" class="block text-sm font-bold text-gray-700 mb-1">Nomor Induk Pegawai (NIP) <span class="text-rose-500">*</span></label>
+                <label for="nuptk" class="block text-sm font-bold text-gray-700 mb-1">Nomor Unik Pendidik dan Tenaga Kependidikan (NUPTK) <span class="text-rose-500">*</span></label>
                 <input 
                     type="text" 
-                    id="nip" 
-                    name="nip" 
+                    id="nuptk" 
+                    name="nuptk" 
                     inputmode="numeric"
-                    pattern="[0-9]{18}"
-                    minlength="18"
-                    maxlength="18"
-                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 18); updateNipPreview(this.value);"
-                    value="{{ old('nip') }}" 
+                    pattern="[0-9]{16}"
+                    minlength="16"
+                    maxlength="16"
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 16);"
+                    value="{{ old('nuptk') }}" 
                     required 
-                    placeholder="Contoh: 198501012010011005 (Tepat 18 digit angka)"
-                    class="w-full px-4 py-2.5 rounded-xl border @error('nip') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                    placeholder="Contoh: 1234567890123456 (Tepat 16 digit angka)"
+                    class="w-full px-4 py-2.5 rounded-xl border @error('nuptk') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                 >
-                <p class="text-xs text-gray-500 mt-1">NIP harus tepat 18 digit angka.</p>
+                <p class="text-xs text-gray-500 mt-1">NUPTK harus tepat 16 digit angka.</p>
 
-                <!-- Live Preview NIP: Tanggal Lahir & Jenis Kelamin -->
-                <div id="nip-preview" class="hidden mt-2.5 p-3.5 rounded-xl bg-blue-50/80 border border-blue-200 text-xs space-y-1.5 transition-all">
-                    <div class="font-bold text-blue-900 flex items-center gap-1.5">
-                        <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span>Deteksi Otomatis Profil Guru dari NIP:</span>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-700 pt-1">
-                        <div class="flex items-center gap-2">
-                            <span class="text-gray-500 font-medium">Tanggal Lahir (8 Digit Pertama):</span>
-                            <span id="preview-tgl-lahir" class="font-bold text-blue-800">-</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-gray-500 font-medium">Jenis Kelamin (1 Digit Ketiga):</span>
-                            <span id="preview-jenis-kelamin" class="font-bold text-indigo-800">-</span>
-                        </div>
-                    </div>
-                </div>
-
-                @error('nip')
+                @error('nuptk')
                     <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                 @enderror
             </div>
 
-            <!-- Auto Account Generation Notice (Poin 5) -->
+            <!-- Auto Account Generation Notice -->
             <div class="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 flex items-start gap-3">
                 <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 mt-0.5">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
@@ -89,15 +71,15 @@
                     <h4 class="text-xs font-extrabold uppercase tracking-wider text-indigo-900">Akun Pengguna Dibuat Otomatis</h4>
                     <p class="text-xs text-indigo-700 mt-0.5 leading-relaxed">
                         Akun login untuk guru ini akan otomatis dibuatkan oleh sistem dengan rincian:<br>
-                        <span class="font-mono font-bold text-indigo-900">Username: NIP</span> &bull; 
-                        <span class="font-mono font-bold text-indigo-900">Password: NIP</span> &bull; 
-                        <span class="font-mono font-bold text-indigo-900">Email: NIP@guru.learnpoint.sch.id</span> &bull; 
+                        <span class="font-mono font-bold text-indigo-900">Username: NUPTK</span> &bull; 
+                        <span class="font-mono font-bold text-indigo-900">Password: NUPTK</span> &bull; 
+                        <span class="font-mono font-bold text-indigo-900">Email: NUPTK@guru.learnpoint.sch.id</span> &bull; 
                         <span class="font-bold text-emerald-700">Status: Aktif</span>
                     </p>
                 </div>
             </div>
 
-            <!-- Seksi Penugasan Mata Pelajaran & Kelas yang Diampu (Poin 3) -->
+            <!-- Seksi Penugasan Mata Pelajaran & Kelas yang Diampu -->
             <div class="space-y-3 pt-2">
                 <div class="flex items-center justify-between">
                     <div>
@@ -184,57 +166,4 @@
     </div>
 
 </div>
-
-<script>
-function updateNipPreview(nip) {
-    const clean = (nip || '').replace(/[^0-9]/g, '');
-    const previewBox = document.getElementById('nip-preview');
-    const tglEl = document.getElementById('preview-tgl-lahir');
-    const jkEl = document.getElementById('preview-jenis-kelamin');
-    if (!previewBox || !tglEl || !jkEl) return;
-
-    if (clean.length < 8) {
-        previewBox.classList.add('hidden');
-        return;
-    }
-
-    previewBox.classList.remove('hidden');
-
-    // 8 digit pertama: YYYYMMDD
-    const y = clean.substring(0, 4);
-    const m = clean.substring(4, 6);
-    const d = clean.substring(6, 8);
-    const months = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    const mInt = parseInt(m, 10);
-    const dInt = parseInt(d, 10);
-
-    if (mInt >= 1 && mInt <= 12 && dInt >= 1 && dInt <= 31) {
-        tglEl.textContent = `${dInt} ${months[mInt]} ${y}`;
-    } else {
-        tglEl.textContent = `${d}-${m}-${y} (Tanggal tidak valid)`;
-    }
-
-    // 1 digit ketiga: index 14 (digit ke-15)
-    if (clean.length >= 15) {
-        const jkCode = clean.charAt(14);
-        if (jkCode === '1') {
-            jkEl.textContent = 'Laki-laki (Kode 1)';
-        } else if (jkCode === '2') {
-            jkEl.textContent = 'Perempuan (Kode 2)';
-        } else {
-            jkEl.textContent = `Kode ${jkCode} (Tidak dikenal)`;
-        }
-    } else {
-        jkEl.textContent = 'Menunggu input hingga 15 digit...';
-    }
-}
-
-// Inisialisasi jika ada old value
-document.addEventListener('DOMContentLoaded', function() {
-    const nipInput = document.getElementById('nip');
-    if (nipInput && nipInput.value) {
-        updateNipPreview(nipInput.value);
-    }
-});
-</script>
 @endsection
