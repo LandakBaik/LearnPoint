@@ -22,6 +22,8 @@ class Soal extends Model
         'quiz_id',
         'tugas_id',
         'ujian_id',
+        'kesulitan',
+        'level',
     ];
 
     protected function casts(): array

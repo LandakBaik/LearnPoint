@@ -104,6 +104,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('guru.kuis.update');
         Route::delete('/guru/kuis/{quiz}', [QuizController::class, 'destroy'])
             ->name('guru.kuis.destroy');
+        Route::patch('/guru/kuis/{quiz}/toggle-status', [QuizController::class, 'toggleStatus'])
+            ->name('guru.kuis.toggle-status');
 
         // Soal Kuis Guru
         Route::post('/guru/kuis/{quiz}/soal', [QuizController::class, 'storeSoal'])

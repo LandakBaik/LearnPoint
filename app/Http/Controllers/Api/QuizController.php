@@ -191,16 +191,21 @@ class QuizController extends Controller
 
         $validator = Validator::make($request->all(), [
             'judul'             => ['required', 'string', 'max:200'],
-            'level'             => ['required', 'string', 'max:50'],
-            'kesulitan'         => ['required', 'string', 'max:50'],
+            'level'             => ['required', 'string', 'in:Level 1,Level 2,Level 3,Level 4,Level 5,1,2,3,4,5'],
+            'kesulitan'         => ['required', 'string', 'in:Mudah,Sedang,Sulit'],
             'pengampu_kelas_id' => ['required', 'exists:pengampu_kelas,id'],
+        ], [
+            'level.in' => 'Level kuis harus berada di rentang Level 1 sampai Level 5.',
+            'kesulitan.in' => 'Tingkat kesulitan hanya boleh: Mudah, Sedang, atau Sulit.',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['success' => false, 'message' => 'Validasi gagal.', 'errors' => $validator->errors()], 422);
         }
 
-        $isOwner = PengampuKelas::where('id', $request->pengampu_kelas_id)
+        $validated = $validator->validated();
+
+        $isOwner = PengampuKelas::where('id', $validated['pengampu_kelas_id'])
             ->whereHas('guruMapel', function ($q) use ($guruId) {
                 $q->where('guru_id', $guruId);
             })->exists();
@@ -209,7 +214,30 @@ class QuizController extends Controller
             return response()->json(['success' => false, 'message' => 'Anda tidak memiliki hak akses pada kelas/mata pelajaran ini.'], 403);
         }
 
-        $quiz = Quiz::create($validator->validated());
+        $levelNum = (int) preg_replace('/[^0-9]/', '', $validated['level']);
+        if ($levelNum < 1 || $levelNum > Quiz::MAX_LEVEL) {
+            return response()->json(['success' => false, 'message' => 'Level kuis tidak valid. Maksimal adalah Level 5.'], 422);
+        }
+        $validated['level'] = 'Level ' . $levelNum;
+
+        $alreadyExists = Quiz::where('pengampu_kelas_id', $validated['pengampu_kelas_id'])
+            ->where('kesulitan', $validated['kesulitan'])
+            ->where('level', $validated['level'])
+            ->exists();
+
+        if ($alreadyExists) {
+            return response()->json(['success' => false, 'message' => "{$validated['level']} untuk tingkat kesulitan {$validated['kesulitan']} pada kelas ini sudah pernah dibuat."], 422);
+        }
+
+        $countLevels = Quiz::where('pengampu_kelas_id', $validated['pengampu_kelas_id'])
+            ->where('kesulitan', $validated['kesulitan'])
+            ->count();
+
+        if ($countLevels >= Quiz::MAX_LEVEL) {
+            return response()->json(['success' => false, 'message' => "Tingkat kesulitan {$validated['kesulitan']} untuk kelas ini sudah memenuhi batas maksimal " . Quiz::MAX_LEVEL . " level kuis."], 422);
+        }
+
+        $quiz = Quiz::create($validated);
 
         return response()->json([
             'success' => true,
@@ -228,16 +256,21 @@ class QuizController extends Controller
 
         $validator = Validator::make($request->all(), [
             'judul'             => ['required', 'string', 'max:200'],
-            'level'             => ['required', 'string', 'max:50'],
-            'kesulitan'         => ['required', 'string', 'max:50'],
+            'level'             => ['required', 'string', 'in:Level 1,Level 2,Level 3,Level 4,Level 5,1,2,3,4,5'],
+            'kesulitan'         => ['required', 'string', 'in:Mudah,Sedang,Sulit'],
             'pengampu_kelas_id' => ['required', 'exists:pengampu_kelas,id'],
+        ], [
+            'level.in' => 'Level kuis harus berada di rentang Level 1 sampai Level 5.',
+            'kesulitan.in' => 'Tingkat kesulitan hanya boleh: Mudah, Sedang, atau Sulit.',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['success' => false, 'message' => 'Validasi gagal.', 'errors' => $validator->errors()], 422);
         }
 
-        $isOwner = PengampuKelas::where('id', $request->pengampu_kelas_id)
+        $validated = $validator->validated();
+
+        $isOwner = PengampuKelas::where('id', $validated['pengampu_kelas_id'])
             ->whereHas('guruMapel', function ($q) use ($guruId) {
                 $q->where('guru_id', $guruId);
             })->exists();
@@ -246,7 +279,23 @@ class QuizController extends Controller
             return response()->json(['success' => false, 'message' => 'Anda tidak memiliki hak akses pada kelas/mata pelajaran ini.'], 403);
         }
 
-        $quiz->update($validator->validated());
+        $levelNum = (int) preg_replace('/[^0-9]/', '', $validated['level']);
+        if ($levelNum < 1 || $levelNum > Quiz::MAX_LEVEL) {
+            return response()->json(['success' => false, 'message' => 'Level kuis tidak valid. Maksimal adalah Level 5.'], 422);
+        }
+        $validated['level'] = 'Level ' . $levelNum;
+
+        $alreadyExists = Quiz::where('pengampu_kelas_id', $validated['pengampu_kelas_id'])
+            ->where('kesulitan', $validated['kesulitan'])
+            ->where('level', $validated['level'])
+            ->where('id', '!=', $quiz->id)
+            ->exists();
+
+        if ($alreadyExists) {
+            return response()->json(['success' => false, 'message' => "{$validated['level']} untuk tingkat kesulitan {$validated['kesulitan']} sudah digunakan oleh kuis lain pada kelas ini."], 422);
+        }
+
+        $quiz->update($validated);
 
         return response()->json([
             'success' => true,
@@ -279,12 +328,19 @@ class QuizController extends Controller
     }
 
     /**
-     * GURU: Tambahkan soal ke kuis.
+     * GURU: Tambahkan soal ke kuis (Maksimal 10 soal).
      */
     public function guruStoreSoal(Request $request, Quiz $quiz)
     {
         $guruId = $request->user()?->guru?->id;
         $this->authorizeGuru($quiz, $guruId);
+
+        if ($quiz->soals()->count() >= Quiz::MAX_SOAL) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kuis ini sudah mencapai batas maksimal ' . Quiz::MAX_SOAL . ' butir soal untuk level ini.',
+            ], 422);
+        }
 
         $validator = Validator::make($request->all(), [
             'pertanyaan'    => ['required', 'string'],

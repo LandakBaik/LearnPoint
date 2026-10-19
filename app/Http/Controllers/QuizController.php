@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Storage;
 class QuizController extends Controller
 {
     /**
-     * Menampilkan daftar semua kuis milik guru yang login.
+     * Menampilkan daftar semua kuis petualangan milik guru yang login.
      */
     public function index(Request $request)
     {
@@ -30,26 +30,31 @@ class QuizController extends Controller
             $q->where('guru_id', $guruId);
         });
 
-        // Search
+        // Search Judul
         if ($request->filled('search')) {
             $query->where('judul', 'like', '%' . $request->search . '%');
         }
 
-        // Filter Kesulitan
-        if ($request->filled('kesulitan')) {
-            $query->where('kesulitan', $request->kesulitan);
+        // Filter Status (draft / published)
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
         }
 
-        // Filter Level / Kelas
+        // Filter Kelas
         if ($request->filled('kelas_id')) {
             $query->whereHas('pengampuKelas', function ($q) use ($request) {
                 $q->where('kelas_id', $request->kelas_id);
             });
         }
 
-        $quizzes = $query->latest()->paginate(10)->withQueryString();
+        // Filter Kesulitan / Arc
+        if ($request->filled('kesulitan')) {
+            $query->whereJsonContains('kesulitan_aktif', $request->kesulitan);
+        }
 
-        // Pengampu kelas for dropdown
+        $quizzes = $query->latest()->paginate(12)->withQueryString();
+
+        // Pengampu kelas untuk dropdown pilihan kelas
         $pengampuKelases = PengampuKelas::with(['guruMapel.mapel', 'kelas'])
             ->whereHas('guruMapel', function ($q) use ($guruId) {
                 $q->where('guru_id', $guruId);
@@ -58,36 +63,35 @@ class QuizController extends Controller
 
         $kelases = $pengampuKelases->pluck('kelas')->unique('id')->filter();
 
-        // Statistik
-        $totalKuis = Quiz::whereHas('pengampuKelas.guruMapel', function ($q) use ($guruId) {
+        // Statistik Dashboard Kuis Guru
+        $baseGuruQuery = Quiz::whereHas('pengampuKelas.guruMapel', function ($q) use ($guruId) {
             $q->where('guru_id', $guruId);
+        });
+
+        $totalKuis = (clone $baseGuruQuery)->count();
+        $totalDraft = (clone $baseGuruQuery)->where(function ($q) {
+            $q->where('status', 'draft')->orWhereNull('status');
         })->count();
+        $totalPublished = (clone $baseGuruQuery)->where('status', 'published')->count();
 
         $totalSoal = Soal::whereHas('quiz.pengampuKelas.guruMapel', function ($q) use ($guruId) {
             $q->where('guru_id', $guruId);
         })->count();
-
-        $kuisMudah = Quiz::whereHas('pengampuKelas.guruMapel', function ($q) use ($guruId) {
-            $q->where('guru_id', $guruId);
-        })->where('kesulitan', 'Mudah')->count();
-
-        $kuisSulit = Quiz::whereHas('pengampuKelas.guruMapel', function ($q) use ($guruId) {
-            $q->where('guru_id', $guruId);
-        })->where('kesulitan', 'Sulit')->count();
 
         return view('guru.kuis.index', compact(
             'quizzes',
             'pengampuKelases',
             'kelases',
             'totalKuis',
-            'totalSoal',
-            'kuisMudah',
-            'kuisSulit'
+            'totalDraft',
+            'totalPublished',
+            'totalSoal'
         ));
     }
 
     /**
-     * Menyimpan kuis baru.
+     * Menyimpan draf kuis petualangan baru.
+     * Kuis dapat memiliki maksimal 3 Arc Kesulitan (Mudah, Sedang, Sulit).
      */
     public function store(Request $request)
     {
@@ -96,10 +100,16 @@ class QuizController extends Controller
         abort_unless($user->role === 'guru' && $guruId, 403);
 
         $validated = $request->validate([
-            'judul'             => ['required', 'string', 'max:200'],
-            'level'             => ['required', 'string', 'max:50'],
-            'kesulitan'         => ['required', 'string', 'max:50'],
-            'pengampu_kelas_id' => ['required', 'exists:pengampu_kelas,id'],
+            'judul'               => ['required', 'string', 'max:200'],
+            'deskripsi'           => ['nullable', 'string', 'max:1000'],
+            'pengampu_kelas_id'   => ['required', 'exists:pengampu_kelas,id'],
+            'kesulitan_aktif'     => ['required', 'array', 'min:1', 'max:3'],
+            'kesulitan_aktif.*'   => ['string', 'in:Mudah,Sedang,Sulit'],
+            'status'              => ['nullable', 'in:draft,published'],
+        ], [
+            'kesulitan_aktif.required' => 'Pilih minimal satu tingkat kesulitan (Arc) untuk petualangan kuis ini.',
+            'kesulitan_aktif.min'      => 'Kuis petualangan harus memiliki minimal 1 tingkat kesulitan.',
+            'kesulitan_aktif.max'      => 'Kuis petualangan maksimal memiliki 3 tingkat kesulitan (Mudah, Sedang, Sulit).',
         ]);
 
         $isOwner = PengampuKelas::where('id', $validated['pengampu_kelas_id'])
@@ -108,18 +118,30 @@ class QuizController extends Controller
             })->exists();
 
         if (!$isOwner) {
-            return back()->with('error', 'Anda tidak memiliki hak akses pada kelas/mata pelajaran ini.');
+            return back()->withInput()->with('error', 'Anda tidak memiliki hak akses pada kelas/mata pelajaran ini.');
         }
 
-        $quiz = Quiz::create($validated);
+        // Urutkan kesulitan agar konsisten: Mudah, Sedang, Sulit
+        $orderedDifficulties = array_values(array_intersect(Quiz::KESULITAN_LIST, $validated['kesulitan_aktif']));
 
-        return redirect()->route('guru.kuis.show', $quiz)->with('success', 'Kuis berhasil dibuat! Silakan tambahkan butir soal di bawah.');
+        $quiz = Quiz::create([
+            'judul'             => $validated['judul'],
+            'deskripsi'         => $validated['deskripsi'] ?? null,
+            'pengampu_kelas_id' => $validated['pengampu_kelas_id'],
+            'kesulitan_aktif'   => $orderedDifficulties,
+            'status'            => $validated['status'] ?? 'draft',
+            'level'             => 'Level 1',
+            'kesulitan'         => $orderedDifficulties[0] ?? 'Mudah',
+        ]);
+
+        return redirect()->route('guru.kuis.show', $quiz)
+            ->with('success', "Draf kuis '{$quiz->judul}' berhasil dibuat! Silakan kelola arc, level tantangan, dan butir soal di bawah.");
     }
 
     /**
-     * Menampilkan detail kuis & daftar soal.
+     * Menampilkan detail kuis petualangan: Arc Kesulitan, Level 1-5, dan daftar soal.
      */
-    public function show(Quiz $quiz)
+    public function show(Request $request, Quiz $quiz)
     {
         $user = auth()->user();
         $guruId = $user->guru?->id ?? $user->guru_id;
@@ -134,11 +156,51 @@ class QuizController extends Controller
             'nilais.siswa',
         ]);
 
-        return view('guru.kuis.show', compact('quiz'));
+        $activeDifficulties = $quiz->kesulitan_aktif_array;
+
+        // Tentukan Arc yang sedang dibuka guru (default ke arc pertama)
+        $activeArc = $request->query('arc');
+        if (!in_array($activeArc, $activeDifficulties)) {
+            $activeArc = $activeDifficulties[0] ?? 'Mudah';
+        }
+
+        // Tentukan Level yang sedang dibuka guru (default ke 'Level 1')
+        $activeLevel = $request->query('level', 'Level 1');
+        if (!in_array($activeLevel, Quiz::LEVEL_LIST)) {
+            $activeLevel = 'Level 1';
+        }
+
+        // Hitung jumlah soal untuk setiap Arc dan Level
+        $levelCounts = [];
+        foreach ($activeDifficulties as $arc) {
+            $levelCounts[$arc] = [];
+            foreach (Quiz::LEVEL_LIST as $lvl) {
+                $levelCounts[$arc][$lvl] = $quiz->soals
+                    ->where('kesulitan', $arc)
+                    ->where('level', $lvl)
+                    ->count();
+            }
+        }
+
+        // Ambil daftar butir soal untuk Arc dan Level aktif
+        $soalsInLevel = $quiz->soals()
+            ->where('kesulitan', $activeArc)
+            ->where('level', $activeLevel)
+            ->orderBy('urutan')
+            ->get();
+
+        return view('guru.kuis.show', compact(
+            'quiz',
+            'activeDifficulties',
+            'activeArc',
+            'activeLevel',
+            'levelCounts',
+            'soalsInLevel'
+        ));
     }
 
     /**
-     * Memperbarui kuis.
+     * Memperbarui draf / pengaturan kuis petualangan.
      */
     public function update(Request $request, Quiz $quiz)
     {
@@ -149,10 +211,16 @@ class QuizController extends Controller
         $this->authorizeGuru($quiz, $guruId);
 
         $validated = $request->validate([
-            'judul'             => ['required', 'string', 'max:200'],
-            'level'             => ['required', 'string', 'max:50'],
-            'kesulitan'         => ['required', 'string', 'max:50'],
-            'pengampu_kelas_id' => ['required', 'exists:pengampu_kelas,id'],
+            'judul'               => ['required', 'string', 'max:200'],
+            'deskripsi'           => ['nullable', 'string', 'max:1000'],
+            'pengampu_kelas_id'   => ['required', 'exists:pengampu_kelas,id'],
+            'kesulitan_aktif'     => ['required', 'array', 'min:1', 'max:3'],
+            'kesulitan_aktif.*'   => ['string', 'in:Mudah,Sedang,Sulit'],
+            'status'              => ['nullable', 'in:draft,published'],
+        ], [
+            'kesulitan_aktif.required' => 'Pilih minimal satu tingkat kesulitan (Arc) untuk petualangan kuis ini.',
+            'kesulitan_aktif.min'      => 'Kuis petualangan harus memiliki minimal 1 tingkat kesulitan.',
+            'kesulitan_aktif.max'      => 'Kuis petualangan maksimal memiliki 3 tingkat kesulitan (Mudah, Sedang, Sulit).',
         ]);
 
         $isOwner = PengampuKelas::where('id', $validated['pengampu_kelas_id'])
@@ -161,16 +229,42 @@ class QuizController extends Controller
             })->exists();
 
         if (!$isOwner) {
-            return back()->with('error', 'Anda tidak memiliki hak akses pada kelas/mata pelajaran ini.');
+            return back()->withInput()->with('error', 'Anda tidak memiliki hak akses pada kelas/mata pelajaran ini.');
         }
 
-        $quiz->update($validated);
+        $orderedDifficulties = array_values(array_intersect(Quiz::KESULITAN_LIST, $validated['kesulitan_aktif']));
 
-        return redirect()->route('guru.kuis.index')->with('success', 'Kuis berhasil diperbarui!');
+        $quiz->update([
+            'judul'             => $validated['judul'],
+            'deskripsi'         => $validated['deskripsi'] ?? null,
+            'pengampu_kelas_id' => $validated['pengampu_kelas_id'],
+            'kesulitan_aktif'   => $orderedDifficulties,
+            'status'            => $validated['status'] ?? $quiz->status,
+        ]);
+
+        return redirect()->back()->with('success', 'Pengaturan kuis petualangan berhasil diperbarui!');
     }
 
     /**
-     * Menghapus kuis.
+     * Mengubah status kuis antara Draf dan Diterbitkan (Published).
+     */
+    public function toggleStatus(Quiz $quiz)
+    {
+        $user = auth()->user();
+        $guruId = $user->guru?->id ?? $user->guru_id;
+        abort_unless($user->role === 'guru' && $guruId, 403);
+
+        $this->authorizeGuru($quiz, $guruId);
+
+        $newStatus = ($quiz->status === 'published') ? 'draft' : 'published';
+        $quiz->update(['status' => $newStatus]);
+
+        $statusText = $newStatus === 'published' ? 'diterbitkan untuk siswa' : 'diubah menjadi draf';
+        return redirect()->back()->with('success', "Status kuis berhasil {$statusText}.");
+    }
+
+    /**
+     * Menghapus kuis beserta seluruh butir soalnya.
      */
     public function destroy(Quiz $quiz)
     {
@@ -180,13 +274,21 @@ class QuizController extends Controller
 
         $this->authorizeGuru($quiz, $guruId);
 
+        // Hapus berkas gambar pendukung soal jika ada
+        foreach ($quiz->soals as $soal) {
+            if ($soal->gambar && Storage::disk('public')->exists($soal->gambar)) {
+                Storage::disk('public')->delete($soal->gambar);
+            }
+        }
+
         $quiz->delete();
 
-        return redirect()->route('guru.kuis.index')->with('success', 'Kuis berhasil dihapus!');
+        return redirect()->route('guru.kuis.index')->with('success', 'Kuis petualangan berhasil dihapus!');
     }
 
     /**
-     * Menambahkan butir soal ke dalam Kuis.
+     * Menambahkan butir soal ke dalam level tertentu pada Arc kuis.
+     * Sistem: Maksimal 10 butir soal per level.
      */
     public function storeSoal(Request $request, Quiz $quiz)
     {
@@ -199,18 +301,46 @@ class QuizController extends Controller
         $validated = $request->validate([
             'pertanyaan'    => ['required', 'string'],
             'tipe_soal'     => ['required', 'in:single_choice,multiple_choice,essay,matching'],
+            'kesulitan'     => ['required', 'string', 'in:Mudah,Sedang,Sulit'],
+            'level'         => ['required', 'string', 'in:Level 1,Level 2,Level 3,Level 4,Level 5,1,2,3,4,5'],
             'pilihan'       => ['nullable', 'array'],
             'kunci_jawaban' => ['required'],
             'bobot'         => ['nullable', 'numeric', 'min:1'],
             'gambar'        => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
+        // Standardisasi format level menjadi 'Level X'
+        $levelNum = (int) preg_replace('/[^0-9]/', '', $validated['level']);
+        if ($levelNum < 1 || $levelNum > Quiz::MAX_LEVEL) {
+            return back()->withInput()->with('error', 'Level tidak valid. Maksimal 5 level per tingkat kesulitan.');
+        }
+        $levelFormatted = 'Level ' . $levelNum;
+        $kesulitan = $validated['kesulitan'];
+
+        // Cek apakah tingkat kesulitan (Arc) ini diaktifkan di kuis ini
+        if (!in_array($kesulitan, $quiz->kesulitan_aktif_array)) {
+            return back()->withInput()->with('error', "Arc tingkat kesulitan {$kesulitan} tidak aktif pada kuis ini.");
+        }
+
+        // Validasi batas maksimal 10 butir soal per level
+        $currentCount = $quiz->soals()
+            ->where('kesulitan', $kesulitan)
+            ->where('level', $levelFormatted)
+            ->count();
+
+        if ($currentCount >= Quiz::MAX_SOAL) {
+            return back()->withInput()->with('error', "Level ini ({$kesulitan} - {$levelFormatted}) sudah mencapai batas maksimal " . Quiz::MAX_SOAL . " butir soal.");
+        }
+
         $gambarPath = null;
         if ($request->hasFile('gambar')) {
             $gambarPath = $request->file('gambar')->store('soals', 'public');
         }
 
-        $nextUrutan = ($quiz->soals()->max('urutan') ?? 0) + 1;
+        $nextUrutan = ($quiz->soals()
+            ->where('kesulitan', $kesulitan)
+            ->where('level', $levelFormatted)
+            ->max('urutan') ?? 0) + 1;
 
         $pilihanFormatted = null;
         if (in_array($validated['tipe_soal'], ['single_choice', 'multiple_choice'])) {
@@ -230,6 +360,8 @@ class QuizController extends Controller
         Soal::create([
             'pertanyaan'    => $validated['pertanyaan'],
             'tipe_soal'     => $validated['tipe_soal'],
+            'kesulitan'     => $kesulitan,
+            'level'         => $levelFormatted,
             'pilihan'       => $pilihanFormatted,
             'kunci_jawaban' => $kunci,
             'bobot'         => $validated['bobot'] ?? 10,
@@ -240,7 +372,11 @@ class QuizController extends Controller
             'ujian_id'      => null,
         ]);
 
-        return redirect()->route('guru.kuis.show', $quiz)->with('success', 'Soal berhasil ditambahkan ke kuis!');
+        return redirect()->route('guru.kuis.show', [
+            'quiz'  => $quiz,
+            'arc'   => $kesulitan,
+            'level' => $levelFormatted,
+        ])->with('success', "Soal berhasil ditambahkan ke {$kesulitan} - {$levelFormatted}! (" . ($currentCount + 1) . "/" . Quiz::MAX_SOAL . " soal)");
     }
 
     /**
@@ -296,7 +432,11 @@ class QuizController extends Controller
             'gambar'        => $gambarPath,
         ]);
 
-        return redirect()->route('guru.kuis.show', $quiz)->with('success', 'Soal berhasil diperbarui!');
+        return redirect()->route('guru.kuis.show', [
+            'quiz'  => $quiz,
+            'arc'   => $soal->kesulitan ?? 'Mudah',
+            'level' => $soal->level ?? 'Level 1',
+        ])->with('success', 'Butir soal berhasil diperbarui!');
     }
 
     /**
@@ -311,13 +451,20 @@ class QuizController extends Controller
         $this->authorizeGuru($quiz, $guruId);
         abort_unless($soal->quiz_id === $quiz->id, 404);
 
+        $arc = $soal->kesulitan ?? 'Mudah';
+        $level = $soal->level ?? 'Level 1';
+
         if ($soal->gambar && Storage::disk('public')->exists($soal->gambar)) {
             Storage::disk('public')->delete($soal->gambar);
         }
 
         $soal->delete();
 
-        return redirect()->route('guru.kuis.show', $quiz)->with('success', 'Soal berhasil dihapus!');
+        return redirect()->route('guru.kuis.show', [
+            'quiz'  => $quiz,
+            'arc'   => $arc,
+            'level' => $level,
+        ])->with('success', 'Butir soal berhasil dihapus! Slot soal kini kembali tersedia.');
     }
 
     /**
