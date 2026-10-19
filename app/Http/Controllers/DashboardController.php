@@ -6,6 +6,10 @@ use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\Mapel;
 use App\Models\Siswa;
+use App\Models\Tugas;
+use App\Models\Quiz;
+use App\Models\Ujian;
+use App\Models\Materi;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -45,29 +49,35 @@ class DashboardController extends Controller
     /**
      * Halaman Dashboard Guru.
      */
-    public function guruDashboard()
-    {
-        $user = Auth::user();
-        $guru = $user->guru;
-        $totalSiswa = Siswa::count();
-        $totalKelas = Kelas::count();
-        $totalMapel = Mapel::count();
-
-        return view('dashboard.guru', compact('user', 'guru', 'totalSiswa', 'totalKelas', 'totalMapel'));
-    }
-
-    /**
-     * Halaman Dashboard Siswa.
-     */
     public function siswaDashboard()
     {
-        $user = Auth::user();
-        $siswa = $user->siswa;
+        $siswa = Auth::user()->siswa;
+        $kelasId = $siswa?->kelas_id;
+
+        // Hitung total mapel
         $totalMapel = Mapel::count();
 
-        return view('dashboard.siswa', compact('user', 'siswa', 'totalMapel'));
-    }
+        // Ambil daftar mapel beserta relasi guru, bab, dan materi
+        $daftarMapel = Mapel::with(['guruMapels.guru'])->get();
 
+        // Hitung badge counts
+        $tugasMenantiCount = $kelasId ? Tugas::where('kelas_id', $kelasId)->where('deadline', '>=', now())->count() : 0;
+        $quizCount         = $kelasId ? Quiz::where('kelas_id', $kelasId)->where('status', 'aktif')->count() : 0;
+        $ujianCount        = $kelasId ? Ujian::where('kelas_id', $kelasId)->count() : 0;
+
+        // Ambil materi
+        $materiList = $kelasId ? Materi::with(['mapel', 'guru'])->where('kelas_id', $kelasId)->latest()->get() : collect();
+
+        return view('siswa.beranda', compact(
+            'siswa',
+            'totalMapel',
+            'daftarMapel',
+            'tugasMenantiCount',
+            'quizCount',
+            'ujianCount',
+            'materiList'
+        ));
+    }
     /**
      * Halaman Dashboard Kepala Sekolah.
      */

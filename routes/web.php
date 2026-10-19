@@ -37,9 +37,7 @@ Route::middleware(['auth'])->group(function () {
     // Main Dashboard Router
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // ==========================================
-    // 💡 ROUTE DASHBOARD KHUSUS (TARUH DI ATAS RESOURCE)
-    // ==========================================
+    // 💡 ROUTE DASHBOARD KHUSUS (TARUH DI ATAS RESOURCE)//
     Route::get('/guru/dashboard', [DashboardController::class, 'guruDashboard'])->name('guru.dashboard');
     Route::get('/siswa/dashboard', [DashboardController::class, 'siswaDashboard'])->name('siswa.dashboard');
 
@@ -52,7 +50,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Dashboard Siswa Fitur
     Route::middleware(['auth', 'role:siswa'])->group(function () {
-        Route::get('/siswa/materi', [MateriController::class, 'indexSiswa'])->name('siswa.materi');
+        Route::get('/siswa/beranda', [MateriController::class, 'indexSiswa'])->name('siswa.beranda');
         Route::get('/siswa/materi/{id}', [MateriController::class, 'showSiswa'])->name('siswa.materi.show');
         Route::get('/siswa/tugas', [TugasController::class, 'indexSiswa'])->name('siswa.tugas');
         Route::get('/siswa/tugas/{id}', [TugasController::class, 'showSiswa'])->name('siswa.tugas.show');

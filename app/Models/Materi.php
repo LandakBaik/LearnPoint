@@ -17,8 +17,8 @@ class Materi extends Model
         'guru_mapel_id',
     ];
 
-    public function guruMapel()
+    public function pengampuKelas()
     {
-        return $this->belongsTo(GuruMapel::class, 'guru_mapel_id');
+        return $this->belongsTo(PengampuKelas::class, 'pengampu_kelas_id');
     }
 }

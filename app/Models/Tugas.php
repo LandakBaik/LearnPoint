@@ -13,9 +13,11 @@ class Tugas extends Model
 
     protected $fillable = [
         'judul',
+        'deskripsi',
         'deadline',
         'tipe',
-        'guru_mapel_id',
+        'file_lampiran',
+        'pengampu_kelas_id',
     ];
 
     protected function casts(): array
@@ -25,9 +27,9 @@ class Tugas extends Model
         ];
     }
 
-    public function guruMapel()
+    public function pengampuKelas()
     {
-        return $this->belongsTo(GuruMapel::class, 'guru_mapel_id');
+        return $this->belongsTo(PengampuKelas::class, 'pengampu_kelas_id');
     }
 
     public function soals()

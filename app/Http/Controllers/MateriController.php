@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Materi;
 use App\Models\Mapel;
 use App\Models\Bab;
+use App\Models\Siswa;
 use Illuminate\Support\Facades\Auth;
 
 class MateriController extends Controller
@@ -25,29 +26,29 @@ class MateriController extends Controller
     }
 
     /**
-     * Halaman Detail Bab & File Materi per Mapel untuk Siswa.
+     * Halaman Beranda / Dashboard Siswa.
      */
-   public function indexSiswa()
+    public function indexSiswa()
     {
-        // Ambil data mapel beserta relasi guru
         $daftarMapel = Mapel::with(['guruMapels.guru'])->get();
+        $totalMateri = Materi::count();
+        $materiSelesai = 0;
+        $progressPersen = $totalMateri > 0 ? round(($materiSelesai / $totalMateri) * 100) : 0;
 
-        // Kirim variabel $daftarMapel ke view siswa.materi.index
-        return view('siswa.materi.index', compact('daftarMapel'));
+        return view('siswa.beranda', compact('daftarMapel', 'progressPersen'));
     }
 
     /**
-     * Method milikmu untuk menampilkan detail materi dari mapel yang dipilih
+     * Menampilkan detail materi dari mapel yang dipilih
      */
     public function showSiswa($id)
     {
         $mapel = Mapel::findOrFail($id);
-
-        // Ambil data materi berdasarkan guru_mapel_id atau mapel_id
-        $materis = Materi::whereHas('guruMapel', function ($query) use ($id) {
+        $siswa = Auth::user()->siswa ?? Siswa::where('user_id', Auth::id())->first();
+        $materis = Materi::whereHas('pengampuKelas.guruMapel', function ($query) use ($id) {
             $query->where('mapel_id', $id);
-        })->get();
+        })->with('pengampuKelas.guruMapel.guru')->get();
 
-        return view('siswa.materi.show', compact('mapel', 'materis', 'id'));
+        return view('siswa.materi.show', compact('mapel', 'materis', 'id', 'siswa'));
     }
 }
