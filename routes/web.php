@@ -51,11 +51,22 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/guru/materi/{id_grub_materi}', [MateriController::class, 'update'])->name('guru.materi.update');
         Route::delete('/guru/materi/{id_grub_materi}', [MateriController::class, 'destroy'])->name('guru.materi.destroy');
         Route::get('/guru/tugas', [TugasController::class, 'index'])->name('guru.tugas');
-        Route::post('/guru/tugas', [TugasController::class, 'store'])->name('guru.tugas.store');
-        Route::get('/guru/tugas/{id}', [TugasController::class, 'show'])->name('guru.tugas.show');
-        Route::put('/guru/tugas/{id}', [TugasController::class, 'update'])->name('guru.tugas.update');
-        Route::delete('/guru/tugas/{id}', [TugasController::class, 'destroy'])->name('guru.tugas.destroy');
-        Route::get('/guru/jadwal', [JadwalController::class, 'index'])->name('guru.jadwal');
+
+        // Halaman tambah tugas
+        Route::post('/guru/tugas', [TugasController::class, 'store'])
+            ->name('guru.tugas.store');
+        Route::get('/guru/tugas/{id}', [TugasController::class, 'show'])
+            ->name('guru.tugas.show');
+
+        // Simpan / perbarui nilai siswa
+        Route::post('/guru/pengumpulan/{id}/nilai', [TugasController::class, 'berikanNilai'])
+            ->name('guru.pengumpulan.nilai');
+        Route::put('/guru/tugas/{id}', [TugasController::class, 'update'])
+            ->name('guru.tugas.update');
+        Route::delete('/guru/tugas/{id}', [TugasController::class, 'destroy'])
+            ->name('guru.tugas.destroy');
+        Route::get('/guru/jadwal', [JadwalController::class, 'index'])
+            ->name('guru.jadwal');
 
         // Daftar semua ujian
         Route::get('/guru/ujian', [UjianController::class, 'index'])
