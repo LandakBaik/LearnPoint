@@ -48,7 +48,7 @@
                 </div>
             </div>
             <p class="mt-1 text-sm text-gray-500">
-                Sistem kuis bertema petualangan: draf kuis dengan pilihan 1 hingga 3 Arc Kesulitan (Mudah, Sedang, Sulit), 5 level per arc, dan maksimal 10 soal per level.
+                Sistem kuis bertema petualangan.
             </p>
         </div>
 
@@ -103,19 +103,19 @@
                 </h3>
                 <p class="text-xs text-gray-600 leading-relaxed max-w-3xl">
                     1. <strong>Draf Kuis</strong> berisi petualangan belajar yang dapat Anda terbitkan kapan saja.<br>
-                    2. Didalam setiap kuis terdapat <strong>hingga 3 Arc Kesulitan</strong> (Mudah, Sedang, Sulit. Anda bisa memilih hanya 2 atau 3 arc).<br>
-                    3. Setiap Arc Kesulitan memiliki <strong>5 Level Tantangan</strong>, dan setiap level dapat diisi <strong>maksimal 10 butir soal</strong>.
+                    2. Didalam setiap kuis terdapat <strong>hingga 3 Tingkat Kesulitan</strong> (Mudah, Sedang, Sulit. Anda bisa memilih hanya 2 atau 3 arc).<br>
+                    3. Setiap Tingkat Kesulitan memiliki <strong>5 Level Tantangan</strong>, dan setiap level dapat diisi <strong>maksimal 10 soal</strong>.
                 </p>
             </div>
             <div class="flex items-center gap-2 shrink-0 flex-wrap">
                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100/90 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-xs">
-                    😊 Arc Mudah
+                    Mudah
                 </span>
                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-100/90 text-indigo-800 border border-indigo-200 text-xs font-bold shadow-xs">
-                    🧠 Arc Sedang
+                    Sedang
                 </span>
                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-100/90 text-rose-800 border border-rose-200 text-xs font-bold shadow-xs">
-                    🔥 Arc Sulit
+                    Sulit
                 </span>
             </div>
         </div>
@@ -311,17 +311,17 @@
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 @if(in_array('Mudah', $activeArcs))
                                     <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                        😊 Mudah
+                                        Mudah
                                     </span>
                                 @endif
                                 @if(in_array('Sedang', $activeArcs))
                                     <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                        🧠 Sedang
+                                        Sedang
                                     </span>
                                 @endif
                                 @if(in_array('Sulit', $activeArcs))
                                     <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                        🔥 Sulit
+                                        Sulit
                                     </span>
                                 @endif
                             </div>
@@ -536,7 +536,7 @@
                                 class="w-4 h-4 mt-0.5 text-emerald-600 rounded focus:ring-emerald-500"
                             >
                             <div>
-                                <span class="text-xs font-bold text-emerald-900 block">😊 Arc Mudah</span>
+                                <span class="text-xs font-bold text-emerald-900 block">Mudah</span>
                                 <span class="text-[11px] text-emerald-700">Level 1 - 5 (Konsep Dasar)</span>
                             </div>
                         </label>
@@ -551,7 +551,7 @@
                                 class="w-4 h-4 mt-0.5 text-indigo-600 rounded focus:ring-indigo-500"
                             >
                             <div>
-                                <span class="text-xs font-bold text-indigo-900 block">🧠 Arc Sedang</span>
+                                <span class="text-xs font-bold text-indigo-900 block">Sedang</span>
                                 <span class="text-[11px] text-indigo-700">Level 1 - 5 (Analisis)</span>
                             </div>
                         </label>
@@ -566,7 +566,7 @@
                                 class="w-4 h-4 mt-0.5 text-rose-600 rounded focus:ring-rose-500"
                             >
                             <div>
-                                <span class="text-xs font-bold text-rose-900 block">🔥 Arc Sulit</span>
+                                <span class="text-xs font-bold text-rose-900 block">Sulit</span>
                                 <span class="text-[11px] text-rose-700">Level 1 - 5 (Tantangan HOTS)</span>
                             </div>
                         </label>
@@ -707,7 +707,7 @@
                                 class="w-4 h-4 mt-0.5 text-emerald-600 rounded focus:ring-emerald-500"
                             >
                             <div>
-                                <span class="text-xs font-bold text-emerald-900 block">😊 Arc Mudah</span>
+                                <span class="text-xs font-bold text-emerald-900 block">Arc Mudah</span>
                                 <span class="text-[11px] text-emerald-700">5 Level</span>
                             </div>
                         </label>
@@ -721,7 +721,7 @@
                                 class="w-4 h-4 mt-0.5 text-indigo-600 rounded focus:ring-indigo-500"
                             >
                             <div>
-                                <span class="text-xs font-bold text-indigo-900 block">🧠 Arc Sedang</span>
+                                <span class="text-xs font-bold text-indigo-900 block">Arc Sedang</span>
                                 <span class="text-[11px] text-indigo-700">5 Level</span>
                             </div>
                         </label>
@@ -735,7 +735,7 @@
                                 class="w-4 h-4 mt-0.5 text-rose-600 rounded focus:ring-rose-500"
                             >
                             <div>
-                                <span class="text-xs font-bold text-rose-900 block">🔥 Arc Sulit</span>
+                                <span class="text-xs font-bold text-rose-900 block">Arc Sulit</span>
                                 <span class="text-[11px] text-rose-700">5 Level</span>
                             </div>
                         </label>
