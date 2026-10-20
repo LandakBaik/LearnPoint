@@ -90,6 +90,20 @@ class DashboardController extends Controller
     /**
      * Halaman Dashboard Guru.
      */
+    public function guruDashboard()
+    {
+        $user = Auth::user();
+        $guru = $user->guru;
+        $totalSiswa = Siswa::count();
+        $totalKelas = Kelas::count();
+        $totalMapel = Mapel::count();
+
+        return view('dashboard.guru', compact('user', 'guru', 'totalSiswa', 'totalKelas', 'totalMapel'));
+    }
+
+    /**
+     * Halaman Dashboard Siswa.
+     */
     public function siswaDashboard()
     {
         $siswa = Auth::user()->siswa;
@@ -98,13 +112,8 @@ class DashboardController extends Controller
         // Hitung total mapel
         $totalMapel = Mapel::count();
 
-        $guruPengampus = collect();
-        if ($siswa && $siswa->kelas) {
-            $guruPengampus = $siswa->kelas->pengampuKelases()->with(['guruMapel.guru', 'guruMapel.mapel'])->get();
-        }
-
-        return view('dashboard.siswa', compact('user', 'siswa', 'totalMapel', 'guruPengampus'));
-    }
+        // Ambil daftar mapel beserta relasi guru
+        $daftarMapel = Mapel::with(['guruMapels.guru'])->get();
 
         // Hitung badge counts
         $tugasMenantiCount = $kelasId ? Tugas::where('kelas_id', $kelasId)->where('deadline', '>=', now())->count() : 0;
