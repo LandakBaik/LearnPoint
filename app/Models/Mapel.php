@@ -20,4 +20,9 @@ class Mapel extends Model
     {
         return $this->hasMany(GuruMapel::class, 'mapel_id');
     }
+
+    public function pengampuKelases()
+    {
+        return $this->hasManyThrough(PengampuKelas::class, GuruMapel::class, 'mapel_id', 'guru_mapel_id');
+    }
 }

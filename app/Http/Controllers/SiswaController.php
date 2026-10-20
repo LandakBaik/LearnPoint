@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\DateHelper;
 use App\Models\AnggotaKelas;
 use App\Models\Kelas;
 use App\Models\Siswa;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -21,7 +23,16 @@ class SiswaController extends Controller
 
         // Filter kelas
         if ($request->filled('kelas_id')) {
-            $query->where('kelas_id', $request->kelas_id);
+            $query->whereHas('anggotaKelases', function ($q) use ($request) {
+                $q->where('kelas_id', $request->kelas_id);
+            });
+        }
+
+        // Filter tingkatan (7, 8, 9)
+        if ($request->filled('tingkatan')) {
+            $query->whereHas('kelas', function ($q) use ($request) {
+                $q->where('tingkatan', $request->tingkatan);
+            });
         }
 
         // Search
@@ -34,10 +45,11 @@ class SiswaController extends Controller
             });
         }
 
+        $totalSiswa = Siswa::count();
         $siswa = $query->latest()->paginate(10)->withQueryString();
         $kelases = Kelas::all();
 
-        return view('siswa.index', compact('siswa', 'kelases'));
+        return view('siswa.index', compact('siswa', 'kelases', 'totalSiswa'));
     }
 
     /**
@@ -55,19 +67,28 @@ class SiswaController extends Controller
      */
     public function store(Request $request)
     {
+        $maxDate = now()->subYears(10)->format('Y-m-d');
+        $minDate = now()->subYears(16)->format('Y-m-d');
+
         $validated = $request->validate([
-            'nama_siswa'    => ['required', 'regex:/^[a-zA-Z\s\.\,\'\-]+$/'],
-            'nis'           => 'required|unique:siswas,nis|numeric',
+            'nama_siswa'    => ['required', 'string', 'max:100','regex:/^[a-zA-Z\s\.,]+$/u'],
+            'nis'           => 'required|numeric|digits_between:4,10|unique:siswas,nis',
             'alamat'        => 'required|string',
-            'tanggal_lahir' => 'required|date',
+            'tanggal_lahir' => ['required', 'date', 'before_or_equal:' . $maxDate, 'after_or_equal:' . $minDate],
             'jenis_kelamin' => 'required|in:L,P',
-            'wali_murid'    => ['required', 'regex:/^[a-zA-Z\s\.\,\'\-]+$/'],
-            'nohp_wali'     => 'required|numeric',
+            'wali_murid'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
+            'nohp_wali'     => 'required|numeric|digits_between:8,20',
             'kelas_id'      => 'nullable|exists:kelases,id',
-            'buat_akun'     => 'nullable|boolean',
-            'email'         => 'nullable|required_if:buat_akun,1|email|unique:users,email',
-            'username'      => 'nullable|required_if:buat_akun,1|alpha_dash|unique:users,username',
-            'password'      => 'nullable|required_if:buat_akun,1|min:4',
+        ], [
+            'wali_murid.regex'              => 'Nama wali murid hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nama_siswa.regex'              => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nis.numeric'                   => 'NIS siswa harus berupa angka.',
+            'nis.digits_between'            => 'NIS siswa harus terdiri dari 4 hingga 10 digit angka.',
+            'nis.unique'                    => 'NIS ini sudah terdaftar untuk siswa lain.',
+            'tanggal_lahir.before_or_equal' => 'Usia siswa minimal harus 10 tahun (tanggal lahir tidak boleh setelah ' . now()->subYears(10)->translatedFormat('d F Y') . ').',
+            'tanggal_lahir.after_or_equal'  => 'Usia siswa maksimal 16 tahun (tanggal lahir tidak boleh sebelum ' . now()->subYears(16)->translatedFormat('d F Y') . ').',
+            'nohp_wali.numeric'             => 'Nomor telepon / WhatsApp wali murid harus berupa angka.',
+            'nohp_wali.digits_between'      => 'Nomor telepon wali murid harus terdiri dari 8 hingga 20 digit angka.',
         ]);
 
         $siswa = Siswa::create([
@@ -78,43 +99,34 @@ class SiswaController extends Controller
             'jenis_kelamin' => $validated['jenis_kelamin'],
             'wali_murid'    => $validated['wali_murid'],
             'nohp_wali'     => $validated['nohp_wali'],
-            'kelas_id'      => $validated['kelas_id'] ?? null,
+            'status'        => 'aktif',
         ]);
 
         // Jika kelas dipilih, daftarkan otomatis ke anggota_kelases
         if (!empty($validated['kelas_id'])) {
-            // Cek apakah kelas sudah memiliki foto jadwal sebelumnya
-            $jadwalFoto = AnggotaKelas::where('kelas_id', $validated['kelas_id'])
-                ->whereNotNull('jadwal')
-                ->latest()
-                ->value('jadwal');
-
-            AnggotaKelas::firstOrCreate(
-                [
-                    'kelas_id'     => $validated['kelas_id'],
-                    'siswa_id'     => $siswa->id,
-                    'tahun_ajaran' => '2026/2027',
-                    'semester'     => 'ganjil',
-                ],
-                [
-                    'jadwal'       => $jadwalFoto,
-                ]
-            );
-        }
-
-        // Buat akun otomatis jika dicentang
-        if ($request->boolean('buat_akun')) {
-            User::create([
-                'name'      => $validated['nama_siswa'],
-                'username'  => $validated['username'],
-                'email'     => $validated['email'],
-                'password'  => Hash::make($validated['password']),
-                'role'      => 'siswa',
-                'siswa_id'  => $siswa->id,
+            AnggotaKelas::firstOrCreate([
+                'kelas_id'     => $validated['kelas_id'],
+                'siswa_id'     => $siswa->id,
+                'tahun_ajaran' => '2026/2027',
+                'semester'     => 'ganjil',
             ]);
         }
 
-        return redirect()->route('siswa.index')->with('success', 'Data siswa berhasil ditambahkan!');
+        // Auto Create Akun User Siswa (Poin 5)
+        $autoEmail = $validated['nis'] . '@siswa.learnpoint.sch.id';
+        User::firstOrCreate(
+            ['username' => $validated['nis']],
+            [
+                'name'     => $validated['nama_siswa'],
+                'email'    => $autoEmail,
+                'password' => Hash::make($validated['nis']),
+                'role'     => 'siswa',
+                'status'   => 'aktif',
+                'siswa_id' => $siswa->id,
+            ]
+        );
+
+        return redirect()->route('siswa.index')->with('success', 'Data siswa dan akun pengguna berhasil ditambahkan secara otomatis!');
     }
 
     /**
@@ -142,26 +154,34 @@ class SiswaController extends Controller
      */
     public function update(Request $request, Siswa $siswa)
     {
+        $maxDate = now()->subYears(10)->format('Y-m-d');
+        $minDate = now()->subYears(16)->format('Y-m-d');
+
         $validated = $request->validate([
-            'nama_siswa'    => ['required', 'regex:/^[a-zA-Z\s\.\,\'\-]+$/'],
-            'nis'           => ['required', 'numeric', Rule::unique('siswas')->ignore($siswa->id)],
+            'nama_siswa'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
+            'nis'           => ['required', 'numeric', 'digits_between:4,10', Rule::unique('siswas')->ignore($siswa->id)],
             'alamat'        => 'required|string',
-            'tanggal_lahir' => 'required|date',
+            'tanggal_lahir' => ['required', 'date', 'before_or_equal:' . $maxDate, 'after_or_equal:' . $minDate],
             'jenis_kelamin' => 'required|in:L,P',
-            'wali_murid'    => ['required', 'regex:/^[a-zA-Z\s\.\,\'\-]+$/'],
-            'nohp_wali'     => 'required|numeric',
+            'wali_murid'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
+            'nohp_wali'     => 'required|numeric|digits_between:8,20',
             'kelas_id'      => 'nullable|exists:kelases,id',
+        ], [
+            'wali_murid.regex'              => 'Nama wali murid hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nama_siswa.regex'              => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nis.numeric'                   => 'NIS siswa harus berupa angka.',
+            'nis.digits_between'            => 'NIS siswa harus terdiri dari 4 hingga 10 digit angka.',
+            'nis.unique'                    => 'NIS ini sudah terdaftar untuk siswa lain.',
+            'tanggal_lahir.before_or_equal' => 'Usia siswa minimal harus 10 tahun (tanggal lahir tidak boleh setelah ' . now()->subYears(10)->translatedFormat('d F Y') . ').',
+            'tanggal_lahir.after_or_equal'  => 'Usia siswa maksimal 16 tahun (tanggal lahir tidak boleh sebelum ' . now()->subYears(16)->translatedFormat('d F Y') . ').',
+            'nohp_wali.numeric'             => 'Nomor telepon / WhatsApp wali murid harus berupa angka.',
+            'nohp_wali.digits_between'      => 'Nomor telepon wali murid harus terdiri dari 8 hingga 20 digit angka.',
         ]);
 
-        $siswa->update($validated);
+        $siswa->update(array_diff_key($validated, ['kelas_id' => true]));
 
         // Sinkronisasi ke anggota_kelases
         if (!empty($validated['kelas_id'])) {
-            $jadwalFoto = AnggotaKelas::where('kelas_id', $validated['kelas_id'])
-                ->whereNotNull('jadwal')
-                ->latest()
-                ->value('jadwal');
-
             AnggotaKelas::updateOrCreate(
                 [
                     'siswa_id'     => $siswa->id,
@@ -170,9 +190,13 @@ class SiswaController extends Controller
                 ],
                 [
                     'kelas_id'     => $validated['kelas_id'],
-                    'jadwal'       => $jadwalFoto,
                 ]
             );
+        } else {
+            AnggotaKelas::where('siswa_id', $siswa->id)
+                ->where('tahun_ajaran', '2026/2027')
+                ->where('semester', 'ganjil')
+                ->delete();
         }
 
         if ($siswa->user) {
@@ -183,12 +207,246 @@ class SiswaController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Ubah status siswa menjadi aktif atau nonaktif (dan otomatis sinkronkan status akun user terikat).
+     */
+    public function toggleStatus(Siswa $siswa)
+    {
+        $siswa->status = ($siswa->status === 'aktif') ? 'nonaktif' : 'aktif';
+        $siswa->save();
+
+        if ($siswa->user) {
+            $siswa->user->update(['status' => $siswa->status]);
+        }
+
+        $statusText = $siswa->status === 'aktif' ? 'diaktifkan kembali' : 'dinonaktifkan';
+        return redirect()->route('siswa.index')->with('success', "Data siswa {$siswa->nama_siswa} dan akun terikat berhasil {$statusText}!");
+    }
+
+    /**
+     * Menonaktifkan data siswa (menggantikan fungsi hapus permanen).
      */
     public function destroy(Siswa $siswa)
     {
-        $siswa->delete();
+        return $this->toggleStatus($siswa);
+    }
 
-        return redirect()->route('siswa.index')->with('success', 'Data siswa berhasil dihapus!');
+    /**
+     * Import data siswa dari file CSV dan otomatis buat akun login siswa.
+     */
+    public function importCsv(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:5120',
+        ]);
+
+        $file = $request->file('csv_file');
+        $handle = fopen($file->getRealPath(), 'r');
+
+        if (!$handle) {
+            return back()->with('error', 'Gagal membaca berkas CSV.');
+        }
+
+        $header = fgetcsv($handle, 1000, ',');
+        if (!$header) {
+            fclose($handle);
+            return back()->with('error', 'Berkas CSV kosong.');
+        }
+
+        $header = array_map(function ($col) {
+            return strtolower(trim($col, "\xEF\xBB\xBF \t\n\r\0\x0B"));
+        }, $header);
+
+        $nameIdx = array_search('nama_siswa', $header) !== false ? array_search('nama_siswa', $header) : array_search('nama', $header);
+        $nisIdx = array_search('nis', $header);
+        $alamatIdx = array_search('alamat', $header);
+        $tglIdx = array_search('tanggal_lahir', $header);
+        $jkIdx = array_search('jenis_kelamin', $header) !== false ? array_search('jenis_kelamin', $header) : array_search('jk', $header);
+        $waliIdx = array_search('wali_murid', $header) !== false ? array_search('wali_murid', $header) : array_search('wali', $header);
+        $nohpIdx = array_search('nohp_wali', $header) !== false ? array_search('nohp_wali', $header) : array_search('telepon', $header);
+        $kelasIdx = array_search('kelas', $header) !== false ? array_search('kelas', $header) : array_search('kelas_id', $header);
+
+        if ($nameIdx === false || $nisIdx === false) {
+            fclose($handle);
+            return back()->with('error', 'Format header CSV harus minimal memiliki kolom: nama_siswa, nis');
+        }
+
+        $validationErrors = [];
+        $rowsToImport = [];
+        $seenNis = [];
+        $rowNumber = 1;
+
+        while (($row = fgetcsv($handle, 1000, ',')) !== false) {
+            $rowNumber++;
+
+            // Skip baris jika benar-benar kosong
+            if (empty(array_filter($row))) {
+                continue;
+            }
+
+            $nama = trim($row[$nameIdx] ?? '');
+            $rawNis = trim($row[$nisIdx] ?? '');
+            $nis = null;
+            $rowErrors = [];
+
+            if (empty($nama)) {
+                $rowErrors[] = 'Nama siswa wajib diisi.';
+            }
+
+            if (empty($rawNis)) {
+                $rowErrors[] = 'NIS wajib diisi.';
+            } else {
+                $nis = preg_replace('/[^0-9]/', '', $rawNis);
+                if (empty($nis)) {
+                    $rowErrors[] = "NIS '{$rawNis}' tidak valid (harus berupa angka).";
+                } elseif (strlen($nis) < 4 || strlen($nis) > 10) {
+                    $rowErrors[] = "NIS '{$nis}' harus terdiri dari 4 hingga 10 digit angka.";
+                } elseif (in_array($nis, $seenNis)) {
+                    $rowErrors[] = "NIS '{$nis}' duplikat dalam file CSV ini.";
+                } elseif (Siswa::where('nis', $nis)->exists()) {
+                    $rowErrors[] = "NIS '{$nis}' sudah terdaftar dalam sistem.";
+                } else {
+                    $seenNis[] = $nis;
+                }
+            }
+
+            // Normalisasi & validasi Tanggal Lahir (Usia 10-16 tahun)
+            $rawTgl = $tglIdx !== false ? trim($row[$tglIdx] ?? '') : '';
+            $normalizedTgl = null;
+            if (empty($rawTgl)) {
+                $rowErrors[] = 'Tanggal lahir wajib diisi.';
+            } else {
+                $parsedTgl = DateHelper::normalize($rawTgl);
+                if (!$parsedTgl) {
+                    $rowErrors[] = "Format tanggal lahir '{$rawTgl}' tidak valid.";
+                } else {
+                    $birthDate = \Carbon\Carbon::parse($parsedTgl);
+                    $age = $birthDate->age;
+                    if ($age < 10 || $age > 16) {
+                        $rowErrors[] = "Tanggal lahir '{$rawTgl}' ({$parsedTgl}) tidak memenuhi syarat. Usia siswa harus antara 10 hingga 16 tahun (terdeteksi usia: {$age} tahun).";
+                    } else {
+                        $normalizedTgl = $parsedTgl;
+                    }
+                }
+            }
+
+            // Alamat
+            $alamat = $alamatIdx !== false && !empty(trim($row[$alamatIdx] ?? '')) ? trim($row[$alamatIdx]) : 'Alamat belum diatur';
+
+            // Jenis Kelamin
+            $rawJk = $jkIdx !== false ? strtoupper(trim($row[$jkIdx] ?? 'L')) : 'L';
+            $jk = in_array($rawJk, ['L', 'LAKI-LAKI', 'PRIA']) ? 'L' : 'P';
+
+            // Wali & Nohp
+            $wali = $waliIdx !== false && !empty(trim($row[$waliIdx] ?? '')) ? trim($row[$waliIdx]) : ($nama ? 'Wali Murid ' . $nama : 'Wali Murid');
+            $rawNohp = $nohpIdx !== false ? trim($row[$nohpIdx] ?? '') : '';
+            $nohp = preg_replace('/[^0-9]/', '', $rawNohp);
+            if (empty($nohp)) {
+                $nohp = '081234567890';
+            }
+
+            // Cari Kelas jika diisi
+            $kelasId = null;
+            if ($kelasIdx !== false && !empty(trim($row[$kelasIdx] ?? ''))) {
+                $kelasVal = trim($row[$kelasIdx]);
+                if (is_numeric($kelasVal)) {
+                    $kelasId = Kelas::where('id', $kelasVal)->value('id');
+                }
+                if (!$kelasId) {
+                    $kelasId = Kelas::where('nama_kelas', 'like', "%{$kelasVal}%")->value('id');
+                }
+                if (!$kelasId) {
+                    $rowErrors[] = "Kelas '{$kelasVal}' tidak ditemukan di database.";
+                }
+            }
+
+            if (!empty($rowErrors)) {
+                $validationErrors[] = "Baris {$rowNumber}: " . implode(' ', $rowErrors);
+            } else {
+                $rowsToImport[] = [
+                    'nama_siswa'    => $nama,
+                    'nis'           => $nis,
+                    'alamat'        => $alamat,
+                    'tanggal_lahir' => $normalizedTgl,
+                    'jenis_kelamin' => $jk,
+                    'wali_murid'    => $wali,
+                    'nohp_wali'     => $nohp,
+                    'kelas_id'      => $kelasId,
+                ];
+            }
+        }
+
+        fclose($handle);
+
+        if (!empty($validationErrors)) {
+            return back()
+                ->with('csv_errors', $validationErrors)
+                ->with('error', 'Import CSV dibatalkan karena terdapat ' . count($validationErrors) . ' kesalahan data.');
+        }
+
+        if (empty($rowsToImport)) {
+            return back()->with('error', 'Tidak ada data valid yang dapat di-import.');
+        }
+
+        // Eksekusi penyimpan data dalam transaksi
+        DB::transaction(function () use ($rowsToImport) {
+            foreach ($rowsToImport as $data) {
+                $siswa = Siswa::create(array_diff_key($data, ['kelas_id' => true]));
+
+                if ($data['kelas_id']) {
+                    AnggotaKelas::firstOrCreate(
+                        [
+                            'kelas_id'     => $data['kelas_id'],
+                            'siswa_id'     => $siswa->id,
+                            'tahun_ajaran' => '2026/2027',
+                            'semester'     => 'ganjil',
+                        ]
+                    );
+                }
+
+                User::firstOrCreate(
+                    ['username' => $data['nis']],
+                    [
+                        'name'     => $data['nama_siswa'],
+                        'email'    => $data['nis'] . '@siswa.learnpoint.sch.id',
+                        'password' => Hash::make($data['nis']),
+                        'role'     => 'siswa',
+                        'status'   => 'aktif',
+                        'siswa_id' => $siswa->id,
+                    ]
+                );
+            }
+        });
+
+        $count = count($rowsToImport);
+        return redirect()->route('siswa.index')->with('success', "Import berhasil: {$count} data siswa dan akun pengguna berhasil ditambahkan.");
+    }
+
+    /**
+     * Unduh contoh template CSV untuk import siswa.
+     */
+    public function downloadTemplateCsv()
+    {
+        $headers = [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="template_import_siswa_learnpoint.csv"',
+        ];
+
+        $columns = ['nama_siswa', 'nis', 'alamat', 'tanggal_lahir', 'jenis_kelamin', 'wali_murid', 'nohp_wali', 'kelas'];
+        $sampleData = [
+            ['Muhammad Rizky', '20241001', 'Jl. Merpati Putih No. 12', '2012-05-14', 'L', 'Hendra Kusuma', '081234567891', ''],
+            ['Siti Aisyah', '20241002', 'Jl. Kenanga Indah No. 5', '2012-08-20', 'P', 'Rahmat Hidayat', '081234567892', ''],
+            ['Budi Santoso', '20241003', 'Jl. Dahlia No. 44', '2012-03-10', 'L', 'Sutrisno', '081234567893', ''],
+        ];
+
+        $callback = function () use ($columns, $sampleData) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+            foreach ($sampleData as $row) {
+                fputcsv($file, $row);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

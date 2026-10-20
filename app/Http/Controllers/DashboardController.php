@@ -42,7 +42,48 @@ class DashboardController extends Controller
         $totalKelas = Kelas::count();
         $totalMapel = Mapel::count();
 
-        return view('dashboard.admin', compact('totalSiswa', 'totalGuru', 'totalKelas', 'totalMapel'));
+        // Data Chart 1: Komposisi Pengguna Berdasarkan Peran (Pie Chart)
+        $userRoleCounts = [
+            'siswa'          => User::where('role', 'siswa')->count(),
+            'guru'           => User::where('role', 'guru')->count(),
+            'operator'       => User::where('role', 'operator')->count(),
+            'kepala_sekolah' => User::where('role', 'kepala_sekolah')->count(),
+        ];
+
+        // Data Chart 2: Persebaran Siswa dan Kelas per Tingkatan (Bar Chart)
+        $tingkatans = Kelas::select('tingkatan')
+            ->distinct()
+            ->orderBy('tingkatan', 'asc')
+            ->pluck('tingkatan');
+
+        $tingkatanLabels = [];
+        $siswaPerTingkat = [];
+        $kelasPerTingkat = [];
+
+        foreach ($tingkatans as $tingkat) {
+            $tingkatanLabels[] = 'Tingkat ' . $tingkat;
+            $kelasPerTingkat[] = Kelas::where('tingkatan', $tingkat)->count();
+            $siswaPerTingkat[] = Siswa::whereHas('kelas', function ($q) use ($tingkat) {
+                $q->where('tingkatan', $tingkat);
+            })->count();
+        }
+
+        if (empty($tingkatanLabels)) {
+            $tingkatanLabels = ['Tingkat 7', 'Tingkat 8', 'Tingkat 9'];
+            $kelasPerTingkat = [0, 0, 0];
+            $siswaPerTingkat = [0, 0, 0];
+        }
+
+        return view('dashboard.admin', compact(
+            'totalSiswa',
+            'totalGuru',
+            'totalKelas',
+            'totalMapel',
+            'userRoleCounts',
+            'tingkatanLabels',
+            'siswaPerTingkat',
+            'kelasPerTingkat'
+        ));
     }
 
 
@@ -57,8 +98,13 @@ class DashboardController extends Controller
         // Hitung total mapel
         $totalMapel = Mapel::count();
 
-        // Ambil daftar mapel beserta relasi guru, bab, dan materi
-        $daftarMapel = Mapel::with(['guruMapels.guru'])->get();
+        $guruPengampus = collect();
+        if ($siswa && $siswa->kelas) {
+            $guruPengampus = $siswa->kelas->pengampuKelases()->with(['guruMapel.guru', 'guruMapel.mapel'])->get();
+        }
+
+        return view('dashboard.siswa', compact('user', 'siswa', 'totalMapel', 'guruPengampus'));
+    }
 
         // Hitung badge counts
         $tugasMenantiCount = $kelasId ? Tugas::where('kelas_id', $kelasId)->where('deadline', '>=', now())->count() : 0;

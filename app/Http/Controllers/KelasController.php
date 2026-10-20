@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Guru;
 use App\Models\Kelas;
+use App\Models\Mapel;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -14,7 +15,7 @@ class KelasController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Kelas::query()->with(['guru', 'siswas', 'anggotaKelases.siswa']);
+        $query = Kelas::query()->with(['guru', 'siswas', 'anggotaKelases.siswa'])->withCount('pengampuKelases');
 
         if ($request->filled('tingkatan')) {
             $query->where('tingkatan', $request->tingkatan);
@@ -64,9 +65,12 @@ class KelasController extends Controller
     {
         // Parameter binding route 'kelas' returns $kela
         $kelas = $kela;
-        $kelas->load(['guru', 'siswas', 'anggotaKelases.siswa', 'guruMapels.guru', 'guruMapels.mapel']);
+        $kelas->load(['guru', 'siswas', 'anggotaKelases.siswa', 'pengampuKelases.guruMapel.guru', 'pengampuKelases.guruMapel.mapel']);
 
-        return view('admin.kelas.show', compact('kelas'));
+        $allGurus = Guru::orderBy('nama', 'asc')->get();
+        $allMapels = Mapel::orderBy('nama_mapel', 'asc')->get();
+
+        return view('admin.kelas.show', compact('kelas', 'allGurus', 'allMapels'));
     }
 
     /**

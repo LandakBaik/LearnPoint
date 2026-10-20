@@ -11,8 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('guru_mapels', function (Blueprint $table) {
-            $table->string('jadwal')->nullable()->after('kelas_id'); // Path foto jadwal guru
+        Schema::table('gurus', function (Blueprint $table) {
+            $table->string('nip',18)->unique()->change();
+            //
         });
     }
 
@@ -21,8 +22,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('guru_mapels', function (Blueprint $table) {
-            $table->dropColumn('jadwal');
+        Schema::table('gurus', function (Blueprint $table) {
+            $table->dropUnique(['nip']);
+            //
         });
     }
 };

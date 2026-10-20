@@ -18,6 +18,12 @@ class RoleMiddleware
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
         if (!Auth::check()) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
             return redirect()->route('login');
         }
 
@@ -31,6 +37,13 @@ class RoleMiddleware
 
         if (in_array($userRole, $allowedRoles) || ($userRole === 'operator' && in_array('admin', $roles))) {
             return $next($request);
+        }
+
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak. Role Anda tidak memiliki izin.',
+            ], 403);
         }
 
         // Jika role tidak diizinkan, arahkan ke dashboard masing-masing dengan pesan error

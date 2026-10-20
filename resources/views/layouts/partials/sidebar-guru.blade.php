@@ -22,7 +22,7 @@
 <div class="sidebar-profile-card mx-4 my-4 p-3 rounded-2xl flex items-center gap-3">
     @php
         $nameParts = explode(' ', auth()->user()->name);
-        $initials = count($nameParts) >= 2 
+        $initials = count($nameParts) >= 2
             ? strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1))
             : strtoupper(substr(auth()->user()->name, 0, 2));
     @endphp
@@ -42,8 +42,8 @@
 <nav class="flex-1 px-4 py-2 space-y-1.5 overflow-y-auto">
     <!-- Dashboard -->
     @php $isDashboard = request()->routeIs('guru.dashboard') || request()->routeIs('dashboard'); @endphp
-    <a 
-        href="{{ route('guru.dashboard') }}" 
+    <a
+        href="{{ route('guru.dashboard') }}"
         class="sidebar-nav-link flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-medium text-sm {{ $isDashboard ? 'sidebar-nav-link-active' : '' }}"
     >
         <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,8 +56,8 @@
     </a>
     <!-- Materi -->
     @php $isMateri = request()->routeIs('guru.materi'); @endphp
-    <a 
-        href="{{ route('guru.materi') }}" 
+    <a
+        href="{{ route('guru.materi') }}"
         class="sidebar-nav-link flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-medium text-sm {{ $isMateri ? 'sidebar-nav-link-active' : '' }}"
     >
         <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,8 +71,8 @@
 
     <!-- Tugas -->
     @php $isTugas = request()->routeIs('guru.tugas'); @endphp
-    <a 
-        href="{{ route('guru.tugas') }}" 
+    <a
+        href="{{ route('guru.tugas') }}"
         class="sidebar-nav-link flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-medium text-sm {{ $isTugas ? 'sidebar-nav-link-active' : '' }}"
     >
         <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -84,12 +84,34 @@
         @endif
     </a>
 
-    <!-- Kuis & Ujian -->
-    <a href="#" class="sidebar-nav-link flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-medium text-sm">
+    <!-- Kuis -->
+    @php $isKuis = request()->routeIs('guru.kuis*'); @endphp
+    <a
+        href="{{ route('guru.kuis.index') }}"
+        class="sidebar-nav-link flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-medium text-sm {{ $isKuis ? 'sidebar-nav-link-active' : '' }}"
+    >
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+        <span>Kuis</span>
+        @if($isKuis)
+            <span class="sidebar-active-indicator w-1.5 h-5 rounded-full ml-auto shrink-0"></span>
+        @endif
+    </a>
+
+    <!-- Ujian -->
+    @php $isUjian = request()->routeIs('guru.ujian*'); @endphp
+    <a
+        href="{{ route('guru.ujian.index') }}"
+        class="sidebar-nav-link flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-medium text-sm {{ $isUjian ? 'sidebar-nav-link-active' : '' }}"
+    >
         <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
         </svg>
-        <span>Kuis & Ujian</span>
+        <span>Ujian</span>
+        @if($isUjian)
+            <span class="sidebar-active-indicator w-1.5 h-5 rounded-full ml-auto shrink-0"></span>
+        @endif
     </a>
 
     <!-- Nilai -->
@@ -102,8 +124,8 @@
 
     <!-- Jadwal -->
     @php $isJadwal = request()->routeIs('guru.jadwal'); @endphp
-    <a 
-        href="{{ route('guru.jadwal') }}" 
+    <a
+        href="{{ route('guru.jadwal') }}"
         class="sidebar-nav-link flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-medium text-sm {{ $isJadwal ? 'sidebar-nav-link-active' : '' }}"
     >
         <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,8 +139,8 @@
 
     <!-- Notifikasi -->
     @php $isNotifikasi = request()->routeIs('notifikasi.index'); @endphp
-    <a 
-        href="{{ route('notifikasi.index') }}" 
+    <a
+        href="{{ route('notifikasi.index') }}"
         class="sidebar-nav-link flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-medium text-sm {{ $isNotifikasi ? 'sidebar-nav-link-active' : '' }}"
     >
         <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,8 +167,8 @@
     <form id="logout-form" method="POST" action="{{ route('logout') }}" class="hidden">
         @csrf
     </form>
-    <button 
-        type="button" 
+    <button
+        type="button"
         onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
         class="sidebar-nav-link w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-medium text-sm text-left"
     >

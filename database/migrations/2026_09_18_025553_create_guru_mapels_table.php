@@ -21,11 +21,8 @@ return new class extends Migration
                 ->constrained('mapels')
                 ->cascadeOnDelete();
 
-            $table->foreignId('kelas_id')
-                ->constrained('kelases')
-                ->cascadeOnDelete();
-
-            $table->unique(['guru_id', 'mapel_id', 'kelas_id']);
+            $table->unique(['guru_id', 'mapel_id']);
+            $table->string('jadwal')->nullable();
             $table->timestamps();
         });
     }

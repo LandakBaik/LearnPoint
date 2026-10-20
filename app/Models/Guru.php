@@ -13,7 +13,10 @@ class Guru extends Model
 
     protected $fillable = [
         'nama',
-        'nip',
+        'nuptk',
+        'nomor_telepon',
+        'jenis_kelamin',
+        'status',
     ];
 
     public function user()
@@ -31,12 +34,18 @@ class Guru extends Model
         return $this->hasMany(GuruMapel::class, 'guru_id');
     }
 
-    /**
-     * Get the latest schedule photo for this teacher from their teaching assignments
-     */
+    public function pengampuKelases()
+    {
+        return $this->hasManyThrough(PengampuKelas::class, GuruMapel::class, 'guru_id', 'guru_mapel_id');
+    }
+
     public function getJadwalAttribute(): ?string
     {
-        return $this->guruMapels()->whereNotNull('jadwal')->latest()->value('jadwal');
+        return $this->guruMapels()
+            ->has('pengampuKelases')
+            ->whereNotNull('jadwal')
+            ->latest('updated_at')
+            ->value('jadwal');
     }
 
     public function getJadwalUrlAttribute(): ?string
@@ -44,5 +53,20 @@ class Guru extends Model
         $jadwal = $this->jadwal;
         return $jadwal ? asset('storage/' . $jadwal) : null;
     }
-}
 
+    /**
+     * Alias backward compatibility untuk no_telp.
+     */
+    public function getNoTelpAttribute(): ?string
+    {
+        return $this->nomor_telepon;
+    }
+
+    /**
+     * Alias backward compatibility untuk NIP -> NUPTK.
+     */
+    public function getNipAttribute(): ?string
+    {
+        return $this->nuptk;
+    }
+}

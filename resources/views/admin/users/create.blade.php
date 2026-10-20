@@ -6,20 +6,33 @@
 <div class="max-w-3xl mx-auto space-y-6" x-data="{ selectedRole: '{{ old('role', 'operator') }}' }">
 
     <!-- Header Navigation -->
-    <div class="flex items-center gap-3">
-        <a href="{{ route('users.index') }}" class="p-2 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-        </a>
-        <div>
-            <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">Tambah Akun Baru</h1>
-            <p class="text-sm text-gray-500">Daftarkan akun login untuk pengguna sistem LearnPoint.</p>
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <a href="{{ route('users.index') }}" class="p-2 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </a>
+            <div>
+                <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">Tambah Akun Baru</h1>
+                <p class="text-sm text-gray-500">Daftarkan akun login pengguna sistem LearnPoint.</p>
+            </div>
         </div>
     </div>
 
-    <!-- Form Card -->
+    <!-- Alert Messages -->
+    @if(session('error'))
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3">
+            <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            <span>{{ session('error') }}</span>
+        </div>
+    @endif
+
+    <!-- FORM INPUT MANUAL -->
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
         <form action="{{ route('users.store') }}" method="POST" class="space-y-6">
             @csrf
+
+            <!-- Hidden Status (Auto Aktif) -->
+            <input type="hidden" name="status" value="aktif">
 
             <!-- Nama Lengkap -->
             <div>
@@ -31,8 +44,10 @@
                     value="{{ old('name') }}" 
                     required 
                     placeholder="Contoh: Budi Santoso, M.Pd."
+                    oninput="this.value = this.value.replace(/[^a-zA-Z\s\.,]/g, '')"
                     class="w-full px-4 py-2.5 rounded-xl border @error('name') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
+                <p class="text-xs text-gray-500 mt-1">Hanya boleh berisi huruf, spasi, koma (,), dan titik (.).</p>
                 @error('name')
                     <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                 @enderror
@@ -99,13 +114,10 @@
                     class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-gray-800"
                 >
                     <option value="operator">Operator / Administrator</option>
+                    <option value="kepala_sekolah">Kepala Sekolah</option>
                     <option value="guru">Guru (Tenaga Pengajar)</option>
                     <option value="siswa">Siswa (Peserta Didik)</option>
-                    <option value="kepala_sekolah">Kepala Sekolah</option>
                 </select>
-                @error('role')
-                    <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
-                @enderror
             </div>
 
             <!-- Tautan ke Data Guru (Kondisional jika role == guru) -->
@@ -115,7 +127,7 @@
                     <option value="">-- Pilih Data Guru yang Belum Memiliki Akun --</option>
                     @foreach($unlinkedGurus as $g)
                         <option value="{{ $g->id }}" {{ old('guru_id') == $g->id ? 'selected' : '' }}>
-                            {{ $g->nama }} (NIP: {{ $g->nip }})
+                            {{ $g->nama }} (NUPTK: {{ $g->nuptk }})
                         </option>
                     @endforeach
                 </select>

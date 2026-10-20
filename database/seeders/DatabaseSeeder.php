@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
 
         // 2. Akun Guru (Amba)
         $guru = Guru::firstOrCreate(
-            ['nip' => '198501012024011001'],
+            ['nuptk' => '1234567890123456'],
             ['nama' => 'Amba']
         );
 
@@ -46,9 +46,9 @@ class DatabaseSeeder extends Seeder
 
         // 3. Akun Siswa & Kelas
         $kelas = Kelas::firstOrCreate(
-            ['nama_kelas' => 'X IPA 1'],
+            ['nama_kelas' => 'VII IPA 1'],
             [
-                'tingkatan' => 10,
+                'tingkatan' => 7,
                 'guru_id' => $guru->id,
             ]
         );
@@ -62,7 +62,6 @@ class DatabaseSeeder extends Seeder
                 'jenis_kelamin' => 'L',
                 'wali_murid' => 'Orang Tua Budi',
                 'nohp_wali' => '081234567890',
-                'kelas_id' => $kelas->id,
             ]
         );
 
@@ -87,6 +86,8 @@ class DatabaseSeeder extends Seeder
                 'role' => 'kepala_sekolah',
             ]
         );
+        // 5. Seeder Materi & Kelas Guru Amba
+        $this->call(MateriGuruSeeder::class);
     }
 }
 
