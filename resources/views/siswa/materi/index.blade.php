@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.siswa')
 
 @section('title', 'Materi Pelajaran')
 

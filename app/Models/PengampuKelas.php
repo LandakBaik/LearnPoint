@@ -16,22 +16,11 @@ class PengampuKelas extends Model
         'kelas_id',
     ];
 
-<<<<<<< HEAD
-    public function kelas()
-    {
-        return $this->belongsTo(Kelas::class, 'kelas_id');
-    }
-=======
-
->>>>>>> c9d58f8240fac8d35441036e3d07b227ec12d654
-
     public function guruMapel()
     {
         return $this->belongsTo(GuruMapel::class, 'guru_mapel_id');
     }
 
-<<<<<<< HEAD
-=======
     public function kelas()
     {
         return $this->belongsTo(Kelas::class, 'kelas_id');
@@ -48,14 +37,10 @@ class PengampuKelas extends Model
         return $this->guruMapel?->mapel;
     }
 
->>>>>>> c9d58f8240fac8d35441036e3d07b227ec12d654
     public function tugases()
     {
         return $this->hasMany(Tugas::class, 'pengampu_kelas_id');
     }
-<<<<<<< HEAD
-}
-=======
 
     public function quizzes()
     {
@@ -72,4 +57,3 @@ class PengampuKelas extends Model
         return $this->hasMany(Materi::class, 'pengampu_kelas_id');
     }
 }
->>>>>>> c9d58f8240fac8d35441036e3d07b227ec12d654

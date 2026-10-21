@@ -106,31 +106,86 @@ class DashboardController extends Controller
      */
     public function siswaDashboard()
     {
-        $siswa = Auth::user()->siswa;
-        $kelasId = $siswa?->kelas_id;
+        $user = Auth::user();
+        $siswa = $user->siswa;
+        $anggotaKelas = $siswa?->anggotaKelases()?->latest()?->first();
+        $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;
+        $kelasId = $kelas?->id;
+        $tahunAjaran = $anggotaKelas?->tahun_ajaran ?? '2024/2025';
+        $semester = $anggotaKelas?->semester ? ucfirst($anggotaKelas->semester) : 'Ganjil';
 
         // Hitung total mapel
         $totalMapel = Mapel::count();
 
         // Ambil daftar mapel beserta relasi guru
-        $daftarMapel = Mapel::with(['guruMapels.guru'])->get();
+        if ($kelasId) {
+            $daftarMapel = Mapel::whereHas('pengampuKelases', function ($query) use ($kelasId) {
+                $query->where('kelas_id', $kelasId);
+            })->with(['pengampuKelases' => function ($query) use ($kelasId) {
+                $query->where('kelas_id', $kelasId)->with(['guruMapel.guru', 'materis', 'tugases', 'ujians']);
+            }])->get();
+        } else {
+            $daftarMapel = Mapel::with(['guruMapels.guru'])->get();
+        }
+
+        if ($daftarMapel->isEmpty()) {
+            $daftarMapel = Mapel::with(['guruMapels.guru'])->get();
+        }
+
+        // Tugas terbaru
+        $tugasTerbaru = $kelasId
+            ? Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))
+                ->with(['pengampuKelas.guruMapel.mapel'])
+                ->where('deadline', '>=', now())
+                ->orderBy('deadline', 'asc')
+                ->first()
+            : null;
+
+        if (!$tugasTerbaru && $kelasId) {
+            $tugasTerbaru = Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))
+                ->with(['pengampuKelas.guruMapel.mapel'])
+                ->latest()
+                ->first();
+        }
+
+        // Materi terbaru
+        $materiTerbaru = $kelasId
+            ? Materi::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))
+                ->with(['pengampuKelas.guruMapel.mapel'])
+                ->latest()
+                ->first()
+            : null;
+
+        if (!$materiTerbaru) {
+            $materiTerbaru = Materi::with(['pengampuKelas.guruMapel.mapel'])->latest()->first();
+        }
 
         // Hitung badge counts
-        $tugasMenantiCount = $kelasId ? Tugas::where('kelas_id', $kelasId)->where('deadline', '>=', now())->count() : 0;
-        $quizCount         = $kelasId ? Quiz::where('kelas_id', $kelasId)->where('status', 'aktif')->count() : 0;
-        $ujianCount        = $kelasId ? Ujian::where('kelas_id', $kelasId)->count() : 0;
+        $tugasMenantiCount = $kelasId ? Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))->where('deadline', '>=', now())->count() : 0;
+        $quizCount         = $kelasId ? Quiz::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))->count() : 0;
+        $ujianCount        = $kelasId ? Ujian::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))->count() : 0;
 
-        // Ambil materi
-        $materiList = $kelasId ? Materi::with(['mapel', 'guru'])->where('kelas_id', $kelasId)->latest()->get() : collect();
+        // Quizzes
+        $quizzes = $kelasId
+            ? Quiz::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))->with(['pengampuKelas.guruMapel.mapel'])->latest()->take(6)->get()
+            : Quiz::with(['pengampuKelas.guruMapel.mapel'])->latest()->take(6)->get();
+
+        $unreadNotifCount = $user->notifikasi()->count() ?? 0;
 
         return view('siswa.beranda', compact(
             'siswa',
+            'kelas',
+            'tahunAjaran',
+            'semester',
             'totalMapel',
             'daftarMapel',
+            'tugasTerbaru',
+            'materiTerbaru',
             'tugasMenantiCount',
             'quizCount',
             'ujianCount',
-            'materiList'
+            'quizzes',
+            'unreadNotifCount'
         ));
     }
     /**

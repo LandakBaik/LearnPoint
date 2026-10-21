@@ -7,6 +7,8 @@ use App\Models\Kelas;
 use App\Models\Mapel;
 use App\Models\PengampuKelas;
 use App\Models\GuruMapel;
+use App\Models\Tugas;
+use App\Models\Ujian;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -481,31 +483,91 @@ class MateriController extends Controller
     }
 
     /**
-     * Menampilkan detail materi dari mapel yang dipilih
+     * Menampilkan detail materi, tugas, dan ujian dari mapel yang dipilih
      */
     public function showSiswa(Request $request, $id)
     {
-        $kelasId = $request->user()?->siswa?->kelas?->id;
+        $user = $request->user();
+        $siswa = $user?->siswa;
+        $anggotaKelas = $siswa?->anggotaKelases()?->latest()?->first();
+        $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;
+        $kelasId = $kelas?->id;
+        $tahunAjaran = $anggotaKelas?->tahun_ajaran ?? '2024/2025';
+        $semester = $anggotaKelas?->semester ? ucfirst($anggotaKelas->semester) : 'Semester 1';
 
-        abort_unless($kelasId, 404);
+        $mapel = Mapel::findOrFail($id);
 
-        $mapel = Mapel::whereHas('pengampuKelases', function ($query) use ($kelasId) {
-            $query->where('kelas_id', $kelasId);
-        })->findOrFail($id);
+        // Ambil materi untuk mapel ini
+        $materis = $kelasId
+            ? Materi::with(['pengampuKelas.guruMapel.guru', 'pengampuKelas.kelas'])
+                ->whereHas('pengampuKelas', function ($query) use ($kelasId, $id) {
+                    $query->where('kelas_id', $kelasId)
+                        ->whereHas('guruMapel', function ($query) use ($id) {
+                            $query->where('mapel_id', $id);
+                        });
+                })
+                ->latest()
+                ->get()
+            : Materi::with(['pengampuKelas.guruMapel.guru'])
+                ->whereHas('pengampuKelas.guruMapel', function ($query) use ($id) {
+                    $query->where('mapel_id', $id);
+                })
+                ->latest()
+                ->get();
 
-        $materis = Materi::with([
-            'pengampuKelas.guruMapel.guru',
-            'pengampuKelas.kelas',
-        ])
-            ->whereHas('pengampuKelas', function ($query) use ($kelasId, $id) {
-                $query->where('kelas_id', $kelasId)
-                    ->whereHas('guruMapel', function ($query) use ($id) {
-                        $query->where('mapel_id', $id);
-                    });
-            })
-            ->get();
+        // Ambil tugas untuk mapel ini
+        $tugases = $kelasId
+            ? Tugas::with(['pengampuKelas.guruMapel.guru', 'nilais' => function ($q) use ($siswa) {
+                if ($siswa) $q->where('siswa_id', $siswa->id);
+            }])
+                ->whereHas('pengampuKelas', function ($query) use ($kelasId, $id) {
+                    $query->where('kelas_id', $kelasId)
+                        ->whereHas('guruMapel', function ($query) use ($id) {
+                            $query->where('mapel_id', $id);
+                        });
+                })
+                ->latest('deadline')
+                ->get()
+            : Tugas::with(['pengampuKelas.guruMapel.guru'])
+                ->whereHas('pengampuKelas.guruMapel', function ($query) use ($id) {
+                    $query->where('mapel_id', $id);
+                })
+                ->latest('deadline')
+                ->get();
 
-        return view('siswa.materi.show', compact('mapel', 'materis'));
+        // Ambil ujian untuk mapel ini
+        $ujians = $kelasId
+            ? Ujian::with(['pengampuKelas.guruMapel.guru'])
+                ->whereHas('pengampuKelas', function ($query) use ($kelasId, $id) {
+                    $query->where('kelas_id', $kelasId)
+                        ->whereHas('guruMapel', function ($query) use ($id) {
+                            $query->where('mapel_id', $id);
+                        });
+                })
+                ->latest('deadline')
+                ->get()
+            : Ujian::with(['pengampuKelas.guruMapel.guru'])
+                ->whereHas('pengampuKelas.guruMapel', function ($query) use ($id) {
+                    $query->where('mapel_id', $id);
+                })
+                ->latest('deadline')
+                ->get();
+
+        $activeTab = $request->query('tab', 'materi');
+        $unreadNotifCount = $user ? $user->notifikasi()->count() : 0;
+
+        return view('siswa.materi.show', compact(
+            'mapel',
+            'materis',
+            'tugases',
+            'ujians',
+            'siswa',
+            'kelas',
+            'tahunAjaran',
+            'semester',
+            'activeTab',
+            'unreadNotifCount'
+        ));
     }
 
 }

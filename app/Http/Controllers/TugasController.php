@@ -264,6 +264,8 @@ class TugasController extends Controller
             $tugas->setRelation('pengumpulanSiswa', $tugas->nilais->first());
         });
 
+        $semuaTugas = clone $daftarTugas;
+
         // FILTER: Hanya ambil tugas yang BELUM dikumpulkan ATAU SUDAH dikumpul tapi BELUM DINILAI (nilai == 0 / null)
         $daftarTugas = $semuaTugas->filter(function ($tugas) {
             $pengumpulan = $tugas->nilais->first();

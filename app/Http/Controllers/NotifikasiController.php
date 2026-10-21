@@ -11,8 +11,8 @@ class NotifikasiController extends Controller
      */
     public function index()
     {
-        // Data notifikasi kosong sesuai permintaan
-        $notifikasis = collect([]);
+        $user = auth()->user();
+        $notifikasis = $user ? $user->notifikasi()->latest()->get() : collect([]);
 
         return view('notifikasi.index', compact('notifikasis'));
     }
