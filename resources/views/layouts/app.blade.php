@@ -38,8 +38,6 @@
         class="fixed inset-0 bg-slate-900/50 z-40 lg:hidden"
         style="display: none;"
     ></div>
-        class="fixed inset-0 bg-gray-900/50 z-40 lg:hidden"
-        style="display: none;"></div>
 
     <!-- Sidebar Navigation -->
     @php
@@ -139,35 +137,61 @@
 
         <!-- Main Body -->
         <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#F4F7FB]">
-            <!-- Flash Message Warning / Success / CSV Errors -->
+            <!-- Flash Message Warning / Success / CSV Errors / Validation Errors -->
             @if(session('csv_errors'))
-                <div class="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 shadow-sm">
-                    <div class="flex items-center gap-2 mb-2 font-bold text-red-900 text-sm">
-                        <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 shadow-xs">
+                    <div class="flex items-center gap-2 mb-2 font-bold text-rose-900 text-sm">
+                        <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <span>{{ session('error') ?? 'Import CSV Dibatalkan' }}</span>
                     </div>
-                    <ul class="list-disc list-inside text-xs font-mono space-y-1 text-red-700 max-h-48 overflow-y-auto pl-1">
+                    <ul class="list-disc list-inside text-xs font-mono space-y-1 text-rose-700 max-h-48 overflow-y-auto pl-1">
                         @foreach(session('csv_errors') as $err)
                             <li>{{ $err }}</li>
                         @endforeach
                     </ul>
                 </div>
-            @elseif(session('warning'))
-                <div class="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start justify-between shadow-sm">
+            @elseif(isset($errors) && $errors->any())
+                <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 shadow-xs">
+                    <div class="flex items-center gap-2.5 mb-2 font-bold text-rose-900 text-sm">
+                        <div class="w-7 h-7 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                            <i class="fa-solid fa-triangle-exclamation text-xs"></i>
+                        </div>
+                        <span>Gagal Menyimpan Data (Terdapat {{ $errors->count() }} Kesalahan Input):</span>
+                    </div>
+                    <ul class="list-disc list-inside text-xs space-y-1 text-rose-700 pl-2">
+                        @foreach($errors->all() as $err)
+                            <li>{{ $err }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @elseif(session('error'))
+                <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start justify-between shadow-xs">
                     <div class="flex items-center gap-3">
-                        <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <div class="w-7 h-7 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                            <i class="fa-solid fa-circle-xmark text-sm"></i>
+                        </div>
+                        <span class="text-sm font-semibold">{{ session('error') }}</span>
+                    </div>
+                </div>
+            @endif
+
+            @if(session('warning'))
+                <div class="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start justify-between shadow-xs">
+                    <div class="flex items-center gap-3">
+                        <div class="w-7 h-7 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                            <i class="fa-solid fa-triangle-exclamation text-xs"></i>
+                        </div>
                         <span class="text-sm font-semibold">{{ session('warning') }}</span>
                     </div>
                 </div>
-            </div>
             @endif
 
             @if(session('success'))
-            <div class="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start justify-between shadow-sm">
+            <div class="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start justify-between shadow-xs">
                 <div class="flex items-center gap-3">
-                    <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
+                    <div class="w-7 h-7 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                        <i class="fa-solid fa-circle-check text-sm"></i>
+                    </div>
                     <span class="text-sm font-semibold">{{ session('success') }}</span>
                 </div>
             </div>
@@ -209,12 +233,33 @@
                     confirmButtonText: 'Tutup & Perbaiki CSV',
                     width: '32rem'
                 });
+            @elseif(isset($errors) && $errors->any())
+                @php
+                    $errList = $errors->all();
+                    $errHtml = '<div style="text-align: left; font-size: 13px; background-color: #fff1f2; padding: 14px 16px; border-radius: 12px; border: 1px solid #fecdd3; max-height: 240px; overflow-y: auto; color: #9f1239;">';
+                    $errHtml .= '<div style="font-weight: 700; margin-bottom: 8px; color: #881337;"><i class=\"fa-solid fa-circle-exclamation mr-1\"></i> Mohon periksa kesalahan input berikut:</div>';
+                    $errHtml .= '<ul style="list-style-type: disc; padding-left: 18px; margin: 0; line-height: 1.6;">';
+                    foreach ($errList as $err) {
+                        $errHtml .= '<li style="margin-bottom: 4px;">' . e($err) . '</li>';
+                    }
+                    $errHtml .= '</ul></div>';
+                @endphp
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal Menyimpan Data!',
+                    text: 'Terdapat data yang belum sesuai ketentuan atau melebihi batas.',
+                    html: {!! json_encode($errHtml) !!},
+                    confirmButtonColor: '#e11d48',
+                    confirmButtonText: 'Tutup & Perbaiki',
+                    width: '32rem'
+                });
             @elseif(session('error'))
                 Swal.fire({
                     icon: 'error',
                     title: 'Terjadi Kesalahan',
                     text: {!! json_encode(session('error')) !!},
-                    confirmButtonColor: '#ef4444'
+                    confirmButtonColor: '#ef4444',
+                    confirmButtonText: 'Mengerti'
                 });
             @endif
 

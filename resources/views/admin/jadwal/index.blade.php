@@ -358,7 +358,7 @@
                         name="foto_jadwal"
                         required
                         accept="image/jpeg,image/png,image/jpg,image/webp"
-                        @change="const f = $event.target.files[0]; filePreview = f ? URL.createObjectURL(f) : null;"
+                        @change="validateJadwalFileInput($event, $data)"
                         class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-gray-200 rounded-xl p-2 bg-gray-50/50">
                 </div>
 
@@ -461,7 +461,7 @@
                         name="foto_jadwal"
                         required
                         accept="image/jpeg,image/png,image/jpg,image/webp"
-                        @change="const f = $event.target.files[0]; filePreview = f ? URL.createObjectURL(f) : null;"
+                        @change="validateJadwalFileInput($event, $data)"
                         class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-gray-200 rounded-xl p-2 bg-gray-50/50">
                 </div>
 
@@ -515,4 +515,35 @@
     </div>
 
 </div>
+
+<script>
+function validateJadwalFileInput(event, alpine) {
+    const file = event.target.files[0];
+    if (!file) {
+        if (alpine) alpine.filePreview = null;
+        return;
+    }
+    const maxSize = 3 * 1024 * 1024; // 3MB in bytes
+    if (file.size > maxSize) {
+        const actualMb = (file.size / (1024 * 1024)).toFixed(2);
+        Swal.fire({
+            icon: 'error',
+            title: 'Ukuran Foto Terlalu Besar!',
+            html: '<div style="text-align:center; font-size:13px; color:#4b5563; line-height: 1.6;">' +
+                  'Ukuran file yang Anda pilih adalah <b style="color:#e11d48;">' + actualMb + ' MB</b>.<br>' +
+                  'Kapasitas maksimum yang diperbolehkan adalah <b style="color:#4f46e5;">3 MB</b>.<br><br>' +
+                  'Silakan kompres foto atau pilih file dengan ukuran lebih kecil.' +
+                  '</div>',
+            confirmButtonColor: '#e11d48',
+            confirmButtonText: 'Tutup & Pilih Ulang'
+        });
+        event.target.value = '';
+        if (alpine) alpine.filePreview = null;
+        return;
+    }
+    if (alpine) {
+        alpine.filePreview = URL.createObjectURL(file);
+    }
+}
+</script>
 @endsection
