@@ -20,6 +20,9 @@ class ProfileController extends Controller
         if ($user && $user->isGuru() && $user->guru) {
             $user->guru->load(['guruMapels.mapel', 'kelas']);
         }
+        if ($user && $user->isSiswa() && $user->siswa) {
+            $user->siswa->load(['anggotaKelases.kelas']);
+        }
         return view('profile.index', compact('user'));
     }
 
@@ -32,6 +35,9 @@ class ProfileController extends Controller
         $user = Auth::user();
         if ($user && $user->isGuru() && $user->guru) {
             $user->guru->load(['guruMapels.mapel', 'kelas']);
+        }
+        if ($user && $user->isSiswa() && $user->siswa) {
+            $user->siswa->load(['anggotaKelases.kelas']);
         }
         return view('profile.edit', compact('user'));
     }
