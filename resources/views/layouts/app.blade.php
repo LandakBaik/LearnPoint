@@ -20,7 +20,7 @@
     <!-- Sidebar & Layout Custom CSS -->
     <link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans antialiased h-screen flex overflow-hidden" x-data="{ sidebarOpen: false }">
+<body class="bg-[#F4F7FB] text-slate-800 font-sans antialiased h-screen flex overflow-hidden" x-data="{ sidebarOpen: false }">
 
     <!-- Mobile Sidebar Backdrop -->
     <div 
@@ -32,7 +32,7 @@
         x-transition:leave="transition-opacity ease-linear duration-200"
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
-        class="fixed inset-0 bg-gray-900/50 z-40 lg:hidden"
+        class="fixed inset-0 bg-slate-900/50 z-40 lg:hidden"
         style="display: none;"
     ></div>
 
@@ -56,28 +56,34 @@
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
         
         <!-- Header Navbar -->
-        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 z-10 shadow-sm">
+        <header class="h-16 bg-white border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-6 z-10 shadow-xs">
             <div class="flex items-center gap-3">
-                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden text-gray-500 hover:text-gray-700 focus:outline-none">
+                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden text-slate-500 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 focus:outline-none transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
-                <h1 class="text-xl font-bold text-gray-800 tracking-tight">@yield('title', 'Dashboard')</h1>
+                <h1 class="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">@yield('title', 'Dashboard')</h1>
             </div>
 
             <!-- Profile Info Top Right -->
             <div class="flex items-center gap-3">
                 <div class="text-right hidden sm:block">
-                    <p class="text-sm font-bold text-gray-800 leading-tight">{{ auth()->user()->name }}</p>
-                    <p class="text-xs text-gray-500">{{ auth()->user()->email }}</p>
+                    <p class="text-sm font-bold text-slate-800 leading-tight">{{ auth()->user()->name }}</p>
+                    <p class="text-xs text-slate-400">{{ auth()->user()->email }}</p>
                 </div>
-                <div class="w-10 h-10 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center shadow-md">
-                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                @php
+                    $headerNames = explode(' ', trim(auth()->user()->name ?? 'User'));
+                    $headerInitials = count($headerNames) >= 2
+                        ? strtoupper(substr($headerNames[0], 0, 1) . substr($headerNames[1], 0, 1))
+                        : strtoupper(substr(auth()->user()->name ?? 'U', 0, 2));
+                @endphp
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-50 border border-blue-200 text-blue-600 font-bold text-xs sm:text-sm flex items-center justify-center shadow-xs">
+                    {{ $headerInitials }}
                 </div>
             </div>
         </header>
 
         <!-- Main Body -->
-        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-gray-50">
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#F4F7FB]">
             <!-- Flash Message Warning / Success / CSV Errors -->
             @if(session('csv_errors'))
                 <div class="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 shadow-sm">
