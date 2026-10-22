@@ -24,8 +24,10 @@ class TugasController extends Controller
             })
             ->withCount([
                 'nilais as pengumpulans_count',
+
                 'nilais as pengumpulans_dinilai_count' => function ($query) {
-                    $query->whereNotNull('nilai');
+                    $query->whereNotNull('nilai')
+                        ->where('status', 'selesai');
                 },
             ])
             ->latest()
@@ -43,7 +45,7 @@ class TugasController extends Controller
         // Hitung Total Tugas
         $totalTugas = $tugases->count();
 
-        // Filter Tugas Aktif (Deadline masih di masa depan)
+        // Filter Tugas Aktif
         $tugasAktif = $tugases->filter(function ($item) {
             return Carbon::parse($item->deadline)->isFuture();
         });
@@ -58,13 +60,13 @@ class TugasController extends Controller
             })
             ->count();
 
-        // Hitung Tugas Mendesak (Kurang dari 24 Jam / 1 Hari)
+        // Hitung Tugas Mendesak
         $deadlineTerdekat = $tugasAktif->filter(function ($item) {
             $deadline = Carbon::parse($item->deadline);
             return $deadline->isFuture() && $deadline->lessThanOrEqualTo(now()->addHours(24));
         })->count();
 
-        return view('Guru.Tugas', compact(
+        return view('guru.tugas.index', compact(
             'tugases',
             'pengampuKelases',
             'kelases',
@@ -135,7 +137,7 @@ class TugasController extends Controller
 
         $pengumpulans = Nilai::with('siswa')->where('tugas_id', $id)->get();
 
-        return view('Guru.DetailTugas', compact('tugas', 'pengumpulans'));
+        return view('guru.tugas.show', compact('tugas', 'pengumpulans'));
     }
 
     // 4. Memperbarui Data Tugas (UPDATE)
@@ -253,11 +255,11 @@ class TugasController extends Controller
                     $query->where('siswa_id', $siswa->id);
                 },
             ])
-                ->whereHas('pengampuKelas', function ($query) use ($kelasId) {
-                    $query->where('kelas_id', $kelasId);
-                })
-                ->latest()
-                ->get()
+            ->whereHas('pengampuKelas', function ($query) use ($kelasId) {
+                $query->where('kelas_id', $kelasId);
+            })
+            ->latest()
+            ->get()
             : collect();
 
         $daftarTugas->each(function (Tugas $tugas): void {

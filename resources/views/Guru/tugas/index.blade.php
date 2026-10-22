@@ -214,7 +214,7 @@
                             </div>
                         </td>
 
-                        <!-- 2. Penilaian (Dinamis) -->
+                        <!-- 2. Penilaian -->
                         <td class="py-4 px-6">
                             @php
                             $totalKumpul = $tugas->pengumpulans_count ?? 0;
