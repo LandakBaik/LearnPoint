@@ -581,11 +581,7 @@
                     <div class="flex items-center gap-4">
                         <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
                             <input type="radio" name="status" value="draft" checked class="text-purple-600 focus:ring-purple-500">
-                            <span>Simpan sebagai <strong>Draf</strong> (belum tampil ke siswa)</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
-                            <input type="radio" name="status" value="published" class="text-purple-600 focus:ring-purple-500">
-                            <span>Langsung <strong>Diterbitkan</strong></span>
+                            <span>Simpan sebagai <strong>Draf</strong></span>
                         </label>
                     </div>
                 </div>

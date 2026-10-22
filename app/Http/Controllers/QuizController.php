@@ -105,7 +105,8 @@ class QuizController extends Controller
             'pengampu_kelas_id'   => ['required', 'exists:pengampu_kelas,id'],
             'kesulitan_aktif'     => ['required', 'array', 'min:1', 'max:3'],
             'kesulitan_aktif.*'   => ['string', 'in:Mudah,Sedang,Sulit'],
-            'status'              => ['nullable', 'in:draft,published'],
+            // 'status'              => ['nullable', 'in:draft,published'],
+            'status'              => 'draft',
         ], [
             'kesulitan_aktif.required' => 'Pilih minimal satu tingkat kesulitan (Arc) untuk petualangan kuis ini.',
             'kesulitan_aktif.min'      => 'Kuis petualangan harus memiliki minimal 1 tingkat kesulitan.',
@@ -216,7 +217,8 @@ class QuizController extends Controller
             'pengampu_kelas_id'   => ['required', 'exists:pengampu_kelas,id'],
             'kesulitan_aktif'     => ['required', 'array', 'min:1', 'max:3'],
             'kesulitan_aktif.*'   => ['string', 'in:Mudah,Sedang,Sulit'],
-            'status'              => ['nullable', 'in:draft,published'],
+            // 'status'              => ['nullable', 'in:draft,published'],
+            'status'              => 'draft',
         ], [
             'kesulitan_aktif.required' => 'Pilih minimal satu tingkat kesulitan (Arc) untuk petualangan kuis ini.',
             'kesulitan_aktif.min'      => 'Kuis petualangan harus memiliki minimal 1 tingkat kesulitan.',
@@ -239,30 +241,61 @@ class QuizController extends Controller
             'deskripsi'         => $validated['deskripsi'] ?? null,
             'pengampu_kelas_id' => $validated['pengampu_kelas_id'],
             'kesulitan_aktif'   => $orderedDifficulties,
-            'status'            => $validated['status'] ?? $quiz->status,
+            // 'status'            => $validated['status'] ?? $quiz->status,
         ]);
 
         return redirect()->back()->with('success', 'Pengaturan kuis petualangan berhasil diperbarui!');
     }
 
     /**
-     * Mengubah status kuis antara Draf dan Diterbitkan (Published).
+     * Mengubah status kuis antara Draf dan Diterbitkan.
      */
     public function toggleStatus(Quiz $quiz)
     {
         $user = auth()->user();
         $guruId = $user->guru?->id ?? $user->guru_id;
+
         abort_unless($user->role === 'guru' && $guruId, 403);
 
         $this->authorizeGuru($quiz, $guruId);
 
-        $newStatus = ($quiz->status === 'published') ? 'draft' : 'published';
-        $quiz->update(['status' => $newStatus]);
+        // Jika kuis sudah diterbitkan, guru boleh mengembalikannya menjadi draf.
+        if ($quiz->status === 'published') {
+            $quiz->update(['status' => 'draft']);
 
-        $statusText = $newStatus === 'published' ? 'diterbitkan untuk siswa' : 'diubah menjadi draf';
-        return redirect()->back()->with('success', "Status kuis berhasil {$statusText}.");
+            return redirect()->back()
+                ->with('success', 'Kuis berhasil diubah menjadi draf.');
+        }
+
+        // Pastikan kuis memiliki tingkat kesulitan aktif.
+        $activeDifficulties = $quiz->kesulitan_aktif_array;
+
+        if (empty($activeDifficulties)) {
+            return redirect()->back()
+                ->with('error', 'Aktifkan minimal satu tingkat kesulitan sebelum menerbitkan kuis.');
+        }
+
+        // Pastikan setiap tingkat kesulitan aktif memiliki soal.
+        foreach ($activeDifficulties as $difficulty) {
+            $hasQuestions = $quiz->soals()
+                ->where('kesulitan', $difficulty)
+                ->exists();
+
+            if (!$hasQuestions) {
+                return redirect()->back()
+                    ->with(
+                        'error',
+                        "Tingkat kesulitan {$difficulty} belum memiliki soal. Tambahkan minimal satu soal terlebih dahulu."
+                    );
+            }
+        }
+
+        // Terbitkan hanya setelah validasi berhasil.
+        $quiz->update(['status' => 'published']);
+
+        return redirect()->back()
+            ->with('success', 'Kuis berhasil diterbitkan untuk siswa.');
     }
-
     /**
      * Menghapus kuis beserta seluruh butir soalnya.
      */
