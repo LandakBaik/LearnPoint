@@ -122,6 +122,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/siswa/materi', [MateriController::class, 'indexSiswa'])->name('siswa.materi');
         Route::get('/siswa/materi/{id}', [MateriController::class, 'showSiswa'])->name('siswa.materi.show');
         Route::get('/siswa/tugas', [TugasController::class, 'indexSiswa'])->name('siswa.tugas');
+        Route::get('/siswa/tugas/{id}', [TugasController::class, 'showSiswa'])->name('siswa.tugas.show');
+        Route::post('/siswa/tugas/{id}/kumpulkan', [TugasController::class, 'kumpulkanTugas'])->name('siswa.tugas.kumpulkan');
         Route::get('/siswa/jadwal', [JadwalController::class, 'index'])->name('siswa.jadwal');
     });
 

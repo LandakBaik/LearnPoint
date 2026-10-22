@@ -34,6 +34,10 @@
                             <span class="flex items-center justify-center">✕</span>
                             <span class="flex items-center justify-center">÷</span>
                         </div>
+                    @elseif(str_contains($namaLower, 'indonesia'))
+                        <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"></path>
+                        </svg>
                     @elseif(str_contains($namaLower, 'inggris') || str_contains($namaLower, 'english'))
                         <span class="text-white font-black text-2xl sm:text-3xl">Aa</span>
                     @elseif(str_contains($namaLower, 'ipa') || str_contains($namaLower, 'sains'))
@@ -59,7 +63,7 @@
                 <div class="flex-1 pt-1">
                     <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">{{ $mapel->nama_mapel }}</h1>
                     <p class="text-base text-slate-500 font-medium mb-6">
-                        Kelas {{ $kelas->nama_kelas ?? 'VIII' }} • {{ $semester ?? 'Semester 1' }}
+                        Kelas {{ $kelas->nama_kelas ?? 'VII' }} • {{ $semester ? (str_contains(strtolower($semester), 'semester') ? $semester : 'Semester ' . $semester) : 'Semester 1' }}
                     </p>
 
                     <!-- Progress Bar Section -->
@@ -246,7 +250,7 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                         <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-linecap="round" stroke-linejoin="round"></path>
                                     </svg>
-                                    @if($hasFile) Modul PDF @elseif($hasYoutube) Video Pembelajaran @else Modul Ajar @endif
+                                    @if($hasFile && $hasYoutube) Modul PDF & Video @elseif($hasFile) Modul PDF @elseif($hasYoutube) Video Pembelajaran @else Modul Ajar @endif
                                 </span>
                             </div>
                             @if(!empty($materi->deskripsi))
@@ -258,10 +262,20 @@
                     </div>
 
                     <!-- Status Badge & Action -->
-                    <div class="flex items-center justify-between sm:justify-end gap-3">
+                    <div class="flex items-center justify-between sm:justify-end gap-2.5 flex-wrap">
                         @if($hasFile)
-                            <a href="{{ asset('storage/' . $materi->file_materi) }}" target="_blank"
-                               class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 transition-colors">
+                            <!-- Tombol Baca Online (Buka di Tab Baru) -->
+                            <a href="{{ asset('storage/' . $materi->file_materi) }}" target="_blank" rel="noopener noreferrer"
+                               class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-200 transition-colors shadow-2xs">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-linecap="round" stroke-linejoin="round"></path>
+                                </svg>
+                                Baca Online
+                            </a>
+
+                            <!-- Tombol Unduh Modul -->
+                            <a href="{{ asset('storage/' . $materi->file_materi) }}" download
+                               class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 transition-colors shadow-2xs">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke-linecap="round" stroke-linejoin="round"></path>
                                 </svg>
@@ -271,7 +285,7 @@
 
                         @if($hasYoutube)
                             <a href="{{ $materi->url_youtube }}" target="_blank"
-                               class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 transition-colors">
+                               class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 transition-colors shadow-2xs">
                                 <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
                                 </svg>
@@ -363,7 +377,7 @@
                             </span>
                         @endif
 
-                        <a href="{{ route('siswa.tugas.show', $tugas->id) }}" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-xs">
+                        <a href="{{ Route::has('siswa.tugas.show') ? route('siswa.tugas.show', $tugas->id) : route('siswa.tugas') }}" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-xs">
                             {{ $sudahKumpul ? 'Lihat Tugas' : 'Kerjakan' }}
                         </a>
                     </div>
@@ -429,6 +443,7 @@
         </div>
     </section>
     <!-- END: ExamSection -->
+
 
 </div>
 @endsection

@@ -466,20 +466,34 @@ class MateriController extends Controller
      */
     public function indexSiswa(Request $request)
     {
-        $kelasId = $request->user()?->siswa?->kelas?->id;
+        $user = $request->user();
+        $siswa = $user?->siswa;
+        $anggotaKelas = $siswa?->anggotaKelases()?->latest()?->first();
+        $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;
+        $kelasId = $kelas?->id;
 
-        $daftarMapel = $kelasId
-            ? Mapel::whereHas('pengampuKelases', function ($query) use ($kelasId) {
+        if ($kelasId) {
+            $daftarMapel = Mapel::whereHas('pengampuKelases', function ($query) use ($kelasId) {
                 $query->where('kelas_id', $kelasId);
             })
                 ->with(['pengampuKelases' => function ($query) use ($kelasId) {
                     $query->where('kelas_id', $kelasId)
                         ->with(['guruMapel.guru', 'materis']);
-                }])
-                ->get()
-            : collect();
+                }, 'guruMapels.guru'])
+                ->get();
+        } else {
+            $daftarMapel = collect();
+        }
 
-        return view('siswa.materi.index', compact('daftarMapel'));
+        if ($daftarMapel->isEmpty()) {
+            $daftarMapel = Mapel::with([
+                'pengampuKelases.guruMapel.guru',
+                'pengampuKelases.materis',
+                'guruMapels.guru'
+            ])->get();
+        }
+
+        return view('siswa.materi.index', compact('daftarMapel', 'kelas', 'siswa'));
     }
 
     /**
@@ -492,14 +506,14 @@ class MateriController extends Controller
         $anggotaKelas = $siswa?->anggotaKelases()?->latest()?->first();
         $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;
         $kelasId = $kelas?->id;
-        $tahunAjaran = $anggotaKelas?->tahun_ajaran ?? '2024/2025';
-        $semester = $anggotaKelas?->semester ? ucfirst($anggotaKelas->semester) : 'Semester 1';
+        $tahunAjaran = $anggotaKelas?->tahun_ajaran ?? '2026/2027';
+        $semester = $anggotaKelas?->semester ? ucfirst($anggotaKelas->semester) : 'Ganjil';
 
-        $mapel = Mapel::findOrFail($id);
+        $mapel = Mapel::with(['guruMapels.guru', 'pengampuKelases.guruMapel.guru'])->findOrFail($id);
 
         // Ambil materi untuk mapel ini
-        $materis = $kelasId
-            ? Materi::with(['pengampuKelas.guruMapel.guru', 'pengampuKelas.kelas'])
+        if ($kelasId) {
+            $materis = Materi::with(['pengampuKelas.guruMapel.guru', 'pengampuKelas.kelas'])
                 ->whereHas('pengampuKelas', function ($query) use ($kelasId, $id) {
                     $query->where('kelas_id', $kelasId)
                         ->whereHas('guruMapel', function ($query) use ($id) {
@@ -507,17 +521,24 @@ class MateriController extends Controller
                         });
                 })
                 ->latest()
-                ->get()
-            : Materi::with(['pengampuKelas.guruMapel.guru'])
+                ->get();
+        } else {
+            $materis = collect();
+        }
+
+        if ($materis->isEmpty()) {
+            $materis = Materi::with(['pengampuKelas.guruMapel.guru', 'pengampuKelas.kelas'])
                 ->whereHas('pengampuKelas.guruMapel', function ($query) use ($id) {
                     $query->where('mapel_id', $id);
                 })
                 ->latest()
-                ->get();
+                ->get()
+                ->unique('id_grub_materi');
+        }
 
         // Ambil tugas untuk mapel ini
-        $tugases = $kelasId
-            ? Tugas::with(['pengampuKelas.guruMapel.guru', 'nilais' => function ($q) use ($siswa) {
+        if ($kelasId) {
+            $tugases = Tugas::with(['pengampuKelas.guruMapel.guru', 'nilais' => function ($q) use ($siswa) {
                 if ($siswa) $q->where('siswa_id', $siswa->id);
             }])
                 ->whereHas('pengampuKelas', function ($query) use ($kelasId, $id) {
@@ -527,17 +548,25 @@ class MateriController extends Controller
                         });
                 })
                 ->latest('deadline')
-                ->get()
-            : Tugas::with(['pengampuKelas.guruMapel.guru'])
+                ->get();
+        } else {
+            $tugases = collect();
+        }
+
+        if ($tugases->isEmpty()) {
+            $tugases = Tugas::with(['pengampuKelas.guruMapel.guru', 'nilais' => function ($q) use ($siswa) {
+                if ($siswa) $q->where('siswa_id', $siswa->id);
+            }])
                 ->whereHas('pengampuKelas.guruMapel', function ($query) use ($id) {
                     $query->where('mapel_id', $id);
                 })
                 ->latest('deadline')
                 ->get();
+        }
 
         // Ambil ujian untuk mapel ini
-        $ujians = $kelasId
-            ? Ujian::with(['pengampuKelas.guruMapel.guru'])
+        if ($kelasId) {
+            $ujians = Ujian::with(['pengampuKelas.guruMapel.guru'])
                 ->whereHas('pengampuKelas', function ($query) use ($kelasId, $id) {
                     $query->where('kelas_id', $kelasId)
                         ->whereHas('guruMapel', function ($query) use ($id) {
@@ -545,13 +574,19 @@ class MateriController extends Controller
                         });
                 })
                 ->latest('deadline')
-                ->get()
-            : Ujian::with(['pengampuKelas.guruMapel.guru'])
+                ->get();
+        } else {
+            $ujians = collect();
+        }
+
+        if ($ujians->isEmpty()) {
+            $ujians = Ujian::with(['pengampuKelas.guruMapel.guru'])
                 ->whereHas('pengampuKelas.guruMapel', function ($query) use ($id) {
                     $query->where('mapel_id', $id);
                 })
                 ->latest('deadline')
                 ->get();
+        }
 
         $activeTab = $request->query('tab', 'materi');
         $unreadNotifCount = $user ? $user->notifikasi()->count() : 0;

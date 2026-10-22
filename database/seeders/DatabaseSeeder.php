@@ -88,6 +88,16 @@ class DatabaseSeeder extends Seeder
         );
         // 5. Seeder Materi & Kelas Guru Amba
         $this->call(MateriGuruSeeder::class);
+
+        // 6. Daftarkan Siswa ke Kelas 7-A
+        $kelas7A = Kelas::where('nama_kelas', '7-A')->first() ?? $kelas;
+        \App\Models\AnggotaKelas::firstOrCreate([
+            'siswa_id' => $siswa->id,
+            'kelas_id' => $kelas7A->id,
+        ], [
+            'tahun_ajaran' => '2026/2027',
+            'semester' => 'ganjil',
+        ]);
     }
 }
 
