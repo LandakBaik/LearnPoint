@@ -19,7 +19,7 @@
                     <svg class="w-4 h-4 text-[#2563EB]" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 3L1 9L12 15L21 10.09V17H23V9M5 13.18V17.18C5 19.94 8.13 22 12 22C15.87 22 19 19.94 19 17.18V13.18L12 17L5 13.18Z"></path>
                     </svg>
-                    <span>Kelas: <strong class="font-semibold text-[#2563EB]">{{ $kelas->nama_kelas ?? ($siswa->anggotaKelases->first()->kelas->nama_kelas ?? 'Belum Ditentukan') }}</strong></span>
+                    <span>Kelas: <strong class="font-semibold text-[#2563EB]">{{ $kelas->nama_kelas ?? ($siswa?->anggotaKelases?->first()?->kelas?->nama_kelas ?? 'Belum Ditentukan') }}</strong></span>
                 </div>
                 <span class="mx-3 text-slate-300">|</span>
 
@@ -28,7 +28,7 @@
                     <svg class="w-4 h-4 text-[#2563EB]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
                     </svg>
-                    <span>Angkatan: <strong class="font-semibold text-[#2563EB]">{{ $tahunAjaran ?? ($siswa->anggotaKelases->first()->tahun_ajaran ?? '2024') }}</strong></span>
+                    <span>Angkatan: <strong class="font-semibold text-[#2563EB]">{{ $tahunAjaran ?? ($siswa?->anggotaKelases?->first()?->tahun_ajaran ?? '2024') }}</strong></span>
                 </div>
                 <span class="mx-3 text-slate-300">|</span>
 

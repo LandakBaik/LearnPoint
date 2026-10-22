@@ -91,7 +91,7 @@
             <!-- User Profile Dropdown Pill -->
             <div class="relative" x-data="{ profileOpen: false }" @click.outside="profileOpen = false">
                 @php
-                    $fullName = auth()->user()->siswa->nama_siswa ?? auth()->user()->name ?? 'Siswa';
+                    $fullName = auth()->user()->siswa?->nama_siswa ?? auth()->user()->name ?? 'Siswa';
                     $firstName = explode(' ', trim($fullName))[0] ?? 'Siswa';
                 @endphp
                 <button @click="profileOpen = !profileOpen" type="button" class="flex items-center gap-2.5 cursor-pointer focus:outline-none select-none">
@@ -142,9 +142,99 @@
 
     <!-- BEGIN: MainContent -->
     <main class="max-w-[1440px] mx-auto px-6 lg:px-12 py-7 space-y-6">
+        @if(isset($errors) && $errors->any())
+            <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 shadow-xs">
+                <div class="flex items-center gap-2.5 mb-2 font-bold text-rose-900 text-sm">
+                    <div class="w-7 h-7 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                        <i class="fa-solid fa-triangle-exclamation text-xs"></i>
+                    </div>
+                    <span>Terdapat Kesalahan Input:</span>
+                </div>
+                <ul class="list-disc list-inside text-xs space-y-1 text-rose-700 pl-2">
+                    @foreach($errors->all() as $err)
+                        <li>{{ $err }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @elseif(session('error'))
+            <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-3 shadow-xs">
+                <div class="w-7 h-7 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                    <i class="fa-solid fa-circle-xmark text-sm"></i>
+                </div>
+                <span class="text-sm font-semibold">{{ session('error') }}</span>
+            </div>
+        @endif
+
+        @if(session('warning'))
+            <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start gap-3 shadow-xs">
+                <div class="w-7 h-7 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                    <i class="fa-solid fa-triangle-exclamation text-xs"></i>
+                </div>
+                <span class="text-sm font-semibold">{{ session('warning') }}</span>
+            </div>
+        @endif
+
+        @if(session('success'))
+            <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start gap-3 shadow-xs">
+                <div class="w-7 h-7 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                    <i class="fa-solid fa-circle-check text-sm"></i>
+                </div>
+                <span class="text-sm font-semibold">{{ session('success') }}</span>
+            </div>
+        @endif
+
         @yield('content')
     </main>
     <!-- END: MainContent -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            @if(session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: {!! json_encode(session('success')) !!},
+                    confirmButtonColor: '#10b981',
+                    timer: 3500,
+                    timerProgressBar: true
+                });
+            @endif
+
+            @if(isset($errors) && $errors->any())
+                @php
+                    $errList = $errors->all();
+                    $errHtml = '<div style="text-align: left; font-size: 13px; background-color: #fff1f2; padding: 14px 16px; border-radius: 12px; border: 1px solid #fecdd3; max-height: 240px; overflow-y: auto; color: #9f1239;">';
+                    $errHtml .= '<ul style="list-style-type: disc; padding-left: 18px; margin: 0; line-height: 1.6;">';
+                    foreach ($errList as $err) {
+                        $errHtml .= '<li style="margin-bottom: 4px;">' . e($err) . '</li>';
+                    }
+                    $errHtml .= '</ul></div>';
+                @endphp
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal Menyimpan Data!',
+                    html: {!! json_encode($errHtml) !!},
+                    confirmButtonColor: '#e11d48'
+                });
+            @elseif(session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Terjadi Kesalahan',
+                    text: {!! json_encode(session('error')) !!},
+                    confirmButtonColor: '#ef4444'
+                });
+            @endif
+
+            @if(session('warning'))
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Peringatan',
+                    text: {!! json_encode(session('warning')) !!},
+                    confirmButtonColor: '#f59e0b'
+                });
+            @endif
+        });
+    </script>
 
     @stack('scripts')
 </body>

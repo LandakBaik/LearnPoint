@@ -39,12 +39,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Main Dashboard Router
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    // Dashboard Guru
-    Route::get('/guru/dashboard', [DashboardController::class, 'guruDashboard'])->name('guru.dashboard');
-    Route::get('/siswa/dashboard', [DashboardController::class, 'siswaDashboard'])->name('siswa.dashboard');
-    Route::get('/siswa/beranda', [DashboardController::class, 'siswaDashboard'])->name('siswa.beranda');
 
     Route::middleware(['role:guru'])->group(function () {
+        Route::get('/guru/dashboard', [DashboardController::class, 'guruDashboard'])->name('guru.dashboard');
         Route::get('/guru/materi', [MateriController::class, 'index'])->name('guru.materi');
         Route::get('/guru/materi/create', [MateriController::class, 'create'])->name('guru.materi.create');
         Route::post('/guru/materi', [MateriController::class, 'store'])->name('guru.materi.store');
@@ -129,7 +126,9 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Dashboard Siswa Fitur
-    Route::middleware(['auth', 'role:siswa'])->group(function () {
+    Route::middleware(['role:siswa'])->group(function () {
+        Route::get('/siswa/dashboard', [DashboardController::class, 'siswaDashboard'])->name('siswa.dashboard');
+        Route::get('/siswa/beranda', [DashboardController::class, 'siswaDashboard'])->name('siswa.beranda');
         Route::get('/siswa/materi', [MateriController::class, 'indexSiswa'])->name('siswa.materi');
         Route::get('/siswa/materi/{id}', [MateriController::class, 'showSiswa'])->name('siswa.materi.show');
         Route::get('/siswa/tugas', [TugasController::class, 'indexSiswa'])->name('siswa.tugas');

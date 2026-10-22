@@ -39,6 +39,11 @@ class DashboardController extends Controller
      */
     public function operatorDashboard()
     {
+        $user = Auth::user();
+        if (!in_array($user->role, ['operator', 'admin'])) {
+            return redirect()->route('dashboard');
+        }
+
         $totalSiswa = Siswa::count();
         $totalGuru = Guru::count();
         $totalKelas = Kelas::count();
@@ -95,6 +100,10 @@ class DashboardController extends Controller
     public function guruDashboard()
     {
         $user = Auth::user();
+        if ($user->role !== 'guru') {
+            return redirect()->route('dashboard');
+        }
+
         $guru = $user->guru;
         $totalSiswa = Siswa::count();
         $totalKelas = Kelas::count();
@@ -109,6 +118,10 @@ class DashboardController extends Controller
     public function siswaDashboard()
     {
         $user = Auth::user();
+        if ($user->role !== 'siswa') {
+            return redirect()->route('dashboard');
+        }
+
         $siswa = $user->siswa;
         $anggotaKelas = $siswa?->anggotaKelases()?->latest()?->first();
         $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;
