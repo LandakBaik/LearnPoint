@@ -109,6 +109,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('guru.kuis.index');
         Route::post('/guru/kuis', [QuizController::class, 'store'])
             ->name('guru.kuis.store');
+        Route::post('/guru/kuis/bulk-destroy', [QuizController::class, 'bulkDestroy'])
+            ->name('guru.kuis.bulk-destroy');
         Route::get('/guru/kuis/{quiz}', [QuizController::class, 'show'])
             ->name('guru.kuis.show');
         Route::put('/guru/kuis/{quiz}', [QuizController::class, 'update'])

@@ -97,6 +97,13 @@
                         @endforeach
                     </ul>
                 </div>
+            @elseif(session('error'))
+                <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start justify-between shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-rose-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        <span class="text-sm font-semibold">{{ session('error') }}</span>
+                    </div>
+                </div>
             @elseif(session('warning'))
                 <div class="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start justify-between shadow-sm">
                     <div class="flex items-center gap-3">
@@ -112,6 +119,20 @@
                         <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         <span class="text-sm font-semibold">{{ session('success') }}</span>
                     </div>
+                </div>
+            @endif
+
+            @if($errors->any())
+                <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 shadow-sm">
+                    <div class="flex items-center gap-2 mb-2 font-bold text-rose-900 text-sm">
+                        <svg class="w-5 h-5 text-rose-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Terdapat kesalahan validasi formulir:</span>
+                    </div>
+                    <ul class="list-disc list-inside text-xs font-mono space-y-1 text-rose-700">
+                        @foreach($errors->all() as $err)
+                            <li>{{ $err }}</li>
+                        @endforeach
+                    </ul>
                 </div>
             @endif
 
@@ -166,6 +187,15 @@
                     title: 'Peringatan',
                     text: {!! json_encode(session('warning')) !!},
                     confirmButtonColor: '#f59e0b'
+                });
+            @endif
+
+            @if($errors->any() && !session('error') && !session('csv_errors'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Validasi Formulir Gagal',
+                    text: {!! json_encode($errors->first()) !!},
+                    confirmButtonColor: '#ef4444'
                 });
             @endif
  

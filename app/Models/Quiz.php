@@ -16,6 +16,9 @@ class Quiz extends Model
         'deskripsi',
         'status',
         'kesulitan_aktif',
+        'waktu_mulai',
+        'waktu_selesai',
+        'acak_jawaban',
         'level',
         'kesulitan',
         'pengampu_kelas_id',
@@ -25,6 +28,9 @@ class Quiz extends Model
     {
         return [
             'kesulitan_aktif' => 'array',
+            'waktu_mulai' => 'datetime',
+            'waktu_selesai' => 'datetime',
+            'acak_jawaban' => 'boolean',
         ];
     }
 
@@ -113,5 +119,77 @@ class Quiz extends Model
     public function isPublished(): bool
     {
         return ($this->status ?? 'draft') === 'published';
+    }
+
+    /**
+     * Cek apakah kuis sudah memasuki waktu mulai.
+     */
+    public function isStarted(): bool
+    {
+        return !$this->waktu_mulai || now()->greaterThanOrEqualTo($this->waktu_mulai);
+    }
+
+    /**
+     * Cek apakah kuis telah melewati waktu selesai.
+     */
+    public function isEnded(): bool
+    {
+        return $this->waktu_selesai && now()->greaterThan($this->waktu_selesai);
+    }
+
+    /**
+     * Cek apakah kuis sedang dalam rentang jadwal aktif.
+     */
+    public function isScheduleActive(): bool
+    {
+        return $this->isStarted() && !$this->isEnded();
+    }
+
+    /**
+     * Informasi status jadwal kuis saat ini.
+     */
+    public function getScheduleInfoAttribute(): array
+    {
+        if (!$this->waktu_mulai && !$this->waktu_selesai) {
+            return [
+                'status'      => 'fleksibel',
+                'label'       => 'Jadwal Fleksibel',
+                'badge'       => 'bg-slate-100 text-slate-700 border-slate-200',
+                'badge_class' => 'bg-slate-100 text-slate-700 border-slate-200',
+                'dot'         => 'bg-slate-400',
+                'description' => 'Kuis dapat dikerjakan kapan saja',
+            ];
+        }
+
+        if ($this->waktu_mulai && now()->lessThan($this->waktu_mulai)) {
+            return [
+                'status'      => 'upcoming',
+                'label'       => 'Belum Dimulai',
+                'badge'       => 'bg-amber-50 text-amber-700 border-amber-200',
+                'badge_class' => 'bg-amber-50 text-amber-700 border-amber-200',
+                'dot'         => 'bg-amber-500',
+                'description' => 'Kuis belum dapat dikerjakan siswa hingga waktu mulai tercapai',
+            ];
+        }
+
+        if ($this->waktu_selesai && now()->greaterThan($this->waktu_selesai)) {
+            return [
+                'status'      => 'expired',
+                'label'       => 'Sudah Berakhir',
+                'badge'       => 'bg-rose-50 text-rose-700 border-rose-200',
+                'badge_class' => 'bg-rose-50 text-rose-700 border-rose-200',
+                'dot'         => 'bg-rose-500',
+                'description' => 'Batas waktu pengerjaan kuis telah berakhir',
+            ];
+        }
+
+        return [
+            'status'      => 'active',
+            'label'       => 'Sedang Berlangsung',
+            'badge'       => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            'badge_class' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            'dot'         => 'bg-emerald-500',
+            'description' => 'Kuis sedang aktif dan dapat dikerjakan',
+        ];
     }
 }

@@ -194,9 +194,14 @@ class QuizController extends Controller
             'level'             => ['required', 'string', 'in:Level 1,Level 2,Level 3,Level 4,Level 5,1,2,3,4,5'],
             'kesulitan'         => ['required', 'string', 'in:Mudah,Sedang,Sulit'],
             'pengampu_kelas_id' => ['required', 'exists:pengampu_kelas,id'],
+            'waktu_mulai'       => ['nullable', 'date', 'after_or_equal:today'],
+            'waktu_selesai'     => ['nullable', 'date', 'after:waktu_mulai'],
+            'acak_jawaban'      => ['nullable', 'boolean'],
         ], [
-            'level.in' => 'Level kuis harus berada di rentang Level 1 sampai Level 5.',
-            'kesulitan.in' => 'Tingkat kesulitan hanya boleh: Mudah, Sedang, atau Sulit.',
+            'level.in'                   => 'Level kuis harus berada di rentang Level 1 sampai Level 5.',
+            'kesulitan.in'               => 'Tingkat kesulitan hanya boleh: Mudah, Sedang, atau Sulit.',
+            'waktu_mulai.after_or_equal' => 'Waktu mulai kuis tidak boleh sebelum hari ini.',
+            'waktu_selesai.after'        => 'Waktu selesai kuis harus lebih lambat dari waktu mulai (tidak boleh sama atau lebih awal).',
         ]);
 
         if ($validator->fails()) {
@@ -259,9 +264,14 @@ class QuizController extends Controller
             'level'             => ['required', 'string', 'in:Level 1,Level 2,Level 3,Level 4,Level 5,1,2,3,4,5'],
             'kesulitan'         => ['required', 'string', 'in:Mudah,Sedang,Sulit'],
             'pengampu_kelas_id' => ['required', 'exists:pengampu_kelas,id'],
+            'waktu_mulai'       => ['nullable', 'date', 'after_or_equal:today'],
+            'waktu_selesai'     => ['nullable', 'date', 'after:waktu_mulai'],
+            'acak_jawaban'      => ['nullable', 'boolean'],
         ], [
-            'level.in' => 'Level kuis harus berada di rentang Level 1 sampai Level 5.',
-            'kesulitan.in' => 'Tingkat kesulitan hanya boleh: Mudah, Sedang, atau Sulit.',
+            'level.in'                   => 'Level kuis harus berada di rentang Level 1 sampai Level 5.',
+            'kesulitan.in'               => 'Tingkat kesulitan hanya boleh: Mudah, Sedang, atau Sulit.',
+            'waktu_mulai.after_or_equal' => 'Waktu mulai kuis tidak boleh sebelum hari ini.',
+            'waktu_selesai.after'        => 'Waktu selesai kuis harus lebih lambat dari waktu mulai (tidak boleh sama atau lebih awal).',
         ]);
 
         if ($validator->fails()) {
@@ -324,6 +334,60 @@ class QuizController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Kuis berhasil dihapus.',
+        ]);
+    }
+
+    /**
+     * GURU: Hapus beberapa kuis sekaligus (Bulk Destroy).
+     */
+    public function guruBulkDestroy(Request $request)
+    {
+        $guruId = $request->user()?->guru?->id;
+        if (!$guruId) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'quiz_ids'   => ['required', 'array', 'min:1'],
+            'quiz_ids.*' => ['required', 'exists:quizzes,id'],
+        ], [
+            'quiz_ids.required' => 'Pilih minimal satu kuis untuk dihapus.',
+            'quiz_ids.min'      => 'Pilih minimal satu kuis untuk dihapus.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'message' => 'Validasi gagal.', 'errors' => $validator->errors()], 422);
+        }
+
+        $validated = $validator->validated();
+
+        $quizzes = Quiz::whereIn('id', $validated['quiz_ids'])
+            ->whereHas('pengampuKelas.guruMapel', function ($q) use ($guruId) {
+                $q->where('guru_id', $guruId);
+            })
+            ->with('soals')
+            ->get();
+
+        $count = $quizzes->count();
+        if ($count === 0) {
+            return response()->json(['success' => false, 'message' => 'Tidak ada kuis valid yang dapat dihapus.'], 404);
+        }
+
+        DB::transaction(function () use ($quizzes) {
+            foreach ($quizzes as $quiz) {
+                foreach ($quiz->soals as $soal) {
+                    if ($soal->gambar && Storage::disk('public')->exists($soal->gambar)) {
+                        Storage::disk('public')->delete($soal->gambar);
+                    }
+                }
+                $quiz->delete();
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$count} kuis berhasil dihapus.",
+            'deleted_count' => $count,
         ]);
     }
 
@@ -559,15 +623,41 @@ class QuizController extends Controller
             return response()->json(['success' => false, 'message' => 'Kuis tidak ditemukan untuk kelas Anda.'], 403);
         }
 
+        // Cek jadwal mulai & selesai
+        if ($quiz->waktu_mulai && now()->lessThan($quiz->waktu_mulai)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kuis belum dimulai. Jadwal mulai pada: ' . $quiz->waktu_mulai->format('d M Y, H:i') . ' WIB.',
+            ], 403);
+        }
+
+        if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kuis telah berakhir pada: ' . $quiz->waktu_selesai->format('d M Y, H:i') . ' WIB.',
+            ], 403);
+        }
+
         $quiz->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru', 'soals']);
 
-        $soals = $quiz->soals->map(function ($s) {
+        $soals = $quiz->soals->map(function ($s) use ($quiz) {
+            $pilihan = $s->pilihan;
+            if ($quiz->acak_jawaban && is_array($pilihan)) {
+                $keys = array_keys($pilihan);
+                shuffle($keys);
+                $shuffled = [];
+                foreach ($keys as $k) {
+                    $shuffled[$k] = $pilihan[$k];
+                }
+                $pilihan = $shuffled;
+            }
+
             return [
                 'id' => $s->id,
                 'urutan' => $s->urutan,
                 'tipe_soal' => $s->tipe_soal,
                 'pertanyaan' => $s->pertanyaan,
-                'pilihan' => $s->pilihan,
+                'pilihan' => $pilihan,
                 'gambar_url' => $s->gambar ? asset('storage/' . $s->gambar) : null,
                 'bobot' => $s->bobot,
                 // Kunci jawaban disembunyikan
@@ -585,6 +675,9 @@ class QuizController extends Controller
                 'judul' => $quiz->judul,
                 'level' => $quiz->level,
                 'kesulitan' => $quiz->kesulitan,
+                'waktu_mulai' => $quiz->waktu_mulai?->format('Y-m-d H:i:s'),
+                'waktu_selesai' => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
+                'acak_jawaban' => (bool)$quiz->acak_jawaban,
                 'mapel' => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
                 'guru' => $quiz->pengampuKelas?->guruMapel?->guru?->nama,
                 'soals' => $soals,
@@ -607,6 +700,21 @@ class QuizController extends Controller
 
         if (!$kelasId || $quiz->pengampuKelas?->kelas_id !== $kelasId) {
             return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        }
+
+        // Cek jadwal mulai & selesai
+        if ($quiz->waktu_mulai && now()->lessThan($quiz->waktu_mulai)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kuis belum dimulai.',
+            ], 403);
+        }
+
+        if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Waktu pengerjaan kuis telah berakhir.',
+            ], 403);
         }
 
         $validator = Validator::make($request->all(), [

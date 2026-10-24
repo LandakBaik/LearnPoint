@@ -7,6 +7,7 @@ use App\Models\Soal;
 use App\Models\PengampuKelas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class QuizController extends Controller
 {
@@ -105,12 +106,16 @@ class QuizController extends Controller
             'pengampu_kelas_id'   => ['required', 'exists:pengampu_kelas,id'],
             'kesulitan_aktif'     => ['required', 'array', 'min:1', 'max:3'],
             'kesulitan_aktif.*'   => ['string', 'in:Mudah,Sedang,Sulit'],
-            // 'status'              => ['nullable', 'in:draft,published'],
-            'status'              => 'draft',
+            'waktu_mulai'         => ['nullable', 'date', 'after_or_equal:today'],
+            'waktu_selesai'       => ['nullable', 'date', 'after:waktu_mulai'],
+            'acak_jawaban'        => ['nullable', 'boolean'],
+            'status'              => ['nullable', 'string', 'in:draft,published'],
         ], [
-            'kesulitan_aktif.required' => 'Pilih minimal satu tingkat kesulitan (Arc) untuk petualangan kuis ini.',
-            'kesulitan_aktif.min'      => 'Kuis petualangan harus memiliki minimal 1 tingkat kesulitan.',
-            'kesulitan_aktif.max'      => 'Kuis petualangan maksimal memiliki 3 tingkat kesulitan (Mudah, Sedang, Sulit).',
+            'kesulitan_aktif.required'   => 'Pilih minimal satu tingkat kesulitan (Arc) untuk petualangan kuis ini.',
+            'kesulitan_aktif.min'        => 'Kuis petualangan harus memiliki minimal 1 tingkat kesulitan.',
+            'kesulitan_aktif.max'        => 'Kuis petualangan maksimal memiliki 3 tingkat kesulitan (Mudah, Sedang, Sulit).',
+            'waktu_mulai.after_or_equal' => 'Waktu mulai kuis tidak boleh sebelum hari ini.',
+            'waktu_selesai.after'        => 'Waktu selesai kuis harus lebih lambat dari waktu mulai (tidak boleh sama atau lebih awal).',
         ]);
 
         $isOwner = PengampuKelas::where('id', $validated['pengampu_kelas_id'])
@@ -130,6 +135,9 @@ class QuizController extends Controller
             'deskripsi'         => $validated['deskripsi'] ?? null,
             'pengampu_kelas_id' => $validated['pengampu_kelas_id'],
             'kesulitan_aktif'   => $orderedDifficulties,
+            'waktu_mulai'       => $validated['waktu_mulai'] ?? null,
+            'waktu_selesai'     => $validated['waktu_selesai'] ?? null,
+            'acak_jawaban'      => $request->boolean('acak_jawaban'),
             'status'            => $validated['status'] ?? 'draft',
             'level'             => 'Level 1',
             'kesulitan'         => $orderedDifficulties[0] ?? 'Mudah',
@@ -217,12 +225,16 @@ class QuizController extends Controller
             'pengampu_kelas_id'   => ['required', 'exists:pengampu_kelas,id'],
             'kesulitan_aktif'     => ['required', 'array', 'min:1', 'max:3'],
             'kesulitan_aktif.*'   => ['string', 'in:Mudah,Sedang,Sulit'],
-            // 'status'              => ['nullable', 'in:draft,published'],
-            'status'              => 'draft',
+            'waktu_mulai'         => ['nullable', 'date', 'after_or_equal:today'],
+            'waktu_selesai'       => ['nullable', 'date', 'after:waktu_mulai'],
+            'acak_jawaban'        => ['nullable', 'boolean'],
+            'status'              => ['nullable', 'string', 'in:draft,published'],
         ], [
-            'kesulitan_aktif.required' => 'Pilih minimal satu tingkat kesulitan (Arc) untuk petualangan kuis ini.',
-            'kesulitan_aktif.min'      => 'Kuis petualangan harus memiliki minimal 1 tingkat kesulitan.',
-            'kesulitan_aktif.max'      => 'Kuis petualangan maksimal memiliki 3 tingkat kesulitan (Mudah, Sedang, Sulit).',
+            'kesulitan_aktif.required'   => 'Pilih minimal satu tingkat kesulitan (Arc) untuk petualangan kuis ini.',
+            'kesulitan_aktif.min'        => 'Kuis petualangan harus memiliki minimal 1 tingkat kesulitan.',
+            'kesulitan_aktif.max'        => 'Kuis petualangan maksimal memiliki 3 tingkat kesulitan (Mudah, Sedang, Sulit).',
+            'waktu_mulai.after_or_equal' => 'Waktu mulai kuis tidak boleh sebelum hari ini.',
+            'waktu_selesai.after'        => 'Waktu selesai kuis harus lebih lambat dari waktu mulai (tidak boleh sama atau lebih awal).',
         ]);
 
         $isOwner = PengampuKelas::where('id', $validated['pengampu_kelas_id'])
@@ -241,7 +253,10 @@ class QuizController extends Controller
             'deskripsi'         => $validated['deskripsi'] ?? null,
             'pengampu_kelas_id' => $validated['pengampu_kelas_id'],
             'kesulitan_aktif'   => $orderedDifficulties,
-            // 'status'            => $validated['status'] ?? $quiz->status,
+            'waktu_mulai'       => $validated['waktu_mulai'] ?? null,
+            'waktu_selesai'     => $validated['waktu_selesai'] ?? null,
+            'acak_jawaban'      => $request->boolean('acak_jawaban'),
+            'status'            => $validated['status'] ?? $quiz->status,
         ]);
 
         return redirect()->back()->with('success', 'Pengaturan kuis petualangan berhasil diperbarui!');
@@ -320,6 +335,52 @@ class QuizController extends Controller
     }
 
     /**
+     * Menghapus beberapa kuis sekaligus (Bulk Destroy).
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $user = auth()->user();
+        $guruId = $user->guru?->id ?? $user->guru_id;
+        abort_unless($user->role === 'guru' && $guruId, 403);
+
+        $validated = $request->validate([
+            'quiz_ids'   => ['required', 'array', 'min:1'],
+            'quiz_ids.*' => ['required', 'exists:quizzes,id'],
+        ], [
+            'quiz_ids.required' => 'Pilih minimal satu kuis untuk dihapus.',
+            'quiz_ids.min'      => 'Pilih minimal satu kuis untuk dihapus.',
+        ]);
+
+        $quizzes = Quiz::whereIn('id', $validated['quiz_ids'])
+            ->whereHas('pengampuKelas.guruMapel', function ($q) use ($guruId) {
+                $q->where('guru_id', $guruId);
+            })
+            ->with('soals')
+            ->get();
+
+        $count = $quizzes->count();
+
+        if ($count === 0) {
+            return redirect()->route('guru.kuis.index')
+                ->with('error', 'Tidak ada kuis valid milik Anda yang dapat dihapus.');
+        }
+
+        DB::transaction(function () use ($quizzes) {
+            foreach ($quizzes as $quiz) {
+                foreach ($quiz->soals as $soal) {
+                    if ($soal->gambar && Storage::disk('public')->exists($soal->gambar)) {
+                        Storage::disk('public')->delete($soal->gambar);
+                    }
+                }
+                $quiz->delete();
+            }
+        });
+
+        return redirect()->route('guru.kuis.index')
+            ->with('success', "{$count} kuis petualangan terpilih berhasil dihapus!");
+    }
+
+    /**
      * Menambahkan butir soal ke dalam level tertentu pada Arc kuis.
      * Sistem: Maksimal 10 butir soal per level.
      */
@@ -336,10 +397,15 @@ class QuizController extends Controller
             'tipe_soal'     => ['required', 'in:single_choice,multiple_choice,essay,matching'],
             'kesulitan'     => ['required', 'string', 'in:Mudah,Sedang,Sulit'],
             'level'         => ['required', 'string', 'in:Level 1,Level 2,Level 3,Level 4,Level 5,1,2,3,4,5'],
-            'pilihan'       => ['nullable', 'array'],
+            'pilihan'       => ['required', 'array', 'min:2', 'max:6'],
             'kunci_jawaban' => ['required'],
             'bobot'         => ['nullable', 'numeric', 'min:1'],
             'gambar'        => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ], [
+            'pilihan.required' => 'Pilihan jawaban wajib diisi minimal 2 opsi.',
+            'pilihan.min'      => 'Minimal pilihan jawaban adalah 2 opsi.',
+            'pilihan.max'      => 'Maksimal pilihan jawaban adalah 6 opsi.',
+            'kunci_jawaban.required' => 'Pilih kunci jawaban yang benar.',
         ]);
 
         // Standardisasi format level menjadi 'Level X'
@@ -375,19 +441,34 @@ class QuizController extends Controller
             ->where('level', $levelFormatted)
             ->max('urutan') ?? 0) + 1;
 
-        $pilihanFormatted = null;
+        // Proses pilihan jawaban dinamis (2 sampai 6 opsi: a, b, c, d, e, f)
+        $validKeys = ['a', 'b', 'c', 'd', 'e', 'f'];
+        $pilihanFormatted = [];
         if (in_array($validated['tipe_soal'], ['single_choice', 'multiple_choice'])) {
-            $pilihanFormatted = [
-                'a' => $request->input('pilihan.a', ''),
-                'b' => $request->input('pilihan.b', ''),
-                'c' => $request->input('pilihan.c', ''),
-                'd' => $request->input('pilihan.d', ''),
-            ];
+            foreach ($validKeys as $k) {
+                $val = $request->input("pilihan.{$k}");
+                if ($val !== null && trim((string)$val) !== '') {
+                    $pilihanFormatted[$k] = trim((string)$val);
+                }
+            }
+
+            if (count($pilihanFormatted) < 2) {
+                return back()->withInput()->with('error', 'Pilihan jawaban wajib diisi minimal 2 opsi (misal Pilihan A dan B).');
+            }
+
+            if (count($pilihanFormatted) > 6) {
+                return back()->withInput()->with('error', 'Maksimal pilihan jawaban adalah 6 opsi (Pilihan A hingga F).');
+            }
         }
 
         $kunci = $validated['kunci_jawaban'];
         if (is_array($kunci)) {
             $kunci = json_encode($kunci);
+        } else {
+            $kunci = strtolower(trim((string)$kunci));
+            if (!empty($pilihanFormatted) && !array_key_exists($kunci, $pilihanFormatted)) {
+                return back()->withInput()->with('error', 'Kunci jawaban yang dipilih harus merupakan salah satu dari opsi pilihan jawaban yang aktif.');
+            }
         }
 
         Soal::create([
@@ -427,10 +508,15 @@ class QuizController extends Controller
         $validated = $request->validate([
             'pertanyaan'    => ['required', 'string'],
             'tipe_soal'     => ['required', 'in:single_choice,multiple_choice,essay,matching'],
-            'pilihan'       => ['nullable', 'array'],
+            'pilihan'       => ['required', 'array', 'min:2', 'max:6'],
             'kunci_jawaban' => ['required'],
             'bobot'         => ['nullable', 'numeric', 'min:1'],
             'gambar'        => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ], [
+            'pilihan.required' => 'Pilihan jawaban wajib diisi minimal 2 opsi.',
+            'pilihan.min'      => 'Minimal pilihan jawaban adalah 2 opsi.',
+            'pilihan.max'      => 'Maksimal pilihan jawaban adalah 6 opsi.',
+            'kunci_jawaban.required' => 'Pilih kunci jawaban yang benar.',
         ]);
 
         $gambarPath = $soal->gambar;
@@ -441,19 +527,34 @@ class QuizController extends Controller
             $gambarPath = $request->file('gambar')->store('soals', 'public');
         }
 
-        $pilihanFormatted = $soal->pilihan;
+        // Proses pilihan jawaban dinamis (2 sampai 6 opsi: a, b, c, d, e, f)
+        $validKeys = ['a', 'b', 'c', 'd', 'e', 'f'];
+        $pilihanFormatted = [];
         if (in_array($validated['tipe_soal'], ['single_choice', 'multiple_choice'])) {
-            $pilihanFormatted = [
-                'a' => $request->input('pilihan.a', ''),
-                'b' => $request->input('pilihan.b', ''),
-                'c' => $request->input('pilihan.c', ''),
-                'd' => $request->input('pilihan.d', ''),
-            ];
+            foreach ($validKeys as $k) {
+                $val = $request->input("pilihan.{$k}");
+                if ($val !== null && trim((string)$val) !== '') {
+                    $pilihanFormatted[$k] = trim((string)$val);
+                }
+            }
+
+            if (count($pilihanFormatted) < 2) {
+                return back()->withInput()->with('error', 'Pilihan jawaban wajib diisi minimal 2 opsi (misal Pilihan A dan B).');
+            }
+
+            if (count($pilihanFormatted) > 6) {
+                return back()->withInput()->with('error', 'Maksimal pilihan jawaban adalah 6 opsi (Pilihan A hingga F).');
+            }
         }
 
         $kunci = $validated['kunci_jawaban'];
         if (is_array($kunci)) {
             $kunci = json_encode($kunci);
+        } else {
+            $kunci = strtolower(trim((string)$kunci));
+            if (!empty($pilihanFormatted) && !array_key_exists($kunci, $pilihanFormatted)) {
+                return back()->withInput()->with('error', 'Kunci jawaban yang dipilih harus merupakan salah satu dari opsi pilihan jawaban yang aktif.');
+            }
         }
 
         $soal->update([

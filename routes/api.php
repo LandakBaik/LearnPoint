@@ -58,6 +58,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Kuis Guru
         Route::get('/kuis', [QuizController::class, 'guruIndex']);
         Route::get('/kuis/options', [QuizController::class, 'guruOptions']);
+        Route::post('/kuis/bulk-destroy', [QuizController::class, 'guruBulkDestroy']);
         Route::get('/kuis/{quiz}', [QuizController::class, 'guruShow']);
         Route::post('/kuis', [QuizController::class, 'guruStore']);
         Route::put('/kuis/{quiz}', [QuizController::class, 'guruUpdate']);

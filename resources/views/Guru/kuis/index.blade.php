@@ -6,13 +6,97 @@
 <div class="space-y-6" x-data="{
     showModal: false,
     showEditModal: false,
+    selectedQuizzes: [],
+    allQuizIds: {{ json_encode($quizzes->pluck('id')->values()->all()) }},
+    todayMinDate: '{{ now()->format('Y-m-d\TH:i') }}',
+    todayStartDate: '{{ now()->format('Y-m-d\T00:00') }}',
+
+    toggleSelectAll() {
+        if (this.selectedQuizzes.length === this.allQuizIds.length) {
+            this.selectedQuizzes = [];
+        } else {
+            this.selectedQuizzes = [...this.allQuizIds];
+        }
+    },
+
+    confirmBulkDelete() {
+        if (!this.selectedQuizzes.length) return;
+        Swal.fire({
+            title: 'Hapus ' + this.selectedQuizzes.length + ' Kuis Sekaligus?',
+            text: 'Seluruh level tantangan, butir soal, dan riwayat nilai pada kuis yang dipilih akan dihapus secara permanen!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Ya, Hapus Semua',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('bulkDeleteForm').submit();
+            }
+        });
+    },
+
     editData: {
         id: '',
         judul: '',
         deskripsi: '',
         pengampu_kelas_id: '',
         kesulitan_aktif: ['Mudah', 'Sedang', 'Sulit'],
-        status: 'draft'
+        status: 'draft',
+        waktu_mulai: '',
+        waktu_selesai: '',
+        acak_jawaban: false
+    },
+
+    formatDateInput(val) {
+        if (!val) return '';
+        try {
+            const d = new Date(val);
+            if (isNaN(d.getTime())) return '';
+            const offset = d.getTimezoneOffset() * 60000;
+            const local = new Date(d.getTime() - offset);
+            return local.toISOString().slice(0, 16);
+        } catch (e) {
+            return '';
+        }
+    },
+
+    validateSchedule(start, end) {
+        if (start) {
+            const startDate = new Date(start);
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+            if (startDate < startOfToday) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Jadwal Tidak Valid',
+                    text: 'Waktu mulai kuis tidak boleh sebelum hari ini!'
+                });
+                return false;
+            }
+        }
+        if (start && end) {
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            if (endDate.getTime() === startDate.getTime()) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Jadwal Tidak Valid',
+                    text: 'Waktu selesai tidak boleh sama dengan waktu mulai! Waktu selesai harus lebih lambat dari waktu mulai.'
+                });
+                return false;
+            }
+            if (endDate < startDate) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Jadwal Tidak Valid',
+                    text: 'Waktu selesai harus lebih lambat dari waktu mulai!'
+                });
+                return false;
+            }
+        }
+        return true;
     },
 
     openEditModal(quiz) {
@@ -24,7 +108,10 @@
             kesulitan_aktif: Array.isArray(quiz.kesulitan_aktif) && quiz.kesulitan_aktif.length > 0
                 ? quiz.kesulitan_aktif
                 : ['Mudah', 'Sedang', 'Sulit'],
-            status: quiz.status || 'draft'
+            status: quiz.status || 'draft',
+            waktu_mulai: this.formatDateInput(quiz.waktu_mulai),
+            waktu_selesai: this.formatDateInput(quiz.waktu_selesai),
+            acak_jawaban: !!quiz.acak_jawaban
         };
         this.showEditModal = true;
     }
@@ -62,35 +149,7 @@
         </button>
     </div>
 
-    {{-- Alert Messages --}}
-    @if(session('success'))
-        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-3 shadow-xs">
-            <svg class="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            <span class="font-medium">{{ session('success') }}</span>
-        </div>
-    @endif
 
-    @if(session('error'))
-        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3 shadow-xs">
-            <svg class="w-5 h-5 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-            <span class="font-medium">{{ session('error') }}</span>
-        </div>
-    @endif
-
-    @if($errors->any())
-        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm space-y-1 shadow-xs">
-            @foreach($errors->all() as $error)
-                <p class="flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
-                    <span>{{ $error }}</span>
-                </p>
-            @endforeach
-        </div>
-    @endif
 
     {{-- =========================================================
         PANEL INFORMASI STRUKTUR PETUALANGAN
@@ -294,6 +353,38 @@
         LIST KUIS PETUALANGAN
     ========================================================== --}}
     @if($quizzes->count() > 0)
+        {{-- Toolbar Seleksi Massal --}}
+        <div class="flex items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+            <div class="flex items-center gap-3">
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                        type="checkbox"
+                        @change="toggleSelectAll()"
+                        :checked="selectedQuizzes.length > 0 && selectedQuizzes.length === allQuizIds.length"
+                        class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-slate-300 cursor-pointer"
+                    >
+                    <span class="text-xs font-bold text-slate-700">Pilih Semua Halaman Ini (<span x-text="allQuizIds.length"></span>)</span>
+                </label>
+
+                <template x-if="selectedQuizzes.length > 0">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+                        <span x-text="selectedQuizzes.length"></span> Terpilih
+                    </span>
+                </template>
+            </div>
+
+            <template x-if="selectedQuizzes.length > 0">
+                <button
+                    type="button"
+                    @click="confirmBulkDelete()"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition shadow-xs cursor-pointer"
+                >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    <span>Hapus (<span x-text="selectedQuizzes.length"></span>) Kuis Terpilih</span>
+                </button>
+            </template>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             @foreach($quizzes as $quiz)
                 @php
@@ -301,14 +392,27 @@
                     $activeArcs = $quiz->kesulitan_aktif_array;
                     $soalTotal = $quiz->soals_count ?? $quiz->soals->count();
                 @endphp
-                <div class="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs hover:shadow-md hover:border-blue-200 transition-all flex flex-col justify-between group">
+                <div
+                    class="rounded-2xl border p-5 sm:p-6 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                    :class="selectedQuizzes.includes({{ $quiz->id }}) ? 'border-blue-500 ring-2 ring-blue-100 bg-blue-50/10' : 'border-slate-200/80 bg-white hover:border-blue-200'"
+                >
                     <div class="space-y-3.5">
-                        {{-- Top Bar: Status Draf/Diterbitkan & Kelas --}}
+                        {{-- Top Bar: Checkbox, Status Draf/Diterbitkan & Kelas --}}
                         <div class="flex items-center justify-between gap-2">
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border {{ $isPublished ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200' }}">
-                                <span class="w-1.5 h-1.5 rounded-full {{ $isPublished ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
-                                {{ $isPublished ? 'Diterbitkan' : 'Draf' }}
-                            </span>
+                            <div class="flex items-center gap-2">
+                                <label class="relative flex items-center cursor-pointer p-0.5 rounded-lg hover:bg-slate-100 transition" title="Pilih kuis ini">
+                                    <input
+                                        type="checkbox"
+                                        :value="{{ $quiz->id }}"
+                                        x-model="selectedQuizzes"
+                                        class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-slate-300 cursor-pointer"
+                                    >
+                                </label>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border {{ $isPublished ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ $isPublished ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
+                                    {{ $isPublished ? 'Diterbitkan' : 'Draf' }}
+                                </span>
+                            </div>
 
                             <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 text-slate-600 border border-slate-200/80 text-xs font-semibold truncate max-w-[170px]">
                                 <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -362,6 +466,45 @@
                             </div>
                         </div>
 
+                        {{-- Jadwal & Pengaturan Kuis --}}
+                        @php
+                            $sched = $quiz->schedule_info;
+                        @endphp
+                        <div class="pt-2 flex flex-col gap-1.5 text-xs">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                @if($quiz->waktu_mulai || $quiz->waktu_selesai)
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border {{ $sched['badge_class'] }}" title="{{ $sched['description'] }}">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        {{ $sched['label'] }}
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium text-slate-500 bg-slate-100 border border-slate-200">
+                                        Tanpa Batas Waktu
+                                    </span>
+                                @endif
+
+                                @if($quiz->acak_jawaban)
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200" title="Pilihan jawaban diacak untuk setiap siswa">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                        Acak Jawaban
+                                    </span>
+                                @endif
+                            </div>
+
+                            @if($quiz->waktu_mulai || $quiz->waktu_selesai)
+                                <div class="text-[11px] text-slate-500 flex items-center gap-1.5 truncate">
+                                    <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <span>{{ $quiz->waktu_mulai ? $quiz->waktu_mulai->format('d/m/y H:i') : 'Langsung' }} - {{ $quiz->waktu_selesai ? $quiz->waktu_selesai->format('d/m/y H:i') : 'Seterusnya' }}</span>
+                                </div>
+                            @endif
+                        </div>
+
                         {{-- Total Soal & Info Siswa Selesai --}}
                         <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                             <span class="flex items-center gap-1.5 text-slate-700 font-medium">
@@ -393,7 +536,8 @@
 
                         <div class="flex items-center gap-1.5">
                             {{-- Toggle Publish Status --}}
-                            <form method="POST" action="{{ route('guru.kuis.toggle-status', $quiz) }}">
+                            <form method="POST" action="{{ route('guru.kuis.toggle-status', $quiz) }}"
+                                data-confirm="{{ $isPublished ? 'Apakah Anda yakin ingin mengubah status kuis \'' . addslashes($quiz->judul) . '\' menjadi Draf? Siswa tidak akan dapat mengakses kuis ini sementara waktu.' : 'Apakah Anda yakin ingin menerbitkan kuis \'' . addslashes($quiz->judul) . '\'? Siswa di kelas terkait akan dapat melihat dan mengerjakan kuis ini.' }}">
                                 @csrf
                                 @method('PATCH')
                                 <button
@@ -429,7 +573,7 @@
                             <form
                                 method="POST"
                                 action="{{ route('guru.kuis.destroy', $quiz) }}"
-                                onsubmit="return confirm('Apakah Anda yakin ingin menghapus kuis petualangan {{ $quiz->judul }}? Seluruh level dan butir soal akan ikut terhapus.')"
+                                data-confirm="Apakah Anda yakin ingin menghapus kuis petualangan '{{ addslashes($quiz->judul) }}'? Seluruh level tantangan dan butir soal di dalamnya akan dihapus secara permanen."
                             >
                                 @csrf
                                 @method('DELETE')
@@ -459,20 +603,35 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                 </svg>
             </div>
-            <h3 class="text-base font-bold text-slate-900">Belum Ada Kuis Petualangan</h3>
-            <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
-                Mulai buat draf kuis dengan sistem petualangan (hingga 3 Arc Kesulitan, 5 level tiap arc, dan 10 soal per level).
-            </p>
-            <button
-                @click="showModal = true"
-                type="button"
-                class="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:scale-[0.98] transition shadow-xs cursor-pointer"
-            >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-                </svg>
-                <span>Buat Draf Kuis Sekarang</span>
-            </button>
+            @if(request()->filled('search') || request()->filled('status') || request()->filled('kelas_id') || request()->filled('kesulitan'))
+                <h3 class="text-base font-bold text-slate-900">Kuis Tidak Ditemukan</h3>
+                <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
+                    Tidak ditemukan kuis petualangan yang cocok dengan kriteria pencarian atau filter yang Anda terapkan.
+                </p>
+                <div class="mt-5">
+                    <a href="{{ route('guru.kuis.index') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-semibold transition shadow-xs">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <span>Reset Filter</span>
+                    </a>
+                </div>
+            @else
+                <h3 class="text-base font-bold text-slate-900">Belum Ada Kuis Petualangan</h3>
+                <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
+                    Mulai buat draf kuis dengan sistem petualangan (hingga 3 Arc Kesulitan, 5 level tiap arc, dan 10 soal per level).
+                </p>
+                <button
+                    @click="showModal = true"
+                    type="button"
+                    class="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:scale-[0.98] transition shadow-xs cursor-pointer"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    <span>Buat Draf Kuis Sekarang</span>
+                </button>
+            @endif
         </div>
     @endif
 
@@ -482,13 +641,13 @@
     <div
         x-show="showModal"
         x-cloak
-        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 overflow-y-auto"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 sm:p-6 overflow-hidden"
     >
         <div
             @click.away="showModal = false"
-            class="bg-white w-full max-w-xl rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-8"
+            class="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-slate-200/80 overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 my-auto"
         >
-            <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+            <div class="px-6 py-4 sm:py-5 border-b border-slate-100 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -497,15 +656,28 @@
                     </div>
                     <div>
                         <h3 class="text-lg font-bold text-slate-900">Buat Draf Kuis Petualangan</h3>
-                        <p class="text-xs text-slate-500">Tentukan judul, kelas, dan Arc Kesulitan yang aktif.</p>
+                        <p class="text-xs text-slate-500">Tentukan judul, kelas, jadwal, dan Arc Kesulitan.</p>
                     </div>
                 </div>
-                <button @click="showModal = false" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition">
+                <button @click="showModal = false" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
 
-            <form method="POST" action="{{ route('guru.kuis.store') }}" class="p-6 space-y-4">
+            <form method="POST" action="{{ route('guru.kuis.store') }}"
+                @submit="
+                    if (![...$el.querySelectorAll('input[name=\'kesulitan_aktif[]\']:checked')].length) { 
+                        $event.preventDefault(); 
+                        Swal.fire({icon: 'warning', title: 'Peringatan', text: 'Pilih minimal satu tingkat kesulitan (Arc) untuk petualangan kuis ini!'}); 
+                        return;
+                    }
+                    const wm = $el.querySelector('input[name=\'waktu_mulai\']').value;
+                    const ws = $el.querySelector('input[name=\'waktu_selesai\']').value;
+                    if (!validateSchedule(wm, ws)) {
+                        $event.preventDefault();
+                    }
+                "
+                class="p-6 space-y-4 overflow-y-auto flex-1">
                 @csrf
 
                 {{-- Judul Kuis --}}
@@ -560,12 +732,12 @@
                         Pilih Arc Kesulitan yang Aktif (Maksimal 3) <span class="text-rose-500">*</span>
                     </label>
                     <p class="text-xs text-slate-500 mb-2.5">
-                        Kuis dapat memiliki hingga 3 tingkat kesulitan (misal hanya Mudah & Sedang, atau ketiganya). Tiap arc memiliki 5 level.
+                        Kuis dapat memiliki hingga 3 tingkat kesulitan (Mudah, Sedang, Sulit). Tiap arc memiliki 5 level.
                     </p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                         {{-- Mudah --}}
-                        <label class="flex items-start gap-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 cursor-pointer transition">
+                        <label class="flex items-start gap-2.5 p-3 rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 cursor-pointer transition">
                             <input
                                 type="checkbox"
                                 name="kesulitan_aktif[]"
@@ -575,12 +747,12 @@
                             >
                             <div>
                                 <span class="text-xs font-bold text-emerald-900 block">Mudah</span>
-                                <span class="text-[11px] text-emerald-700">Level 1 - 5 (Konsep Dasar)</span>
+                                <span class="text-[11px] text-emerald-700">5 Level (Dasar)</span>
                             </div>
                         </label>
 
                         {{-- Sedang --}}
-                        <label class="flex items-start gap-3 p-3 rounded-xl border border-blue-200 bg-blue-50/50 hover:bg-blue-50 cursor-pointer transition">
+                        <label class="flex items-start gap-2.5 p-3 rounded-xl border border-blue-200 bg-blue-50/50 hover:bg-blue-50 cursor-pointer transition">
                             <input
                                 type="checkbox"
                                 name="kesulitan_aktif[]"
@@ -590,12 +762,12 @@
                             >
                             <div>
                                 <span class="text-xs font-bold text-blue-900 block">Sedang</span>
-                                <span class="text-[11px] text-blue-700">Level 1 - 5 (Analisis)</span>
+                                <span class="text-[11px] text-blue-700">5 Level (Analisis)</span>
                             </div>
                         </label>
 
                         {{-- Sulit --}}
-                        <label class="flex items-start gap-3 p-3 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-50 cursor-pointer transition">
+                        <label class="flex items-start gap-2.5 p-3 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-50 cursor-pointer transition">
                             <input
                                 type="checkbox"
                                 name="kesulitan_aktif[]"
@@ -605,26 +777,70 @@
                             >
                             <div>
                                 <span class="text-xs font-bold text-rose-900 block">Sulit</span>
-                                <span class="text-[11px] text-rose-700">Level 1 - 5 (Tantangan HOTS)</span>
+                                <span class="text-[11px] text-rose-700">5 Level (HOTS)</span>
                             </div>
                         </label>
                     </div>
                 </div>
 
-                {{-- Status Kuis --}}
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
-                        Status Awal
+                {{-- Jadwal Mulai & Selesai (Opsional) --}}
+                <div class="border-t border-slate-100 pt-3">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                        Jadwal Pengerjaan Kuis (Opsional)
                     </label>
-                    <div class="flex items-center gap-4">
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-700">
-                            <input type="radio" name="status" value="draft" checked class="text-blue-600 focus:ring-blue-500">
-                            <span>Simpan sebagai <strong class="text-slate-900">Draf</strong></span>
-                        </label>
+                    <p class="text-xs text-slate-500 mb-2.5">
+                        Kosongkan jika kuis dapat dikerjakan kapan saja tanpa batasan tanggal/waktu.
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Waktu Mulai</label>
+                            <input
+                                type="datetime-local"
+                                name="waktu_mulai"
+                                :min="todayStartDate"
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                            >
+                            <p class="text-[10px] text-slate-400 mt-1">Tidak boleh sebelum hari ini</p>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Waktu Berakhir</label>
+                            <input
+                                type="datetime-local"
+                                name="waktu_selesai"
+                                :min="todayStartDate"
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                            >
+                            <p class="text-[10px] text-slate-400 mt-1">Harus lebih lambat dari waktu mulai</p>
+                        </div>
                     </div>
                 </div>
 
-                <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                {{-- Pengacakan Jawaban --}}
+                <div class="border-t border-slate-100 pt-3">
+                    <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 cursor-pointer transition">
+                        <input
+                            type="checkbox"
+                            name="acak_jawaban"
+                            value="1"
+                            class="w-4 h-4 mt-0.5 text-blue-600 rounded focus:ring-blue-500"
+                        >
+                        <div>
+                            <span class="text-xs font-bold text-slate-900 block">Acak Pilihan Jawaban Soal</span>
+                            <span class="text-[11px] text-slate-500">Urutan pilihan jawaban (A, B, C, ...) akan diacak secara dinamis untuk tiap siswa saat mengerjakan.</span>
+                        </div>
+                    </label>
+                </div>
+
+                {{-- Status Kuis --}}
+                <div>
+                    <input type="hidden" name="status" value="draft">
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
+                        <span>Status Awal: <strong class="text-slate-900">Draf</strong></span>
+                        <span class="text-[11px] text-slate-400">Dapat diterbitkan setelah memiliki butir soal</span>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100 shrink-0">
                     <button
                         @click="showModal = false"
                         type="button"
@@ -649,13 +865,13 @@
     <div
         x-show="showEditModal"
         x-cloak
-        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 overflow-y-auto"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 sm:p-6 overflow-hidden"
     >
         <div
             @click.away="showEditModal = false"
-            class="bg-white w-full max-w-xl rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-8"
+            class="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-slate-200/80 overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 my-auto"
         >
-            <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+            <div class="px-6 py-4 sm:py-5 border-b border-slate-100 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -664,10 +880,10 @@
                     </div>
                     <div>
                         <h3 class="text-lg font-bold text-slate-900">Edit Pengaturan Kuis</h3>
-                        <p class="text-xs text-slate-500">Sesuaikan judul, kelas, arc kesulitan, atau status.</p>
+                        <p class="text-xs text-slate-500">Sesuaikan judul, kelas, arc kesulitan, atau jadwal.</p>
                     </div>
                 </div>
-                <button @click="showEditModal = false" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition">
+                <button @click="showEditModal = false" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
@@ -675,7 +891,17 @@
             <form
                 method="POST"
                 :action="'/guru/kuis/' + editData.id"
-                class="p-6 space-y-4"
+                @submit="
+                    if (![...$el.querySelectorAll('input[name=\'kesulitan_aktif[]\']:checked')].length) { 
+                        $event.preventDefault(); 
+                        Swal.fire({icon: 'warning', title: 'Peringatan', text: 'Pilih minimal satu tingkat kesulitan (Arc) untuk petualangan kuis ini!'}); 
+                        return;
+                    }
+                    if (!validateSchedule(editData.waktu_mulai, editData.waktu_selesai)) {
+                        $event.preventDefault();
+                    }
+                "
+                class="p-6 space-y-4 overflow-y-auto flex-1"
             >
                 @csrf
                 @method('PUT')
@@ -732,7 +958,7 @@
                         Arc Kesulitan yang Aktif (1 s/d 3) <span class="text-rose-500">*</span>
                     </label>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                        <label class="flex items-start gap-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 cursor-pointer transition">
+                        <label class="flex items-start gap-2.5 p-3 rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 cursor-pointer transition">
                             <input
                                 type="checkbox"
                                 name="kesulitan_aktif[]"
@@ -746,7 +972,7 @@
                             </div>
                         </label>
 
-                        <label class="flex items-start gap-3 p-3 rounded-xl border border-blue-200 bg-blue-50/50 hover:bg-blue-50 cursor-pointer transition">
+                        <label class="flex items-start gap-2.5 p-3 rounded-xl border border-blue-200 bg-blue-50/50 hover:bg-blue-50 cursor-pointer transition">
                             <input
                                 type="checkbox"
                                 name="kesulitan_aktif[]"
@@ -760,7 +986,7 @@
                             </div>
                         </label>
 
-                        <label class="flex items-start gap-3 p-3 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-50 cursor-pointer transition">
+                        <label class="flex items-start gap-2.5 p-3 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-50 cursor-pointer transition">
                             <input
                                 type="checkbox"
                                 name="kesulitan_aktif[]"
@@ -774,6 +1000,57 @@
                             </div>
                         </label>
                     </div>
+                </div>
+
+                {{-- Jadwal Mulai & Selesai (Opsional) --}}
+                <div class="border-t border-slate-100 pt-3">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                        Jadwal Pengerjaan Kuis (Opsional)
+                    </label>
+                    <p class="text-xs text-slate-500 mb-2.5">
+                        Kosongkan jika kuis dapat dikerjakan kapan saja tanpa batasan tanggal/waktu.
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Waktu Mulai</label>
+                            <input
+                                type="datetime-local"
+                                name="waktu_mulai"
+                                x-model="editData.waktu_mulai"
+                                :min="todayStartDate"
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                            >
+                            <p class="text-[10px] text-slate-400 mt-1">Tidak boleh sebelum hari ini</p>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Waktu Berakhir</label>
+                            <input
+                                type="datetime-local"
+                                name="waktu_selesai"
+                                x-model="editData.waktu_selesai"
+                                :min="todayStartDate"
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                            >
+                            <p class="text-[10px] text-slate-400 mt-1">Harus lebih lambat dari waktu mulai</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Pengacakan Jawaban --}}
+                <div class="border-t border-slate-100 pt-3">
+                    <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 cursor-pointer transition">
+                        <input
+                            type="checkbox"
+                            name="acak_jawaban"
+                            value="1"
+                            x-model="editData.acak_jawaban"
+                            class="w-4 h-4 mt-0.5 text-blue-600 rounded focus:ring-blue-500"
+                        >
+                        <div>
+                            <span class="text-xs font-bold text-slate-900 block">Acak Pilihan Jawaban Soal</span>
+                            <span class="text-[11px] text-slate-500">Urutan pilihan jawaban (A, B, C, ...) akan diacak secara dinamis untuk tiap siswa saat mengerjakan.</span>
+                        </div>
+                    </label>
                 </div>
 
                 {{-- Status --}}
@@ -793,7 +1070,7 @@
                     </div>
                 </div>
 
-                <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100 shrink-0">
                     <button
                         @click="showEditModal = false"
                         type="button"
@@ -809,6 +1086,63 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    {{-- =========================================================
+        FORM TERSEMBUNYI UNTUK HAPUS MASSAL (BULK DESTROY)
+    ========================================================== --}}
+    <form id="bulkDeleteForm" method="POST" action="{{ route('guru.kuis.bulk-destroy') }}" class="hidden">
+        @csrf
+        <template x-for="id in selectedQuizzes" :key="id">
+            <input type="hidden" name="quiz_ids[]" :value="id">
+        </template>
+    </form>
+
+    {{-- =========================================================
+        FLOATING ACTION BAR SELEKSI MASSAL
+    ========================================================== --}}
+    <div
+        x-show="selectedQuizzes.length > 0"
+        x-cloak
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 translate-y-6"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 translate-y-0"
+        x-transition:leave-end="opacity-0 translate-y-6"
+        class="fixed bottom-6 inset-x-0 z-40 max-w-lg mx-auto px-4"
+    >
+        <div class="bg-slate-900/95 backdrop-blur-md text-white rounded-2xl shadow-2xl p-4 flex items-center justify-between gap-4 border border-slate-700/80">
+            <div class="flex items-center gap-3">
+                <span class="w-8 h-8 rounded-xl bg-blue-600 text-white text-xs font-black flex items-center justify-center shrink-0 shadow-xs" x-text="selectedQuizzes.length"></span>
+                <div>
+                    <p class="text-xs font-bold text-white leading-tight">
+                        <span x-text="selectedQuizzes.length"></span> Kuis Terpilih
+                    </p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Siap dihapus sekaligus</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button
+                    type="button"
+                    @click="selectedQuizzes = []"
+                    class="px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                >
+                    Batalkan
+                </button>
+                <button
+                    type="button"
+                    @click="confirmBulkDelete()"
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    <span>Hapus (<span x-text="selectedQuizzes.length"></span>) Kuis</span>
+                </button>
+            </div>
         </div>
     </div>
 
