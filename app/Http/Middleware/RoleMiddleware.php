@@ -46,7 +46,7 @@ class RoleMiddleware
             ], 403);
         }
 
-        // Jika role tidak diizinkan, arahkan ke dashboard masing-masing dengan pesan error
+        // Jika role tidak diizinkan, arahkan langsung ke dashboard masing-masing secara seamless
         $redirectRoute = match ($userRole) {
             'operator' => 'operator.dashboard',
             'guru' => 'guru.dashboard',
@@ -55,6 +55,6 @@ class RoleMiddleware
             default => 'login',
         };
 
-        return redirect()->route($redirectRoute)->with('warning', 'Anda tidak memiliki hak akses untuk membuka halaman tersebut.');
+        return redirect()->route($redirectRoute);
     }
 }

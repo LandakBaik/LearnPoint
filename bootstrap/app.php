@@ -17,5 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function (\Illuminate\Http\Exceptions\PostTooLargeException $e, $request) {
+            return back()->with('error', 'Ukuran file yang Anda unggah melebihi kapasitas maksimum yang diizinkan server. Silakan kompres atau pilih file dengan ukuran lebih kecil (maks. 3 MB).')->withInput();
+        });
     })->create();
