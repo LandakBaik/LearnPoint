@@ -678,33 +678,94 @@
 
     <!-- BEGIN: QuizTabSection (Tab Kuiz) -->
     <section x-show="currentTab === 'kuiz'" style="display: none;" class="space-y-5">
-        <div>
-            <h2 class="text-2xl font-extrabold text-[#0F2851] tracking-tight">Kuiz Interaktif</h2>
-            <p class="text-sm text-slate-500 mt-1">Uji pemahaman dan asah kemampuan belajarmu dengan kuiz interaktif.</p>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+                <h2 class="text-2xl font-extrabold text-[#0F2851] tracking-tight">Kuis Petualangan</h2>
+                <p class="text-sm text-slate-500 mt-1">Uji pemahaman dan asah kemampuan belajarmu dengan kuis interaktif dari gurumu.</p>
+            </div>
+            <a href="{{ route('siswa.kuis') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm self-start sm:self-auto">
+                <span>Buka Portal Kuis</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
         </div>
 
         @if(isset($quizzes) && $quizzes->isNotEmpty())
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 @foreach($quizzes as $quiz)
-                    <div class="bg-white rounded-[22px] p-5 border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.03)] flex flex-col justify-between hover:shadow-md transition">
+                    @php
+                        $nilai = $quiz->nilais->first();
+                        $isCompleted = $nilai !== null;
+                        $isUpcoming = $quiz->waktu_mulai && now()->lessThan($quiz->waktu_mulai);
+                        $isExpired = $quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai);
+                    @endphp
+                    <div class="bg-white rounded-[22px] p-5 border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.03)] flex flex-col justify-between hover:shadow-md transition group">
                         <div>
                             <div class="flex items-center justify-between mb-3">
                                 <span class="px-2.5 py-1 bg-blue-50 text-blue-600 font-bold text-xs rounded-lg">
-                                    {{ $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Umum' }}
+                                    {{ $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran' }}
                                 </span>
-                                <span class="px-2.5 py-1 bg-amber-50 text-amber-600 font-semibold text-xs rounded-lg">
-                                    Level {{ $quiz->level ?? '1' }}
+                                @if($isCompleted)
+                                    <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-xs rounded-lg flex items-center gap-1">
+                                        <i class="fa-solid fa-check text-[10px]"></i>
+                                        Skor: {{ number_format($nilai->nilai, 0) }}
+                                    </span>
+                                @elseif($isUpcoming)
+                                    <span class="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-xs rounded-lg flex items-center gap-1">
+                                        <i class="fa-solid fa-clock text-[10px]"></i>
+                                        Belum Mulai
+                                    </span>
+                                @elseif($isExpired)
+                                    <span class="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 font-semibold text-xs rounded-lg flex items-center gap-1">
+                                        <i class="fa-solid fa-ban text-[10px]"></i>
+                                        Berakhir
+                                    </span>
+                                @else
+                                    <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-semibold text-xs rounded-lg flex items-center gap-1">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        Tersedia
+                                    </span>
+                                @endif
+                            </div>
+                            <h3 class="text-base font-bold text-slate-800 mb-1 group-hover:text-blue-600 transition">{{ $quiz->judul }}</h3>
+                            <p class="text-xs text-slate-400 mb-2">
+                                Guru: <span class="font-medium text-slate-600">{{ $quiz->pengampuKelas?->guruMapel?->guru?->nama ?? 'Guru Pengampu' }}</span>
+                            </p>
+                            <div class="flex items-center gap-2 text-xs text-slate-500">
+                                <span class="inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-list-check text-slate-400 text-[11px]"></i>
+                                    {{ $quiz->soals_count ?? $quiz->soals->count() }} Soal
+                                </span>
+                                <span>•</span>
+                                <span class="capitalize font-medium text-amber-600">
+                                    {{ implode(', ', $quiz->kesulitan_aktif_array ?? ['Umum']) }}
                                 </span>
                             </div>
-                            <h3 class="text-base font-bold text-slate-800 mb-2">{{ $quiz->judul }}</h3>
-                            <p class="text-xs text-slate-400">Tingkat Kesulitan: <strong class="text-slate-600 capitalize">{{ $quiz->kesulitan ?? 'Sedang' }}</strong></p>
                         </div>
+
                         <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                            <span class="text-xs text-slate-400">{{ $quiz->created_at ? $quiz->created_at->diffForHumans() : 'Aktif' }}</span>
-                            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600">
-                                Mulai Kuiz
-                                <i class="fa-solid fa-play text-[10px]"></i>
+                            <span class="text-xs text-slate-400">
+                                @if($quiz->waktu_selesai)
+                                    Batas: {{ $quiz->waktu_selesai->format('d M, H:i') }}
+                                @else
+                                    {{ $quiz->created_at ? $quiz->created_at->diffForHumans() : 'Aktif' }}
+                                @endif
                             </span>
+
+                            @if($isCompleted)
+                                <a href="{{ route('siswa.kuis.hasil', $quiz->id) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold transition">
+                                    <span>Lihat Hasil</span>
+                                    <i class="fa-solid fa-award text-[11px]"></i>
+                                </a>
+                            @elseif($isExpired)
+                                <span class="inline-flex items-center gap-1 text-xs font-semibold text-slate-400">
+                                    Waktu Habis
+                                </span>
+                            @else
+                                <a href="{{ route('siswa.kuis.show', $quiz->id) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-xs">
+                                    <span>Mulai Kuiz</span>
+                                    <i class="fa-solid fa-play text-[9px]"></i>
+                                </a>
+                            @endif
                         </div>
                     </div>
                 @endforeach
@@ -715,7 +776,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                 </svg>
                 <p class="text-sm font-semibold text-slate-700">Belum ada kuiz aktif saat ini</p>
-                <p class="text-xs text-slate-400 mt-1">Kuiz dari gurumu akan muncul di sini setelah dibuka.</p>
+                <p class="text-xs text-slate-400 mt-1">Kuiz dari gurumu akan muncul di sini setelah dipublikasikan.</p>
             </div>
         @endif
     </section>

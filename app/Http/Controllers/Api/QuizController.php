@@ -767,6 +767,20 @@ class QuizController extends Controller
             $nilaiAkhir = $totalBobot > 0 ? round(($skorDidapat / $totalBobot) * 100, 2) : 0;
             if ($nilaiAkhir > 100) $nilaiAkhir = 100;
 
+            // Konversi durasi ke detik integer
+            $rawDurasi = $request->input('durasi', 0);
+            $durasiDetik = 0;
+            if (is_numeric($rawDurasi)) {
+                $durasiDetik = (int)$rawDurasi;
+            } elseif (is_string($rawDurasi) && strpos($rawDurasi, ':') !== false) {
+                $parts = explode(':', trim($rawDurasi));
+                if (count($parts) === 2) {
+                    $durasiDetik = ((int)$parts[0] * 60) + (int)$parts[1];
+                } elseif (count($parts) === 3) {
+                    $durasiDetik = ((int)$parts[0] * 3600) + ((int)$parts[1] * 60) + (int)$parts[2];
+                }
+            }
+
             Nilai::updateOrCreate(
                 [
                     'siswa_id' => $siswa->id,
@@ -774,7 +788,7 @@ class QuizController extends Controller
                 ],
                 [
                     'nilai'  => $nilaiAkhir,
-                    'durasi' => $request->input('durasi', '00:00'),
+                    'durasi' => $durasiDetik,
                     'status' => 'selesai',
                 ]
             );

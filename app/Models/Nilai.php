@@ -41,4 +41,14 @@ class Nilai extends Model
     {
         return $this->belongsTo(SeleksiUjian::class, 'seleksi_ujian_id');
     }
+
+    public function getDurasiFormattedAttribute(): string
+    {
+        if ($this->durasi === null) {
+            return '00:00';
+        }
+        $mins = floor((int)$this->durasi / 60);
+        $secs = (int)$this->durasi % 60;
+        return sprintf('%02d:%02d', $mins, $secs);
+    }
 }

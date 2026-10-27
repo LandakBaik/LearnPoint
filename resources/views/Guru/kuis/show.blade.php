@@ -47,6 +47,7 @@
         showAddModal: false,
         showEditSoalModal: false,
         showEditQuizModal: false,
+        showHasilSiswaModal: false,
         isLevelFull: {{ $isLevelFull ? 'true' : 'false' }},
         allKeys: ['a', 'b', 'c', 'd', 'e', 'f'],
 
@@ -301,6 +302,15 @@
                             @endif
                         </button>
                     </form>
+
+                    {{-- Lihat Hasil & Nilai Siswa --}}
+                    <button @click="showHasilSiswaModal = true" type="button"
+                        class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-bold hover:bg-indigo-100 hover:text-indigo-800 transition shadow-xs cursor-pointer">
+                        <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <span>Hasil Siswa ({{ $quiz->nilais->count() }})</span>
+                    </button>
 
                     {{-- Edit Pengaturan Kuis --}}
                     <button @click="showEditQuizModal = true" type="button"
@@ -1095,6 +1105,147 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        {{-- =========================================================
+            MODAL HASIL & NILAI SISWA
+        ========================================================== --}}
+        <div x-show="showHasilSiswaModal"
+            class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            style="display: none;"
+        >
+            <div @click.outside="showHasilSiswaModal = false"
+                class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full border border-slate-200/90 max-h-[90vh] flex flex-col overflow-hidden"
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 scale-95"
+                x-transition:enter-end="opacity-100 scale-100"
+            >
+                {{-- Modal Header --}}
+                <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center text-lg font-bold shadow-xs">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 leading-tight">
+                                Hasil & Nilai Siswa
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-0.5">
+                                Kuis: <strong class="text-slate-700">{{ $quiz->judul }}</strong> • Kelas {{ $quiz->pengampuKelas?->kelas?->tingkatan }} {{ $quiz->pengampuKelas?->kelas?->nama_kelas }}
+                            </p>
+                        </div>
+                    </div>
+                    <button @click="showHasilSiswaModal = false" type="button"
+                        class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                {{-- Modal Body --}}
+                <div class="p-6 overflow-y-auto flex-1 space-y-5">
+                    @php
+                        $nilais = $quiz->nilais;
+                        $totalSubmissions = $nilais->count();
+                        $avgScore = $totalSubmissions > 0 ? $nilais->avg('nilai') : 0;
+                        $maxScore = $totalSubmissions > 0 ? $nilais->max('nilai') : 0;
+                        $minScore = $totalSubmissions > 0 ? $nilais->min('nilai') : 0;
+                    @endphp
+
+                    {{-- Metrics Pills --}}
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-100 text-center">
+                            <span class="text-[11px] font-semibold text-indigo-700 uppercase tracking-wider block">Selesai</span>
+                            <span class="text-xl font-black text-indigo-900 mt-0.5 block">{{ $totalSubmissions }} Siswa</span>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-100 text-center">
+                            <span class="text-[11px] font-semibold text-blue-700 uppercase tracking-wider block">Rata-rata</span>
+                            <span class="text-xl font-black text-blue-900 mt-0.5 block">{{ number_format($avgScore, 1) }}</span>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-center">
+                            <span class="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider block">Tertinggi</span>
+                            <span class="text-xl font-black text-emerald-900 mt-0.5 block">{{ number_format($maxScore, 0) }}</span>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-100 text-center">
+                            <span class="text-[11px] font-semibold text-amber-700 uppercase tracking-wider block">Terendah</span>
+                            <span class="text-xl font-black text-amber-900 mt-0.5 block">{{ number_format($minScore, 0) }}</span>
+                        </div>
+                    </div>
+
+                    {{-- Table Nilai --}}
+                    @if($totalSubmissions > 0)
+                        <div class="border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                    <tr>
+                                        <th class="py-3 px-4 w-12 text-center">No</th>
+                                        <th class="py-3 px-4">Nama Siswa</th>
+                                        <th class="py-3 px-4">NIS</th>
+                                        <th class="py-3 px-4 text-center">Nilai</th>
+                                        <th class="py-3 px-4 text-center">Durasi</th>
+                                        <th class="py-3 px-4 text-right">Waktu Selesai</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-xs">
+                                    @foreach($nilais as $idx => $n)
+                                        @php
+                                            $skorSiswa = (float)$n->nilai;
+                                        @endphp
+                                        <tr class="hover:bg-slate-50/70 transition">
+                                            <td class="py-3 px-4 text-center font-bold text-slate-400">{{ $idx + 1 }}</td>
+                                            <td class="py-3 px-4 font-bold text-slate-800">
+                                                {{ $n->siswa?->nama_siswa ?? 'Siswa' }}
+                                            </td>
+                                            <td class="py-3 px-4 text-slate-500 font-mono">{{ $n->siswa?->nis ?? '-' }}</td>
+                                            <td class="py-3 px-4 text-center">
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg font-extrabold text-xs
+                                                    {{ $skorSiswa >= 85 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                                                       ($skorSiswa >= 70 ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                                                       'bg-rose-50 text-rose-700 border border-rose-200') }}">
+                                                    {{ number_format($skorSiswa, 0) }}
+                                                </span>
+                                            </td>
+                                            <td class="py-3 px-4 text-center font-mono text-slate-600">{{ $n->durasi_formatted ?? '-' }}</td>
+                                            <td class="py-3 px-4 text-right text-slate-400">
+                                                {{ $n->created_at ? $n->created_at->format('d/m/Y H:i') : '-' }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="py-12 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                            <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-xl mx-auto mb-2">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                            </div>
+                            <h4 class="text-sm font-bold text-slate-700">Belum Ada Siswa Mengerjakan</h4>
+                            <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                                Nilai dan statistik pengerjaan akan otomatis tercatat di sini setelah siswa di kelas mengerjakan kuis ini.
+                            </p>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Modal Footer --}}
+                <div class="px-6 py-4 bg-slate-50/70 border-t border-slate-100 flex items-center justify-end shrink-0">
+                    <button @click="showHasilSiswaModal = false" type="button"
+                        class="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition cursor-pointer">
+                        Tutup
+                    </button>
+                </div>
             </div>
         </div>
 

@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Quiz;
 use App\Models\Soal;
 use App\Models\PengampuKelas;
+use App\Models\Nilai;
+use App\Models\Menjawab;
+use App\Models\Siswa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -613,4 +616,353 @@ class QuizController extends Controller
 
         abort_unless($isOwner, 403, 'Akses ditolak: Anda bukan pengampu kelas untuk kuis ini.');
     }
+
+    // =========================================================================
+    // FITUR INTEGRASI KUIS SISWA
+    // =========================================================================
+
+    /**
+     * SISWA: Menampilkan daftar kuis petualangan yang dipublikasikan untuk kelas siswa.
+     */
+    public function siswaIndex(Request $request)
+    {
+        $user = auth()->user();
+        $siswa = $user->siswa;
+        abort_unless($user->role === 'siswa' && $siswa, 403, 'Akses khusus siswa.');
+
+        $anggotaKelas = $siswa->anggotaKelases()?->latest()?->first();
+        $kelas = $siswa->kelas ?? $anggotaKelas?->kelas;
+        $kelasId = $kelas?->id;
+
+        if (!$kelasId) {
+            return view('Siswa.kuis.index', [
+                'quizzes'       => collect(),
+                'kelas'         => null,
+                'mapels'        => collect(),
+                'totalKuis'     => 0,
+                'totalSelesai'  => 0,
+                'totalTersedia' => 0,
+                'rataRataNilai' => 0,
+                'errorKelas'    => 'Data kelas belum terdaftar. Silakan hubungi admin sekolah.',
+            ]);
+        }
+
+        $query = Quiz::whereHas('pengampuKelas', function ($q) use ($kelasId) {
+                $q->where('kelas_id', $kelasId);
+            })
+            ->where('status', 'published')
+            ->with([
+                'pengampuKelas.guruMapel.mapel',
+                'pengampuKelas.guruMapel.guru',
+                'nilais' => function ($q) use ($siswa) {
+                    $q->where('siswa_id', $siswa->id);
+                },
+            ])
+            ->withCount('soals');
+
+        // Filter search judul kuis
+        if ($request->filled('search')) {
+            $query->where('judul', 'like', '%' . $request->search . '%');
+        }
+
+        // Filter mapel
+        if ($request->filled('mapel_id')) {
+            $query->whereHas('pengampuKelas.guruMapel', function ($q) use ($request) {
+                $q->where('mapel_id', $request->mapel_id);
+            });
+        }
+
+        $allPublished = $query->latest()->get();
+
+        // Olah status kuis untuk siswa
+        $quizzes = $allPublished->map(function ($quiz) {
+            $nilai = $quiz->nilais->first();
+            $isCompleted = $nilai !== null;
+
+            $computedStatus = 'tersedia';
+            if ($isCompleted) {
+                $computedStatus = 'selesai';
+            } elseif ($quiz->waktu_mulai && now()->lessThan($quiz->waktu_mulai)) {
+                $computedStatus = 'upcoming';
+            } elseif ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai)) {
+                $computedStatus = 'expired';
+            }
+
+            $quiz->student_status = $computedStatus;
+            $quiz->riwayat_nilai = $nilai;
+            return $quiz;
+        });
+
+        // Filter status tab
+        if ($request->filled('status')) {
+            $filterStatus = $request->status;
+            $quizzes = $quizzes->filter(function ($q) use ($filterStatus) {
+                return $q->student_status === $filterStatus;
+            });
+        }
+
+        // Ringkasan Statistik
+        $totalKuis = $allPublished->count();
+        $totalSelesai = $allPublished->filter(fn($q) => $q->nilais->isNotEmpty())->count();
+        $totalTersedia = $allPublished->filter(function ($q) {
+            return $q->nilais->isEmpty() &&
+                (!$q->waktu_mulai || now()->greaterThanOrEqualTo($q->waktu_mulai)) &&
+                (!$q->waktu_selesai || now()->lessThanOrEqualTo($q->waktu_selesai));
+        })->count();
+
+        $avgNilai = Nilai::where('siswa_id', $siswa->id)
+            ->whereNotNull('quiz_id')
+            ->whereNotNull('nilai')
+            ->avg('nilai');
+        $rataRataNilai = $avgNilai !== null ? round((float)$avgNilai, 1) : 0;
+
+        // Daftar Mata Pelajaran untuk filter dropdown
+        $mapels = $allPublished->pluck('pengampuKelas.guruMapel.mapel')->filter()->unique('id')->values();
+
+        return view('Siswa.kuis.index', compact(
+            'quizzes',
+            'kelas',
+            'mapels',
+            'totalKuis',
+            'totalSelesai',
+            'totalTersedia',
+            'rataRataNilai'
+        ));
+    }
+
+    /**
+     * SISWA: Halaman pengantar kuis (briefing) sebelum mulai pengerjaan.
+     */
+    public function siswaShow(Quiz $quiz)
+    {
+        $user = auth()->user();
+        $siswa = $user->siswa;
+        abort_unless($user->role === 'siswa' && $siswa, 403, 'Akses khusus siswa.');
+
+        $this->authorizeSiswaClass($quiz, $siswa);
+        abort_unless($quiz->isPublished(), 404, 'Kuis belum dipublikasikan oleh guru.');
+
+        $quiz->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru', 'pengampuKelas.kelas']);
+        $quiz->loadCount('soals');
+
+        $nilai = Nilai::where('siswa_id', $siswa->id)
+            ->where('quiz_id', $quiz->id)
+            ->first();
+
+        $soalCountsByArc = [];
+        foreach ($quiz->kesulitan_aktif_array as $arc) {
+            $soalCountsByArc[$arc] = $quiz->soals()->where('kesulitan', $arc)->count();
+        }
+
+        return view('Siswa.kuis.show', compact('quiz', 'nilai', 'soalCountsByArc'));
+    }
+
+    /**
+     * SISWA: Halaman pengerjaan kuis interaktif dengan timer dan pengacakan opsi.
+     */
+    public function siswaKerjakan(Quiz $quiz)
+    {
+        $user = auth()->user();
+        $siswa = $user->siswa;
+        abort_unless($user->role === 'siswa' && $siswa, 403, 'Akses khusus siswa.');
+
+        $this->authorizeSiswaClass($quiz, $siswa);
+        abort_unless($quiz->isPublished(), 403, 'Kuis belum dipublikasikan.');
+
+        // Cegah pengerjaan ulang jika sudah menyelesaikan
+        $nilai = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
+        if ($nilai) {
+            return redirect()->route('siswa.kuis.hasil', $quiz->id)
+                ->with('warning', 'Kamu sudah menyelesaikan kuis ini.');
+        }
+
+        // Cek jadwal mulai
+        if ($quiz->waktu_mulai && now()->lessThan($quiz->waktu_mulai)) {
+            return redirect()->route('siswa.kuis.show', $quiz->id)
+                ->with('error', 'Kuis belum dimulai. Jadwal mulai: ' . $quiz->waktu_mulai->translatedFormat('d F Y, H:i') . ' WIB.');
+        }
+
+        // Cek jadwal selesai
+        if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai)) {
+            return redirect()->route('siswa.kuis.show', $quiz->id)
+                ->with('error', 'Waktu pengerjaan kuis telah berakhir pada: ' . $quiz->waktu_selesai->translatedFormat('d F Y, H:i') . ' WIB.');
+        }
+
+        // Ambil butir pertanyaan kuis
+        $soals = $quiz->soals()->orderBy('urutan')->orderBy('id')->get();
+        if ($soals->isEmpty()) {
+            return redirect()->route('siswa.kuis.show', $quiz->id)
+                ->with('error', 'Kuis ini belum memiliki butir soal untuk dikerjakan.');
+        }
+
+        // Acak opsi jawaban jika fitur acak_jawaban diaktifkan oleh guru
+        if ($quiz->acak_jawaban) {
+            foreach ($soals as $soal) {
+                $pilihan = $soal->pilihan;
+                if (is_array($pilihan) && count($pilihan) > 1) {
+                    $keys = array_keys($pilihan);
+                    shuffle($keys);
+                    $shuffled = [];
+                    foreach ($keys as $k) {
+                        $shuffled[$k] = $pilihan[$k];
+                    }
+                    $soal->pilihan_shuffled = $shuffled;
+                } else {
+                    $soal->pilihan_shuffled = $pilihan;
+                }
+            }
+        } else {
+            foreach ($soals as $soal) {
+                $soal->pilihan_shuffled = $soal->pilihan;
+            }
+        }
+
+        // Hitung sisa waktu mundur dalam detik jika waktu selesai ditetapkan
+        $remainingSeconds = null;
+        if ($quiz->waktu_selesai) {
+            $remainingSeconds = max(0, now()->diffInSeconds($quiz->waktu_selesai, false));
+        }
+
+        $quiz->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru']);
+
+        return view('Siswa.kuis.kerjakan', compact('quiz', 'soals', 'remainingSeconds'));
+    }
+
+    /**
+     * SISWA: Memproses jawaban kuis, koreksi otomatis, dan rekap penilaian.
+     */
+    public function siswaSubmit(Request $request, Quiz $quiz)
+    {
+        $user = auth()->user();
+        $siswa = $user->siswa;
+        abort_unless($user->role === 'siswa' && $siswa, 403, 'Akses ditolak.');
+
+        $this->authorizeSiswaClass($quiz, $siswa);
+        abort_unless($quiz->isPublished(), 403, 'Kuis belum dipublikasikan.');
+
+        // Cegah duplikasi submit
+        $existing = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
+        if ($existing) {
+            return redirect()->route('siswa.kuis.hasil', $quiz->id)
+                ->with('warning', 'Jawaban kamu sebelumnya sudah tersimpan.');
+        }
+
+        // Cek keterlambatan pengumpulan (toleransi 2 menit)
+        if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai->copy()->addMinutes(2))) {
+            return redirect()->route('siswa.kuis.show', $quiz->id)
+                ->with('error', 'Waktu pengumpulan kuis telah kedaluwarsa.');
+        }
+
+        $soals = $quiz->soals;
+        $totalBobot = $soals->sum('bobot') ?: 100;
+        $skorDidapat = 0;
+        $jumlahBenar = 0;
+
+        DB::transaction(function () use ($soals, $request, $siswa, $quiz, &$skorDidapat, &$jumlahBenar, $totalBobot) {
+            foreach ($soals as $soal) {
+                $jawabanUser = $request->input("jawaban.{$soal->id}");
+                $isBenar = false;
+
+                if ($jawabanUser !== null && $jawabanUser !== '') {
+                    $kunci = $soal->kunci_jawaban;
+                    if (is_array($kunci)) {
+                        $cleanKunci = array_map(fn($k) => strtolower(trim((string)$k)), $kunci);
+                        $isBenar = in_array(strtolower(trim((string)$jawabanUser)), $cleanKunci);
+                    } else {
+                        $isBenar = strtolower(trim((string)$jawabanUser)) === strtolower(trim((string)$kunci));
+                    }
+
+                    if ($isBenar) {
+                        $skorDidapat += ($soal->bobot ?: 10);
+                        $jumlahBenar++;
+                    }
+                }
+
+                Menjawab::updateOrCreate(
+                    [
+                        'soal_id'  => $soal->id,
+                        'siswa_id' => $siswa->id,
+                    ],
+                    [
+                        'jawaban_dipilih' => is_array($jawabanUser) ? json_encode($jawabanUser) : (string)$jawabanUser,
+                        'benar'           => $isBenar,
+                    ]
+                );
+            }
+
+            // Normalisasi nilai ke skala 100
+            $nilaiAkhir = $totalBobot > 0 ? round(($skorDidapat / $totalBobot) * 100, 2) : 0;
+            if ($nilaiAkhir > 100) $nilaiAkhir = 100;
+
+            // Konversi durasi ke detik integer (kolom integer pada tabel nilais)
+            $rawDurasi = $request->input('durasi', 0);
+            $durasiDetik = 0;
+            if (is_numeric($rawDurasi)) {
+                $durasiDetik = (int)$rawDurasi;
+            } elseif (is_string($rawDurasi) && strpos($rawDurasi, ':') !== false) {
+                $parts = explode(':', trim($rawDurasi));
+                if (count($parts) === 2) {
+                    $durasiDetik = ((int)$parts[0] * 60) + (int)$parts[1];
+                } elseif (count($parts) === 3) {
+                    $durasiDetik = ((int)$parts[0] * 3600) + ((int)$parts[1] * 60) + (int)$parts[2];
+                }
+            }
+
+            Nilai::updateOrCreate(
+                [
+                    'siswa_id' => $siswa->id,
+                    'quiz_id'  => $quiz->id,
+                ],
+                [
+                    'nilai'  => $nilaiAkhir,
+                    'durasi' => $durasiDetik,
+                    'status' => 'selesai',
+                ]
+            );
+        });
+
+        return redirect()->route('siswa.kuis.hasil', $quiz->id)
+            ->with('success', 'Selamat! Kuis petualangan berhasil kamu selesaikan!');
+    }
+
+    /**
+     * SISWA: Menampilkan hasil akhir penilaian kuis siswa.
+     */
+    public function siswaHasil(Quiz $quiz)
+    {
+        $user = auth()->user();
+        $siswa = $user->siswa;
+        abort_unless($user->role === 'siswa' && $siswa, 403, 'Akses ditolak.');
+
+        $this->authorizeSiswaClass($quiz, $siswa);
+
+        $nilai = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
+        if (!$nilai) {
+            return redirect()->route('siswa.kuis.show', $quiz->id)
+                ->with('warning', 'Kamu belum mengerjakan kuis ini.');
+        }
+
+        $quiz->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru', 'pengampuKelas.kelas']);
+
+        $soals = $quiz->soals()->with(['menjawabs' => fn($q) => $q->where('siswa_id', $siswa->id)])->get();
+
+        $totalSoal = $soals->count();
+        $totalBenar = $soals->filter(fn($s) => $s->menjawabs->first()?->benar)->count();
+        $totalSalah = $totalSoal - $totalBenar;
+
+        return view('Siswa.kuis.hasil', compact('quiz', 'nilai', 'soals', 'totalSoal', 'totalBenar', 'totalSalah'));
+    }
+
+    /**
+     * Helper verifikasi bahwa kuis ditujukan untuk kelas siswa yang login.
+     */
+    private function authorizeSiswaClass(Quiz $quiz, Siswa $siswa): void
+    {
+        $anggotaKelas = $siswa->anggotaKelases()?->latest()?->first();
+        $kelasId = $siswa->kelas?->id ?? $anggotaKelas?->kelas_id;
+        $quizKelasId = $quiz->pengampuKelas?->kelas_id;
+
+        abort_unless($kelasId && $quizKelasId && $kelasId === $quizKelasId, 403, 'Akses ditolak: Kuis ini bukan untuk kelas Anda.');
+    }
 }
+

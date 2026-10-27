@@ -137,6 +137,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/siswa/tugas/{id}', [TugasController::class, 'showSiswa'])->name('siswa.tugas.show');
         Route::post('/siswa/tugas/{id}/kumpulkan', [TugasController::class, 'kumpulkanTugas'])->name('siswa.tugas.kumpulkan');
         Route::get('/siswa/jadwal', [JadwalController::class, 'index'])->name('siswa.jadwal');
+
+        // Kuis Petualangan Siswa
+        Route::get('/siswa/kuis', [QuizController::class, 'siswaIndex'])->name('siswa.kuis');
+        Route::get('/siswa/kuis/{quiz}', [QuizController::class, 'siswaShow'])->name('siswa.kuis.show');
+        Route::get('/siswa/kuis/{quiz}/kerjakan', [QuizController::class, 'siswaKerjakan'])->name('siswa.kuis.kerjakan');
+        Route::post('/siswa/kuis/{quiz}/selesaikan', [QuizController::class, 'siswaSubmit'])->name('siswa.kuis.submit');
+        Route::get('/siswa/kuis/{quiz}/hasil', [QuizController::class, 'siswaHasil'])->name('siswa.kuis.hasil');
     });
 
     // Dashboard Admin / Operator

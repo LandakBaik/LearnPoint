@@ -177,13 +177,23 @@ class DashboardController extends Controller
 
         // Hitung badge counts
         $tugasMenantiCount = $kelasId ? Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))->where('deadline', '>=', now())->count() : 0;
-        $quizCount         = $kelasId ? Quiz::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))->count() : 0;
+        $quizCount         = $kelasId ? Quiz::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))->where('status', 'published')->count() : 0;
         $ujianCount        = $kelasId ? Ujian::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))->count() : 0;
 
-        // Quizzes
+        // Quizzes Dipublikasikan untuk Kelas Siswa
         $quizzes = $kelasId
-            ? Quiz::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))->with(['pengampuKelas.guruMapel.mapel'])->latest()->take(6)->get()
-            : Quiz::with(['pengampuKelas.guruMapel.mapel'])->latest()->take(6)->get();
+            ? Quiz::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))
+                ->where('status', 'published')
+                ->with([
+                    'pengampuKelas.guruMapel.mapel',
+                    'pengampuKelas.guruMapel.guru',
+                    'nilais' => fn($q) => $q->where('siswa_id', $siswa?->id),
+                ])
+                ->withCount('soals')
+                ->latest()
+                ->take(6)
+                ->get()
+            : collect();
 
         $unreadNotifCount = $user->notifikasi()->count() ?? 0;
 
