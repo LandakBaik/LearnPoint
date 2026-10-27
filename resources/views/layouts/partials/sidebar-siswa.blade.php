@@ -51,7 +51,7 @@
     @endphp
 
     <!-- Dashboard -->
-    @php $isDashboard = request()->routeIs('siswa.dashboard') || request()->routeIs('guru.dashboard') || request()->routeIs('dashboard'); @endphp
+    @php $isDashboard = (request()->routeIs('siswa.dashboard') || request()->routeIs('guru.dashboard') || request()->routeIs('dashboard')) && request('tab') !== 'statistik'; @endphp
     <a 
         href="{{ route($dashboardRoute) }}" 
         class="flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm transition-all relative {{ $isDashboard ? $activeClass : $inactiveClass }}"
@@ -111,17 +111,19 @@
         @endif
     </a>
 
-    <!-- Nilai -->
-    @php $isNilai = request()->routeIs('siswa.nilai*') || request()->routeIs('guru.nilai*'); @endphp
+    <!-- Nilai / Statistik -->
+    @php 
+        $isStatistik = (request()->routeIs('siswa.beranda*') && request('tab') === 'statistik') || request()->routeIs('siswa.nilai*'); 
+    @endphp
     <a 
-        href="{{ Route::has('siswa.nilai') ? route('siswa.nilai') : '#' }}" 
-        class="flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm transition-all relative {{ $isNilai ? $activeClass : $inactiveClass }}"
+        href="{{ route('siswa.beranda', ['tab' => 'statistik']) }}" 
+        class="flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm transition-all relative {{ $isStatistik ? $activeClass : $inactiveClass }}"
     >
         <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 20V10m-6 10V4m-6 16v-6"/>
         </svg>
-        <span class="text-base font-semibold">Nilai</span>
-        @if($isNilai)
+        <span class="text-base font-semibold">Statistik Nilai</span>
+        @if($isStatistik)
             <span class="w-2 h-6 bg-white rounded-full ml-auto shrink-0 shadow-sm"></span>
         @endif
     </a>

@@ -14,8 +14,10 @@ return new class extends Migration
         Schema::create('tugases', function (Blueprint $table) {
             $table->id();
             $table->string('judul', 200);
+            $table->text('deskripsi')->nullable();
             $table->dateTime('deadline');
             $table->enum('tipe', ['upload', 'pilihan_ganda']);
+            $table->string('file_lampiran')->nullable();
 
             $table->foreignId('pengampu_kelas_id')
                 ->constrained('pengampu_kelas')

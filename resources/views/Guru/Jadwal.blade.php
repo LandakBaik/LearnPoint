@@ -104,21 +104,49 @@
         <!-- Assignments Summary Card -->
         @if($guruMapels->count() > 0)
             <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
-                <h3 class="text-base font-bold text-gray-900">Daftar Kelas Mengajar per Mata Pelajaran</h3>
+                <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900">Daftar Kelas Mengajar per Mata Pelajaran</h3>
+                        <p class="text-xs text-gray-500">Ringkasan alokasi kelas untuk setiap mata pelajaran yang Anda ampu.</p>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        {{ $guruMapels->count() }} Mata Pelajaran
+                    </span>
+                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     @foreach($guruMapels as $gm)
-                        @foreach($gm->pengampuKelases as $pk)
-                            <div class="p-4 rounded-xl border border-gray-100 bg-gray-50/70 space-y-1">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                                        {{ $pk->kelas->nama_kelas ?? '-' }}
+                        <div class="p-4 rounded-xl border border-gray-200 bg-gray-50/60 hover:bg-white hover:border-indigo-200 hover:shadow-xs transition-all space-y-3">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded">
+                                        Mata Pelajaran
                                     </span>
-                                    <span class="text-[10px] text-gray-400 font-mono">Tingkat {{ $pk->kelas->tingkatan ?? '-' }}</span>
+                                    <h4 class="font-extrabold text-gray-900 text-sm mt-1.5">
+                                        {{ $gm->mapel->nama_mapel ?? '-' }}
+                                    </h4>
                                 </div>
-                                <h4 class="font-bold text-gray-900 text-sm mt-1">{{ $gm->mapel->nama_mapel ?? '-' }}</h4>
-                                <p class="text-xs text-gray-500">KKM Standar: {{ $gm->mapel->kkm ?? '-' }}</p>
+                                @if($gm->mapel)
+                                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                                        KKM: {{ $gm->mapel->kkm }}
+                                    </span>
+                                @endif
                             </div>
-                        @endforeach
+
+                            <div>
+                                <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">Kelas yang Diampu:</p>
+                                @if($gm->pengampuKelases->count() > 0)
+                                    <div class="flex flex-wrap gap-1.5">
+                                        @foreach($gm->pengampuKelases as $pk)
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-white border border-gray-200 text-gray-800 text-xs font-semibold shadow-2xs">
+                                                {{ $pk->kelas->nama_kelas ?? '-' }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <p class="text-xs text-gray-400 italic">Belum dialokasikan ke kelas</p>
+                                @endif
+                            </div>
+                        </div>
                     @endforeach
                 </div>
             </div>

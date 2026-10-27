@@ -47,24 +47,25 @@
                     @enderror
                 </div>
 
-                <!-- NIP Guru (Wajib 18 Digit Angka) -->
+                <!-- NUPTK Guru (Wajib 16 Digit Angka) -->
                 <div>
-                    <label for="nip" class="block text-sm font-bold text-gray-700 mb-1">Nomor Induk Pegawai (NIP) <span class="text-rose-500">*</span></label>
+                    <label for="nuptk" class="block text-sm font-bold text-gray-700 mb-1">Nomor Unik Pendidik dan Tenaga Kependidikan (NUPTK) <span class="text-rose-500">*</span></label>
                     <input 
                         type="text" 
-                        id="nip" 
-                        name="nip" 
+                        id="nuptk" 
+                        name="nuptk" 
                         inputmode="numeric"
-                        pattern="[0-9]{18}"
-                        minlength="18"
-                        maxlength="18"
-                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 18)"
-                        value="{{ old('nip', $guru->nip) }}" 
+                        pattern="[0-9]{16}"
+                        minlength="16"
+                        maxlength="16"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 16);"
+                        value="{{ old('nuptk', $guru->nuptk) }}" 
                         required 
-                        class="w-full px-4 py-2.5 rounded-xl border @error('nip') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                        class="w-full px-4 py-2.5 rounded-xl border @error('nuptk') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                     >
-                    <p class="text-xs text-gray-500 mt-1">NIP harus tepat 18 digit angka.</p>
-                    @error('nip')
+                    <p class="text-xs text-gray-500 mt-1">NUPTK harus tepat 16 digit angka.</p>
+
+                    @error('nuptk')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror
                 </div>
@@ -216,4 +217,5 @@
     </div>
 
 </div>
+
 @endsection

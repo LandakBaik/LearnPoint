@@ -16,8 +16,6 @@ class PengampuKelas extends Model
         'kelas_id',
     ];
 
-
-
     public function guruMapel()
     {
         return $this->belongsTo(GuruMapel::class, 'guru_mapel_id');

@@ -71,15 +71,17 @@ class SiswaController extends Controller
         $minDate = now()->subYears(16)->format('Y-m-d');
 
         $validated = $request->validate([
-            'nama_siswa'    => ['required', 'string', 'max:100'],
+            'nama_siswa'    => ['required', 'string', 'max:100','regex:/^[a-zA-Z\s\.,]+$/u'],
             'nis'           => 'required|numeric|digits_between:4,10|unique:siswas,nis',
             'alamat'        => 'required|string',
             'tanggal_lahir' => ['required', 'date', 'before_or_equal:' . $maxDate, 'after_or_equal:' . $minDate],
             'jenis_kelamin' => 'required|in:L,P',
-            'wali_murid'    => ['required', 'string', 'max:100'],
+            'wali_murid'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
             'nohp_wali'     => 'required|numeric|digits_between:8,20',
             'kelas_id'      => 'nullable|exists:kelases,id',
         ], [
+            'wali_murid.regex'              => 'Nama wali murid hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nama_siswa.regex'              => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
             'nis.numeric'                   => 'NIS siswa harus berupa angka.',
             'nis.digits_between'            => 'NIS siswa harus terdiri dari 4 hingga 10 digit angka.',
             'nis.unique'                    => 'NIS ini sudah terdaftar untuk siswa lain.',
@@ -156,15 +158,17 @@ class SiswaController extends Controller
         $minDate = now()->subYears(16)->format('Y-m-d');
 
         $validated = $request->validate([
-            'nama_siswa'    => ['required', 'string', 'max:100'],
+            'nama_siswa'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
             'nis'           => ['required', 'numeric', 'digits_between:4,10', Rule::unique('siswas')->ignore($siswa->id)],
             'alamat'        => 'required|string',
             'tanggal_lahir' => ['required', 'date', 'before_or_equal:' . $maxDate, 'after_or_equal:' . $minDate],
             'jenis_kelamin' => 'required|in:L,P',
-            'wali_murid'    => ['required', 'string', 'max:100'],
+            'wali_murid'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
             'nohp_wali'     => 'required|numeric|digits_between:8,20',
             'kelas_id'      => 'nullable|exists:kelases,id',
         ], [
+            'wali_murid.regex'              => 'Nama wali murid hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nama_siswa.regex'              => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
             'nis.numeric'                   => 'NIS siswa harus berupa angka.',
             'nis.digits_between'            => 'NIS siswa harus terdiri dari 4 hingga 10 digit angka.',
             'nis.unique'                    => 'NIS ini sudah terdaftar untuk siswa lain.',

@@ -18,6 +18,12 @@ class RoleMiddleware
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
         if (!Auth::check()) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
             return redirect()->route('login');
         }
 
@@ -33,7 +39,14 @@ class RoleMiddleware
             return $next($request);
         }
 
-        // Jika role tidak diizinkan, arahkan ke dashboard masing-masing dengan pesan error
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak. Role Anda tidak memiliki izin.',
+            ], 403);
+        }
+
+        // Jika role tidak diizinkan, arahkan langsung ke dashboard masing-masing secara seamless
         $redirectRoute = match ($userRole) {
             'operator' => 'operator.dashboard',
             'guru' => 'guru.dashboard',
@@ -42,6 +55,6 @@ class RoleMiddleware
             default => 'login',
         };
 
-        return redirect()->route($redirectRoute)->with('warning', 'Anda tidak memiliki hak akses untuk membuka halaman tersebut.');
+        return redirect()->route($redirectRoute);
     }
 }

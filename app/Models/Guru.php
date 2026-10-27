@@ -13,7 +13,9 @@ class Guru extends Model
 
     protected $fillable = [
         'nama',
-        'nip',
+        'nuptk',
+        'nomor_telepon',
+        'jenis_kelamin',
         'status',
     ];
 
@@ -51,5 +53,20 @@ class Guru extends Model
         $jadwal = $this->jadwal;
         return $jadwal ? asset('storage/' . $jadwal) : null;
     }
-}
 
+    /**
+     * Alias backward compatibility untuk no_telp.
+     */
+    public function getNoTelpAttribute(): ?string
+    {
+        return $this->nomor_telepon;
+    }
+
+    /**
+     * Alias backward compatibility untuk NIP -> NUPTK.
+     */
+    public function getNipAttribute(): ?string
+    {
+        return $this->nuptk;
+    }
+}

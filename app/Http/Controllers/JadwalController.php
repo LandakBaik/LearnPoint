@@ -69,6 +69,13 @@ class JadwalController extends Controller
         $request->validate([
             'kelas_id'    => 'required|exists:kelases,id',
             'foto_jadwal' => 'required|image|mimes:jpeg,png,jpg,webp|max:3072',
+        ], [
+            'kelas_id.required'    => 'Kelas tujuan harus dipilih.',
+            'kelas_id.exists'      => 'Kelas yang dipilih tidak ditemukan dalam sistem.',
+            'foto_jadwal.required' => 'File foto jadwal wajib dipilih.',
+            'foto_jadwal.image'    => 'File yang diunggah harus berupa file gambar/foto.',
+            'foto_jadwal.mimes'    => 'Format foto harus berupa JPG, JPEG, PNG, atau WEBP.',
+            'foto_jadwal.max'      => 'Ukuran foto jadwal melebihi kapasitas maksimum 3 MB (3.072 KB). Silakan kompres atau pilih foto yang lebih kecil.',
         ]);
 
         $kelas = Kelas::findOrFail($request->kelas_id);
@@ -98,6 +105,14 @@ class JadwalController extends Controller
             'guru_mapel_id'     => 'nullable',
             'mapel_id'          => 'nullable|exists:mapels,id',
             'foto_jadwal'       => 'required|image|mimes:jpeg,png,jpg,webp|max:3072',
+        ], [
+            'guru_id.required'     => 'Data guru tidak valid.',
+            'guru_id.exists'       => 'Data guru tidak ditemukan dalam sistem.',
+            'mapel_id.exists'      => 'Mata pelajaran yang dipilih tidak valid.',
+            'foto_jadwal.required' => 'File foto jadwal mengajar wajib dipilih.',
+            'foto_jadwal.image'    => 'File yang diunggah harus berupa file gambar/foto.',
+            'foto_jadwal.mimes'    => 'Format foto harus berupa JPG, JPEG, PNG, atau WEBP.',
+            'foto_jadwal.max'      => 'Ukuran foto jadwal melebihi kapasitas maksimum 3 MB (3.072 KB). Silakan kompres atau pilih foto yang lebih kecil.',
         ]);
 
         $guru = Guru::findOrFail($request->guru_id);

@@ -15,6 +15,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\GuruMapelController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UjianController;
+use App\Http\Controllers\QuizController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -39,72 +40,110 @@ Route::middleware(['auth'])->group(function () {
     // Main Dashboard Router
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // ==========================================
-    // 💡 ROUTE DASHBOARD KHUSUS (TARUH DI ATAS RESOURCE)
-    // ==========================================
-    Route::get('/guru/dashboard', [DashboardController::class, 'guruDashboard'])->name('guru.dashboard');
-    Route::get('/siswa/dashboard', [DashboardController::class, 'siswaDashboard'])->name('siswa.dashboard');
+    Route::middleware(['role:guru'])->group(function () {
+        Route::get('/guru/dashboard', [DashboardController::class, 'guruDashboard'])->name('guru.dashboard');
+        Route::get('/guru/materi', [MateriController::class, 'index'])->name('guru.materi');
+        Route::get('/guru/materi/create', [MateriController::class, 'create'])->name('guru.materi.create');
+        Route::post('/guru/materi', [MateriController::class, 'store'])->name('guru.materi.store');
+        Route::get('/guru/materi/{id_grub_materi}/edit', [MateriController::class, 'edit'])->name('guru.materi.edit');
+        Route::put('/guru/materi/{id_grub_materi}', [MateriController::class, 'update'])->name('guru.materi.update');
+        Route::delete('/guru/materi/{id_grub_materi}', [MateriController::class, 'destroy'])->name('guru.materi.destroy');
+        Route::get('/guru/tugas', [TugasController::class, 'index'])->name('guru.tugas');
 
-    // Dashboard Guru Fitur
-Route::middleware(['role:guru'])->group(function () {
+        // Halaman tambah tugas
+        Route::post('/guru/tugas', [TugasController::class, 'store'])
+            ->name('guru.tugas.store');
+        Route::get('/guru/tugas/{id}', [TugasController::class, 'show'])
+            ->name('guru.tugas.show');
 
-    Route::get('/guru/materi', [MateriController::class, 'index'])
-        ->name('guru.materi');
+        // Simpan / perbarui nilai siswa
+        Route::post('/guru/pengumpulan/{id}/nilai', [TugasController::class, 'berikanNilai'])
+            ->name('guru.pengumpulan.nilai');
+        Route::put('/guru/tugas/{id}', [TugasController::class, 'update'])
+            ->name('guru.tugas.update');
+        Route::delete('/guru/tugas/{id}', [TugasController::class, 'destroy'])
+            ->name('guru.tugas.destroy');
+        Route::get('/guru/jadwal', [JadwalController::class, 'index'])
+            ->name('guru.jadwal');
 
-    Route::get('/guru/tugas', [TugasController::class, 'index'])
-        ->name('guru.tugas');
+        // Daftar semua ujian
+        Route::get('/guru/ujian', [UjianController::class, 'index'])
+            ->name('guru.ujian.index');
 
-    Route::get('/guru/jadwal', [JadwalController::class, 'index'])
-        ->name('guru.jadwal');
+        // Halaman tambah ujian
+        Route::get('/guru/ujian/create', [UjianController::class, 'create'])
+            ->name('guru.ujian.create');
 
+        // Simpan ujian baru
+        Route::post('/guru/ujian', [UjianController::class, 'store'])
+            ->name('guru.ujian.store');
 
-    // ==========================================
-    // UJIAN GURU
-    // ==========================================
+        // Detail ujian
+        Route::get('/guru/ujian/{ujian}', [UjianController::class, 'show'])
+            ->name('guru.ujian.show');
 
-    // Daftar semua ujian
-    Route::get('/guru/ujian', [UjianController::class, 'index'])
-        ->name('guru.ujian.index');
+        // Halaman edit ujian
+        Route::get('/guru/ujian/{ujian}/edit', [UjianController::class, 'edit'])
+            ->name('guru.ujian.edit');
 
-    // Halaman tambah ujian
-    Route::get('/guru/ujian/create', [UjianController::class, 'create'])
-        ->name('guru.ujian.create');
+        // Update ujian
+        Route::put('/guru/ujian/{ujian}', [UjianController::class, 'update'])
+            ->name('guru.ujian.update');
 
-    // Simpan ujian baru
-    Route::post('/guru/ujian', [UjianController::class, 'store'])
-        ->name('guru.ujian.store');
+        // Hapus ujian
+        Route::delete('/guru/ujian/{ujian}', [UjianController::class, 'destroy'])
+            ->name('guru.ujian.destroy');
 
-    // Detail ujian
-    Route::get('/guru/ujian/{ujian}', [UjianController::class, 'show'])
-        ->name('guru.ujian.show');
+        // Publikasi ujian sekarang
+        Route::post('/guru/ujian/{ujian}/publish', [UjianController::class, 'publish'])
+            ->name('guru.ujian.publish');
 
-    // Halaman edit ujian
-    Route::get('/guru/ujian/{ujian}/edit', [UjianController::class, 'edit'])
-        ->name('guru.ujian.edit');
+        // Jadwalkan ujian
+        Route::post('/guru/ujian/{ujian}/schedule', [UjianController::class, 'schedule'])
+            ->name('guru.ujian.schedule');
 
-    // Update ujian
-    Route::put('/guru/ujian/{ujian}', [UjianController::class, 'update'])
-        ->name('guru.ujian.update');
+        // Kuis Guru
+        Route::get('/guru/kuis', [QuizController::class, 'index'])
+            ->name('guru.kuis.index');
+        Route::post('/guru/kuis', [QuizController::class, 'store'])
+            ->name('guru.kuis.store');
+        Route::post('/guru/kuis/bulk-destroy', [QuizController::class, 'bulkDestroy'])
+            ->name('guru.kuis.bulk-destroy');
+        Route::get('/guru/kuis/{quiz}', [QuizController::class, 'show'])
+            ->name('guru.kuis.show');
+        Route::put('/guru/kuis/{quiz}', [QuizController::class, 'update'])
+            ->name('guru.kuis.update');
+        Route::delete('/guru/kuis/{quiz}', [QuizController::class, 'destroy'])
+            ->name('guru.kuis.destroy');
+        Route::patch('/guru/kuis/{quiz}/toggle-status', [QuizController::class, 'toggleStatus'])
+            ->name('guru.kuis.toggle-status');
 
-    // Hapus ujian
-    Route::delete('/guru/ujian/{ujian}', [UjianController::class, 'destroy'])
-        ->name('guru.ujian.destroy');
-
-    // Publikasi ujian sekarang
-    Route::post('/guru/ujian/{ujian}/publish', [UjianController::class, 'publish'])
-        ->name('guru.ujian.publish');
-
-    // Jadwalkan ujian
-    Route::post('/guru/ujian/{ujian}/schedule', [UjianController::class, 'schedule'])
-        ->name('guru.ujian.schedule');
-});
+        // Soal Kuis Guru
+        Route::post('/guru/kuis/{quiz}/soal', [QuizController::class, 'storeSoal'])
+            ->name('guru.kuis.soal.store');
+        Route::put('/guru/kuis/{quiz}/soal/{soal}', [QuizController::class, 'updateSoal'])
+            ->name('guru.kuis.soal.update');
+        Route::delete('/guru/kuis/{quiz}/soal/{soal}', [QuizController::class, 'destroySoal'])
+            ->name('guru.kuis.soal.destroy');
+    });
 
     // Dashboard Siswa Fitur
-    Route::middleware(['auth', 'role:siswa'])->group(function() {
+    Route::middleware(['role:siswa'])->group(function () {
+        Route::get('/siswa/dashboard', [DashboardController::class, 'siswaDashboard'])->name('siswa.dashboard');
+        Route::get('/siswa/beranda', [DashboardController::class, 'siswaDashboard'])->name('siswa.beranda');
         Route::get('/siswa/materi', [MateriController::class, 'indexSiswa'])->name('siswa.materi');
         Route::get('/siswa/materi/{id}', [MateriController::class, 'showSiswa'])->name('siswa.materi.show');
         Route::get('/siswa/tugas', [TugasController::class, 'indexSiswa'])->name('siswa.tugas');
+        Route::get('/siswa/tugas/{id}', [TugasController::class, 'showSiswa'])->name('siswa.tugas.show');
+        Route::post('/siswa/tugas/{id}/kumpulkan', [TugasController::class, 'kumpulkanTugas'])->name('siswa.tugas.kumpulkan');
         Route::get('/siswa/jadwal', [JadwalController::class, 'index'])->name('siswa.jadwal');
+
+        // Kuis Petualangan Siswa
+        Route::get('/siswa/kuis', [QuizController::class, 'siswaIndex'])->name('siswa.kuis');
+        Route::get('/siswa/kuis/{quiz}', [QuizController::class, 'siswaShow'])->name('siswa.kuis.show');
+        Route::get('/siswa/kuis/{quiz}/kerjakan', [QuizController::class, 'siswaKerjakan'])->name('siswa.kuis.kerjakan');
+        Route::post('/siswa/kuis/{quiz}/selesaikan', [QuizController::class, 'siswaSubmit'])->name('siswa.kuis.submit');
+        Route::get('/siswa/kuis/{quiz}/hasil', [QuizController::class, 'siswaHasil'])->name('siswa.kuis.hasil');
     });
 
     // Dashboard Admin / Operator

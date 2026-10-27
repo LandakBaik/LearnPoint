@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.siswa')
 
 @section('title', 'Materi Pelajaran')
 
@@ -26,7 +26,7 @@
         @forelse ($daftarMapel as $mapel)
             @php
                 $pengampuKelas = $mapel->pengampuKelases->first();
-                $guruModel = $pengampuKelas?->guruMapel?->guru;
+                $guruModel = $pengampuKelas?->guruMapel?->guru ?? $mapel->guruMapels?->first()?->guru;
                 $namaGuru = $guruModel->nama ?? $guruModel->name ?? 'Guru Pengampu';
 
                 // Ambil inisial nama guru
@@ -37,8 +37,14 @@
                 $avatarColors = ['bg-red-500', 'bg-amber-500', 'bg-emerald-600', 'bg-blue-600', 'bg-indigo-600', 'bg-rose-600', 'bg-teal-600', 'bg-fuchsia-600', 'bg-slate-800'];
                 $avatarColor = $avatarColors[$mapel->id % count($avatarColors)];
 
-                $jumlahBab = 0;
-                $jumlahMateri = $mapel->pengampuKelases->sum(fn ($assignment) => $assignment->materis->count());
+                // Ambil daftar materi unik untuk mata pelajaran ini secara riil
+                $materiList = $mapel->pengampuKelases->flatMap->materis->unique('id_grub_materi');
+                if ($materiList->isEmpty()) {
+                    $materiList = \App\Models\Materi::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('mapel_id', $mapel->id))->get()->unique('id_grub_materi');
+                }
+                $jumlahMateri = $materiList->count();
+                $jumlahBab = $jumlahMateri > 0 ? $jumlahMateri : 0;
+                $latestMateri = $materiList->sortByDesc('created_at')->first();
             @endphp
 
             {{-- Seluruh Kartu Dibuat Link--}}
@@ -82,7 +88,7 @@
                 <!-- Card Footer -->
                 <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
                     <span class="text-[11px] text-slate-400 font-normal">
-                        {{ $mapel->updated_at ? $mapel->updated_at->diffForHumans() : 'Masuk Pembelajaran' }}
+                        {{ $latestMateri?->created_at ? $latestMateri->created_at->diffForHumans() : ($mapel->updated_at ? $mapel->updated_at->diffForHumans() : 'Masuk Pembelajaran') }}
                     </span>
                     <span class="text-xs font-bold text-blue-600 group-hover:text-blue-700 flex items-center gap-1 transition-colors">
                         Buka Materi
