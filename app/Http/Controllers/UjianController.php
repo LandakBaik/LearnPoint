@@ -217,7 +217,7 @@ class UjianController extends Controller
     'kisi_kisi' => $validated['kisi_kisi'] ?? null,
 
     'pengampu_kelas_id' => $pengampuKelas->id,
-    'guru_mapel_id' => $pengampuKelas->guru_mapel_id,
+    // 'guru_mapel_id' => $pengampuKelas->guru_mapel_id,
 
     'durasi_menit' => $validated['durasi_menit'],
     'kkm' => $validated['kkm'],
@@ -516,7 +516,7 @@ if ($kunciJawabanJson === false || $kunciJawabanJson === 'null') {
             'kisi_kisi' => $validated['kisi_kisi'] ?? null,
 
             'pengampu_kelas_id' => $pengampuKelas->id,
-            'guru_mapel_id' => $pengampuKelas->guru_mapel_id,
+            // 'guru_mapel_id' => $pengampuKelas->guru_mapel_id,
 
             'durasi_menit' => $validated['durasi_menit'],
             'kkm' => $validated['kkm'],
