@@ -3,7 +3,7 @@
 @section('title', 'E-Learning Dashboard - LearnPoint')
 
 @section('content')
-<div x-data="{ currentTab: '{{ request('tab', 'mapel') }}' }" class="space-y-6">
+<div x-data="{ currentTab: '{{ request('tab', 'mapel') }}', zoomJadwalModal: false }" class="space-y-6">
 
     <!-- BEGIN: WelcomeBanner -->
     <section class="relative overflow-hidden rounded-[24px] bg-gradient-to-r from-[#EBF4FF] via-[#EDF6FF] to-[#DCEEFE] p-7 md:p-9 border border-blue-100 shadow-sm" data-purpose="welcome-banner">
@@ -233,6 +233,17 @@
                 <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-linecap="round" stroke-linejoin="round"></path>
             </svg>
             <span>Kuiz</span>
+        </button>
+
+        <!-- Tab: Jadwal -->
+        <button @click="currentTab = 'jadwal'"
+                :class="currentTab === 'jadwal' ? 'bg-[#DCEAFE] text-blue-600 font-bold shadow-sm' : 'text-slate-500 font-semibold hover:text-slate-800'"
+                class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition"
+                type="button">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+            <span>Jadwal</span>
         </button>
     </div>
     <!-- END: NavigationTabs -->
@@ -781,6 +792,129 @@
         @endif
     </section>
     <!-- END: QuizTabSection -->
+
+    <!-- BEGIN: JadwalTabSection (Tab Jadwal) -->
+    <section x-show="currentTab === 'jadwal'" style="display: none;" class="space-y-5">
+        <div>
+            <h2 class="text-2xl font-extrabold text-[#0F2851] tracking-tight">Jadwal Pelajaran Kelas</h2>
+            <p class="text-sm text-slate-500 mt-1">Jadwal resmi pembelajaran kelas {{ $kelas->nama_kelas ?? 'Anda' }} semester {{ $semester ?? 'Ganjil' }}.</p>
+        </div>
+
+        @if($kelas && $kelas->jadwal_url)
+            <div class="bg-white rounded-[22px] p-6 border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.03)] space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                            <i class="fa-regular fa-calendar-check text-base"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-800">Foto Jadwal Pelajaran Resmi</h3>
+                            <p class="text-xs text-slate-400">Kelas {{ $kelas->nama_kelas }} &bull; Semester {{ $semester ?? 'Ganjil' }} &bull; Tahun Ajaran {{ $tahunAjaran ?? '2024/2025' }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button 
+                            type="button" 
+                            @click="zoomJadwalModal = true"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-bold transition">
+                            <i class="fa-solid fa-expand text-[10px]"></i>
+                            <span>Perbesar Gambar</span>
+                        </button>
+                        <a 
+                            href="{{ $kelas->jadwal_url }}" 
+                            download="Jadwal-Kelas-{{ $kelas->nama_kelas ?? 'Siswa' }}"
+                            target="_blank"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-xs">
+                            <i class="fa-solid fa-download text-[10px]"></i>
+                            <span>Unduh Foto</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="rounded-xl overflow-hidden border border-slate-200/80 bg-slate-50 flex items-center justify-center p-3 cursor-pointer group"
+                     @click="zoomJadwalModal = true">
+                    <img src="{{ $kelas->jadwal_url }}" alt="Jadwal Pelajaran Kelas {{ $kelas->nama_kelas }}" class="max-h-[560px] w-auto object-contain rounded-lg shadow-2xs group-hover:scale-[1.01] transition-transform duration-200">
+                </div>
+                <p class="text-[11px] text-center text-slate-400">
+                    <i class="fa-solid fa-circle-info mr-1"></i> Klik pada foto untuk melihat ukuran penuh.
+                </p>
+            </div>
+
+            <!-- Modal Zoom Foto Jadwal -->
+            <div 
+                x-show="zoomJadwalModal" 
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm"
+                @keydown.escape.window="zoomJadwalModal = false"
+                style="display: none;">
+                
+                <div 
+                    class="relative bg-white rounded-3xl max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100"
+                    @click.outside="zoomJadwalModal = false">
+                    
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                                <i class="fa-regular fa-calendar"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-800">Foto Jadwal Pelajaran Kelas {{ $kelas->nama_kelas ?? '' }}</h3>
+                                <p class="text-[11px] text-slate-400">Semester {{ $semester ?? 'Ganjil' }} &bull; Tahun Ajaran {{ $tahunAjaran ?? '2024/2025' }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <a 
+                                href="{{ $kelas->jadwal_url }}" 
+                                download="Jadwal-Kelas-{{ $kelas->nama_kelas ?? 'Siswa' }}"
+                                target="_blank"
+                                class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
+                                <i class="fa-solid fa-download text-xs"></i>
+                                <span>Unduh</span>
+                            </a>
+                            <button 
+                                type="button" 
+                                @click="zoomJadwalModal = false"
+                                class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition flex items-center justify-center">
+                                <i class="fa-solid fa-xmark text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-4 sm:p-6 overflow-auto flex items-center justify-center bg-slate-100/50 min-h-[300px]">
+                        <img 
+                            src="{{ $kelas->jadwal_url }}" 
+                            alt="Jadwal Pelajaran Kelas {{ $kelas->nama_kelas ?? '' }}" 
+                            class="max-w-full max-h-[75vh] object-contain rounded-xl shadow-md border border-slate-200"
+                        >
+                    </div>
+
+                    <div class="px-6 py-3 border-t border-slate-100 bg-white flex items-center justify-between text-xs text-slate-400">
+                        <span>Gunakan tombol unduh untuk menyimpan foto jadwal.</span>
+                        <button type="button" @click="zoomJadwalModal = false" class="font-bold text-blue-600 hover:text-blue-700">
+                            Tutup [ESC]
+                        </button>
+                    </div>
+                </div>
+            </div>
+        @else
+            <div class="py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200 text-slate-400">
+                <div class="w-12 h-12 mx-auto rounded-2xl bg-blue-50 text-blue-400 flex items-center justify-center mb-3">
+                    <i class="fa-regular fa-calendar-xmark text-xl"></i>
+                </div>
+                <h3 class="text-sm font-bold text-slate-700">Foto Jadwal Belum Diunggah</h3>
+                <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                    Foto jadwal resmi untuk kelas {{ $kelas->nama_kelas ?? 'ini' }} belum diunggah oleh pihak sekolah. Silakan hubungi wali kelasmu untuk info jadwal.
+                </p>
+            </div>
+        @endif
+    </section>
+    <!-- END: JadwalTabSection -->
 
 </div>
 @endsection

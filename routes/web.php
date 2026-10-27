@@ -136,7 +136,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/siswa/tugas', [TugasController::class, 'indexSiswa'])->name('siswa.tugas');
         Route::get('/siswa/tugas/{id}', [TugasController::class, 'showSiswa'])->name('siswa.tugas.show');
         Route::post('/siswa/tugas/{id}/kumpulkan', [TugasController::class, 'kumpulkanTugas'])->name('siswa.tugas.kumpulkan');
-        Route::get('/siswa/jadwal', [JadwalController::class, 'index'])->name('siswa.jadwal');
+        Route::get('/siswa/jadwal', function () {
+            return redirect()->route('siswa.beranda', ['tab' => 'jadwal']);
+        })->name('siswa.jadwal');
 
         // Kuis Petualangan Siswa
         Route::get('/siswa/kuis', [QuizController::class, 'siswaIndex'])->name('siswa.kuis');

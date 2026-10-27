@@ -73,35 +73,6 @@
             <span class="text-xl font-bold tracking-tight text-[#1E293B]">LearnPoint</span>
         </a>
 
-        <!-- Navigation Links (Desktop) -->
-        <nav class="hidden md:flex items-center gap-1 lg:gap-2">
-            <a href="{{ route('siswa.dashboard') }}" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {{ (request()->routeIs('siswa.dashboard') || request()->routeIs('siswa.beranda')) && request('tab') !== 'statistik' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50' }}">
-                <i class="fa-solid fa-house text-[11px]"></i>
-                <span>Beranda</span>
-            </a>
-            <a href="{{ route('siswa.materi') }}" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {{ request()->routeIs('siswa.materi*') ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50' }}">
-                <i class="fa-solid fa-book-open text-[11px]"></i>
-                <span>Materi</span>
-            </a>
-            <a href="{{ route('siswa.tugas') }}" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {{ request()->routeIs('siswa.tugas*') ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50' }}">
-                <i class="fa-solid fa-clipboard-check text-[11px]"></i>
-                <span>Tugas</span>
-            </a>
-            <a href="{{ route('siswa.kuis') }}" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {{ request()->routeIs('siswa.kuis*') ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50' }}">
-                <i class="fa-solid fa-gamepad text-[11px]"></i>
-                <span>Kuis & Ujian</span>
-            </a>
-            <a href="{{ route('siswa.jadwal') }}" 
-               class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 {{ request()->routeIs('siswa.jadwal*') ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50' }}">
-                <i class="fa-regular fa-calendar text-[11px]"></i>
-                <span>Jadwal</span>
-            </a>
-        </nav>
-
         <!-- Header Actions (Notifications & Profile) -->
         <div class="flex items-center gap-4 lg:gap-6">
             <!-- Notification Icon with Badge -->
@@ -154,19 +125,8 @@
                         <a href="{{ route('siswa.dashboard') }}" class="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition">
                             <i class="fa-solid fa-house-chimney text-slate-400"></i> Beranda Belajar
                         </a>
-                    </div>
-                    <div class="py-1 md:hidden">
-                        <a href="{{ route('siswa.materi') }}" class="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition">
-                            <i class="fa-solid fa-book-open text-slate-400"></i> Materi Pelajaran
-                        </a>
-                        <a href="{{ route('siswa.tugas') }}" class="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition">
-                            <i class="fa-solid fa-clipboard-check text-slate-400"></i> Tugas
-                        </a>
-                        <a href="{{ route('siswa.kuis') }}" class="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition">
-                            <i class="fa-solid fa-gamepad text-slate-400"></i> Kuis & Ujian
-                        </a>
                         <a href="{{ route('siswa.jadwal') }}" class="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition">
-                            <i class="fa-regular fa-calendar text-slate-400"></i> Jadwal Belajar
+                            <i class="fa-regular fa-calendar text-slate-400"></i> Jadwal Pelajaran
                         </a>
                     </div>
                     <div class="py-1">
