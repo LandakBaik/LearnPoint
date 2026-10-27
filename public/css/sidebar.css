@@ -1,67 +1,64 @@
 /* ==========================================================================
-   LearnPoint - Sidebar Custom Stylesheet
+   LearnPoint - Sidebar & Modern Layout Custom Stylesheet
    ========================================================================== */
 
 body {
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Sidebar Wrapper & Background */
+/* Sidebar Wrapper & Background (Light & Modern) */
 .sidebar-container {
-    background-color: #0e2a5c;
-    color: #ffffff;
+    background-color: #ffffff;
+    color: #334155;
+    border-right: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 /* Brand Header */
 .sidebar-header {
-    border-bottom: 1px solid rgba(30, 58, 138, 0.4);
+    border-bottom: 1px solid rgba(241, 245, 249, 1);
 }
 
 .sidebar-logo-box {
-    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
-}
-
-.sidebar-logo-dot {
-    background-color: #fbbf24;
-    border: 2px solid #0e2a5c;
+    background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 
 /* Profile Card */
 .sidebar-profile-card {
-    background-color: #173a77;
-    border: 1px solid rgba(96, 165, 250, 0.2);
-    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+    background-color: rgba(248, 250, 252, 0.8);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    transition: all 0.2s ease-in-out;
+}
+
+.sidebar-profile-card:hover {
+    background-color: rgba(241, 245, 249, 0.8);
 }
 
 .sidebar-avatar {
     background-color: #2563eb;
-    border: 1px solid rgba(147, 197, 253, 0.3);
+    color: #ffffff;
 }
 
 /* Navigation Menu Items */
 .sidebar-nav-link {
-    color: rgba(219, 234, 254, 0.8);
+    color: #475569;
+    font-weight: 500;
     transition: all 0.15s ease-in-out;
 }
 
 .sidebar-nav-link:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
+    background-color: #f8fafc;
+    color: #2563eb;
 }
 
 .sidebar-nav-link-active {
-    background-color: #2563eb;
-    color: #ffffff;
-    font-weight: 600;
-    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+    background-color: #eff6ff !important;
+    color: #2563eb !important;
+    font-weight: 600 !important;
+    border: 1px solid rgba(191, 219, 254, 0.6) !important;
 }
 
-.sidebar-active-indicator {
-    background-color: #ffffff;
-}
-
-/* Notification Badge */
+/* Notification & Status Badge */
 .sidebar-badge-amber {
     background-color: #f59e0b;
     color: #ffffff;
@@ -69,5 +66,23 @@ body {
 
 /* Sidebar Footer Section */
 .sidebar-footer {
-    border-top: 1px solid rgba(30, 58, 138, 0.4);
+    border-top: 1px solid rgba(241, 245, 249, 1);
+}
+
+/* Chart animations & Donut segments */
+.donut-segment {
+    transition: stroke-width 0.2s ease;
+    cursor: pointer;
+}
+
+.donut-segment:hover {
+    stroke-width: 18;
+}
+
+.chart-bar {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.chart-bar:hover {
+    opacity: 0.85;
 }

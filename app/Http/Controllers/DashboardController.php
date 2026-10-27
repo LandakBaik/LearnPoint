@@ -109,7 +109,27 @@ class DashboardController extends Controller
         $totalKelas = Kelas::count();
         $totalMapel = Mapel::count();
 
-        return view('dashboard.guru', compact('user', 'guru', 'totalSiswa', 'totalKelas', 'totalMapel'));
+        $totalKelasDiajar = $guru ? $guru->pengampuKelases()->distinct('kelas_id')->count('kelas_id') : 0;
+        if ($totalKelasDiajar === 0 && $guru && $guru->kelas) {
+            $totalKelasDiajar = 1;
+        }
+        $totalMapelDiampu = $guru ? $guru->guruMapels()->count() : 0;
+        $totalMateri = $guru ? Materi::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))->count() : 0;
+        $totalTugas = $guru ? Tugas::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))->count() : 0;
+        $totalKuis = $guru ? Quiz::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))->count() : 0;
+
+        return view('dashboard.guru', compact(
+            'user',
+            'guru',
+            'totalSiswa',
+            'totalKelas',
+            'totalMapel',
+            'totalKelasDiajar',
+            'totalMapelDiampu',
+            'totalMateri',
+            'totalTugas',
+            'totalKuis'
+        ));
     }
 
     /**
