@@ -13,17 +13,40 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Font Poppins & Inter -->
+    <!-- Font Plus Jakarta Sans & Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Sidebar & Layout Custom CSS -->
     <link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-[#F4F7FB] text-slate-800 font-sans antialiased h-screen flex overflow-hidden" x-data="{ sidebarOpen: false }">
+<body class="bg-[#F8FAFC] text-slate-800 font-sans antialiased h-screen flex overflow-hidden selection:bg-blue-100 selection:text-blue-900" x-data="{ sidebarOpen: false }">
 
     <!-- Mobile Sidebar Backdrop -->
     <div
@@ -47,7 +70,7 @@
     @if($userRole !== 'siswa')
     <aside
         :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-        class="sidebar-container fixed lg:sticky top-0 left-0 h-screen w-64 z-50 lg:z-30 transform transition-transform duration-300 ease-in-out flex flex-col shadow-2xl shrink-0"
+        class="sidebar-container fixed lg:sticky top-0 left-0 h-screen w-64 z-50 lg:z-30 transform transition-transform duration-300 ease-in-out flex flex-col justify-between bg-white border-r border-slate-200/80 text-slate-700 shrink-0 shadow-xl lg:shadow-none select-none"
     >
         @php
             $userRole = auth()->user()->role ?? 'guru';
@@ -66,7 +89,7 @@
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         <!-- Header Navbar -->
-        <header class="sticky top-0 h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 z-10 shadow-sm shrink-0">
+        <header class="sticky top-0 h-16 bg-white border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 z-10 shadow-xs shrink-0">
 
             @if(($userRole ?? '') === 'siswa')
             <!-- Header Khusus Siswa -->
@@ -89,7 +112,7 @@
                 : strtoupper(substr($userName, 0, 2));
                 @endphp
 
-                <div class="w-10 h-10 bg-blue-600 text-white font-bold text-xs rounded-full flex items-center justify-center shrink-0 shadow-sm">
+                <div class="w-10 h-10 bg-blue-600 text-white font-bold text-xs rounded-full flex items-center justify-center shrink-0 shadow-sm ring-2 ring-blue-100">
                     {{ $initials }}
                 </div>
 
@@ -107,19 +130,19 @@
             @else
             <!-- Header (Guru / Admin) -->
             <div class="flex items-center gap-3">
-                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden text-gray-500 hover:text-gray-700 focus:outline-none">
+                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 -ml-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 focus:outline-none transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                 </button>
-                <h1 class="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">@yield('title', 'Dashboard')</h1>
+                <h1 class="text-base sm:text-lg font-bold text-slate-900 tracking-tight">@yield('title', 'Dashboard')</h1>
             </div>
 
             <!-- Profile Info -->
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-4">
                 <div class="text-right hidden sm:block">
                     <p class="text-sm font-bold text-slate-800 leading-tight">{{ auth()->user()->name }}</p>
-                    <p class="text-xs text-slate-400">{{ auth()->user()->email }}</p>
+                    <p class="text-xs text-slate-400 leading-tight mt-0.5">{{ auth()->user()->email }}</p>
                 </div>
                 @php
                     $headerNames = explode(' ', trim(auth()->user()->name ?? 'User'));
@@ -127,7 +150,7 @@
                         ? strtoupper(substr($headerNames[0], 0, 1) . substr($headerNames[1], 0, 1))
                         : strtoupper(substr(auth()->user()->name ?? 'U', 0, 2));
                 @endphp
-                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-50 border border-blue-200 text-blue-600 font-bold text-xs sm:text-sm flex items-center justify-center shadow-xs">
+                <div class="w-10 h-10 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center ring-2 ring-blue-100 shadow-sm shrink-0">
                     {{ $headerInitials }}
                 </div>
             </div>
@@ -136,7 +159,7 @@
         </header>
 
         <!-- Main Body -->
-        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#F4F7FB]">
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#F8FAFC]">
             <!-- Flash Message Warning / Success / CSV Errors / Validation Errors -->
             @if(session('csv_errors'))
                 <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 shadow-xs">
