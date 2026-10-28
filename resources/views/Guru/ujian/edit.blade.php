@@ -15,7 +15,7 @@
         <div>
             <a
                 href="{{ route('guru.ujian.show', $ujian) }}"
-                class="text-sm text-gray-500 hover:text-teal-600"
+                class="text-sm text-gray-500 hover:text-blue-600"
             >
                 ← Kembali ke Detail Ujian
             </a>
@@ -55,7 +55,7 @@
                     value="{{ old('judul', $ujian->judul) }}"
                     required
                     class="w-full border border-gray-300 rounded-xl px-4 py-3
-                           focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                           focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
 
                 @error('judul')
@@ -79,7 +79,7 @@
                     form="form-edit-ujian"
                     required
                     class="w-full border border-gray-300 rounded-xl px-4 py-3
-                           focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                           focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
 
                     <option value="">
@@ -134,7 +134,7 @@
                         value="{{ old('durasi_menit', $ujian->durasi_menit) }}"
                         required
                         class="w-full border border-gray-300 rounded-xl px-4 py-3 pr-20
-                               focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                               focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
 
                     <span class="absolute right-4 top-3 text-gray-400">
@@ -163,7 +163,7 @@
                     value="{{ old('kkm', $ujian->kkm) }}"
                     required
                     class="w-full border border-gray-300 rounded-xl px-4 py-3
-                           focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                           focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
 
             </div>
@@ -185,7 +185,7 @@
                         $ujian->waktu_mulai?->format('Y-m-d\TH:i')
                     ) }}"
                     class="w-full border border-gray-300 rounded-xl px-4 py-3
-                           focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                           focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
 
             </div>
@@ -207,7 +207,7 @@
                         $ujian->deadline?->format('Y-m-d\TH:i')
                     ) }}"
                     class="w-full border border-gray-300 rounded-xl px-4 py-3
-                           focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                           focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
 
             </div>
@@ -229,8 +229,8 @@
     rows="4"
     maxlength="500"
     class="w-full border border-gray-300 rounded-xl px-4 py-3
-           focus:ring-2 focus:ring-teal-500
-           focus:border-teal-500"
+           focus:ring-2 focus:ring-blue-500
+           focus:border-blue-500"
 >{{ old('kisi_kisi', $ujian->kisi_kisi) }}</textarea>
 
 <p class="text-xs text-gray-400 mt-1">
@@ -268,7 +268,7 @@
                     <button
                         type="button"
                         @click="addQuestion()"
-                        class="px-3 py-2 bg-teal-600 hover:bg-teal-700
+                        class="px-3 py-2 bg-blue-600 hover:bg-blue-700
                                text-white rounded-xl text-sm font-semibold"
                     >
                         + Soal
@@ -291,7 +291,7 @@
 
                             :class="
                                 activeQuestion === index
-                                ? 'border-teal-500 bg-teal-50'
+                                ? 'border-blue-500 bg-blue-50'
                                 : 'border-gray-200 hover:border-gray-300'
                             "
                         >
@@ -303,7 +303,7 @@
                                            justify-center font-bold flex-shrink-0"
                                     :class="
                                         activeQuestion === index
-                                        ? 'bg-teal-600 text-white'
+                                        ? 'bg-blue-600 text-white'
                                         : 'bg-gray-100 text-gray-600'
                                     "
                                     x-text="index + 1"
@@ -359,7 +359,7 @@
                 <button
                     type="button"
                     @click="addQuestion()"
-                    class="mt-4 px-4 py-2 bg-teal-600 text-white
+                    class="mt-4 px-4 py-2 bg-blue-600 text-white
                            rounded-xl font-semibold"
                 >
                     Tambahkan Soal
@@ -413,8 +413,8 @@
                             maxlength="500"
                             required
                             class="w-full border border-gray-300 rounded-xl px-4 py-3
-                                   focus:ring-2 focus:ring-teal-500
-                                   focus:border-teal-500"
+                                   focus:ring-2 focus:ring-blue-500
+                                   focus:border-blue-500"
                         ></textarea>
                         <p class="text-xs text-gray-400 mt-1">
     Maksimal 500 karakter.
@@ -437,8 +437,8 @@
                                 x-model="questions[activeQuestion].tipe_soal"
                                 @change="changeType()"
                                 class="w-full border border-gray-300 rounded-xl px-4 py-3
-                                       focus:ring-2 focus:ring-teal-500
-                                       focus:border-teal-500"
+                                       focus:ring-2 focus:ring-blue-500
+                                       focus:border-blue-500"
                             >
 
                                 <option value="single_choice">
@@ -478,8 +478,8 @@
     :name="`soals[${activeQuestion}][bobot]`"
     x-model="questions[activeQuestion].bobot"
     class="w-full border border-gray-300 rounded-xl px-4 py-3
-           focus:ring-2 focus:ring-teal-500
-           focus:border-teal-500"
+           focus:ring-2 focus:ring-blue-500
+           focus:border-blue-500"
 >
 
                         </div>
@@ -505,7 +505,7 @@
     type="button"
     @click="addOption(activeQuestion)"
     x-show="questions[activeQuestion].pilihan.length < 6"
-    class="text-sm font-semibold text-teal-600 hover:text-teal-700"
+    class="text-sm font-semibold text-blue-600 hover:text-blue-700"
 >
     + Tambah Pilihan
 </button>
@@ -564,8 +564,8 @@
                         "
                         placeholder="Tulis pilihan jawaban"
                         class="flex-1 border border-gray-300 rounded-xl px-4 py-3
-                               focus:ring-2 focus:ring-teal-500
-                               focus:border-teal-500"
+                               focus:ring-2 focus:ring-blue-500
+                               focus:border-blue-500"
                     >
 
 
@@ -652,8 +652,8 @@
     x-model="questions[activeQuestion].kunci_jawaban_text"
     rows="4"
     class="w-full border border-gray-300 rounded-xl px-4 py-3
-           focus:ring-2 focus:ring-teal-500
-           focus:border-teal-500"
+           focus:ring-2 focus:ring-blue-500
+           focus:border-blue-500"
 ></textarea>
                         </div>
 
@@ -702,8 +702,8 @@
         accept="image/jpeg,image/png,image/webp,image/gif"
         @change="handleImageChange($event)"
         class="w-full border border-gray-300 rounded-xl px-4 py-3
-               focus:ring-2 focus:ring-teal-500
-               focus:border-teal-500"
+               focus:ring-2 focus:ring-blue-500
+               focus:border-blue-500"
     >
 
 
@@ -715,7 +715,7 @@
 
     <p
         x-show="questions[activeQuestion].gambar"
-        class="text-xs text-teal-600 mt-1"
+        class="text-xs text-blue-600 mt-1"
     >
         Pilih gambar baru jika ingin mengganti gambar lama.
     </p>
@@ -783,7 +783,7 @@
 
             <button
                 type="submit"
-                class="px-5 py-3 bg-teal-600 hover:bg-teal-700
+                class="px-5 py-3 bg-blue-600 hover:bg-blue-700
                        text-white rounded-xl font-semibold"
             >
                 Simpan Perubahan

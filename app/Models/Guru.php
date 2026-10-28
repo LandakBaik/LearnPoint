@@ -42,7 +42,6 @@ class Guru extends Model
     public function getJadwalAttribute(): ?string
     {
         return $this->guruMapels()
-            ->has('pengampuKelases')
             ->whereNotNull('jadwal')
             ->latest('updated_at')
             ->value('jadwal');

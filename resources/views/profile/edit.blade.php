@@ -258,8 +258,8 @@
                             class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="">-- Pilih Jenis Kelamin --</option>
-                            <option value="Laki-laki" {{ old('jenis_kelamin', $user->guru?->jenis_kelamin) == 'Laki-laki' ? 'selected' : '' }}>Laki-laki</option>
-                            <option value="Perempuan" {{ old('jenis_kelamin', $user->guru?->jenis_kelamin) == 'Perempuan' ? 'selected' : '' }}>Perempuan</option>
+                            <option value="Laki-laki" {{ in_array(old('jenis_kelamin', $user->guru?->jenis_kelamin), ['Laki-laki', 'L']) ? 'selected' : '' }}>Laki-laki</option>
+                            <option value="Perempuan" {{ in_array(old('jenis_kelamin', $user->guru?->jenis_kelamin), ['Perempuan', 'P']) ? 'selected' : '' }}>Perempuan</option>
                         </select>
                     </div>
                 @endif

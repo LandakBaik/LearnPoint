@@ -66,22 +66,27 @@ class GuruController extends Controller
         $validated = $request->validate([
             'nama'                      => 'required|string|max:100|regex:/^[a-zA-Z\s\.,]+$/u',
             'nuptk'                     => 'required|numeric|digits:16|unique:gurus,nuptk',
+            'jenis_kelamin'             => 'nullable|in:Laki-laki,Perempuan,L,P',
+            'nomor_telepon'             => 'nullable|string|max:20|regex:/^[0-9+\-\s]+$/',
             'assignments'               => 'nullable|array',
             'assignments.*.mapel_id'    => 'nullable|exists:mapels,id',
             'assignments.*.kelas_id'    => 'nullable|exists:kelases,id',
             'assignments.*.kelas_ids'   => 'nullable|array',
             'assignments.*.kelas_ids.*' => 'exists:kelases,id',
         ], [
-            'nama.regex'    => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
-            'nuptk.numeric' => 'NUPTK guru harus berupa angka.',
-            'nuptk.digits'  => 'NUPTK guru harus tepat 16 digit angka.',
-            'nuptk.unique'  => 'NUPTK ini sudah terdaftar untuk guru lain.',
+            'nama.regex'          => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nuptk.numeric'       => 'NUPTK guru harus berupa angka.',
+            'nuptk.digits'        => 'NUPTK guru harus tepat 16 digit angka.',
+            'nuptk.unique'        => 'NUPTK ini sudah terdaftar untuk guru lain.',
+            'nomor_telepon.regex' => 'Nomor telepon hanya boleh berisi angka, tanda plus (+), minus (-), atau spasi.',
         ]);
 
         $guru = Guru::create([
-            'nama'   => $validated['nama'],
-            'nuptk'  => $validated['nuptk'],
-            'status' => 'aktif',
+            'nama'          => $validated['nama'],
+            'nuptk'         => $validated['nuptk'],
+            'jenis_kelamin' => $validated['jenis_kelamin'] ?? null,
+            'nomor_telepon' => $validated['nomor_telepon'] ?? null,
+            'status'        => 'aktif',
         ]);
 
         // Auto Create Akun User Guru (Poin 5)
@@ -166,21 +171,31 @@ class GuruController extends Controller
         $validated = $request->validate([
             'nama'            => 'required|string|max:100|regex:/^[a-zA-Z\s\.,]+$/u',
             'nuptk'           => ['required', 'numeric', 'digits:16', Rule::unique('gurus')->ignore($guru->id)],
+            'jenis_kelamin'   => 'nullable|in:Laki-laki,Perempuan,L,P',
+            'nomor_telepon'   => 'nullable|string|max:20|regex:/^[0-9+\-\s]+$/',
             'new_mapel_id'    => 'nullable|exists:mapels,id',
             'new_kelas_ids'   => 'nullable|array',
             'new_kelas_ids.*' => 'exists:kelases,id',
             'new_kelas_id'    => 'nullable|exists:kelases,id',
         ], [
-            'nama.regex'    => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
-            'nuptk.numeric' => 'NUPTK guru harus berupa angka.',
-            'nuptk.digits'  => 'NUPTK guru harus tepat 16 digit angka.',
-            'nuptk.unique'  => 'NUPTK ini sudah terdaftar untuk guru lain.',
+            'nama.regex'          => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nuptk.numeric'       => 'NUPTK guru harus berupa angka.',
+            'nuptk.digits'        => 'NUPTK guru harus tepat 16 digit angka.',
+            'nuptk.unique'        => 'NUPTK ini sudah terdaftar untuk guru lain.',
+            'nomor_telepon.regex' => 'Nomor telepon hanya boleh berisi angka, tanda plus (+), minus (-), atau spasi.',
         ]);
 
-        $guru->update([
+        $updateGuru = [
             'nama'  => $validated['nama'],
             'nuptk' => $validated['nuptk'],
-        ]);
+        ];
+        if ($request->has('jenis_kelamin')) {
+            $updateGuru['jenis_kelamin'] = $validated['jenis_kelamin'] ?? null;
+        }
+        if ($request->has('nomor_telepon')) {
+            $updateGuru['nomor_telepon'] = $validated['nomor_telepon'] ?? null;
+        }
+        $guru->update($updateGuru);
 
         // Update user name jika terhubung
         if ($guru->user) {

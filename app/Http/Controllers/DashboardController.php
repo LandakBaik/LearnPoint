@@ -117,6 +117,86 @@ class DashboardController extends Controller
         $totalMateri = $guru ? Materi::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))->count() : 0;
         $totalTugas = $guru ? Tugas::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))->count() : 0;
         $totalKuis = $guru ? Quiz::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))->count() : 0;
+        $totalUjian = $guru ? Ujian::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))->count() : 0;
+
+        // Data Jadwal Mengajar & Mapel Guru
+        $guruMapels = $guru ? $guru->guruMapels()->with(['mapel', 'pengampuKelases.kelas'])->get() : collect();
+        $jadwalUrl = $guru?->jadwal_url;
+
+        // Data Perlu Ditindaklanjuti (Pengumpulan Tugas yang Belum Dinilai)
+        $perluDinilaiTugases = collect();
+        $perluDinilaiCount = 0;
+        if ($guru) {
+            $perluDinilaiTugases = Nilai::with(['siswa', 'tugas.pengampuKelas.kelas', 'tugas.pengampuKelas.guruMapel.mapel'])
+                ->whereNull('nilai')
+                ->whereNotNull('tugas_id')
+                ->whereHas('tugas.pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))
+                ->latest()
+                ->take(5)
+                ->get();
+
+            $perluDinilaiCount = Nilai::whereNull('nilai')
+                ->whereNotNull('tugas_id')
+                ->whereHas('tugas.pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))
+                ->count();
+        }
+
+        // Data Aktivitas Pembelajaran Terbaru (Materi, Tugas, Kuis yang Dibuat)
+        $aktivitasTerbaru = collect();
+        if ($guru) {
+            $materis = Materi::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))
+                ->with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.kelas'])
+                ->latest()
+                ->take(4)
+                ->get()
+                ->map(fn($m) => [
+                    'tipe' => 'Materi',
+                    'judul' => $m->judul,
+                    'kategori' => 'Modul Ajar',
+                    'mapel' => $m->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran',
+                    'kelas' => $m->pengampuKelas?->kelas?->nama_kelas ?? '-',
+                    'waktu' => $m->created_at,
+                    'status' => 'Aktif',
+                    'url' => route('guru.materi'),
+                ]);
+
+            $tugases = Tugas::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))
+                ->with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.kelas'])
+                ->latest()
+                ->take(4)
+                ->get()
+                ->map(fn($t) => [
+                    'tipe' => 'Tugas',
+                    'judul' => $t->judul,
+                    'kategori' => 'Penugasan Siswa',
+                    'mapel' => $t->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran',
+                    'kelas' => $t->pengampuKelas?->kelas?->nama_kelas ?? '-',
+                    'waktu' => $t->created_at,
+                    'status' => \Carbon\Carbon::parse($t->deadline)->isFuture() ? 'Berlangsung' : 'Selesai',
+                    'url' => route('guru.tugas.show', $t->id),
+                ]);
+
+            $quizzes = Quiz::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))
+                ->with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.kelas'])
+                ->latest()
+                ->take(4)
+                ->get()
+                ->map(fn($q) => [
+                    'tipe' => 'Kuis',
+                    'judul' => $q->judul,
+                    'kategori' => 'Evaluasi Interaktif',
+                    'mapel' => $q->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran',
+                    'kelas' => $q->pengampuKelas?->kelas?->nama_kelas ?? '-',
+                    'waktu' => $q->created_at,
+                    'status' => $q->status === 'published' ? 'Aktif' : 'Draft',
+                    'url' => route('guru.kuis.show', $q->id),
+                ]);
+
+            $aktivitasTerbaru = $materis->concat($tugases)->concat($quizzes)
+                ->sortByDesc('waktu')
+                ->take(5)
+                ->values();
+        }
 
         return view('dashboard.guru', compact(
             'user',
@@ -128,7 +208,13 @@ class DashboardController extends Controller
             'totalMapelDiampu',
             'totalMateri',
             'totalTugas',
-            'totalKuis'
+            'totalKuis',
+            'totalUjian',
+            'guruMapels',
+            'jadwalUrl',
+            'perluDinilaiTugases',
+            'perluDinilaiCount',
+            'aktivitasTerbaru'
         ));
     }
 
