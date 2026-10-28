@@ -168,27 +168,39 @@ class DashboardController extends Controller
         }
 
         // Tugas terbaru
-        $tugasTerbaru = $kelasId
-            ? Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))
-                ->with(['pengampuKelas.guruMapel.mapel'])
+        $siswaId = $siswa?->id;
+        $kelasId = $kelas?->id ?? $siswa?->kelas_id;
+
+        $tugasTerbaru = null;
+
+        if ($siswaId) {
+            $tugasTerbaru = Tugas::whereHas('pengampuKelas', function ($q) use ($kelasId) {
+                if ($kelasId) {
+                    $q->where('kelas_id', $kelasId);
+                }
+            })
+                ->whereDoesntHave('nilais', function ($q) use ($siswaId) {
+                    $q->where('siswa_id', $siswaId);
+                })
                 ->where('deadline', '>=', now())
                 ->orderBy('deadline', 'asc')
-                ->first()
-            : null;
-
-        if (!$tugasTerbaru && $kelasId) {
-            $tugasTerbaru = Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))
-                ->with(['pengampuKelas.guruMapel.mapel'])
-                ->latest()
                 ->first();
+
+            if (!$tugasTerbaru) {
+                $tugasTerbaru = Tugas::whereDoesntHave('nilais', function ($q) use ($siswaId) {
+                    $q->where('siswa_id', $siswaId);
+                })
+                    ->latest()
+                    ->first();
+            }
         }
 
         // Materi terbaru
         $materiTerbaru = $kelasId
             ? Materi::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))
-                ->with(['pengampuKelas.guruMapel.mapel'])
-                ->latest()
-                ->first()
+            ->with(['pengampuKelas.guruMapel.mapel'])
+            ->latest()
+            ->first()
             : null;
 
         if (!$materiTerbaru) {
@@ -203,16 +215,16 @@ class DashboardController extends Controller
         // Quizzes Dipublikasikan untuk Kelas Siswa
         $quizzes = $kelasId
             ? Quiz::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))
-                ->where('status', 'published')
-                ->with([
-                    'pengampuKelas.guruMapel.mapel',
-                    'pengampuKelas.guruMapel.guru',
-                    'nilais' => fn($q) => $q->where('siswa_id', $siswa?->id),
-                ])
-                ->withCount('soals')
-                ->latest()
-                ->take(6)
-                ->get()
+            ->where('status', 'published')
+            ->with([
+                'pengampuKelas.guruMapel.mapel',
+                'pengampuKelas.guruMapel.guru',
+                'nilais' => fn($q) => $q->where('siswa_id', $siswa?->id),
+            ])
+            ->withCount('soals')
+            ->latest()
+            ->take(6)
+            ->get()
             : collect();
 
         $unreadNotifCount = $user->notifikasi()->count() ?? 0;
@@ -273,7 +285,7 @@ class DashboardController extends Controller
         if ($daftarMapel && $daftarMapel->isNotEmpty()) {
             foreach ($daftarMapel as $mapelItem) {
                 $namaMapel = $mapelItem->nama_mapel;
-                
+
                 $realMapelScore = null;
                 if ($siswaId) {
                     $realMapelScore = Nilai::where('siswa_id', $siswaId)
