@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Nilai;
+use App\Models\Notifikasi;
 use App\Models\PengampuKelas;
 use App\Models\Tugas;
 use Carbon\Carbon;
@@ -111,7 +112,7 @@ class TugasController extends Controller
             $filePath = $request->file('file_tugas_input')->store('lampiran_tugas', 'public');
         }
 
-        Tugas::create([
+        $tugas = Tugas::create([
             'judul' => $request->judul,
             'deskripsi' => $request->deskripsi,
             'deadline' => Carbon::parse($request->deadline),
@@ -119,6 +120,18 @@ class TugasController extends Controller
             'file_lampiran' => $filePath,
             'pengampu_kelas_id' => $request->pengampu_kelas_id,
         ]);
+
+        // Kirim notifikasi interaktif ke seluruh siswa di kelas sasaran
+        $mapelNama = $pengampu->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+        $deadlineFormatted = Carbon::parse($request->deadline)->locale('id')->isoFormat('D MMMM Y, HH:mm');
+        Notifikasi::kirimKeKelas(
+            $pengampu->kelas_id,
+            "Tugas Baru: {$tugas->judul}",
+            "Guru telah menerbitkan tugas baru untuk mata pelajaran {$mapelNama}. Batas pengumpulan: {$deadlineFormatted} WIB.",
+            'tugas_baru',
+            route('siswa.tugas.show', $tugas->id),
+            $tugas->id
+        );
 
         return redirect()->back()->with('success', 'Tugas berhasil dipublikasikan!');
     }
@@ -227,7 +240,7 @@ class TugasController extends Controller
             'nilai' => 'required|numeric|min:0|max:100',
         ]);
 
-        $pengumpulan = Nilai::with('tugas.pengampuKelas.guruMapel')->findOrFail($id);
+        $pengumpulan = Nilai::with(['tugas.pengampuKelas.guruMapel', 'siswa.user'])->findOrFail($id);
 
         if ($pengumpulan->tugas?->pengampuKelas?->guruMapel?->guru_id !== $guru_id) {
             abort(403, 'Akses ditolak');
@@ -237,6 +250,20 @@ class TugasController extends Controller
             'nilai' => $request->nilai,
             'status' => 'selesai',
         ]);
+
+        // Kirim notifikasi interaktif ke akun siswa
+        if ($pengumpulan->siswa?->user) {
+            $tugasJudul = $pengumpulan->tugas?->judul ?? 'Tugas';
+            Notifikasi::kirim(
+                $pengumpulan->siswa->user->id,
+                "Nilai Tugas: {$tugasJudul}",
+                "Guru telah memberikan nilai {$request->nilai} untuk tugas '{$tugasJudul}'. Silakan cek detail evaluasi Anda.",
+                'nilai_tugas',
+                route('siswa.tugas.show', $pengumpulan->tugas_id),
+                $pengumpulan->tugas_id,
+                ['nilai' => $request->nilai, 'tugas_id' => $pengumpulan->tugas_id]
+            );
+        }
 
         return redirect()->back()->with('success', 'Nilai siswa berhasil disimpan!');
     }
@@ -361,11 +388,12 @@ class TugasController extends Controller
             'file_jawaban' => 'required|file|mimes:pdf,doc,docx,zip,rar|max:5000',
         ]);
 
-        // Cari tugas untuk cek deadline
-        $tugas = Tugas::findOrFail($id);
+        // Cari tugas untuk cek deadline dan pemilik guru
+        $tugas = Tugas::with(['pengampuKelas.guruMapel.guru.user', 'pengampuKelas.kelas'])->findOrFail($id);
 
         // Cek status pengumpulan (telat atau selesai)
-        $status = now()->gt($tugas->deadline) ? 'telat' : 'selesai';
+        $isLate = now()->gt($tugas->deadline);
+        $status = $isLate ? 'telat' : 'selesai';
 
         $filePath = null;
         if ($request->hasFile('file_jawaban')) {
@@ -384,6 +412,35 @@ class TugasController extends Controller
                 'nilai'        => 0,        // Default 0 sebelum dinilai guru
             ]
         );
+
+        // Kirim notifikasi interaktif ke Guru pengampu
+        $guruUser = $tugas->pengampuKelas?->guruMapel?->guru?->user;
+        if ($guruUser) {
+            $namaSiswa = $siswa->nama_siswa ?? $user->name;
+            $namaKelas = $tugas->pengampuKelas?->kelas?->nama_kelas ?? 'Kelas';
+
+            if ($isLate) {
+                Notifikasi::kirim(
+                    $guruUser->id,
+                    "Pengumpulan Tugas Terlambat: {$tugas->judul}",
+                    "Siswa {$namaSiswa} ({$namaKelas}) baru saja mengumpulkan tugas '{$tugas->judul}' melewati batas deadline.",
+                    'tugas_terlambat',
+                    route('guru.tugas.show', $tugas->id),
+                    $tugas->id,
+                    ['siswa_id' => $siswa->id, 'tugas_id' => $tugas->id, 'is_late' => true]
+                );
+            } else {
+                Notifikasi::kirim(
+                    $guruUser->id,
+                    "Pengumpulan Tugas Masuk: {$tugas->judul}",
+                    "Siswa {$namaSiswa} ({$namaKelas}) telah mengumpulkan tugas '{$tugas->judul}'.",
+                    'tugas_dikumpulkan',
+                    route('guru.tugas.show', $tugas->id),
+                    $tugas->id,
+                    ['siswa_id' => $siswa->id, 'tugas_id' => $tugas->id, 'is_late' => false]
+                );
+            }
+        }
 
         return redirect()->back()->with('success', 'Tugas berhasil dikumpulkan!');
     }

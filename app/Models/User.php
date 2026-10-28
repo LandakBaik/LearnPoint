@@ -67,6 +67,11 @@ class User extends Authenticatable
         return $this->hasMany(Notifikasi::class, 'user_id');
     }
 
+    public function unreadNotifikasiCount(): int
+    {
+        return $this->notifikasi()->where('is_read', false)->count();
+    }
+
     public function absensi()
     {
         return $this->hasMany(Absensi::class, 'user_id');

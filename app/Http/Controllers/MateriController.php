@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Materi;
+use App\Models\Notifikasi;
 use App\Models\Kelas;
 use App\Models\Mapel;
 use App\Models\PengampuKelas;
@@ -247,6 +248,22 @@ class MateriController extends Controller
                 ]);
             }
         });
+
+        // Kirim notifikasi interaktif ke seluruh siswa pada kelas yang dipilih
+        foreach ($validPengampu as $pkId) {
+            $pk = PengampuKelas::with('guruMapel.mapel')->find($pkId);
+            if ($pk) {
+                $mapelNama = $pk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+                Notifikasi::kirimKeKelas(
+                    $pk->kelas_id,
+                    "Materi Baru: {$judul}",
+                    "Guru telah membagikan materi pembelajaran baru untuk mata pelajaran {$mapelNama}.",
+                    'materi_baru',
+                    route('siswa.materi'),
+                    null
+                );
+            }
+        }
 
         return redirect()->route('guru.materi')->with('success', 'Materi berhasil ditambahkan ke ' . count($validPengampu) . ' kelas.');
     }

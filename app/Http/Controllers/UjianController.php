@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Ujian;
 use App\Models\Soal;
+use App\Models\Notifikasi;
 use App\Models\PengampuKelas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -723,6 +724,20 @@ if ($kunciJawabanJson === false || $kunciJawabanJson === 'null') {
             'status' => 'published',
             'dipublikasi_at' => now(),
         ]);
+
+        // Kirim notifikasi interaktif ke kelas peserta ujian
+        $kelasId = $ujian->pengampuKelas?->kelas_id;
+        if ($kelasId) {
+            $mapelNama = $ujian->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+            Notifikasi::kirimKeKelas(
+                $kelasId,
+                "Ujian Baru Dipublikasikan: {$ujian->judul}",
+                "Ujian evaluasi {$mapelNama} telah dipublikasikan dan dapat diakses sesuai jadwal.",
+                'ujian_baru',
+                route('siswa.dashboard'),
+                $ujian->id
+            );
+        }
 
         return back()->with(
             'success',

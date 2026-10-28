@@ -7,6 +7,7 @@ use App\Models\Soal;
 use App\Models\PengampuKelas;
 use App\Models\Nilai;
 use App\Models\Menjawab;
+use App\Models\Notifikasi;
 use App\Models\Siswa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -920,6 +921,22 @@ class QuizController extends Controller
                 ]
             );
         });
+
+        // Kirim notifikasi interaktif ke Guru pengampu
+        $guruUser = $quiz->pengampuKelas?->guruMapel?->guru?->user;
+        if ($guruUser) {
+            $namaSiswa = $siswa->nama_siswa ?? $user->name;
+            $namaKelas = $quiz->pengampuKelas?->kelas?->nama_kelas ?? 'Kelas';
+            Notifikasi::kirim(
+                $guruUser->id,
+                "Kuis Selesai Dikerjakan: {$quiz->judul}",
+                "Siswa {$namaSiswa} ({$namaKelas}) telah menyelesaikan kuis petualangan '{$quiz->judul}'.",
+                'kuis_selesai',
+                route('guru.kuis.show', $quiz->id),
+                $quiz->id,
+                ['siswa_id' => $siswa->id, 'quiz_id' => $quiz->id]
+            );
+        }
 
         return redirect()->route('siswa.kuis.hasil', $quiz->id)
             ->with('success', 'Selamat! Kuis petualangan berhasil kamu selesaikan!');

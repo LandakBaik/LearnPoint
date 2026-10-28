@@ -146,7 +146,7 @@
         </div>
 
         <!-- Modal Form Penilaian Ringkas -->
-        <div x-show="showNilaiModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div x-show="showNilaiModal" x-cloak style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
             <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4" @click.away="showNilaiModal = false">
                 <div>
                     <h3 class="text-lg font-black text-gray-900">Input Nilai Siswa</h3>
