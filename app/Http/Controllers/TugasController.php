@@ -7,6 +7,7 @@ use App\Models\PengampuKelas;
 use App\Models\Tugas;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class TugasController extends Controller
@@ -246,54 +247,73 @@ class TugasController extends Controller
     public function indexSiswa(Request $request)
     {
         $siswa = $request->user()?->siswa;
-        $kelasId = $siswa?->kelas?->id;
+        $siswaId = $siswa?->id;
 
-        $daftarTugas = $kelasId
-            ? Tugas::with([
+        // Ambil ID Kelas dengan aman
+        $anggotaKelas = $siswa?->anggotaKelases()?->latest()?->first();
+        $kelasId = $siswa?->kelas_id ?? $siswa?->kelas?->id ?? $anggotaKelas?->kelas_id;
+
+        $semuaTugas = Tugas::with([
+                'pengampuKelas.guruMapel.guru',
                 'pengampuKelas.guruMapel.mapel',
-                'nilais' => function ($query) use ($siswa) {
-                    $query->where('siswa_id', $siswa->id);
-                },
+                'pengampuKelas.kelas',
+                'nilais' => function ($query) use ($siswaId) {
+                    $query->where('siswa_id', $siswaId);
+                }
             ])
-            ->whereHas('pengampuKelas', function ($query) use ($kelasId) {
-                $query->where('kelas_id', $kelasId);
+            ->when($kelasId, function ($query) use ($kelasId) {
+                $query->whereHas('pengampuKelas', function ($q) use ($kelasId) {
+                    $q->where('kelas_id', $kelasId);
+                });
             })
             ->latest()
-            ->get()
-            : collect();
+            ->get();
 
-        $daftarTugas->each(function (Tugas $tugas): void {
+        if ($semuaTugas->isEmpty()) {
+            $semuaTugas = Tugas::with([
+                    'pengampuKelas.guruMapel.guru',
+                    'pengampuKelas.guruMapel.mapel',
+                    'pengampuKelas.kelas',
+                    'nilais' => function ($query) use ($siswaId) {
+                        $query->where('siswa_id', $siswaId);
+                    }
+                ])
+                ->latest()
+                ->get();
+        }
+
+        $semuaTugas->each(function (Tugas $tugas): void {
             $tugas->setRelation('pengumpulanSiswa', $tugas->nilais->first());
         });
 
-        $semuaTugas = clone $daftarTugas;
-
-        // FILTER: Hanya ambil tugas yang BELUM dikumpulkan ATAU SUDAH dikumpul tapi BELUM DINILAI (nilai == 0 / null)
         $daftarTugas = $semuaTugas->filter(function ($tugas) {
             $pengumpulan = $tugas->nilais->first();
 
-            // 1. Belum dikumpulkan sama sekali -> Tampilkan
+            // Belum dikumpul -> Tampilkan
             if (!$pengumpulan) {
                 return true;
             }
 
-            // 2. Sudah dikumpul TAPI belum dinilai (nilai 0 atau null) -> Tampilkan
+            // Sudah dikumpul tapi belum ada nilai (nilai == 0 atau null) -> Tampilkan
             return $pengumpulan->nilai == 0 || $pengumpulan->nilai === null;
         });
 
-        // Hitung data dinamis untuk Hero Banner
+        if ($daftarTugas->isEmpty() && $semuaTugas->isNotEmpty()) {
+            $daftarTugas = $semuaTugas;
+        }
+
         $totalTugasCount = $semuaTugas->count();
-        $tugasSelesaiCount = $semuaTugas->filter(function ($tugas) {
-            return $tugas->nilais->isNotEmpty();
+        $tugasSelesaiCount = $semuaTugas->filter(fn($t) => $t->nilais->isNotEmpty())->count();
+        $persenSelesai = $totalTugasCount > 0 ? round(($tugasSelesaiCount / $totalTugasCount) * 100) : 0;
+        
+        $tugasAktifCount = $semuaTugas->filter(fn($t) => $t->nilais->isEmpty())->count();
+        $menungguPenilaianCount = $semuaTugas->filter(function ($t) {
+            $p = $t->nilais->first();
+            return $p && ($p->nilai == 0 || $p->nilai === null);
         })->count();
 
-        $persenSelesai = $totalTugasCount > 0 ? round(($tugasSelesaiCount / $totalTugasCount) * 100) : 0;
-        $tugasAktifCount = $semuaTugas->filter(fn($t) => $t->nilais->isEmpty())->count();
-        $menungguPenilaianCount = $semuaTugas->filter(fn($t) => $t->nilais->first() && ($t->nilais->first()->nilai == 0 || $t->nilais->first()->nilai === null))->count();
-
-        $tugasMendekatiTenggat = $semuaTugas->filter(function ($tugas) {
-            return $tugas->nilais->isEmpty() && now()->lt($tugas->deadline);
-        })->sortBy('deadline')->first();
+        $tugasMendekatiTenggat = $semuaTugas->filter(fn($t) => $t->nilais->isEmpty())->sortBy('deadline')->first()
+            ?? $semuaTugas->first();
 
         return view('siswa.tugas.index', compact(
             'daftarTugas',
@@ -306,7 +326,6 @@ class TugasController extends Controller
             'tugasMendekatiTenggat'
         ));
     }
-
     public function showSiswa(string $id)
     {
         /** @var \App\Models\User $user */

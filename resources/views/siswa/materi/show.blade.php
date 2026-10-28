@@ -318,7 +318,7 @@
     <section x-show="activeTab === 'tugas'" style="display: none;" class="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-sm" data-purpose="assignment-list-card">
         <!-- Section Header -->
         <div class="flex items-start gap-4 mb-8">
-            <div class="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100 flex-shrink-0">
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 flex-shrink-0">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-linecap="round" stroke-linejoin="round"></path>
                 </svg>
@@ -337,15 +337,15 @@
                     $terlewat = $tugas->deadline && \Carbon\Carbon::parse($tugas->deadline)->isPast() && !$sudahKumpul;
                 @endphp
 
-                <div class="group flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-slate-200 hover:border-amber-300 hover:bg-amber-50/10 transition-all">
+                <div class="group flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/10 transition-all">
                     <div class="flex items-center gap-4 mb-4 sm:mb-0">
-                        <div class="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0">
+                        <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"></path>
                             </svg>
                         </div>
                         <div>
-                            <h3 class="text-base font-bold text-slate-900 group-hover:text-amber-600 transition-colors">
+                            <h3 class="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
                                 {{ $loop->iteration }}. {{ $tugas->judul }}
                             </h3>
                             <div class="flex items-center gap-2 mt-1 text-xs sm:text-sm text-slate-400 font-medium">
