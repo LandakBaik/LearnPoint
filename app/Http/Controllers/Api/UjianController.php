@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\PengampuKelas;
+use App\Models\Notifikasi;
 use App\Models\Soal;
 use App\Models\Ujian;
 use Illuminate\Http\Request;
@@ -232,6 +233,18 @@ class UjianController extends Controller
             }
         });
 
+        if ($action === 'publish' && $ujian) {
+            $mapelNama = $pengampuKelas->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+            Notifikasi::kirimKeKelas(
+                $pengampuKelas->kelas_id,
+                "Ujian Baru Dipublikasikan: {$ujian->judul}",
+                "Ujian evaluasi {$mapelNama} telah dipublikasikan dan dapat diakses sesuai jadwal.",
+                'ujian_baru',
+                route('siswa.dashboard'),
+                $ujian->id
+            );
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Ujian berhasil dibuat.',
@@ -316,6 +329,20 @@ class UjianController extends Controller
             'dipublikasi_at' => now(),
         ]);
 
+        // Kirim notifikasi interaktif ke kelas peserta ujian
+        $kelasId = $ujian->pengampuKelas?->kelas_id;
+        if ($kelasId) {
+            $mapelNama = $ujian->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+            Notifikasi::kirimKeKelas(
+                $kelasId,
+                "Ujian Baru Dipublikasikan: {$ujian->judul}",
+                "Ujian evaluasi {$mapelNama} telah dipublikasikan dan dapat diakses sesuai jadwal.",
+                'ujian_baru',
+                route('siswa.dashboard'),
+                $ujian->id
+            );
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Ujian berhasil dipublikasikan.',
@@ -359,7 +386,8 @@ class UjianController extends Controller
     public function siswaIndex(Request $request)
     {
         $siswa = $request->user()?->siswa;
-        $kelasId = $siswa?->kelas?->id;
+        $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelasId = $kelas?->id;
 
         if (!$kelasId) {
             return response()->json(['success' => false, 'message' => 'Data kelas siswa tidak ditemukan.'], 404);
@@ -399,7 +427,8 @@ class UjianController extends Controller
     public function siswaShow(Request $request, Ujian $ujian)
     {
         $siswa = $request->user()?->siswa;
-        $kelasId = $siswa?->kelas?->id;
+        $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelasId = $kelas?->id;
 
         if (!$kelasId || $ujian->pengampuKelas?->kelas_id !== $kelasId) {
             return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);

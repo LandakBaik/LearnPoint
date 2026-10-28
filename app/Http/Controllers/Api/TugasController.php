@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Nilai;
+use App\Models\Notifikasi;
 use App\Models\PengampuKelas;
 use App\Models\Tugas;
 use Carbon\Carbon;
@@ -220,6 +221,18 @@ class TugasController extends Controller
             'pengampu_kelas_id' => $request->pengampu_kelas_id,
         ]);
 
+        // Kirim notifikasi interaktif ke seluruh siswa di kelas sasaran
+        $mapelNama = $pengampu->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+        $deadlineFormatted = Carbon::parse($request->deadline)->locale('id')->isoFormat('D MMMM Y, HH:mm');
+        Notifikasi::kirimKeKelas(
+            $pengampu->kelas_id,
+            "Tugas Baru: {$tugas->judul}",
+            "Guru telah menerbitkan tugas baru untuk mata pelajaran {$mapelNama}. Batas pengumpulan: {$deadlineFormatted} WIB.",
+            'tugas_baru',
+            route('siswa.tugas.show', $tugas->id),
+            $tugas->id
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Tugas berhasil dibuat.',
@@ -331,7 +344,7 @@ class TugasController extends Controller
             ], 422);
         }
 
-        $pengumpulan = Nilai::with('tugas.pengampuKelas.guruMapel')->find($id);
+        $pengumpulan = Nilai::with(['tugas.pengampuKelas.guruMapel', 'siswa.user'])->find($id);
         if (!$pengumpulan) {
             return response()->json(['success' => false, 'message' => 'Data pengumpulan tidak ditemukan.'], 404);
         }
@@ -344,6 +357,20 @@ class TugasController extends Controller
             'nilai' => $request->nilai,
             'status' => 'selesai',
         ]);
+
+        // Kirim notifikasi interaktif ke akun siswa
+        if ($pengumpulan->siswa?->user) {
+            $tugasJudul = $pengumpulan->tugas?->judul ?? 'Tugas';
+            Notifikasi::kirim(
+                $pengumpulan->siswa->user->id,
+                "Nilai Tugas: {$tugasJudul}",
+                "Guru telah memberikan nilai {$request->nilai} untuk tugas '{$tugasJudul}'. Silakan cek detail evaluasi Anda.",
+                'nilai_tugas',
+                route('siswa.tugas.show', $pengumpulan->tugas_id),
+                $pengumpulan->tugas_id,
+                ['nilai' => $request->nilai, 'tugas_id' => $pengumpulan->tugas_id]
+            );
+        }
 
         return response()->json([
             'success' => true,
@@ -358,7 +385,8 @@ class TugasController extends Controller
     public function siswaIndex(Request $request)
     {
         $siswa = $request->user()?->siswa;
-        $kelasId = $siswa?->kelas?->id;
+        $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelasId = $kelas?->id;
 
         if (!$kelasId) {
             return response()->json(['success' => false, 'message' => 'Data kelas siswa tidak ditemukan.'], 404);
@@ -410,7 +438,8 @@ class TugasController extends Controller
     public function siswaShow(Request $request, string $id)
     {
         $siswa = $request->user()?->siswa;
-        $kelasId = $siswa?->kelas?->id;
+        $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelasId = $kelas?->id;
 
         if (!$kelasId) {
             return response()->json(['success' => false, 'message' => 'Data kelas siswa tidak ditemukan.'], 404);
@@ -464,15 +493,17 @@ class TugasController extends Controller
     public function siswaKumpulkan(Request $request, string $id)
     {
         $siswa = $request->user()?->siswa;
-        $kelasId = $siswa?->kelas?->id;
+        $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelasId = $kelas?->id;
 
         if (!$kelasId) {
             return response()->json(['success' => false, 'message' => 'Data kelas siswa tidak ditemukan.'], 404);
         }
 
-        $tugas = Tugas::whereHas('pengampuKelas', function ($query) use ($kelasId) {
-            $query->where('kelas_id', $kelasId);
-        })->find($id);
+        $tugas = Tugas::with(['pengampuKelas.guruMapel.guru.user', 'pengampuKelas.kelas'])
+            ->whereHas('pengampuKelas', function ($query) use ($kelasId) {
+                $query->where('kelas_id', $kelasId);
+            })->find($id);
 
         if (!$tugas) {
             return response()->json(['success' => false, 'message' => 'Tugas tidak ditemukan.'], 404);
@@ -490,6 +521,9 @@ class TugasController extends Controller
             ], 422);
         }
 
+        $isLate = now()->gt($tugas->deadline);
+        $status = $isLate ? 'telat' : 'selesai';
+
         // Cari atau buat pengumpulan
         $pengumpulan = Nilai::firstOrNew([
             'siswa_id' => $siswa->id,
@@ -500,11 +534,40 @@ class TugasController extends Controller
             Storage::disk('public')->delete($pengumpulan->file_jawaban);
         }
 
-        $filePath = $request->file('file_jawaban')->store('tugas_jawaban', 'public');
+        $filePath = $request->file('file_jawaban')->store('lampiran_jawaban_tugas', 'public');
 
         $pengumpulan->file_jawaban = $filePath;
-        $pengumpulan->status = 'menunggu_penilaian';
+        $pengumpulan->status = $status;
         $pengumpulan->save();
+
+        // Kirim notifikasi interaktif ke Guru pengampu
+        $guruUser = $tugas->pengampuKelas?->guruMapel?->guru?->user;
+        if ($guruUser) {
+            $namaSiswa = $siswa->nama_siswa ?? $request->user()->name;
+            $namaKelas = $tugas->pengampuKelas?->kelas?->nama_kelas ?? 'Kelas';
+
+            if ($isLate) {
+                Notifikasi::kirim(
+                    $guruUser->id,
+                    "Pengumpulan Tugas Terlambat: {$tugas->judul}",
+                    "Siswa {$namaSiswa} ({$namaKelas}) baru saja mengumpulkan tugas '{$tugas->judul}' melewati batas deadline.",
+                    'tugas_terlambat',
+                    route('guru.tugas.show', $tugas->id),
+                    $tugas->id,
+                    ['siswa_id' => $siswa->id, 'tugas_id' => $tugas->id, 'is_late' => true]
+                );
+            } else {
+                Notifikasi::kirim(
+                    $guruUser->id,
+                    "Pengumpulan Tugas Masuk: {$tugas->judul}",
+                    "Siswa {$namaSiswa} ({$namaKelas}) telah mengumpulkan tugas '{$tugas->judul}'.",
+                    'tugas_dikumpulkan',
+                    route('guru.tugas.show', $tugas->id),
+                    $tugas->id,
+                    ['siswa_id' => $siswa->id, 'tugas_id' => $tugas->id, 'is_late' => false]
+                );
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -513,6 +576,7 @@ class TugasController extends Controller
                 'id' => $pengumpulan->id,
                 'file_jawaban_url' => asset('storage/' . $filePath),
                 'status' => $pengumpulan->status,
+                'is_late' => $isLate,
             ],
         ]);
     }

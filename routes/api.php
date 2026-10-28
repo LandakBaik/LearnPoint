@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\JadwalController;
 use App\Http\Controllers\Api\MateriController;
 use App\Http\Controllers\Api\NotifikasiController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\TugasController;
 use App\Http\Controllers\Api\UjianController;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | API Routes - Mobile Version
 |--------------------------------------------------------------------------
+| Endpoints untuk integrasi aplikasi mobile Flutter (Siswa & Guru).
 */
 
 // Public Authentication Route
@@ -21,10 +23,25 @@ Route::post('/login', [AuthController::class, 'login']);
 
 // Authenticated Routes (Sanctum)
 Route::middleware(['auth:sanctum'])->group(function () {
+    // Auth & Identity
     Route::get('/user', [AuthController::class, 'me']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Profile Management (Guru & Siswa)
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::put('/profile', [ProfileController::class, 'update']);
+    Route::post('/profile', [ProfileController::class, 'update']);
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword']);
+
+    // Notifikasi Interaktif
     Route::get('/notifikasi', [NotifikasiController::class, 'index']);
+    Route::patch('/notifikasi/{notifikasi}/toggle', [NotifikasiController::class, 'toggleRead']);
+    Route::post('/notifikasi/{notifikasi}/read', [NotifikasiController::class, 'markAsRead']);
+    Route::post('/notifikasi/mark-all-read', [NotifikasiController::class, 'markAllRead']);
+    Route::post('/notifikasi/tandai-semua-dibaca', [NotifikasiController::class, 'markAllRead']);
+    Route::delete('/notifikasi/{notifikasi}', [NotifikasiController::class, 'destroy']);
+    Route::delete('/notifikasi', [NotifikasiController::class, 'clearAll']);
 
     // ==========================================
     // Fitur Guru API
@@ -36,7 +53,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Jadwal Mengajar Guru
         Route::get('/jadwal', [JadwalController::class, 'guruIndex']);
 
-        // Materi Guru
+        // Materi Pembelajaran Guru
         Route::get('/materi', [MateriController::class, 'guruIndex']);
         Route::get('/materi/options', [MateriController::class, 'guruOptions']);
         Route::get('/materi/{id_grub_materi}', [MateriController::class, 'guruShow']);
@@ -55,7 +72,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/tugas/{id}', [TugasController::class, 'guruDestroy']);
         Route::post('/tugas/{id}/nilai', [TugasController::class, 'guruBerikanNilai']);
 
-        // Kuis Guru
+        // Kuis Petualangan Guru
         Route::get('/kuis', [QuizController::class, 'guruIndex']);
         Route::get('/kuis/options', [QuizController::class, 'guruOptions']);
         Route::post('/kuis/bulk-destroy', [QuizController::class, 'guruBulkDestroy']);
@@ -63,6 +80,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/kuis', [QuizController::class, 'guruStore']);
         Route::put('/kuis/{quiz}', [QuizController::class, 'guruUpdate']);
         Route::delete('/kuis/{quiz}', [QuizController::class, 'guruDestroy']);
+        Route::patch('/kuis/{quiz}/toggle-status', [QuizController::class, 'guruToggleStatus']);
+        Route::post('/kuis/{quiz}/toggle-status', [QuizController::class, 'guruToggleStatus']);
 
         // Butir Soal Kuis Guru
         Route::post('/kuis/{quiz}/soal', [QuizController::class, 'guruStoreSoal']);
@@ -91,7 +110,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Jadwal Kelas Siswa
         Route::get('/jadwal', [JadwalController::class, 'siswaIndex']);
 
-        // Materi Siswa
+        // Materi Pembelajaran Siswa
         Route::get('/materi', [MateriController::class, 'siswaIndex']);
         Route::get('/materi/{mapelId}', [MateriController::class, 'siswaShow']);
 
@@ -100,12 +119,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/tugas/{id}', [TugasController::class, 'siswaShow']);
         Route::post('/tugas/{id}/kumpulkan', [TugasController::class, 'siswaKumpulkan']);
 
-        // Kuis Siswa
+        // Kuis Petualangan Siswa
         Route::get('/kuis', [QuizController::class, 'siswaIndex']);
         Route::get('/kuis/{quiz}', [QuizController::class, 'siswaShow']);
-        Route::post('/kuis/{quiz}/kerjakan', [QuizController::class, 'siswaKerjakan']);
+        Route::get('/kuis/{quiz}/kerjakan', [QuizController::class, 'siswaKerjakan']);
+        Route::post('/kuis/{quiz}/submit', [QuizController::class, 'siswaSubmit']);
+        Route::post('/kuis/{quiz}/kerjakan', [QuizController::class, 'siswaSubmit']); // Aliasing
+        Route::get('/kuis/{quiz}/hasil', [QuizController::class, 'siswaHasil']);
 
-        // Ujian Siswa
+        // Ujian Evaluasi Siswa
         Route::get('/ujian', [UjianController::class, 'siswaIndex']);
         Route::get('/ujian/{ujian}', [UjianController::class, 'siswaShow']);
     });
