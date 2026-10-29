@@ -63,6 +63,18 @@
                 <i class="fa-solid fa-check-double text-[11px]"></i>
                 <span x-text="countAnswered()"></span>/<span x-text="totalQuestions"></span> Terjawab
             </div>
+
+            {{-- Simpan & Keluar Button --}}
+            <button 
+                type="button" 
+                @click="saveAndExit()" 
+                class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-xs font-bold text-amber-800 transition cursor-pointer shadow-xs shrink-0"
+                title="Simpan jawaban saat ini dan lanjutkan pengerjaan nanti"
+            >
+                <i class="fa-solid fa-floppy-disk text-amber-600"></i>
+                <span class="hidden sm:inline">Simpan & Keluar</span>
+                <span class="sm:hidden">Keluar</span>
+            </button>
         </div>
     </div>
 
@@ -155,7 +167,9 @@
                                                 id="opt_{{ $soal->id }}_{{ $optKey }}" 
                                                 name="jawaban[{{ $soal->id }}]" 
                                                 value="{{ $optKey }}"
+                                                x-model="answers[{{ $soal->id }}]"
                                                 @change="recordAnswer({{ $soal->id }}, '{{ $optKey }}')"
+                                                {{ ($savedAnswers[$soal->id] ?? '') === $optKey ? 'checked' : '' }}
                                                 class="sr-only"
                                             />
                                             <label 
@@ -268,15 +282,24 @@
                         </div>
                     </div>
 
-                    {{-- Tombol Kumpulkan Kuis --}}
-                    <div class="pt-2">
+                    {{-- Tombol Aksi Kuis --}}
+                    <div class="pt-2 space-y-2">
                         <button 
                             type="button" 
                             @click="confirmSubmit()"
-                            class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-md shadow-emerald-600/20"
+                            class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-md shadow-emerald-600/20 cursor-pointer"
                         >
                             <i class="fa-solid fa-paper-plane text-xs"></i>
                             <span>Kumpulkan & Selesaikan Kuis</span>
+                        </button>
+
+                        <button 
+                            type="button" 
+                            @click="saveAndExit()" 
+                            class="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer border border-slate-200"
+                        >
+                            <i class="fa-solid fa-floppy-disk text-slate-500"></i>
+                            <span>Simpan & Keluar (Lanjut Nanti)</span>
                         </button>
                     </div>
                 </div>
@@ -294,7 +317,7 @@ function quizPlayer() {
     return {
         currentIndex: 0,
         totalQuestions: {{ $soals->count() }},
-        answers: {},
+        answers: @json((object)($savedAnswers ?? [])),
         elapsedSeconds: 0,
         remainingSeconds: {{ $remainingSeconds !== null ? $remainingSeconds : 'null' }},
         timerInterval: null,
@@ -356,14 +379,87 @@ function quizPlayer() {
 
         recordAnswer(soalId, optionKey) {
             this.answers[soalId] = optionKey;
+            // Silent autosave di latar belakang
+            this.silentAutoSave(soalId, optionKey);
+        },
+
+        silentAutoSave(soalId, optionKey) {
+            const formData = new FormData();
+            formData.append(`jawaban[${soalId}]`, optionKey);
+            fetch("{{ route('siswa.kuis.simpan-draft', $quiz->id) }}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: formData
+            }).catch(() => {});
         },
 
         isAnswered(soalId) {
-            return this.answers.hasOwnProperty(soalId) && this.answers[soalId] !== '';
+            return this.answers.hasOwnProperty(soalId) && this.answers[soalId] !== '' && this.answers[soalId] !== null;
         },
 
         countAnswered() {
-            return Object.keys(this.answers).length;
+            return Object.values(this.answers).filter(v => v !== '' && v !== null).length;
+        },
+
+        saveAndExit() {
+            const answered = this.countAnswered();
+            Swal.fire({
+                title: 'Simpan & Keluar?',
+                html: `<div style="text-align: left; font-size: 13px; line-height: 1.6;">
+                    <p style="margin-bottom: 8px;">Kamu telah menjawab <strong>${answered}</strong> dari <strong>${this.totalQuestions}</strong> butir soal.</p>
+                    <p style="color: #d97706; font-weight: 600;">💾 Seluruh jawabanmu akan disimpan dan kamu bisa melanjutkan mengerjakan kuis ini nanti.</p>
+                    <p style="margin-top: 8px;">Apakah kamu ingin menyimpan dan keluar sekarang?</p>
+                </div>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#f59e0b',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Ya, Simpan & Keluar',
+                cancelButtonText: 'Lanjut Mengerjakan'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    clearInterval(this.timerInterval);
+                    Swal.fire({
+                        title: 'Menyimpan Jawaban...',
+                        text: 'Mohon tunggu sebentar',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    const form = document.getElementById('quizForm');
+                    const formData = new FormData(form);
+
+                    fetch("{{ route('siswa.kuis.simpan-draft', $quiz->id) }}", {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        Swal.fire({
+                            title: 'Berhasil Disimpan!',
+                            text: 'Jawaban kamu tersimpan dengan aman. Kamu bisa melanjutkannya kapan saja.',
+                            icon: 'success',
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            window.location.href = "{{ route('siswa.kuis') }}";
+                        });
+                    })
+                    .catch(err => {
+                        form.action = "{{ route('siswa.kuis.simpan-draft', $quiz->id) }}";
+                        form.submit();
+                    });
+                }
+            });
         },
 
         autoSubmitOnTimeUp() {

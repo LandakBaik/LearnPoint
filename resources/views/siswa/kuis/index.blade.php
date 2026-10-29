@@ -199,6 +199,11 @@
                                     <i class="fa-solid fa-hourglass-end text-[10px]"></i>
                                     Berakhir
                                 </span>
+                            @elseif($quiz->has_draft ?? false)
+                                <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5 shrink-0" title="{{ $quiz->draft_count }} butir soal sudah dijawab">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                    Draft ({{ $quiz->draft_count }}/{{ $soalsCount }})
+                                </span>
                             @else
                                 <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5 shrink-0">
                                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -293,6 +298,14 @@
                                 <i class="fa-solid fa-lock text-xs"></i>
                                 <span>Waktu Pengerjaan Selesai</span>
                             </div>
+                        @elseif($quiz->has_draft ?? false)
+                            <a 
+                                href="{{ route('siswa.kuis.kerjakan', $quiz->id) }}"
+                                class="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-md shadow-amber-500/20"
+                            >
+                                <i class="fa-solid fa-play text-xs"></i>
+                                <span>Lanjutkan Kuis ({{ $quiz->draft_count }}/{{ $soalsCount }})</span>
+                            </a>
                         @else
                             <a 
                                 href="{{ route('siswa.kuis.show', $quiz->id) }}"

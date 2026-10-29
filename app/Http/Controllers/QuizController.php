@@ -401,15 +401,22 @@ class QuizController extends Controller
             'tipe_soal'     => ['required', 'in:single_choice,multiple_choice,essay,matching'],
             'kesulitan'     => ['required', 'string', 'in:Mudah,Sedang,Sulit'],
             'level'         => ['required', 'string', 'in:Level 1,Level 2,Level 3,Level 4,Level 5,1,2,3,4,5'],
-            'pilihan'       => ['required', 'array', 'min:2', 'max:6'],
-            'kunci_jawaban' => ['required'],
+            'pilihan'       => ['required', 'array'],
+            'pilihan.a'     => ['required', 'string'],
+            'pilihan.b'     => ['required', 'string'],
+            'pilihan.c'     => ['required', 'string'],
+            'pilihan.d'     => ['required', 'string'],
+            'kunci_jawaban' => ['required', 'string', 'in:a,b,c,d,A,B,C,D'],
             'bobot'         => ['nullable', 'numeric', 'min:1'],
             'gambar'        => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ], [
-            'pilihan.required' => 'Pilihan jawaban wajib diisi minimal 2 opsi.',
-            'pilihan.min'      => 'Minimal pilihan jawaban adalah 2 opsi.',
-            'pilihan.max'      => 'Maksimal pilihan jawaban adalah 6 opsi.',
+            'pilihan.required'   => 'Pilihan jawaban wajib diisi lengkap 4 opsi (A, B, C, dan D).',
+            'pilihan.a.required' => 'Pilihan jawaban A wajib diisi.',
+            'pilihan.b.required' => 'Pilihan jawaban B wajib diisi.',
+            'pilihan.c.required' => 'Pilihan jawaban C wajib diisi.',
+            'pilihan.d.required' => 'Pilihan jawaban D wajib diisi.',
             'kunci_jawaban.required' => 'Pilih kunci jawaban yang benar.',
+            'kunci_jawaban.in'   => 'Kunci jawaban harus merupakan salah satu dari opsi A, B, C, atau D.',
         ]);
 
         // Standardisasi format level menjadi 'Level X'
@@ -445,34 +452,20 @@ class QuizController extends Controller
             ->where('level', $levelFormatted)
             ->max('urutan') ?? 0) + 1;
 
-        // Proses pilihan jawaban dinamis (2 sampai 6 opsi: a, b, c, d, e, f)
-        $validKeys = ['a', 'b', 'c', 'd', 'e', 'f'];
+        // Format pilihan jawaban fix 4 opsi (a, b, c, d)
+        $validKeys = ['a', 'b', 'c', 'd'];
         $pilihanFormatted = [];
-        if (in_array($validated['tipe_soal'], ['single_choice', 'multiple_choice'])) {
-            foreach ($validKeys as $k) {
-                $val = $request->input("pilihan.{$k}");
-                if ($val !== null && trim((string)$val) !== '') {
-                    $pilihanFormatted[$k] = trim((string)$val);
-                }
+        foreach ($validKeys as $k) {
+            $val = $request->input("pilihan.{$k}");
+            if ($val === null || trim((string)$val) === '') {
+                return back()->withInput()->with('error', 'Semua 4 opsi pilihan jawaban (A, B, C, dan D) wajib diisi.');
             }
-
-            if (count($pilihanFormatted) < 2) {
-                return back()->withInput()->with('error', 'Pilihan jawaban wajib diisi minimal 2 opsi (misal Pilihan A dan B).');
-            }
-
-            if (count($pilihanFormatted) > 6) {
-                return back()->withInput()->with('error', 'Maksimal pilihan jawaban adalah 6 opsi (Pilihan A hingga F).');
-            }
+            $pilihanFormatted[$k] = trim((string)$val);
         }
 
-        $kunci = $validated['kunci_jawaban'];
-        if (is_array($kunci)) {
-            $kunci = json_encode($kunci);
-        } else {
-            $kunci = strtolower(trim((string)$kunci));
-            if (!empty($pilihanFormatted) && !array_key_exists($kunci, $pilihanFormatted)) {
-                return back()->withInput()->with('error', 'Kunci jawaban yang dipilih harus merupakan salah satu dari opsi pilihan jawaban yang aktif.');
-            }
+        $kunci = strtolower(trim((string)$validated['kunci_jawaban']));
+        if (!in_array($kunci, $validKeys)) {
+            return back()->withInput()->with('error', 'Kunci jawaban yang dipilih harus salah satu dari opsi A, B, C, atau D.');
         }
 
         Soal::create([
@@ -512,15 +505,22 @@ class QuizController extends Controller
         $validated = $request->validate([
             'pertanyaan'    => ['required', 'string'],
             'tipe_soal'     => ['required', 'in:single_choice,multiple_choice,essay,matching'],
-            'pilihan'       => ['required', 'array', 'min:2', 'max:6'],
-            'kunci_jawaban' => ['required'],
+            'pilihan'       => ['required', 'array'],
+            'pilihan.a'     => ['required', 'string'],
+            'pilihan.b'     => ['required', 'string'],
+            'pilihan.c'     => ['required', 'string'],
+            'pilihan.d'     => ['required', 'string'],
+            'kunci_jawaban' => ['required', 'string', 'in:a,b,c,d,A,B,C,D'],
             'bobot'         => ['nullable', 'numeric', 'min:1'],
             'gambar'        => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ], [
-            'pilihan.required' => 'Pilihan jawaban wajib diisi minimal 2 opsi.',
-            'pilihan.min'      => 'Minimal pilihan jawaban adalah 2 opsi.',
-            'pilihan.max'      => 'Maksimal pilihan jawaban adalah 6 opsi.',
+            'pilihan.required'   => 'Pilihan jawaban wajib diisi lengkap 4 opsi (A, B, C, dan D).',
+            'pilihan.a.required' => 'Pilihan jawaban A wajib diisi.',
+            'pilihan.b.required' => 'Pilihan jawaban B wajib diisi.',
+            'pilihan.c.required' => 'Pilihan jawaban C wajib diisi.',
+            'pilihan.d.required' => 'Pilihan jawaban D wajib diisi.',
             'kunci_jawaban.required' => 'Pilih kunci jawaban yang benar.',
+            'kunci_jawaban.in'   => 'Kunci jawaban harus merupakan salah satu dari opsi A, B, C, atau D.',
         ]);
 
         $gambarPath = $soal->gambar;
@@ -531,34 +531,20 @@ class QuizController extends Controller
             $gambarPath = $request->file('gambar')->store('soals', 'public');
         }
 
-        // Proses pilihan jawaban dinamis (2 sampai 6 opsi: a, b, c, d, e, f)
-        $validKeys = ['a', 'b', 'c', 'd', 'e', 'f'];
+        // Format pilihan jawaban fix 4 opsi (a, b, c, d)
+        $validKeys = ['a', 'b', 'c', 'd'];
         $pilihanFormatted = [];
-        if (in_array($validated['tipe_soal'], ['single_choice', 'multiple_choice'])) {
-            foreach ($validKeys as $k) {
-                $val = $request->input("pilihan.{$k}");
-                if ($val !== null && trim((string)$val) !== '') {
-                    $pilihanFormatted[$k] = trim((string)$val);
-                }
+        foreach ($validKeys as $k) {
+            $val = $request->input("pilihan.{$k}");
+            if ($val === null || trim((string)$val) === '') {
+                return back()->withInput()->with('error', 'Semua 4 opsi pilihan jawaban (A, B, C, dan D) wajib diisi.');
             }
-
-            if (count($pilihanFormatted) < 2) {
-                return back()->withInput()->with('error', 'Pilihan jawaban wajib diisi minimal 2 opsi (misal Pilihan A dan B).');
-            }
-
-            if (count($pilihanFormatted) > 6) {
-                return back()->withInput()->with('error', 'Maksimal pilihan jawaban adalah 6 opsi (Pilihan A hingga F).');
-            }
+            $pilihanFormatted[$k] = trim((string)$val);
         }
 
-        $kunci = $validated['kunci_jawaban'];
-        if (is_array($kunci)) {
-            $kunci = json_encode($kunci);
-        } else {
-            $kunci = strtolower(trim((string)$kunci));
-            if (!empty($pilihanFormatted) && !array_key_exists($kunci, $pilihanFormatted)) {
-                return back()->withInput()->with('error', 'Kunci jawaban yang dipilih harus merupakan salah satu dari opsi pilihan jawaban yang aktif.');
-            }
+        $kunci = strtolower(trim((string)$validated['kunci_jawaban']));
+        if (!in_array($kunci, $validKeys)) {
+            return back()->withInput()->with('error', 'Kunci jawaban yang dipilih harus salah satu dari opsi A, B, C, atau D.');
         }
 
         $soal->update([
@@ -676,7 +662,7 @@ class QuizController extends Controller
         $allPublished = $query->latest()->get();
 
         // Olah status kuis untuk siswa
-        $quizzes = $allPublished->map(function ($quiz) {
+        $quizzes = $allPublished->map(function ($quiz) use ($siswa) {
             $nilai = $quiz->nilais->first();
             $isCompleted = $nilai !== null;
 
@@ -689,7 +675,19 @@ class QuizController extends Controller
                 $computedStatus = 'expired';
             }
 
+            // Cek apakah siswa memiliki progres jawaban yang tersimpan (draft)
+            $draftCount = 0;
+            if (!$isCompleted) {
+                $draftCount = Menjawab::where('siswa_id', $siswa->id)
+                    ->whereIn('soal_id', $quiz->soals->pluck('id'))
+                    ->whereNotNull('jawaban_dipilih')
+                    ->where('jawaban_dipilih', '!=', '')
+                    ->count();
+            }
+
             $quiz->student_status = $computedStatus;
+            $quiz->has_draft = $draftCount > 0;
+            $quiz->draft_count = $draftCount;
             $quiz->riwayat_nilai = $nilai;
             return $quiz;
         });
@@ -750,12 +748,23 @@ class QuizController extends Controller
             ->where('quiz_id', $quiz->id)
             ->first();
 
+        // Cek apakah ada progres pengerjaan yang tersimpan (draft)
+        $draftCount = 0;
+        if (!$nilai) {
+            $draftCount = Menjawab::where('siswa_id', $siswa->id)
+                ->whereIn('soal_id', $quiz->soals->pluck('id'))
+                ->whereNotNull('jawaban_dipilih')
+                ->where('jawaban_dipilih', '!=', '')
+                ->count();
+        }
+        $hasDraft = $draftCount > 0;
+
         $soalCountsByArc = [];
         foreach ($quiz->kesulitan_aktif_array as $arc) {
             $soalCountsByArc[$arc] = $quiz->soals()->where('kesulitan', $arc)->count();
         }
 
-        return view('Siswa.kuis.show', compact('quiz', 'nilai', 'soalCountsByArc'));
+        return view('Siswa.kuis.show', compact('quiz', 'nilai', 'soalCountsByArc', 'hasDraft', 'draftCount'));
     }
 
     /**
@@ -796,6 +805,12 @@ class QuizController extends Controller
                 ->with('error', 'Kuis ini belum memiliki butir soal untuk dikerjakan.');
         }
 
+        // Ambil jawaban yang sudah pernah disimpan sementara (draft) oleh siswa
+        $savedAnswers = Menjawab::where('siswa_id', $siswa->id)
+            ->whereIn('soal_id', $soals->pluck('id'))
+            ->pluck('jawaban_dipilih', 'soal_id')
+            ->toArray();
+
         // Acak opsi jawaban jika fitur acak_jawaban diaktifkan oleh guru
         if ($quiz->acak_jawaban) {
             foreach ($soals as $soal) {
@@ -826,7 +841,88 @@ class QuizController extends Controller
 
         $quiz->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru']);
 
-        return view('Siswa.kuis.kerjakan', compact('quiz', 'soals', 'remainingSeconds'));
+        return view('Siswa.kuis.kerjakan', compact('quiz', 'soals', 'remainingSeconds', 'savedAnswers'));
+    }
+
+    /**
+     * SISWA: Menyimpan progres jawaban kuis sementara (draft) dan keluar tanpa menyelesaikan,
+     * sehingga siswa dapat melanjutkan mengerjakan nanti.
+     */
+    public function siswaSimpanDraft(Request $request, Quiz $quiz)
+    {
+        $user = auth()->user();
+        $siswa = $user->siswa;
+        abort_unless($user->role === 'siswa' && $siswa, 403, 'Akses ditolak.');
+
+        $this->authorizeSiswaClass($quiz, $siswa);
+        abort_unless($quiz->isPublished(), 403, 'Kuis belum dipublikasikan.');
+
+        // Cegah jika sudah selesai dinilai
+        $existing = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
+        if ($existing) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kuis sudah pernah diselesaikan sebelumnya.'
+                ], 400);
+            }
+            return redirect()->route('siswa.kuis.hasil', $quiz->id)
+                ->with('warning', 'Jawaban kamu sebelumnya sudah tersimpan.');
+        }
+
+        // Cek keterlambatan pengumpulan (toleransi 2 menit)
+        if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai->copy()->addMinutes(2))) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Waktu pengerjaan kuis telah kedaluwarsa.'
+                ], 400);
+            }
+            return redirect()->route('siswa.kuis.show', $quiz->id)
+                ->with('error', 'Waktu pengumpulan kuis telah kedaluwarsa.');
+        }
+
+        $soals = $quiz->soals;
+        $jawabanInputs = $request->input('jawaban', []);
+
+        DB::transaction(function () use ($soals, $jawabanInputs, $siswa) {
+            foreach ($soals as $soal) {
+                if (isset($jawabanInputs[$soal->id]) && $jawabanInputs[$soal->id] !== '' && $jawabanInputs[$soal->id] !== null) {
+                    $jawabanUser = $jawabanInputs[$soal->id];
+                    $isBenar = false;
+
+                    $kunci = $soal->kunci_jawaban;
+                    if (is_array($kunci)) {
+                        $cleanKunci = array_map(fn($k) => strtolower(trim((string)$k)), $kunci);
+                        $isBenar = in_array(strtolower(trim((string)$jawabanUser)), $cleanKunci);
+                    } else {
+                        $isBenar = strtolower(trim((string)$jawabanUser)) === strtolower(trim((string)$kunci));
+                    }
+
+                    Menjawab::updateOrCreate(
+                        [
+                            'soal_id'  => $soal->id,
+                            'siswa_id' => $siswa->id,
+                        ],
+                        [
+                            'jawaban_dipilih' => is_array($jawabanUser) ? json_encode($jawabanUser) : (string)$jawabanUser,
+                            'benar'           => $isBenar,
+                        ]
+                    );
+                }
+            }
+        });
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success'      => true,
+                'message'      => 'Progres jawaban kuis berhasil disimpan! Kamu dapat melanjutkan pengerjaan kapan saja.',
+                'redirect_url' => route('siswa.kuis'),
+            ]);
+        }
+
+        return redirect()->route('siswa.kuis')
+            ->with('success', 'Progres jawaban kuis berhasil disimpan! Kamu dapat melanjutkan pengerjaan nanti.');
     }
 
     /**
@@ -862,6 +958,15 @@ class QuizController extends Controller
         DB::transaction(function () use ($soals, $request, $siswa, $quiz, &$skorDidapat, &$jumlahBenar, $totalBobot) {
             foreach ($soals as $soal) {
                 $jawabanUser = $request->input("jawaban.{$soal->id}");
+
+                // Jika tidak ada di request, coba ambil dari draft tersimpan sebelumnya
+                if ($jawabanUser === null || $jawabanUser === '') {
+                    $existingMenjawab = Menjawab::where('soal_id', $soal->id)->where('siswa_id', $siswa->id)->first();
+                    if ($existingMenjawab && $existingMenjawab->jawaban_dipilih) {
+                        $jawabanUser = $existingMenjawab->jawaban_dipilih;
+                    }
+                }
+
                 $isBenar = false;
 
                 if ($jawabanUser !== null && $jawabanUser !== '') {

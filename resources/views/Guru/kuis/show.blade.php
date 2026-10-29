@@ -49,7 +49,7 @@
         showEditQuizModal: false,
         showHasilSiswaModal: false,
         isLevelFull: {{ $isLevelFull ? 'true' : 'false' }},
-        allKeys: ['a', 'b', 'c', 'd', 'e', 'f'],
+        allKeys: ['a', 'b', 'c', 'd'],
 
         editQuizData: {
             judul: '{{ addslashes($quiz->judul) }}',
@@ -120,38 +120,6 @@
             return true;
         },
 
-        addOption(target) {
-            let currentOptions = target === 'add' ? this.addSoalData.options : this.editSoalData.options;
-            if (currentOptions.length >= 6) {
-                Swal.fire({icon: 'info', title: 'Batas Maksimal', text: 'Maksimal 6 pilihan jawaban (A sampai F).'});
-                return;
-            }
-            let nextIndex = currentOptions.length;
-            let nextKey = this.allKeys[nextIndex];
-            currentOptions.push({
-                key: nextKey,
-                label: nextKey.toUpperCase(),
-                text: ''
-            });
-        },
-
-        removeOption(target, index) {
-            let obj = target === 'add' ? this.addSoalData : this.editSoalData;
-            if (obj.options.length <= 2) {
-                Swal.fire({icon: 'warning', title: 'Batas Minimal', text: 'Minimal harus ada 2 pilihan jawaban (A dan B).'});
-                return;
-            }
-            obj.options.splice(index, 1);
-            obj.options.forEach((opt, idx) => {
-                opt.key = this.allKeys[idx];
-                opt.label = this.allKeys[idx].toUpperCase();
-            });
-            let activeKeys = obj.options.map(o => o.key);
-            if (!activeKeys.includes(obj.kunci_jawaban)) {
-                obj.kunci_jawaban = activeKeys[0];
-            }
-        },
-
         openAddModal() {
             if (this.isLevelFull) {
                 Swal.fire({icon: 'warning', title: 'Level Penuh', text: 'Level ini sudah mencapai batas maksimal 10 butir soal.'});
@@ -171,22 +139,16 @@
 
         openEditModal(soal) {
             let pil = soal.pilihan || {};
-            let keys = Object.keys(pil);
-            if (!keys || keys.length < 2) {
-                keys = ['a', 'b', 'c', 'd'];
-            }
-            keys.sort();
-            let options = keys.map((k, idx) => {
-                let keyChar = this.allKeys[idx] || k;
+            let options = ['a', 'b', 'c', 'd'].map(k => {
                 return {
-                    key: keyChar,
-                    label: keyChar.toUpperCase(),
+                    key: k,
+                    label: k.toUpperCase(),
                     text: pil[k] || ''
                 };
             });
 
             let rawKunci = typeof soal.kunci_jawaban === 'string' ? soal.kunci_jawaban : (Array.isArray(soal.kunci_jawaban) ? soal.kunci_jawaban[0] : 'a');
-            let validKunci = options.some(o => o.key === rawKunci.toLowerCase()) ? rawKunci.toLowerCase() : options[0].key;
+            let validKunci = options.some(o => o.key === rawKunci.toLowerCase()) ? rawKunci.toLowerCase() : 'a';
 
             this.editSoalData = {
                 id: soal.id,
@@ -734,14 +696,14 @@
                         </div>
                     </div>
 
-                    {{-- Opsi Pilihan Jawaban (Min 2 s/d 6 Opsi) & Kunci Jawaban --}}
+                    {{-- Opsi Pilihan Jawaban (Fix 4 Opsi: A, B, C, D) & Kunci Jawaban --}}
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <label class="block text-xs font-bold text-slate-700 uppercase">
-                                Pilihan Opsi Jawaban & Kunci Jawaban <span class="text-rose-500">*</span>
+                                Pilihan Jawaban & Kunci Jawaban <span class="text-rose-500">*</span>
                             </label>
-                            <span class="text-[11px] text-slate-500">
-                                Jumlah opsi: <strong class="text-blue-600 font-bold" x-text="addSoalData.options.length"></strong> (Min 2, Maks 6)
+                            <span class="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                                Fix 4 Opsi (A, B, C, D)
                             </span>
                         </div>
                         <div class="space-y-2.5">
@@ -759,27 +721,13 @@
                                     <input type="text" :name="'pilihan[' + opt.key + ']'" x-model="opt.text" required
                                         :placeholder="'Teks untuk Pilihan ' + opt.label + '...'"
                                         class="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-100 outline-none transition">
-                                    <button type="button" @click="removeOption('add', index)" x-show="addSoalData.options.length > 2"
-                                        class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
-                                        title="Hapus Opsi ini">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
                                 </div>
                             </template>
                         </div>
 
-                        <div class="mt-3 flex items-center justify-between">
-                            <button type="button" @click="addOption('add')" x-show="addSoalData.options.length < 6"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-blue-300 bg-blue-50/70 text-blue-700 hover:bg-blue-100 text-xs font-bold transition shadow-xs cursor-pointer">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-                                </svg>
-                                <span>+ Tambah Opsi Jawaban (Maks 6)</span>
-                            </button>
-                            <span class="text-[11px] text-slate-400 ml-auto">
-                                * Pilih radio button lingkaran di sebelah huruf untuk menetapkan kunci jawaban yang benar.
+                        <div class="mt-2 text-right">
+                            <span class="text-[11px] text-slate-400">
+                                * Pilih radio button lingkaran di sebelah huruf opsi untuk menetapkan kunci jawaban yang benar.
                             </span>
                         </div>
                     </div>
@@ -857,14 +805,14 @@
                         </div>
                     </div>
 
-                    {{-- Opsi Pilihan Jawaban (Min 2 s/d 6 Opsi) & Kunci Jawaban --}}
+                    {{-- Opsi Pilihan Jawaban (Fix 4 Opsi: A, B, C, D) & Kunci Jawaban --}}
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <label class="block text-xs font-bold text-slate-700 uppercase">
                                 Pilihan Jawaban & Kunci Jawaban <span class="text-rose-500">*</span>
                             </label>
-                            <span class="text-[11px] text-slate-500">
-                                Jumlah opsi: <strong class="text-blue-600 font-bold" x-text="editSoalData.options.length"></strong> (Min 2, Maks 6)
+                            <span class="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                                Fix 4 Opsi (A, B, C, D)
                             </span>
                         </div>
                         <div class="space-y-2.5">
@@ -882,27 +830,13 @@
                                     <input type="text" :name="'pilihan[' + opt.key + ']'" x-model="opt.text" required
                                         :placeholder="'Teks untuk Pilihan ' + opt.label + '...'"
                                         class="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-100 outline-none transition">
-                                    <button type="button" @click="removeOption('edit', index)" x-show="editSoalData.options.length > 2"
-                                        class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer"
-                                        title="Hapus Opsi ini">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
                                 </div>
                             </template>
                         </div>
 
-                        <div class="mt-3 flex items-center justify-between">
-                            <button type="button" @click="addOption('edit')" x-show="editSoalData.options.length < 6"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-blue-300 bg-blue-50/70 text-blue-700 hover:bg-blue-100 text-xs font-bold transition shadow-xs cursor-pointer">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-                                </svg>
-                                <span>+ Tambah Opsi Jawaban (Maks 6)</span>
-                            </button>
-                            <span class="text-[11px] text-slate-400 ml-auto">
-                                * Pilih radio button lingkaran di sebelah huruf untuk menetapkan kunci jawaban yang benar.
+                        <div class="mt-2 text-right">
+                            <span class="text-[11px] text-slate-400">
+                                * Pilih radio button lingkaran di sebelah huruf opsi untuk menetapkan kunci jawaban yang benar.
                             </span>
                         </div>
                     </div>

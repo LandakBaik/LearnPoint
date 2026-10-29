@@ -149,6 +149,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/siswa/kuis', [QuizController::class, 'siswaIndex'])->name('siswa.kuis');
         Route::get('/siswa/kuis/{quiz}', [QuizController::class, 'siswaShow'])->name('siswa.kuis.show');
         Route::get('/siswa/kuis/{quiz}/kerjakan', [QuizController::class, 'siswaKerjakan'])->name('siswa.kuis.kerjakan');
+        Route::post('/siswa/kuis/{quiz}/simpan-draft', [QuizController::class, 'siswaSimpanDraft'])->name('siswa.kuis.simpan-draft');
         Route::post('/siswa/kuis/{quiz}/selesaikan', [QuizController::class, 'siswaSubmit'])->name('siswa.kuis.submit');
         Route::get('/siswa/kuis/{quiz}/hasil', [QuizController::class, 'siswaHasil'])->name('siswa.kuis.hasil');
     });

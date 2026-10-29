@@ -97,6 +97,21 @@
                 </div>
             @endif
 
+            {{-- Draft Progres Tersimpan Alert --}}
+            @if(isset($hasDraft) && $hasDraft && $isAvailable)
+                <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start gap-3 shadow-xs">
+                    <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 text-sm shadow-xs">
+                        <i class="fa-solid fa-bookmark"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-amber-900">Progres Kuis Tersimpan Ditemukan</h4>
+                        <p class="text-xs text-amber-700 mt-0.5">
+                            Kamu sebelumnya telah menyimpan <strong>{{ $draftCount }}</strong> dari <strong>{{ $soalsCount }}</strong> butir soal. Kamu dapat langsung melanjutkan pengerjaan tanpa harus mengulang dari awal.
+                        </p>
+                    </div>
+                </div>
+            @endif
+
             {{-- Grid Informasi Detail --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 text-center">
@@ -175,14 +190,18 @@
                     </li>
                     <li class="flex items-start gap-2.5">
                         <span class="w-5 h-5 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center shrink-0 text-[10px] mt-0.5">2</span>
-                        <span>Bacalah setiap butir pertanyaan dengan teliti. Soal berbentuk pilihan ganda dengan 2 hingga 6 opsi pilihan jawaban.</span>
+                        <span>Bacalah setiap butir pertanyaan dengan teliti. Soal berbentuk pilihan ganda dengan 4 opsi pilihan jawaban (A, B, C, D).</span>
                     </li>
                     <li class="flex items-start gap-2.5">
                         <span class="w-5 h-5 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center shrink-0 text-[10px] mt-0.5">3</span>
-                        <span>Waktu pengerjaan akan mulai dihitung begitu kamu menekan tombol <strong>"Mulai Kerjakan Kuis"</strong>.</span>
+                        <span>Kamu dapat menyimpan jawaban sementara dan keluar kapan saja dengan menekan tombol <strong>"Simpan & Keluar"</strong> untuk melanjutkan pengerjaan nanti.</span>
                     </li>
                     <li class="flex items-start gap-2.5">
                         <span class="w-5 h-5 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center shrink-0 text-[10px] mt-0.5">4</span>
+                        <span>Waktu pengerjaan akan mulai dihitung begitu kamu menekan tombol <strong>"Mulai Kerjakan Kuis"</strong>.</span>
+                    </li>
+                    <li class="flex items-start gap-2.5">
+                        <span class="w-5 h-5 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center shrink-0 text-[10px] mt-0.5">5</span>
                         <span>Setelah selesai menjawab semua pertanyaan, klik tombol <strong>"Kumpulkan Kuis"</strong> untuk mengakhiri dan melihat perolehan skormu secara langsung.</span>
                     </li>
                 </ul>
@@ -232,6 +251,15 @@
                     >
                         <i class="fa-solid fa-triangle-exclamation text-xs"></i>
                         <span>Belum Ada Soal dari Guru</span>
+                    </button>
+                @elseif(isset($hasDraft) && $hasDraft)
+                    <button 
+                        type="button" 
+                        onclick="confirmStartQuiz()"
+                        class="w-full sm:w-auto px-7 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-amber-500/30 group"
+                    >
+                        <span>Lanjutkan Pengerjaan Kuis</span>
+                        <i class="fa-solid fa-play group-hover:scale-110 transition-transform"></i>
                     </button>
                 @else
                     <button 
