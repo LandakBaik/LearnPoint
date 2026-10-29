@@ -14,7 +14,7 @@ class TugasSeeder extends Seeder
     {
         DB::table('tugases')->insert([
             [
-                'judul' => 'Tugas 1 - Dasar Pemrograman',
+                'judul' => 'Dasar Pemrograman',
                 'deskripsi' => 'Buatlah program sederhana menggunakan bahasa pemrograman yang telah dipelajari. Sertakan penjelasan mengenai alur program.',
                 'deadline' => Carbon::now()->addDays(7),
                 'tipe' => 'upload',
@@ -24,7 +24,7 @@ class TugasSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'judul' => 'Tugas 2 - Algoritma dan Logika',
+                'judul' => 'Algoritma dan Logika',
                 'deskripsi' => 'Kerjakan soal mengenai algoritma, flowchart, dan pseudocode. Kumpulkan jawaban dalam bentuk PDF.',
                 'deadline' => Carbon::now()->addDays(5),
                 'tipe' => 'upload',
@@ -34,10 +34,10 @@ class TugasSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'judul' => 'Kuis Pemahaman Materi',
-                'deskripsi' => 'Pilih jawaban yang paling tepat sesuai materi yang telah dipelajari di kelas.',
-                'deadline' => Carbon::now()->addDays(3),
-                'tipe' => 'pilihan_ganda',
+                'judul' => 'Struktur Data',
+                'deskripsi' => 'Buatlah implementasi struktur data dalam bahasa pemrograman pilihanmu. Sertakan dokumentasi kode.',
+                'deadline' => Carbon::now()->addDays(10),
+                'tipe' => 'upload',
                 'file_lampiran' => null,
                 'pengampu_kelas_id' => 1,
                 'created_at' => now(),
