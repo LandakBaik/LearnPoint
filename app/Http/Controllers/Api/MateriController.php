@@ -7,6 +7,7 @@ use App\Models\GuruMapel;
 use App\Models\Kelas;
 use App\Models\Mapel;
 use App\Models\Materi;
+use App\Models\Notifikasi;
 use App\Models\PengampuKelas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -246,6 +247,22 @@ class MateriController extends Controller
             }
         });
 
+        // Kirim notifikasi interaktif ke seluruh siswa pada kelas sasaran
+        foreach ($validPengampu as $pkId) {
+            $pk = PengampuKelas::with('guruMapel.mapel')->find($pkId);
+            if ($pk) {
+                $mapelNama = $pk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+                Notifikasi::kirimKeKelas(
+                    $pk->kelas_id,
+                    "Materi Baru: {$validated['judul']}",
+                    "Guru telah membagikan materi pembelajaran baru untuk mata pelajaran {$mapelNama}.",
+                    'materi_baru',
+                    route('siswa.materi'),
+                    null
+                );
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Materi berhasil ditambahkan ke ' . count($validPengampu) . ' kelas.',
@@ -385,7 +402,9 @@ class MateriController extends Controller
      */
     public function siswaIndex(Request $request)
     {
-        $kelasId = $request->user()?->siswa?->kelas?->id;
+        $siswa = $request->user()?->siswa;
+        $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelasId = $kelas?->id;
 
         if (!$kelasId) {
             return response()->json([
@@ -430,7 +449,9 @@ class MateriController extends Controller
      */
     public function siswaShow(Request $request, $mapelId)
     {
-        $kelasId = $request->user()?->siswa?->kelas?->id;
+        $siswa = $request->user()?->siswa;
+        $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelasId = $kelas?->id;
 
         if (!$kelasId) {
             return response()->json(['success' => false, 'message' => 'Data kelas siswa tidak ditemukan.'], 404);

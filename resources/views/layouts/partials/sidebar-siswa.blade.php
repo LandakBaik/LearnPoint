@@ -156,7 +156,12 @@
         @if($isNotifikasi)
             <span class="w-2 h-6 bg-white rounded-full ml-auto shrink-0 shadow-sm"></span>
         @else
-            <span class="w-6 h-6 bg-amber-500 text-white font-extrabold text-[11px] rounded-full flex items-center justify-center ml-auto shrink-0 shadow-sm">0</span>
+            @php
+                $siswaUnread = auth()->user()?->unreadNotifikasiCount() ?? 0;
+            @endphp
+            @if($siswaUnread > 0)
+                <span class="w-6 h-6 bg-amber-500 text-white font-extrabold text-[11px] rounded-full flex items-center justify-center ml-auto shrink-0 shadow-sm">{{ $siswaUnread > 99 ? '99+' : $siswaUnread }}</span>
+            @endif
         @endif
     </a>
 </nav>

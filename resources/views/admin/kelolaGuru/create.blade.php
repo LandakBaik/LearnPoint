@@ -62,6 +62,42 @@
                 @enderror
             </div>
 
+            <!-- Grid: Jenis Kelamin & Nomor Telepon -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Jenis Kelamin -->
+                <div>
+                    <label for="jenis_kelamin" class="block text-sm font-bold text-gray-700 mb-1">Jenis Kelamin</label>
+                    <select 
+                        id="jenis_kelamin" 
+                        name="jenis_kelamin" 
+                        class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                        <option value="">-- Pilih Jenis Kelamin --</option>
+                        <option value="Laki-laki" {{ old('jenis_kelamin') == 'Laki-laki' ? 'selected' : '' }}>Laki-laki</option>
+                        <option value="Perempuan" {{ old('jenis_kelamin') == 'Perempuan' ? 'selected' : '' }}>Perempuan</option>
+                    </select>
+                    @error('jenis_kelamin')
+                        <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Nomor Telepon -->
+                <div>
+                    <label for="nomor_telepon" class="block text-sm font-bold text-gray-700 mb-1">Nomor Telepon / WhatsApp</label>
+                    <input 
+                        type="text" 
+                        id="nomor_telepon" 
+                        name="nomor_telepon" 
+                        value="{{ old('nomor_telepon') }}" 
+                        placeholder="Contoh: 081234567890" 
+                        class="w-full px-4 py-2.5 rounded-xl border @error('nomor_telepon') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                    @error('nomor_telepon')
+                        <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+
             <!-- Auto Account Generation Notice -->
             <div class="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 flex items-start gap-3">
                 <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 mt-0.5">

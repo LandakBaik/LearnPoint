@@ -672,7 +672,7 @@
         {{-- =========================================================
             MODAL TAMBAH BUTIR SOAL KE LEVEL AKTIF
         ========================================================== --}}
-        <div x-show="showAddModal" x-cloak
+        <div x-show="showAddModal" x-cloak style="display: none;"
             class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 overflow-y-auto">
             <div @click.away="showAddModal = false"
                 class="bg-white w-full max-w-2xl rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 my-8">
@@ -801,7 +801,7 @@
         {{-- =========================================================
             MODAL EDIT BUTIR SOAL
         ========================================================== --}}
-        <div x-show="showEditSoalModal" x-cloak
+        <div x-show="showEditSoalModal" x-cloak style="display: none;"
             class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 overflow-y-auto">
             <div @click.away="showEditSoalModal = false"
                 class="bg-white w-full max-w-2xl rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 my-8">
@@ -924,7 +924,7 @@
         {{-- =========================================================
             MODAL EDIT PENGATURAN KUIS
         ========================================================== --}}
-        <div x-show="showEditQuizModal" x-cloak
+        <div x-show="showEditQuizModal" x-cloak style="display: none;"
             class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 sm:p-6 overflow-hidden">
             <div @click.away="showEditQuizModal = false"
                 class="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-slate-200/80 overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 my-auto">

@@ -17,7 +17,7 @@
         <div>
             <a
                 href="{{ route('guru.ujian.index') }}"
-                class="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-teal-700 mb-2"
+                class="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600 mb-2"
             >
                 ← Kembali ke Ujian
             </a>
@@ -81,8 +81,8 @@
                         required
                         placeholder="Contoh: Ujian Tengah Semester IPA Kelas VIII"
                         class="w-full border border-gray-300 rounded-xl px-4 py-3
-                               focus:ring-2 focus:ring-teal-500
-                               focus:border-teal-500"
+                               focus:ring-2 focus:ring-blue-500
+                               focus:border-blue-500"
                     >
 
                     <p class="text-xs text-gray-400 mt-1">
@@ -104,8 +104,8 @@
                         name="pengampu_kelas_id"
                         required
                         class="w-full border border-gray-300 rounded-xl px-4 py-3
-                               focus:ring-2 focus:ring-teal-500
-                               focus:border-teal-500"
+                               focus:ring-2 focus:ring-blue-500
+                               focus:border-blue-500"
                     >
 
                         <option value="">
@@ -157,8 +157,8 @@
                             maxlength="3"
                             required
                             class="w-full border border-gray-300 rounded-xl px-4 py-3 pr-20
-                                   focus:ring-2 focus:ring-teal-500
-                                   focus:border-teal-500"
+                                   focus:ring-2 focus:ring-blue-500
+                                   focus:border-blue-500"
                         >
 
                         <span class="absolute right-4 top-3 text-sm text-gray-400">
@@ -194,8 +194,8 @@
                         maxlength="2"
                         required
                         class="w-full border border-gray-300 rounded-xl px-4 py-3
-                               focus:ring-2 focus:ring-teal-500
-                               focus:border-teal-500"
+                               focus:ring-2 focus:ring-blue-500
+                               focus:border-blue-500"
                     >
 
                     <p class="text-xs text-gray-400 mt-1">
@@ -220,8 +220,8 @@
                         name="waktu_mulai"
                         value="{{ old('waktu_mulai') }}"
                         class="w-full border border-gray-300 rounded-xl px-4 py-3
-                               focus:ring-2 focus:ring-teal-500
-                               focus:border-teal-500"
+                               focus:ring-2 focus:ring-blue-500
+                               focus:border-blue-500"
                     >
 
                 </div>
@@ -242,8 +242,8 @@
                         name="deadline"
                         value="{{ old('deadline') }}"
                         class="w-full border border-gray-300 rounded-xl px-4 py-3
-                               focus:ring-2 focus:ring-teal-500
-                               focus:border-teal-500"
+                               focus:ring-2 focus:ring-blue-500
+                               focus:border-blue-500"
                     >
 
                 </div>
@@ -265,8 +265,8 @@
                         maxlength="500"
                         placeholder="Tuliskan kisi-kisi atau kompetensi yang akan diujikan..."
                         class="w-full border border-gray-300 rounded-xl px-4 py-3
-                               focus:ring-2 focus:ring-teal-500
-                               focus:border-teal-500"
+                               focus:ring-2 focus:ring-blue-500
+                               focus:border-blue-500"
                     >{{ old('kisi_kisi') }}</textarea>
 
                     <p class="text-xs text-gray-400 mt-1">
@@ -304,7 +304,7 @@
                         type="button"
                         @click="addQuestion()"
                         class="inline-flex items-center justify-center gap-2
-                               px-5 py-3 bg-teal-700 hover:bg-teal-800
+                               px-5 py-3 bg-blue-600 hover:bg-blue-700
                                text-white rounded-xl font-semibold transition"
                     >
 
@@ -347,8 +347,8 @@
                                         class="w-full text-left px-4 py-3 rounded-xl border transition"
                                         :class="
                                             selectedQuestion === index
-                                                ? 'bg-teal-700 text-white border-teal-700'
-                                                : 'bg-white text-gray-700 border-gray-200 hover:border-teal-400'
+                                                ? 'bg-blue-600 text-white border-blue-600'
+                                                : 'bg-white text-gray-700 border-gray-200 hover:border-blue-400'
                                         "
                                     >
 
@@ -442,8 +442,8 @@
                                         :name="`soals[${index}][tipe_soal]`"
                                         x-model="question.tipe_soal"
                                         class="w-full border border-gray-300 rounded-xl px-4 py-3
-                                               focus:ring-2 focus:ring-teal-500
-                                               focus:border-teal-500"
+                                               focus:ring-2 focus:ring-blue-500
+                                               focus:border-blue-500"
                                     >
 
                                         <option value="single_choice">
@@ -484,8 +484,8 @@
                                         required
                                         placeholder="Tulis pertanyaan soal..."
                                         class="w-full border border-gray-300 rounded-xl px-4 py-3
-                                               focus:ring-2 focus:ring-teal-500
-                                               focus:border-teal-500"
+                                               focus:ring-2 focus:ring-blue-500
+                                               focus:border-blue-500"
                                     ></textarea>
 
                                     <p class="text-xs text-gray-400 mt-1">
@@ -545,7 +545,7 @@
                                             type="button"
                                             @click="addOption(index)"
                                             x-show="question.pilihan.length < 6"
-                                            class="text-sm text-teal-700 hover:text-teal-900 font-semibold"
+                                            class="text-sm text-blue-600 hover:text-blue-800 font-semibold"
                                         >
                                             + Tambah Pilihan
                                         </button>
@@ -570,7 +570,7 @@
                                                         :name="`soals[${index}][kunci_jawaban]`"
                                                         :value="optionIndex"
                                                         x-model="question.kunci_jawaban"
-                                                        class="w-4 h-4 text-teal-700"
+                                                        class="w-4 h-4 text-blue-600"
                                                     >
 
                                                 </template>
@@ -584,7 +584,7 @@
                                                         :name="`soals[${index}][kunci_jawaban][]`"
                                                         :value="optionIndex"
                                                         x-model="question.kunci_jawaban"
-                                                        class="w-4 h-4 text-teal-700"
+                                                        class="w-4 h-4 text-blue-600"
                                                     >
 
                                                 </template>
@@ -598,8 +598,8 @@
                                                     :placeholder="`Pilihan ${String.fromCharCode(65 + optionIndex)}`"
                                                     maxlength="200"
                                                     class="flex-1 min-w-0 border border-gray-300 rounded-xl px-4 py-3
-                                                           focus:ring-2 focus:ring-teal-500
-                                                           focus:border-teal-500"
+                                                           focus:ring-2 focus:ring-blue-500
+                                                           focus:border-blue-500"
                                                 >
 
 
@@ -686,8 +686,8 @@
                                         step="1"
                                         class="w-full md:w-48 border border-gray-300 rounded-xl
                                                px-4 py-3
-                                               focus:ring-2 focus:ring-teal-500
-                                               focus:border-teal-500"
+                                               focus:ring-2 focus:ring-blue-500
+                                               focus:border-blue-500"
                                     >
 
                                     <p class="text-xs text-gray-400 mt-1">
@@ -750,8 +750,8 @@
                         type="submit"
                         name="action"
                         value="publish"
-                        class="px-5 py-3 rounded-xl bg-teal-700
-                               hover:bg-teal-800 text-white
+                        class="px-5 py-3 rounded-xl bg-blue-600
+                               hover:bg-blue-700 text-white
                                font-semibold transition"
                     >
                         Publikasi Ujian Sekarang

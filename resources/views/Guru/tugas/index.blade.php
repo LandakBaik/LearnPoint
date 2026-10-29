@@ -322,6 +322,7 @@
     <div
         x-show="showModal"
         x-cloak
+        style="display: none;"
         @keydown.escape.window="showModal = false"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
 
@@ -487,6 +488,7 @@
         @open-edit-modal.window="showEditModal = true; editData = $event.detail"
         x-show="showEditModal"
         x-cloak
+        style="display: none;"
         @keydown.escape.window="showEditModal = false"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
 

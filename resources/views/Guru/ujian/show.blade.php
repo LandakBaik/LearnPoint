@@ -13,18 +13,19 @@
             <div class="flex items-center gap-3 mb-2">
                 <a
                     href="{{ route('guru.ujian.index') }}"
-                    class="text-gray-500 hover:text-teal-600"
+                    class="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-blue-600 transition"
                 >
-                    ← Kembali
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    Kembali ke Daftar Ujian
                 </a>
             </div>
 
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
+            <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
                 {{ $ujian->judul }}
             </h1>
 
-            <p class="text-gray-500 mt-1">
-                Detail dan pengaturan ujian
+            <p class="text-gray-500 mt-1 text-sm">
+                Detail pengaturan instrumen ujian dan butir evaluasi.
             </p>
         </div>
 
@@ -32,10 +33,10 @@
 
             <a
                 href="{{ route('guru.ujian.edit', $ujian) }}"
-                class="px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white
-                       rounded-xl font-semibold transition"
+                class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition shadow-sm"
             >
-                ✏️ Edit Ujian
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                <span>Edit Ujian</span>
             </a>
 
             @if($ujian->status === 'draft')
@@ -49,10 +50,10 @@
                     <button
                         type="submit"
                         data-confirm="Publikasikan ujian ini sekarang?"
-                        class="px-4 py-2.5 bg-green-600 hover:bg-green-700
-                               text-white rounded-xl font-semibold transition"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition shadow-sm"
                     >
-                        📢 Publikasi
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <span>Publikasikan</span>
                     </button>
                 </form>
 
@@ -261,7 +262,7 @@
                         Total Poin
                     </span>
 
-                    <span class="font-bold text-teal-600">
+                    <span class="font-bold text-blue-600">
                         {{ $ujian->total_poin }}
                     </span>
 
@@ -339,7 +340,7 @@
                         <div class="flex gap-3">
 
                             <div
-                                class="w-9 h-9 rounded-xl bg-teal-100 text-teal-700
+                                class="w-9 h-9 rounded-xl bg-blue-50 text-blue-700
                                        flex items-center justify-center font-bold
                                        flex-shrink-0"
                             >

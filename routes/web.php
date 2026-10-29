@@ -34,8 +34,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
-    // Notifikasi Route
+    // Notifikasi Routes
     Route::get('/notifikasi', [NotifikasiController::class, 'index'])->name('notifikasi.index');
+    Route::get('/notifikasi/{notifikasi}/baca', [NotifikasiController::class, 'readAndRedirect'])->name('notifikasi.read');
+    Route::patch('/notifikasi/{notifikasi}/toggle', [NotifikasiController::class, 'toggleRead'])->name('notifikasi.toggle');
+    Route::post('/notifikasi/tandai-semua-dibaca', [NotifikasiController::class, 'markAllRead'])->name('notifikasi.mark-all-read');
+    Route::delete('/notifikasi/{notifikasi}', [NotifikasiController::class, 'destroy'])->name('notifikasi.destroy');
+    Route::delete('/notifikasi-semua', [NotifikasiController::class, 'clearAll'])->name('notifikasi.clear-all');
 
     // Main Dashboard Router
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

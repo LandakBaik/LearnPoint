@@ -275,6 +275,12 @@
                         <span>&bull;</span>
                         <span class="font-mono bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded">NUPTK {{ $nuptkGuru }}</span>
                     @endif
+                    @if($user->isGuru() && $user->guru?->jenis_kelamin)
+                        <span>&bull;</span>
+                        <span class="inline-flex items-center gap-1 text-xs font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded">
+                            {{ in_array($user->guru->jenis_kelamin, ['L', 'Laki-laki']) ? 'Laki-laki' : (in_array($user->guru->jenis_kelamin, ['P', 'Perempuan']) ? 'Perempuan' : $user->guru->jenis_kelamin) }}
+                        </span>
+                    @endif
                     <span>&bull;</span>
                     <span class="text-emerald-600 font-semibold flex items-center gap-1">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -318,6 +324,45 @@
                         <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Nomor Telepon</label>
                         <div class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-800 font-medium bg-gray-50">
                             {{ $user->guru?->nomor_telepon ?? '-' }}
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Jenis Kelamin</label>
+                        <div class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-800 font-medium bg-gray-50">
+                            {{ in_array($user->guru?->jenis_kelamin, ['L', 'Laki-laki']) ? 'Laki-laki' : (in_array($user->guru?->jenis_kelamin, ['P', 'Perempuan']) ? 'Perempuan' : ($user->guru?->jenis_kelamin ?? '-')) }}
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Status Wali Kelas</label>
+                        <div class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-semibold {{ $user->guru?->kelas ? 'text-indigo-700 bg-indigo-50/50' : 'text-gray-500 bg-gray-50' }}">
+                            {{ $user->guru?->kelas ? 'Wali Kelas ' . $user->guru->kelas->nama_kelas : 'Bukan Wali Kelas' }}
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Mata Pelajaran &amp; Kelas yang Diampu</label>
+                        <div class="w-full p-4 rounded-xl border border-gray-200 bg-gray-50 text-sm space-y-2">
+                            @php
+                                $guruMapels = $user->guru ? $user->guru->guruMapels()->with(['mapel', 'pengampuKelases.kelas'])->get() : collect();
+                            @endphp
+                            @forelse($guruMapels as $gm)
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-2 border-b border-gray-200/60 last:border-b-0 last:pb-0">
+                                    <span class="font-bold text-gray-800 text-xs">{{ $gm->mapel?->nama_mapel ?? 'Mapel' }}</span>
+                                    <div class="flex items-center gap-1 flex-wrap">
+                                        @forelse($gm->pengampuKelases as $pk)
+                                            <span class="px-2 py-0.5 rounded bg-white border border-gray-200 text-gray-700 text-[11px] font-medium">
+                                                {{ $pk->kelas?->nama_kelas ?? '-' }}
+                                            </span>
+                                        @empty
+                                            <span class="text-[11px] text-gray-400 italic">Belum ditentukan kelas</span>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            @empty
+                                <span class="text-xs text-gray-400">Belum ada mata pelajaran yang ditugaskan oleh admin.</span>
+                            @endforelse
                         </div>
                     </div>
                 @endif

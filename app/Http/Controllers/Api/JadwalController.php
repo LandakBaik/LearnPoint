@@ -53,13 +53,18 @@ class JadwalController extends Controller
     public function siswaIndex(Request $request)
     {
         $user = $request->user();
-        $siswa = $user->siswa?->load('kelas.guru');
+        $siswa = $user->siswa;
 
-        if (!$siswa || !$siswa->kelas) {
-            return response()->json(['success' => false, 'message' => 'Data kelas siswa tidak ditemukan.'], 404);
+        if (!$siswa) {
+            return response()->json(['success' => false, 'message' => 'Profil siswa tidak ditemukan.'], 404);
         }
 
-        $kelas = $siswa->kelas;
+        $anggotaKelas = $siswa->anggotaKelases()?->latest()?->first();
+        $kelas = $siswa->kelas ?? $anggotaKelas?->kelas;
+
+        if (!$kelas) {
+            return response()->json(['success' => false, 'message' => 'Data kelas siswa tidak ditemukan.'], 404);
+        }
 
         $pengampuKelases = $kelas->pengampuKelases()
             ->with(['guruMapel.guru', 'guruMapel.mapel'])

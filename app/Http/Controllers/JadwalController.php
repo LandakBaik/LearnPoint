@@ -27,7 +27,6 @@ class JadwalController extends Controller
 
         if ($guru) {
             $guruMapels = $guru->guruMapels()
-                ->has('pengampuKelases')
                 ->with(['mapel', 'pengampuKelases.kelas'])
                 ->get();
 

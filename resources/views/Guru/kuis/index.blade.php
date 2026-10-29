@@ -641,6 +641,7 @@
     <div
         x-show="showModal"
         x-cloak
+        style="display: none;"
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 sm:p-6 overflow-hidden"
     >
         <div
@@ -865,6 +866,7 @@
     <div
         x-show="showEditModal"
         x-cloak
+        style="display: none;"
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 sm:p-6 overflow-hidden"
     >
         <div
@@ -1105,6 +1107,7 @@
     <div
         x-show="selectedQuizzes.length > 0"
         x-cloak
+        style="display: none;"
         x-transition:enter="transition ease-out duration-200"
         x-transition:enter-start="opacity-0 translate-y-6"
         x-transition:enter-end="opacity-100 translate-y-0"
