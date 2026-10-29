@@ -96,7 +96,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/materi/{mapelId}', [MateriController::class, 'siswaShow']);
 
         // Tugas Siswa
-        Route::get('/tugas', [TugasController::class, 'siswaIndex']);
+       
         Route::get('/tugas/{id}', [TugasController::class, 'siswaShow']);
         Route::post('/tugas/{id}/kumpulkan', [TugasController::class, 'siswaKumpulkan']);
 
@@ -109,4 +109,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/ujian', [UjianController::class, 'siswaIndex']);
         Route::get('/ujian/{ujian}', [UjianController::class, 'siswaShow']);
     });
+    
 });
+Route::get('/siswa/tugas', [TugasController::class, 'siswaIndex']);
