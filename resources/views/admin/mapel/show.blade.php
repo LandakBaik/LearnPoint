@@ -219,7 +219,56 @@
                     </button>
                 </div>
 
-                <form action="{{ route('guru-mapel.store') }}" method="POST" class="space-y-4">
+                @php
+                    $assignedMap = $mapel->pengampuKelases->mapWithKeys(function($pk) {
+                        return [$pk->kelas_id => [
+                            'guru_id' => $pk->guruMapel?->guru_id,
+                            'guru_nama' => $pk->guruMapel?->guru?->nama ?? 'Guru Lain',
+                        ]];
+                    });
+                @endphp
+
+                <form 
+                    action="{{ route('guru-mapel.store') }}" 
+                    method="POST" 
+                    class="space-y-4"
+                    x-data="{
+                        selectedGuruId: '',
+                        selectedClasses: [],
+                        assignedMap: {{ $assignedMap->toJson() }},
+                        allClassIds: {{ $kelases->pluck('id')->toJson() }},
+                        isAssigned(kelasId) {
+                            return Boolean(this.assignedMap[kelasId]);
+                        },
+                        isAssignedToSelectedGuru(kelasId) {
+                            if (!this.selectedGuruId) return false;
+                            return this.assignedMap[kelasId] && this.assignedMap[kelasId].guru_id == this.selectedGuruId;
+                        },
+                        isDisabled(kelasId) {
+                            return this.isAssigned(kelasId);
+                        },
+                        getTeacherName(kelasId) {
+                            return this.assignedMap[kelasId] ? this.assignedMap[kelasId].guru_nama : '';
+                        },
+                        getAvailableClassIds() {
+                            return this.allClassIds.filter(id => !this.isDisabled(id));
+                        },
+                        isAllAvailableSelected() {
+                            const available = this.getAvailableClassIds();
+                            return available.length > 0 && available.every(id => this.selectedClasses.includes(id));
+                        },
+                        toggleAll() {
+                            const available = this.getAvailableClassIds();
+                            if (available.length === 0) return;
+                            if (this.isAllAvailableSelected()) {
+                                this.selectedClasses = this.selectedClasses.filter(id => !available.includes(id));
+                            } else {
+                                const set = new Set([...this.selectedClasses, ...available]);
+                                this.selectedClasses = Array.from(set);
+                            }
+                        }
+                    }"
+                >
                     @csrf
                     <input type="hidden" name="mapel_id" value="{{ $mapel->id }}">
 
@@ -231,6 +280,7 @@
                         <select 
                             id="guru_id" 
                             name="guru_id" 
+                            x-model="selectedGuruId"
                             required 
                             class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-semibold text-slate-800 transition-all"
                         >
@@ -242,17 +292,7 @@
                     </div>
 
                     <!-- Pilih Kelas (Multi-select Checkbox) -->
-                    <div x-data="{
-                        selectedClasses: [],
-                        allClassIds: {{ $kelases->pluck('id')->toJson() }},
-                        toggleAll() {
-                            if (this.selectedClasses.length === this.allClassIds.length) {
-                                this.selectedClasses = [];
-                            } else {
-                                this.selectedClasses = [...this.allClassIds];
-                            }
-                        }
-                    }" class="space-y-2">
+                    <div class="space-y-2">
                         <div class="flex items-center justify-between">
                             <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
                                 Pilih Kelas yang Diampu <span class="text-rose-500">*</span>
@@ -260,8 +300,10 @@
                             <button 
                                 type="button" 
                                 @click="toggleAll()" 
-                                class="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline">
-                                <span x-text="selectedClasses.length === allClassIds.length ? 'Batalkan Semua' : 'Pilih Semua Kelas'"></span>
+                                :disabled="getAvailableClassIds().length === 0"
+                                :class="getAvailableClassIds().length === 0 ? 'opacity-40 cursor-not-allowed' : 'text-blue-600 hover:text-blue-800 hover:underline'"
+                                class="text-[11px] font-bold transition-all">
+                                <span x-text="getAvailableClassIds().length === 0 ? 'Semua Kelas Sudah Terisi' : (isAllAvailableSelected() ? 'Batalkan Semua' : 'Pilih Semua Kelas Tersedia')"></span>
                             </button>
                         </div>
 
@@ -271,21 +313,61 @@
                                     <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Tingkat {{ $tingkat }}</p>
                                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                         @foreach($kelasList as $kelas)
-                                            <label class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50/30 cursor-pointer transition-all text-xs font-medium text-slate-800 shadow-2xs">
-                                                <input 
-                                                    type="checkbox" 
-                                                    name="kelas_ids[]" 
-                                                    value="{{ $kelas->id }}"
-                                                    x-model="selectedClasses"
-                                                    class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
-                                                <span>{{ $kelas->nama_kelas }}</span>
+                                            <label 
+                                                :class="isDisabled({{ $kelas->id }}) 
+                                                    ? 'bg-slate-100 border-slate-200/90 text-slate-400 cursor-not-allowed select-none opacity-80' 
+                                                    : (selectedClasses.includes({{ $kelas->id }}) ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-400/30' : 'bg-white border-slate-200 hover:border-blue-300 hover:bg-blue-50/30') + ' cursor-pointer text-slate-800 shadow-2xs'"
+                                                class="flex items-center justify-between p-2 rounded-xl border transition-all text-xs font-medium"
+                                            >
+                                                <div class="flex items-center gap-2 truncate">
+                                                    <template x-if="isDisabled({{ $kelas->id }})">
+                                                        <span class="w-4 h-4 rounded bg-slate-200 text-slate-500 flex items-center justify-center shrink-0">
+                                                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                        </span>
+                                                    </template>
+                                                    <template x-if="!isDisabled({{ $kelas->id }})">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            name="kelas_ids[]" 
+                                                            value="{{ $kelas->id }}"
+                                                            x-model="selectedClasses"
+                                                            class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
+                                                    </template>
+                                                    <span :class="isDisabled({{ $kelas->id }}) ? 'text-slate-400 font-normal line-through' : 'text-slate-800 font-bold'">
+                                                        {{ $kelas->nama_kelas }}
+                                                    </span>
+                                                </div>
+
+                                                <div>
+                                                    <template x-if="isAssignedToSelectedGuru({{ $kelas->id }})">
+                                                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 whitespace-nowrap">
+                                                            Sudah Diampu
+                                                        </span>
+                                                    </template>
+                                                    <template x-if="!isAssignedToSelectedGuru({{ $kelas->id }}) && isAssigned({{ $kelas->id }})">
+                                                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 truncate max-w-[90px] inline-block align-middle" :title="'Sudah diajar oleh ' + getTeacherName({{ $kelas->id }})" x-text="getTeacherName({{ $kelas->id }})">
+                                                        </span>
+                                                    </template>
+                                                    <template x-if="!isAssigned({{ $kelas->id }})">
+                                                        <span class="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+                                                            Tersedia
+                                                        </span>
+                                                    </template>
+                                                </div>
                                             </label>
                                         @endforeach
                                     </div>
                                 </div>
                             @endforeach
                         </div>
-                        <p class="text-[11px] text-slate-400">Centang kelas yang akan diajar oleh guru untuk mata pelajaran ini.</p>
+                        <div class="flex items-center gap-3 text-[11px] text-slate-500 pt-1">
+                            <span class="inline-flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Kelas tersedia
+                            </span>
+                            <span class="inline-flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-slate-400"></span> Sudah memiliki pengampu (terkunci)
+                            </span>
+                        </div>
                     </div>
 
                     <div class="pt-3 flex items-center justify-end gap-3">

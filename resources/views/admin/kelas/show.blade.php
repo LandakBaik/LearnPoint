@@ -329,6 +329,26 @@
                     </button>
                 </div>
 
+                @php
+                    $assignedMapels = $kelas->pengampuKelases->mapWithKeys(function($pk) {
+                        return [$pk->guruMapel?->mapel_id => [
+                            'guru_nama' => $pk->guruMapel?->guru?->nama ?? 'Guru Lain',
+                            'guru_id' => $pk->guruMapel?->guru_id,
+                        ]];
+                    });
+                    $availableMapelsCount = $allMapels->filter(fn($m) => !$assignedMapels->has($m->id))->count();
+                @endphp
+
+                @if($availableMapelsCount === 0)
+                    <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2.5">
+                        <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div>
+                            <p class="font-bold">Semua Mata Pelajaran Sudah Memiliki Guru</p>
+                            <p class="text-[11px] text-amber-700 font-normal mt-0.5">Seluruh mata pelajaran di kurikulum sudah memiliki guru pengampu di kelas ini. Anda dapat menghapus pengampu pada tabel di bawah jika ingin mengganti guru.</p>
+                        </div>
+                    </div>
+                @endif
+
                 <form action="{{ route('guru-mapel.store') }}" method="POST" class="space-y-4">
                     @csrf
                     <input type="hidden" name="kelas_id" value="{{ $kelas->id }}">
@@ -346,9 +366,19 @@
                         >
                             <option value="">-- Pilih Mata Pelajaran --</option>
                             @foreach($allMapels as $mapel)
-                                <option value="{{ $mapel->id }}">{{ $mapel->nama_mapel }} (KKM: {{ $mapel->kkm }})</option>
+                                @php $assigned = $assignedMapels->get($mapel->id); @endphp
+                                @if($assigned)
+                                    <option value="{{ $mapel->id }}" disabled class="text-slate-400 bg-slate-100 italic">
+                                        {{ $mapel->nama_mapel }} — [Sudah Diampu: {{ $assigned['guru_nama'] }}] 🔒
+                                    </option>
+                                @else
+                                    <option value="{{ $mapel->id }}">
+                                        {{ $mapel->nama_mapel }} (KKM: {{ $mapel->kkm }})
+                                    </option>
+                                @endif
                             @endforeach
                         </select>
+                        <p class="text-[11px] text-slate-400 mt-1">Satu mata pelajaran hanya dapat diampu oleh 1 guru dalam kelas ini.</p>
                     </div>
 
                     <!-- Pilih Guru -->
@@ -379,7 +409,8 @@
                         </button>
                         <button 
                             type="submit" 
-                            class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5"
+                            @if($availableMapelsCount === 0) disabled @endif
+                            class="px-5 py-2.5 rounded-xl {{ $availableMapelsCount === 0 ? 'bg-slate-200 cursor-not-allowed text-slate-400' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 hover:-translate-y-0.5' }} text-xs font-bold transition-all"
                         >
                             Simpan Pengampu
                         </button>
