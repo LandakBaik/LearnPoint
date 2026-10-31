@@ -53,7 +53,7 @@
                     value="{{ old('nuptk') }}" 
                     required 
                     placeholder="Contoh: 1234567890123456 (Tepat 16 digit angka)"
-                    class="w-full px-4 py-2.5 rounded-xl border @error('nuptk') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                    class="w-full px-4 py-2.5 rounded-xl border @error('nuptk') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                 <p class="text-xs text-gray-500 mt-1">NUPTK harus tepat 16 digit angka.</p>
 
@@ -107,9 +107,9 @@
                     <h4 class="text-xs font-extrabold uppercase tracking-wider text-indigo-900">Akun Pengguna Dibuat Otomatis</h4>
                     <p class="text-xs text-indigo-700 mt-0.5 leading-relaxed">
                         Akun login untuk guru ini akan otomatis dibuatkan oleh sistem dengan rincian:<br>
-                        <span class="font-mono font-bold text-indigo-900">Username: NUPTK</span> &bull; 
-                        <span class="font-mono font-bold text-indigo-900">Password: NUPTK</span> &bull; 
-                        <span class="font-mono font-bold text-indigo-900">Email: NUPTK@guru.learnpoint.sch.id</span> &bull; 
+                        <span class="font-bold text-indigo-900">Username: NUPTK</span> &bull; 
+                        <span class="font-bold text-indigo-900">Password: NUPTK</span> &bull; 
+                        <span class="font-bold text-indigo-900">Email: NUPTK@guru.learnpoint.sch.id</span> &bull; 
                         <span class="font-bold text-emerald-700">Status: Aktif</span>
                     </p>
                 </div>

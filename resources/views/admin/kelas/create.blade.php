@@ -7,23 +7,23 @@
 
     <!-- Header Navigation -->
     <div class="flex items-center gap-3">
-        <a href="{{ route('kelas.index') }}" class="p-2 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        <a href="{{ route('kelas.index') }}" class="p-2.5 rounded-xl bg-white border border-slate-200/80 text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-2xs">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </a>
         <div>
-            <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">Tambah Kelas Baru</h1>
-            <p class="text-sm text-gray-500">Buat kelas baru dan tentukan guru wali kelas.</p>
+            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Tambah Kelas Baru</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Buat kelas baru dan tentukan guru wali kelas.</p>
         </div>
     </div>
 
     <!-- Form Card -->
-    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-6 sm:p-8">
         <form action="{{ route('kelas.store') }}" method="POST" class="space-y-6">
             @csrf
 
             <!-- Nama Kelas -->
             <div>
-                <label for="nama_kelas" class="block text-sm font-bold text-gray-700 mb-1">Nama Kelas <span class="text-rose-500">*</span></label>
+                <label for="nama_kelas" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Nama Kelas <span class="text-rose-500">*</span></label>
                 <input 
                     type="text" 
                     id="nama_kelas" 
@@ -31,7 +31,7 @@
                     value="{{ old('nama_kelas') }}" 
                     required 
                     placeholder="Contoh: VII-A atau 7 Unggulan"
-                    class="w-full px-4 py-2.5 rounded-xl border @error('nama_kelas') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold text-gray-900"
+                    class="w-full px-4 py-2.5 rounded-xl border @error('nama_kelas') border-rose-400 bg-rose-50/30 @else border-slate-200 bg-slate-50/50 @enderror text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-semibold text-slate-900 transition-all"
                 >
                 @error('nama_kelas')
                     <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
@@ -40,8 +40,8 @@
 
             <!-- Tingkatan (Dropdown 7, 8, 9, etc.) -->
             <div>
-                <label for="tingkatan" class="block text-sm font-bold text-gray-700 mb-1">Tingkatan Jenjang <span class="text-rose-500">*</span></label>
-                <select id="tingkatan" name="tingkatan" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium text-gray-800">
+                <label for="tingkatan" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Tingkatan Jenjang <span class="text-rose-500">*</span></label>
+                <select id="tingkatan" name="tingkatan" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-semibold text-slate-800 transition-all">
                     <option value="7" {{ old('tingkatan') == '7' ? 'selected' : '' }}>Tingkat 7 (Kelas VII)</option>
                     <option value="8" {{ old('tingkatan') == '8' ? 'selected' : '' }}>Tingkat 8 (Kelas VIII)</option>
                     <option value="9" {{ old('tingkatan') == '9' ? 'selected' : '' }}>Tingkat 9 (Kelas IX)</option>
@@ -53,8 +53,8 @@
 
             <!-- Guru Wali Kelas -->
             <div>
-                <label for="guru_id" class="block text-sm font-bold text-gray-700 mb-1">Wali Kelas (Opsional)</label>
-                <select id="guru_id" name="guru_id" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium text-gray-800">
+                <label for="guru_id" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Wali Kelas (Opsional)</label>
+                <select id="guru_id" name="guru_id" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-semibold text-slate-800 transition-all">
                     <option value="">-- Belum Ditentukan --</option>
                     @foreach($gurus as $g)
                         <option value="{{ $g->id }}" {{ old('guru_id') == $g->id ? 'selected' : '' }}>
@@ -62,18 +62,18 @@
                         </option>
                     @endforeach
                 </select>
-                <p class="text-xs text-gray-400 mt-1">Daftar guru yang belum menjadi wali kelas di kelas lain.</p>
+                <p class="text-[11px] text-slate-400 mt-1">Hanya menampilkan guru yang belum ditugaskan sebagai wali kelas di kelas lain.</p>
                 @error('guru_id')
                     <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                 @enderror
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-                <a href="{{ route('kelas.index') }}" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-xl transition-colors">
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <a href="{{ route('kelas.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
                     Batal
                 </a>
-                <button type="submit" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-xl shadow-md shadow-amber-200 transition-all hover:shadow-lg">
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5">
                     Simpan Kelas
                 </button>
             </div>

@@ -61,7 +61,7 @@
                         oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 16);"
                         value="{{ old('nuptk', $guru->nuptk) }}" 
                         required 
-                        class="w-full px-4 py-2.5 rounded-xl border @error('nuptk') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                        class="w-full px-4 py-2.5 rounded-xl border @error('nuptk') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                     <p class="text-xs text-gray-500 mt-1">NUPTK harus tepat 16 digit angka.</p>
 
@@ -104,7 +104,48 @@
                 </div>
             </div>
 
-            <div class="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-4">
+            @php
+                $guruAssigned = $guru->pengampuKelases->map(function($pk) {
+                    return [
+                        'kelas_id' => $pk->kelas_id,
+                        'mapel_id' => $pk->guruMapel?->mapel_id,
+                        'mapel_nama' => $pk->guruMapel?->mapel?->nama_mapel ?? 'Mapel',
+                    ];
+                });
+            @endphp
+            <div 
+                class="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-4"
+                x-data="{
+                    selectedMapelId: '',
+                    selectedClasses: [],
+                    guruAssignments: {{ $guruAssigned->toJson() }},
+                    allClassIds: {{ $kelases->pluck('id')->toJson() }},
+                    isAssigned(kelasId) {
+                        if (!this.selectedMapelId) return false;
+                        return this.guruAssignments.some(a => a.kelas_id == kelasId && a.mapel_id == this.selectedMapelId);
+                    },
+                    isDisabled(kelasId) {
+                        return this.isAssigned(kelasId);
+                    },
+                    getAvailableClassIds() {
+                        return this.allClassIds.filter(id => !this.isDisabled(id));
+                    },
+                    isAllAvailableSelected() {
+                        const available = this.getAvailableClassIds();
+                        return available.length > 0 && available.every(id => this.selectedClasses.includes(id));
+                    },
+                    toggleAll() {
+                        const available = this.getAvailableClassIds();
+                        if (available.length === 0) return;
+                        if (this.isAllAvailableSelected()) {
+                            this.selectedClasses = this.selectedClasses.filter(id => !available.includes(id));
+                        } else {
+                            const set = new Set([...this.selectedClasses, ...available]);
+                            this.selectedClasses = Array.from(set);
+                        }
+                    }
+                }"
+            >
                 <div class="flex items-center gap-2 text-gray-800">
                     <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                     <span class="text-xs font-bold uppercase tracking-wider">Tambah Penugasan Mapel & Kelas Baru (Opsional)</span>
@@ -112,7 +153,11 @@
 
                 <div>
                     <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1">Mata Pelajaran</label>
-                    <select name="new_mapel_id" class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-indigo-500">
+                    <select 
+                        name="new_mapel_id" 
+                        x-model="selectedMapelId"
+                        class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-indigo-500"
+                    >
                         <option value="">-- Pilih Mata Pelajaran --</option>
                         @foreach($mapels as $m)
                             <option value="{{ $m->id }}">{{ $m->nama_mapel }} (KKM: {{ $m->kkm }})</option>
@@ -121,24 +166,16 @@
                 </div>
 
                 <!-- Multi-select Checkbox Kelas -->
-                <div x-data="{
-                    selectedClasses: [],
-                    allClassIds: {{ $kelases->pluck('id')->toJson() }},
-                    toggleAll() {
-                        if (this.selectedClasses.length === this.allClassIds.length) {
-                            this.selectedClasses = [];
-                        } else {
-                            this.selectedClasses = [...this.allClassIds];
-                        }
-                    }
-                }" class="space-y-2">
+                <div class="space-y-2">
                     <div class="flex items-center justify-between">
                         <label class="block text-[11px] font-bold text-gray-500 uppercase">Pilih Kelas yang Diampu</label>
                         <button 
                             type="button" 
                             @click="toggleAll()" 
-                            class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
-                            <span x-text="selectedClasses.length === allClassIds.length ? 'Batalkan Semua' : 'Pilih Semua Kelas'"></span>
+                            :disabled="getAvailableClassIds().length === 0"
+                            :class="getAvailableClassIds().length === 0 ? 'opacity-40 cursor-not-allowed' : 'text-indigo-600 hover:text-indigo-800 hover:underline'"
+                            class="text-[11px] font-bold transition-all">
+                            <span x-text="getAvailableClassIds().length === 0 ? 'Semua Kelas Sudah Terisi' : (isAllAvailableSelected() ? 'Batalkan Semua' : 'Pilih Semua Kelas Tersedia')"></span>
                         </button>
                     </div>
 
@@ -148,22 +185,59 @@
                                 <p class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 mb-1.5">Tingkat {{ $tingkat }}</p>
                                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                     @foreach($kelasList as $kelas)
-                                        <label class="flex items-center gap-2 p-2 rounded-lg bg-gray-50 border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/30 cursor-pointer transition-all text-xs font-medium text-gray-800">
-                                            <input 
-                                                type="checkbox" 
-                                                name="new_kelas_ids[]" 
-                                                value="{{ $kelas->id }}"
-                                                x-model="selectedClasses"
-                                                class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300">
-                                            <span>{{ $kelas->nama_kelas }}</span>
+                                        <label 
+                                            :class="isDisabled({{ $kelas->id }}) 
+                                                ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed select-none opacity-80' 
+                                                : (selectedClasses.includes({{ $kelas->id }}) ? 'bg-indigo-50/70 border-indigo-300 ring-1 ring-indigo-400/30' : 'bg-gray-50 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/30') + ' cursor-pointer text-gray-800'"
+                                            class="flex items-center justify-between p-2 rounded-lg border transition-all text-xs font-medium"
+                                        >
+                                            <div class="flex items-center gap-2 truncate">
+                                                <template x-if="isDisabled({{ $kelas->id }})">
+                                                    <span class="w-4 h-4 rounded bg-gray-200 text-gray-500 flex items-center justify-center shrink-0">
+                                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                    </span>
+                                                </template>
+                                                <template x-if="!isDisabled({{ $kelas->id }})">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        name="new_kelas_ids[]" 
+                                                        value="{{ $kelas->id }}"
+                                                        x-model="selectedClasses"
+                                                        class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                                </template>
+                                                <span :class="isDisabled({{ $kelas->id }}) ? 'text-gray-400 font-normal line-through' : 'text-gray-800 font-bold'">
+                                                    {{ $kelas->nama_kelas }}
+                                                </span>
+                                            </div>
+
+                                            <div>
+                                                <template x-if="isDisabled({{ $kelas->id }})">
+                                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 whitespace-nowrap">
+                                                        Sudah Diampu
+                                                    </span>
+                                                </template>
+                                                <template x-if="!isDisabled({{ $kelas->id }})">
+                                                    <span class="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+                                                        Tersedia
+                                                    </span>
+                                                </template>
+                                            </div>
                                         </label>
                                     @endforeach
                                 </div>
                             </div>
                         @endforeach
                     </div>
+                    <div class="flex items-center gap-3 text-[11px] text-gray-500 pt-1">
+                        <span class="inline-flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Tersedia
+                        </span>
+                        <span class="inline-flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-gray-400"></span> Sudah diajar guru ini
+                        </span>
+                    </div>
                 </div>
-                <p class="text-[11px] text-gray-500">Pilih Mapel dan centang satu atau lebih Kelas untuk menambahkan tugas mengajar baru saat menekan tombol simpan.</p>
+                <p class="text-[11px] text-gray-500">Pilih Mapel dan centang satu atau lebih Kelas yang tersedia untuk menambahkan tugas mengajar baru saat menekan tombol simpan.</p>
             </div>
 
             <!-- Action Buttons -->
@@ -211,7 +285,7 @@
                             <td class="py-3.5 px-6 font-bold text-gray-900">
                                 {{ $first->mapel->nama_mapel ?? '-' }}
                             </td>
-                            <td class="py-3.5 px-4 font-mono font-bold text-amber-600">
+                            <td class="py-3.5 px-4 font-bold text-amber-600">
                                 {{ $first->mapel->kkm ?? '-' }}
                             </td>
                             <td class="py-3.5 px-4">

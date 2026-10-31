@@ -46,10 +46,14 @@ class SiswaController extends Controller
         }
 
         $totalSiswa = Siswa::count();
+        $countLakiLaki = Siswa::whereIn('jenis_kelamin', ['L', 'Laki-laki'])->count();
+        $countPerempuan = Siswa::whereIn('jenis_kelamin', ['P', 'Perempuan'])->count();
+        $countHasClass = Siswa::has('kelas')->count();
+
         $siswa = $query->latest()->paginate(10)->withQueryString();
         $kelases = Kelas::all();
 
-        return view('siswa.index', compact('siswa', 'kelases', 'totalSiswa'));
+        return view('siswa.index', compact('siswa', 'kelases', 'totalSiswa', 'countLakiLaki', 'countPerempuan', 'countHasClass'));
     }
 
     /**

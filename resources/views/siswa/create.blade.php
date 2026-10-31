@@ -54,7 +54,7 @@
                         value="{{ old('nis') }}" 
                         required 
                         placeholder="Contoh: 20241001 (4-10 digit)"
-                        class="w-full px-4 py-2.5 rounded-xl border @error('nis') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                        class="w-full px-4 py-2.5 rounded-xl border @error('nis') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                     <p class="text-xs text-gray-500 mt-1">NIS harus terdiri dari 4 hingga 10 digit angka.</p>
                     @error('nis')
@@ -139,7 +139,7 @@
                         value="{{ old('nohp_wali') }}" 
                         required 
                         placeholder="Contoh: 081234567890 (Hanya angka)"
-                        class="w-full px-4 py-2.5 rounded-xl border @error('nohp_wali') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                        class="w-full px-4 py-2.5 rounded-xl border @error('nohp_wali') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                     @error('nohp_wali')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
@@ -173,9 +173,9 @@
                     <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-900">Akun Siswa Dibuat Otomatis</h4>
                     <p class="text-xs text-emerald-700 mt-0.5 leading-relaxed">
                         Akun login untuk siswa ini akan dibuatkan otomatis oleh sistem dengan rincian:<br>
-                        <span class="font-mono font-bold text-emerald-900">Username: NIS</span> &bull; 
-                        <span class="font-mono font-bold text-emerald-900">Password: NIS</span> &bull; 
-                        <span class="font-mono font-bold text-emerald-900">Email: NIS@siswa.learnpoint.sch.id</span> &bull; 
+                        <span class="font-bold text-emerald-900">Username: NIS</span> &bull; 
+                        <span class="font-bold text-emerald-900">Password: NIS</span> &bull; 
+                        <span class="font-bold text-emerald-900">Email: NIS@siswa.learnpoint.sch.id</span> &bull; 
                         <span class="font-bold text-emerald-800">Status: Aktif</span>
                     </p>
                 </div>
