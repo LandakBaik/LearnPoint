@@ -181,7 +181,7 @@
                         <tr class="hover:bg-slate-50/60 transition-colors {{ ($user->status ?? 'aktif') === 'nonaktif' ? 'bg-slate-50/40 opacity-75' : '' }}">
                             <td class="py-3.5 px-4 sm:px-6">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-xl {{ ($user->status ?? 'aktif') === 'nonaktif' ? 'bg-slate-300 text-slate-600' : 'bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-xs' }} font-bold text-xs flex items-center justify-center shrink-0">
+                                    <div class="w-9 h-9 rounded-xl {{ ($user->status ?? 'aktif') === 'nonaktif' ? 'bg-slate-200 text-slate-600' : 'bg-blue-50 text-blue-600 border border-blue-100/60' }} flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
                                         {{ strtoupper(substr($user->name, 0, 2)) }}
                                     </div>
                                     <div class="min-w-0">

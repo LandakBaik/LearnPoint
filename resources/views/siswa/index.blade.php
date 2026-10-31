@@ -171,7 +171,7 @@
                             <td class="py-4 px-4 sm:px-6">
                                 <div class="flex items-center gap-3">
                                     <div class="w-9 h-9 rounded-xl {{ ($data->status ?? 'aktif') === 'nonaktif' ? 'bg-slate-200 text-slate-600' : 'bg-blue-50 text-blue-600 border border-blue-100/60' }} flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                                        {{ strtoupper(substr($data->nama_siswa, 0, 1)) }}
+                                        {{ strtoupper(substr($data->nama_siswa, 0, 2)) }}
                                     </div>
                                     <div>
                                         <p class="font-bold text-slate-800">{{ $data->nama_siswa }}</p>
