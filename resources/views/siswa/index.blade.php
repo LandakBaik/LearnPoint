@@ -38,6 +38,57 @@
         </div>
     </div>
 
+    <!-- 4 Highlight Stat Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Total Siswa -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Siswa</span>
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $totalSiswa ?? $siswa->total() }}</div>
+            <div class="text-[11px] font-medium text-slate-500 mt-1">Peserta didik terdaftar</div>
+        </div>
+
+        <!-- Siswa Laki-Laki -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Laki-Laki</span>
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $countLakiLaki ?? 0 }}</div>
+            <div class="text-[11px] font-medium text-slate-500 mt-1">Siswa putra</div>
+        </div>
+
+        <!-- Siswa Perempuan -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Perempuan</span>
+                <div class="w-9 h-9 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $countPerempuan ?? 0 }}</div>
+            <div class="text-[11px] font-medium text-slate-500 mt-1">Siswa putri</div>
+        </div>
+
+        <!-- Terdaftar di Kelas -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Punya Kelas</span>
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h.01M9 16h.01M9 12h.01M9 8h.01M15 16h.01M15 12h.01M15 8h.01"/></svg>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $countHasClass ?? 0 }}</div>
+            <div class="text-[11px] font-medium text-slate-500 mt-1">Dari {{ count($kelases) }} kelas aktif</div>
+        </div>
+    </div>
+
     <!-- Filter & Search Card -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
         <form method="GET" action="{{ route('siswa.index') }}" class="grid grid-cols-1 sm:grid-cols-12 gap-3">
@@ -77,7 +128,7 @@
             </div>
 
             <div class="sm:col-span-2 flex gap-2">
-                <button type="submit" class="flex-1 py-2.5 px-4 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold transition-colors">
+                <button type="submit" class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all">
                     Filter
                 </button>
                 @if(request()->hasAny(['search', 'kelas_id', 'tingkatan']))

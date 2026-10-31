@@ -38,6 +38,57 @@
         </div>
     </div>
 
+    <!-- 4 Highlight Stat Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Total Guru -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Guru</span>
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $totalGuru ?? $gurus->total() }}</div>
+            <div class="text-[11px] font-medium text-slate-500 mt-1">Tenaga pendidik terdaftar</div>
+        </div>
+
+        <!-- Wali Kelas -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Wali Kelas</span>
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h.01M9 16h.01M9 12h.01M9 8h.01M15 16h.01M15 12h.01M15 8h.01"/></svg>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $countWaliKelas ?? 0 }}</div>
+            <div class="text-[11px] font-medium text-slate-500 mt-1">Penugasan wali kelas</div>
+        </div>
+
+        <!-- Guru Pengampu -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Guru Pengampu</span>
+                <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $countPengampu ?? 0 }}</div>
+            <div class="text-[11px] font-medium text-slate-500 mt-1">Mengajar mata pelajaran</div>
+        </div>
+
+        <!-- Akun Aktif -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Akun Aktif</span>
+                <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                </div>
+            </div>
+            <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $countAktif ?? 0 }}</div>
+            <div class="text-[11px] font-medium text-slate-500 mt-1">Akses login sistem aktif</div>
+        </div>
+    </div>
+
     <!-- Filter & Search Card -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
         <form method="GET" action="{{ route('guru.index') }}" class="grid grid-cols-1 sm:grid-cols-12 gap-3">
@@ -65,7 +116,7 @@
             </div>
 
             <div class="sm:col-span-2 flex gap-2">
-                <button type="submit" class="flex-1 py-2.5 px-4 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold transition-colors">
+                <button type="submit" class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all">
                     Filter
                 </button>
                 @if(request()->hasAny(['search', 'tingkatan']))

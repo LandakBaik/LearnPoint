@@ -342,7 +342,7 @@
                 </div>
                 <div>
                     <p class="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors">Data Siswa</p>
-                    <p class="text-[11px] text-slate-400">Daftar siswa & rombel</p>
+                    <p class="text-[11px] text-slate-400">Daftar siswa & kelas</p>
                 </div>
             </a>
 

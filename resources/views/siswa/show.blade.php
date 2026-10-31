@@ -399,7 +399,7 @@
                         </div>
                         <div>
                             <h3 class="text-sm font-bold text-slate-900 leading-tight">Penempatan Kelas</h3>
-                            <p class="text-xs text-slate-400 font-normal mt-0.5">Rombongan belajar saat ini</p>
+                            <p class="text-xs text-slate-400 font-normal mt-0.5">Kelas belajar saat ini</p>
                         </div>
                     </div>
                     @if($activeKelas)

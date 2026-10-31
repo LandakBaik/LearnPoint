@@ -42,9 +42,15 @@ class GuruController extends Controller
         }
 
         $totalGuru = Guru::count();
+        $countWaliKelas = Guru::has('kelas')->count();
+        $countPengampu = Guru::has('pengampuKelases')->count();
+        $countAktif = Guru::whereHas('user', function ($q) {
+            $q->where('status', 'aktif');
+        })->count();
+
         $gurus = $query->latest()->paginate(10)->withQueryString();
 
-        return view('admin.kelolaGuru.index', compact('gurus', 'totalGuru'));
+        return view('admin.kelolaGuru.index', compact('gurus', 'totalGuru', 'countWaliKelas', 'countPengampu', 'countAktif'));
     }
 
     /**

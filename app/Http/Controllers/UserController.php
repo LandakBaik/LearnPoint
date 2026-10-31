@@ -35,6 +35,10 @@ class UserController extends Controller
         }
 
         $totalUsers = User::count();
+        $countOperator = User::where('role', 'operator')->count();
+        $countKepalaSekolah = User::where('role', 'kepala_sekolah')->count();
+        $countGuru = User::where('role', 'guru')->count();
+        $countSiswa = User::where('role', 'siswa')->count();
 
         // Urutkan default berdasarkan prioritas role: Admin/Operator -> Kepala Sekolah -> Guru -> Siswa
         $users = $query->orderByRaw("CASE 
@@ -47,7 +51,7 @@ class UserController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return view('admin.users.index', compact('users', 'totalUsers'));
+        return view('admin.users.index', compact('users', 'totalUsers', 'countOperator', 'countKepalaSekolah', 'countGuru', 'countSiswa'));
     }
 
     /**
