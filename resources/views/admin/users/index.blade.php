@@ -136,7 +136,7 @@
                                 </div>
                             </td>
                             <td class="py-4 px-4">
-                                <span class="font-mono text-xs font-semibold text-gray-700 block">{{ $user->username ?? '-' }}</span>
+                                <span class="text-xs font-semibold text-gray-700 block">{{ $user->username ?? '-' }}</span>
                                 <span class="text-xs text-gray-500">{{ $user->email }}</span>
                             </td>
                             <td class="py-4 px-4">

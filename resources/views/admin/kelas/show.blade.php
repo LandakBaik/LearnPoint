@@ -65,7 +65,7 @@
             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Guru Wali Kelas</p>
             @if($kelas->guru)
                 <h4 class="text-base font-bold text-gray-900 leading-snug">{{ $kelas->guru->nama }}</h4>
-                <p class="text-xs text-gray-500 font-mono mt-0.5">NIP: {{ $kelas->guru->nip }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">NIP: {{ $kelas->guru->nip }}</p>
                 <a href="{{ route('guru.show', $kelas->guru->id) }}" class="text-xs text-indigo-600 font-semibold hover:underline mt-2 inline-block">
                     Lihat Profil Guru &rarr;
                 </a>
@@ -143,7 +143,7 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="py-3.5 px-4 font-mono text-xs text-gray-500">
+                                <td class="py-3.5 px-4 text-xs text-gray-500">
                                     {{ $gm->guru->nip ?? '-' }}
                                 </td>
                                 <td class="py-3.5 px-4 text-right pr-4 whitespace-nowrap">
@@ -228,10 +228,10 @@
                         @foreach($kelas->siswas as $s)
                             <tr class="hover:bg-gray-50/50">
                                 <td class="py-3 px-4 font-bold text-gray-800">{{ $s->nama_siswa }}</td>
-                                <td class="py-3 px-4 font-mono text-xs text-gray-500">{{ $s->nis }}</td>
+                                <td class="py-3 px-4 text-xs text-gray-500">{{ $s->nis }}</td>
                                 <td class="py-3 px-4 text-xs font-semibold">{{ $s->jenis_kelamin }}</td>
                                 <td class="py-3 px-4 text-xs text-gray-700">{{ $s->wali_murid }}</td>
-                                <td class="py-3 px-4 text-xs font-mono text-gray-600">{{ $s->nohp_wali }}</td>
+                                <td class="py-3 px-4 text-xs text-gray-600">{{ $s->nohp_wali }}</td>
                                 <td class="py-3 px-4 text-right pr-4">
                                     <a href="{{ route('siswa.show', $s->id) }}" class="text-xs font-semibold text-indigo-600 hover:underline">
                                         Detail

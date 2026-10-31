@@ -174,7 +174,7 @@
                             <td class="py-3.5 px-6 font-bold text-gray-900">
                                 {{ $first->guru->nama ?? '-' }}
                             </td>
-                            <td class="py-3.5 px-4 font-mono text-xs text-gray-500">
+                            <td class="py-3.5 px-4 text-xs text-gray-500">
                                 {{ $first->guru->nip ?? '-' }}
                             </td>
                             <td class="py-3.5 px-4">

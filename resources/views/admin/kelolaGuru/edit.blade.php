@@ -61,7 +61,7 @@
                         oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 16);"
                         value="{{ old('nuptk', $guru->nuptk) }}" 
                         required 
-                        class="w-full px-4 py-2.5 rounded-xl border @error('nuptk') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                        class="w-full px-4 py-2.5 rounded-xl border @error('nuptk') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                     <p class="text-xs text-gray-500 mt-1">NUPTK harus tepat 16 digit angka.</p>
 
@@ -211,7 +211,7 @@
                             <td class="py-3.5 px-6 font-bold text-gray-900">
                                 {{ $first->mapel->nama_mapel ?? '-' }}
                             </td>
-                            <td class="py-3.5 px-4 font-mono font-bold text-amber-600">
+                            <td class="py-3.5 px-4 font-bold text-amber-600">
                                 {{ $first->mapel->kkm ?? '-' }}
                             </td>
                             <td class="py-3.5 px-4">

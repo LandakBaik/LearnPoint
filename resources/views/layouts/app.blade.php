@@ -317,7 +317,7 @@
                 });
             @endif
 
-            @if($errors->any() && !session('error') && !session('csv_errors'))
+            @if(isset($errors) && $errors->any() && !session('error') && !session('csv_errors'))
                 Swal.fire({
                     icon: 'error',
                     title: 'Validasi Formulir Gagal',

@@ -125,7 +125,7 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="py-4 px-4 font-mono text-xs text-gray-600">
+                                <td class="py-4 px-4 text-xs text-gray-600">
                                     {{ $first->guru->nip ?? '-' }}
                                 </td>
                                 <td class="py-4 px-4">

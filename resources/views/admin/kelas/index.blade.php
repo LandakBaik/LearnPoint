@@ -93,7 +93,7 @@
                                         </div>
                                         <div>
                                             <p class="font-medium text-xs text-gray-800">{{ $item->guru->nama }}</p>
-                                            <p class="text-[10px] text-gray-400 font-mono">NIP: {{ $item->guru->nip }}</p>
+                                            <p class="text-[10px] text-gray-400">NIP: {{ $item->guru->nip }}</p>
                                         </div>
                                     </div>
                                 @else
