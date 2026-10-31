@@ -9,7 +9,6 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Kelola Kelas</h1>
-            <p class="text-sm text-slate-500 mt-1">Daftar rombongan belajar, tingkatan jenjang, penugasan wali kelas, dan jadwal pelajaran.</p>
             <p class="text-sm text-slate-500 mt-1">Daftar kelas, tingkatan jenjang, penugasan wali kelas, dan jadwal pelajaran.</p>
         </div>
         <div class="flex items-center gap-2">
@@ -31,7 +30,6 @@
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $totalKelas ?? $kelases->total() }}</div>
-            <div class="text-[11px] font-medium text-slate-500 mt-1">Rombel aktif</div>
             <div class="text-[11px] font-medium text-slate-500 mt-1">Kelas aktif</div>
         </div>
 
@@ -118,6 +116,16 @@
                 @endif
             </div>
         </form>
+
+        <!-- Total Data Counter -->
+        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100/60">
+                    Total: {{ $kelases->total() }} / {{ $totalKelas }}
+                </span>
+                <span>Menampilkan <strong>{{ $kelases->total() }}</strong> dari total <strong>{{ $totalKelas }}</strong> data kelas{{ request()->hasAny(['search', 'tingkatan']) ? ' (setelah difilter)' : '' }}.</span>
+            </div>
+        </div>
     </div>
 
     <!-- Table Card -->

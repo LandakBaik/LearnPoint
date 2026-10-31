@@ -94,6 +94,16 @@
                 @endif
             </div>
         </form>
+
+        <!-- Total Data Counter -->
+        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100/60">
+                    Total: {{ $mapels->total() }} / {{ $totalMapel }}
+                </span>
+                <span>Menampilkan <strong>{{ $mapels->total() }}</strong> dari total <strong>{{ $totalMapel }}</strong> data mata pelajaran{{ request('search') ? ' (setelah difilter)' : '' }}.</span>
+            </div>
+        </div>
     </div>
 
     <!-- Table Card -->
