@@ -91,10 +91,14 @@ class TugasController extends Controller
         $request->validate([
             'judul' => 'required|string|max:200',
             'deskripsi' => 'nullable|string',
-            'deadline' => 'required',
+            'deadline' => 'required|date|after:now',
             'tipe' => 'required|in:upload,pilihan_ganda',
             'pengampu_kelas_id' => 'required|exists:pengampu_kelas,id',
             'file_tugas_input' => 'nullable|file|mimes:pdf,docx,jpg,png|max:10240',
+        ], [
+            'deadline.required' => 'Deadline tugas wajib diisi.',
+            'deadline.date' => 'Format deadline tidak valid.',
+            'deadline.after' => 'Deadline harus setelah waktu sekarang.',
         ]);
 
         // Verifikasi kepemilikan pengampu_kelas
@@ -170,10 +174,14 @@ class TugasController extends Controller
         $request->validate([
             'judul' => 'required|string|max:200',
             'deskripsi' => 'nullable|string',
-            'deadline' => 'required',
+            'deadline' => 'required|date|after:now',
             'tipe' => 'required|in:upload,pilihan_ganda',
             'pengampu_kelas_id' => 'required|exists:pengampu_kelas,id',
             'file_tugas_input' => 'nullable|file|mimes:pdf,docx,jpg,png|max:10240',
+        ], [
+            'deadline.required' => 'Deadline tugas wajib diisi.',
+            'deadline.date' => 'Format deadline tidak valid.',
+            'deadline.after' => 'Deadline harus setelah waktu sekarang.',
         ]);
 
         // Verifikasi kepemilikan pengampu_kelas
@@ -281,13 +289,13 @@ class TugasController extends Controller
         $kelasId = $siswa?->kelas_id ?? $siswa?->kelas?->id ?? $anggotaKelas?->kelas_id;
 
         $semuaTugas = Tugas::with([
-                'pengampuKelas.guruMapel.guru',
-                'pengampuKelas.guruMapel.mapel',
-                'pengampuKelas.kelas',
-                'nilais' => function ($query) use ($siswaId) {
-                    $query->where('siswa_id', $siswaId);
-                }
-            ])
+            'pengampuKelas.guruMapel.guru',
+            'pengampuKelas.guruMapel.mapel',
+            'pengampuKelas.kelas',
+            'nilais' => function ($query) use ($siswaId) {
+                $query->where('siswa_id', $siswaId);
+            }
+        ])
             ->when($kelasId, function ($query) use ($kelasId) {
                 $query->whereHas('pengampuKelas', function ($q) use ($kelasId) {
                     $q->where('kelas_id', $kelasId);
@@ -298,13 +306,13 @@ class TugasController extends Controller
 
         if ($semuaTugas->isEmpty()) {
             $semuaTugas = Tugas::with([
-                    'pengampuKelas.guruMapel.guru',
-                    'pengampuKelas.guruMapel.mapel',
-                    'pengampuKelas.kelas',
-                    'nilais' => function ($query) use ($siswaId) {
-                        $query->where('siswa_id', $siswaId);
-                    }
-                ])
+                'pengampuKelas.guruMapel.guru',
+                'pengampuKelas.guruMapel.mapel',
+                'pengampuKelas.kelas',
+                'nilais' => function ($query) use ($siswaId) {
+                    $query->where('siswa_id', $siswaId);
+                }
+            ])
                 ->latest()
                 ->get();
         }
@@ -332,7 +340,7 @@ class TugasController extends Controller
         $totalTugasCount = $semuaTugas->count();
         $tugasSelesaiCount = $semuaTugas->filter(fn($t) => $t->nilais->isNotEmpty())->count();
         $persenSelesai = $totalTugasCount > 0 ? round(($tugasSelesaiCount / $totalTugasCount) * 100) : 0;
-        
+
         $tugasAktifCount = $semuaTugas->filter(fn($t) => $t->nilais->isEmpty())->count();
         $menungguPenilaianCount = $semuaTugas->filter(function ($t) {
             $p = $t->nilais->first();
