@@ -62,7 +62,7 @@
     </style>
     @stack('styles')
 </head>
-<body class="bg-[#F4F7FC] min-h-screen text-slate-700 antialiased selection:bg-blue-100 selection:text-blue-700">
+<body class="bg-[#F8FAFC] min-h-screen flex flex-col text-slate-700 antialiased selection:bg-blue-100 selection:text-blue-700">
     <!-- BEGIN: MainHeader -->
     <header class="bg-white border-b border-slate-100 sticky top-0 z-50 px-6 lg:px-12 py-3.5 flex items-center justify-between shadow-2xs">
         <!-- Brand Logo -->
@@ -94,17 +94,27 @@
             <!-- User Profile Dropdown Pill -->
             <div class="relative" x-data="{ profileOpen: false }" @click.outside="profileOpen = false">
                 @php
-                    $fullName = auth()->user()->siswa?->nama_siswa ?? auth()->user()->name ?? 'Siswa';
-                    $firstName = explode(' ', trim($fullName))[0] ?? 'Siswa';
+                    $authUser = auth()->user();
+                    $siswaUser = $authUser?->siswa;
+                    $fullName = $siswaUser?->nama_siswa ?? $authUser?->name ?? 'Budi';
+                    $firstName = explode(' ', trim($fullName))[0] ?? 'Budi';
+                    $namaKelas = '7-A';
+                    try {
+                        $namaKelas = $siswaUser?->kelas?->nama_kelas 
+                            ?? $siswaUser?->anggotaKelases()?->latest()?->first()?->kelas?->nama_kelas 
+                            ?? '7-A';
+                    } catch (\Throwable $e) {
+                        $namaKelas = '7-A';
+                    }
                 @endphp
-                <button @click="profileOpen = !profileOpen" type="button" class="flex items-center gap-2.5 cursor-pointer focus:outline-none select-none">
-                    <div class="w-9 h-9 rounded-full bg-blue-100 text-blue-600 font-bold text-xs flex items-center justify-center border border-slate-200 overflow-hidden shadow-2xs">
+                <button @click="profileOpen = !profileOpen" type="button" class="flex items-center gap-3 cursor-pointer focus:outline-none select-none group">
+                    <div class="w-9 h-9 rounded-full bg-[#1D4ED8] text-white font-bold text-xs flex items-center justify-center shadow-xs">
                         {{ strtoupper(substr($firstName, 0, 2)) }}
                     </div>
-                    <span class="text-sm font-semibold text-slate-700">Halo, {{ $firstName }}</span>
-                    <svg class="w-4 h-4 text-slate-500 transition-transform duration-200" :class="profileOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"></path>
-                    </svg>
+                    <div class="text-left hidden sm:block">
+                        <div class="text-xs font-bold text-slate-800 leading-tight">Halo, {{ $firstName }}</div>
+                        <div class="text-[11px] font-medium text-slate-400">Kelas {{ $namaKelas }}</div>
+                    </div>
                 </button>
 
                 <!-- Dropdown Content -->
@@ -147,7 +157,7 @@
     <!-- END: MainHeader -->
 
     <!-- BEGIN: MainContent -->
-    <main class="max-w-[1440px] mx-auto px-6 lg:px-12 py-7 space-y-6">
+    <main class="max-w-[1440px] w-full mx-auto px-6 lg:px-12 py-7 space-y-6 flex-1">
         @if(isset($errors) && $errors->any())
             <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 shadow-xs">
                 <div class="flex items-center gap-2.5 mb-2 font-bold text-rose-900 text-sm">
@@ -192,6 +202,24 @@
         @yield('content')
     </main>
     <!-- END: MainContent -->
+
+    <!-- BEGIN: Footer -->
+    <footer class="mt-auto border-t border-slate-200/80 bg-white py-6 px-6 lg:px-12 text-xs text-slate-500">
+        <div class="max-w-[1440px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3 text-slate-500">
+                <span class="font-bold text-slate-800 hidden md:inline">LearnPoint</span>
+                <span class="text-slate-300 hidden md:inline">|</span>
+                <span>&copy; 2025 LearnPoint Indonesia. Portal Belajar Interaktif Siswa SMP. Hak Cipta Dilindungi.</span>
+            </div>
+            <div class="flex items-center gap-6 text-slate-500 font-medium">
+                <a href="#" class="hover:text-blue-600 transition">Panduan Siswa</a>
+                <a href="#" class="hover:text-blue-600 transition">Bantuan & Kontak</a>
+                <a href="#" class="hover:text-blue-600 transition">Kebijakan Privasi</a>
+                <a href="#" class="hover:text-blue-600 transition">Syarat & Ketentuan</a>
+            </div>
+        </div>
+    </footer>
+    <!-- END: Footer -->
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {

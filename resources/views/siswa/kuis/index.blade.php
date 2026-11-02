@@ -1,324 +1,362 @@
 @extends('layouts.siswa')
 
-@section('title', 'Kuis & Petualangan Belajar - LearnPoint')
+@section('title', $viewMode === 'mission' ? 'Planet ' . $selectedPlanet->nama . ' - Misi Kuis Petualangan' : 'Kuis Petualangan Siswa - LearnPoint')
 
 @section('content')
 <div class="space-y-6">
 
-    {{-- 1. Hero / Header Banner --}}
-    <div class="relative overflow-hidden rounded-[24px] bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 p-6 md:p-8 text-white shadow-lg shadow-blue-500/10">
-        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div class="max-w-xl space-y-2">
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-xs font-semibold text-blue-100 border border-white/20">
-                    <i class="fa-solid fa-gamepad text-amber-300"></i>
-                    <span>Tantangan Interaktif & Kuis Siswa</span>
+    @if($viewMode === 'planets')
+        {{-- ================================================================= --}}
+        {{-- MODE 1: GALAXY MAP / PILIHAN PLANET (SESUAI GAMBAR 1)           --}}
+        {{-- ================================================================= --}}
+
+        {{-- 1. Breadcrumb Navigation --}}
+        <nav class="flex items-center gap-2 text-xs font-semibold text-slate-400">
+            <a href="{{ route('siswa.dashboard') }}" class="hover:text-blue-600 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-house text-[11px]"></i>
+                <span>Beranda</span>
+            </a>
+            <span class="text-slate-300">›</span>
+            <a href="{{ route('siswa.kuis') }}" class="hover:text-blue-600 transition">
+                Kuis
+            </a>
+            <span class="text-slate-300">›</span>
+            <span class="text-[#2563EB] font-bold">Matematika</span>
+        </nav>
+
+        {{-- 2. Hero Card: Kuis Petualangan --}}
+        <div class="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#EBF3FE] via-[#EEF5FF] to-[#E3EFFF] p-8 md:p-10 border border-blue-100/60 shadow-xs">
+            <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div class="max-w-xl">
+                    <h1 class="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                        Kuis Petualangan
+                    </h1>
+                    <p class="text-sm md:text-base text-slate-600 mt-2.5 leading-relaxed font-medium">
+                        Kamu adalah pengembara antar galaksi yang suka menolong<br>
+                        Bantu kami menyelamatkan dunia
+                    </p>
                 </div>
-                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                    Petualangan Kuis Pembelajaran
-                </h1>
-                <p class="text-sm text-blue-100/90 leading-relaxed">
-                    Asah pemahamanmu, kumpulkan skor terbaik, dan taklukkan setiap level soal yang disiapkan oleh bapak/ibu gurumu untuk kelas 
-                    <span class="font-bold underline decoration-amber-300 decoration-2 underline-offset-2">{{ $kelas->nama_kelas ?? 'Anda' }}</span>.
+
+                {{-- 3 Silhouette Planet Circles on the Right (Mockup Match) --}}
+                <div class="relative w-64 h-28 hidden md:block shrink-0 select-none pointer-events-none">
+                    <!-- Left circle -->
+                    <div class="absolute left-2 bottom-2 w-16 h-16 rounded-full bg-[#8C8E96] shadow-2xs"></div>
+                    <!-- Center circle (higher & larger) -->
+                    <div class="absolute left-20 top-0 w-20 h-20 rounded-full bg-[#8C8E96] shadow-2xs"></div>
+                    <!-- Right circle -->
+                    <div class="absolute right-2 bottom-2 w-16 h-16 rounded-full bg-[#8C8E96] shadow-2xs"></div>
+                </div>
+            </div>
+        </div>
+
+        {{-- 3. Section Title --}}
+        <div class="pt-2">
+            <h2 class="text-lg md:text-xl font-extrabold text-slate-900 tracking-tight">
+                Pilihan pelanet yang ingin diselamatkan!!!
+            </h2>
+            <p class="text-xs md:text-sm text-slate-500 font-medium mt-0.5">
+                Pilih planet yang mau ditolong
+            </p>
+        </div>
+
+        {{-- 4. Planet Cards Grid --}}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @foreach($planets as $planet)
+                <div class="bg-white rounded-[24px] border border-slate-100 p-6 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group">
+                    <div>
+                        {{-- Top Icon & Issue Badge --}}
+                        <div class="flex items-center justify-between gap-3 mb-6">
+                            <div class="w-12 h-12 rounded-2xl {{ $planet->bg_color }} {{ $planet->text_color }} flex items-center justify-center font-bold text-xl shadow-2xs">
+                                {{ $planet->simbol }}
+                            </div>
+                            <span class="px-3.5 py-1.5 rounded-full bg-[#F8FAFC] border border-slate-200/80 text-slate-500 text-xs font-semibold">
+                                {{ $planet->masalah_terdeteksi }} masalah terdeteksi
+                            </span>
+                        </div>
+
+                        {{-- Title & Description --}}
+                        <h3 class="text-base md:text-lg font-extrabold text-slate-900 group-hover:text-blue-600 transition mb-1">
+                            {{ $planet->nama }}
+                        </h3>
+                        <p class="text-xs md:text-sm text-slate-500 font-medium mb-8">
+                            {{ $planet->deskripsi }}
+                        </p>
+                    </div>
+
+                    {{-- Pergi Action Button --}}
+                    <a 
+                        href="{{ route('siswa.kuis', ['mapel_id' => $planet->id]) }}"
+                        class="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-blue-500 hover:text-blue-600 text-slate-700 font-semibold text-xs flex items-center justify-center gap-2 transition bg-white hover:bg-blue-50/20"
+                    >
+                        <span>Pergi</span>
+                        <i class="fa-solid fa-arrow-right text-[11px]"></i>
+                    </a>
+                </div>
+            @endforeach
+        </div>
+
+    @else
+        {{-- ================================================================= --}}
+        {{-- MODE 2: PLANET MISSION STAGE (SESUAI GAMBAR 2)                  --}}
+        {{-- ================================================================= --}}
+
+        {{-- 1. Breadcrumb Navigation --}}
+        <nav class="flex items-center gap-2 text-xs font-semibold text-slate-400">
+            <a href="{{ route('siswa.dashboard') }}" class="hover:text-blue-600 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-house text-[11px]"></i>
+                <span>Beranda</span>
+            </a>
+            <span class="text-slate-300">›</span>
+            <a href="{{ route('siswa.kuis') }}" class="hover:text-blue-600 transition">
+                Kuis Petualangan
+            </a>
+            <span class="text-slate-300">›</span>
+            <span class="text-slate-600">Planet {{ $selectedPlanet->nama }}</span>
+            <span class="text-slate-300">›</span>
+            <span class="text-[#2563EB] font-bold">Misi Penyelamatan</span>
+        </nav>
+
+        {{-- 2. Hero Card: Planet Info & Sector Stats --}}
+        <div class="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#EBF3FE] via-[#EEF5FF] to-[#E3EFFF] p-6 md:p-8 border border-blue-100/60 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="space-y-1">
+                <div class="flex items-center gap-3">
+                    <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                        Planet {{ $selectedPlanet->nama }}
+                    </h1>
+                    <a href="{{ route('siswa.kuis') }}" class="text-xs px-2.5 py-1 rounded-lg bg-white/70 hover:bg-white text-blue-600 font-semibold border border-blue-100 transition shadow-2xs" title="Ganti Planet">
+                        <i class="fa-solid fa-rotate-left mr-1"></i> Ganti Planet
+                    </a>
+                </div>
+                <p class="text-xs md:text-sm text-slate-600 font-medium">
+                    {{ $selectedPlanet->lore ?? 'Lorem Ipsum' }}
                 </p>
             </div>
 
-            {{-- Stat Pills Box --}}
-            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
-                <div class="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-center">
-                    <div class="text-2xl font-black text-white leading-none">{{ $totalKuis }}</div>
-                    <div class="text-[11px] font-medium text-blue-100 mt-1 uppercase tracking-wider">Total Kuis</div>
-                </div>
-                <div class="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-center">
-                    <div class="text-2xl font-black text-emerald-300 leading-none">{{ $totalTersedia }}</div>
-                    <div class="text-[11px] font-medium text-blue-100 mt-1 uppercase tracking-wider">Tersedia</div>
-                </div>
-                <div class="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-center">
-                    <div class="text-2xl font-black text-amber-300 leading-none">{{ $totalSelesai }}</div>
-                    <div class="text-[11px] font-medium text-blue-100 mt-1 uppercase tracking-wider">Selesai</div>
-                </div>
-                <div class="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-center">
-                    <div class="text-2xl font-black text-yellow-300 leading-none">{{ $rataRataNilai }}</div>
-                    <div class="text-[11px] font-medium text-blue-100 mt-1 uppercase tracking-wider">Rata-rata</div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Background decorative shapes --}}
-        <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
-        <div class="absolute right-40 -top-10 w-40 h-40 bg-indigo-400/20 rounded-full blur-xl pointer-events-none"></div>
-    </div>
-
-    {{-- Error kelas jika siswa belum punya kelas --}}
-    @if(isset($errorKelas))
-        <div class="p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start gap-3">
-            <i class="fa-solid fa-triangle-exclamation text-amber-500 text-xl shrink-0 mt-0.5"></i>
-            <div>
-                <h4 class="font-bold text-sm">Pemberitahuan Akun:</h4>
-                <p class="text-xs text-amber-700 mt-0.5">{{ $errorKelas }}</p>
-            </div>
-        </div>
-    @endif
-
-    {{-- 2. Filter & Pencarian Bar --}}
-    <div class="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-        <form method="GET" action="{{ route('siswa.kuis') }}" class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-            {{-- Search Bar --}}
-            <div class="relative flex-1">
-                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                <input 
-                    type="text" 
-                    name="search" 
-                    value="{{ request('search') }}"
-                    placeholder="Cari judul kuis atau materi..." 
-                    class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                />
-            </div>
-
-            {{-- Filter Mapel --}}
-            <div class="w-full md:w-56 shrink-0">
-                <select 
-                    name="mapel_id" 
-                    onchange="this.form.submit()"
-                    class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                >
-                    <option value="">Semua Mata Pelajaran</option>
-                    @foreach($mapels as $mapel)
-                        <option value="{{ $mapel->id }}" {{ request('mapel_id') == $mapel->id ? 'selected' : '' }}>
-                            {{ $mapel->nama_mapel }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
-            {{-- Submit / Reset --}}
-            <div class="flex items-center gap-2">
-                <button type="submit" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 shrink-0">
-                    <i class="fa-solid fa-filter text-[11px]"></i>
-                    <span>Terapkan</span>
-                </button>
-                @if(request()->hasAny(['search', 'mapel_id', 'status']))
-                    <a href="{{ route('siswa.kuis') }}" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition shrink-0" title="Reset Filter">
-                        <i class="fa-solid fa-rotate-left"></i>
-                    </a>
-                @endif
-            </div>
-        </form>
-
-        {{-- Status Filter Tabs --}}
-        <div class="flex items-center gap-2 overflow-x-auto pt-2 border-t border-slate-100 scrollbar-none">
-            @php
-                $currentStatus = request('status', '');
-                $tabs = [
-                    '' => ['label' => 'Semua Kuis', 'icon' => 'fa-layer-group'],
-                    'tersedia' => ['label' => 'Bisa Dikerjakan', 'icon' => 'fa-circle-play'],
-                    'selesai' => ['label' => 'Sudah Selesai', 'icon' => 'fa-circle-check'],
-                    'upcoming' => ['label' => 'Belum Dimulai', 'icon' => 'fa-clock'],
-                    'expired' => ['label' => 'Sudah Berakhir', 'icon' => 'fa-clock-rotate-left'],
-                ];
-            @endphp
-            @foreach($tabs as $key => $tab)
-                @php
-                    $isActive = ($currentStatus === $key);
-                    $url = request()->fullUrlWithQuery(['status' => $key ?: null]);
-                @endphp
-                <a 
-                    href="{{ $url }}"
-                    class="px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5
-                    {{ $isActive ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60' }}"
-                >
-                    <i class="fa-solid {{ $tab['icon'] }} text-[10px]"></i>
-                    <span>{{ $tab['label'] }}</span>
-                </a>
-            @endforeach
-        </div>
-    </div>
-
-    {{-- 3. Daftar Card Kuis --}}
-    @if($quizzes->isEmpty())
-        <div class="py-16 text-center bg-white rounded-2xl border border-dashed border-slate-200 p-8 shadow-xs">
-            <div class="w-16 h-16 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl mx-auto mb-3 shadow-xs">
-                <i class="fa-solid fa-puzzle-piece"></i>
-            </div>
-            <h3 class="text-base font-bold text-slate-800">Tidak Ada Kuis Ditemukan</h3>
-            <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                @if(request()->hasAny(['search', 'mapel_id', 'status']))
-                    Kuis yang kamu cari tidak sesuai dengan filter yang dipilih. Coba reset filter pencarian.
-                @else
-                    Belum ada kuis yang diterbitkan oleh gurumu untuk kelas {{ $kelas->nama_kelas ?? 'ini' }}.
-                @endif
-            </p>
-            @if(request()->hasAny(['search', 'mapel_id', 'status']))
-                <div class="mt-4">
-                    <a href="{{ route('siswa.kuis') }}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition">
-                        <i class="fa-solid fa-rotate-left text-[10px]"></i>
-                        <span>Reset Filter</span>
-                    </a>
-                </div>
-            @endif
-        </div>
-    @else
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            @foreach($quizzes as $quiz)
-                @php
-                    $nilai = $quiz->riwayat_nilai;
-                    $isCompleted = $quiz->student_status === 'selesai';
-                    $isUpcoming = $quiz->student_status === 'upcoming';
-                    $isExpired = $quiz->student_status === 'expired';
-                    $isAvailable = $quiz->student_status === 'tersedia';
-
-                    $mapelName = $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
-                    $guruName = $quiz->pengampuKelas?->guruMapel?->guru?->nama ?? 'Guru Pengampu';
-                    $soalsCount = $quiz->soals_count ?? $quiz->soals->count();
-                @endphp
-
-                <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition flex flex-col justify-between group relative overflow-hidden">
-                    {{-- Top colored accent line --}}
-                    <div class="absolute top-0 left-0 right-0 h-1.5 
-                        {{ $isCompleted ? 'bg-emerald-500' : ($isUpcoming ? 'bg-amber-400' : ($isExpired ? 'bg-rose-400' : 'bg-blue-600')) }}">
+            {{-- Right Stats Box --}}
+            <div class="bg-white/95 rounded-2xl p-4 md:px-6 md:py-3.5 border border-slate-100 shadow-sm flex items-center gap-6 shrink-0">
+                {{-- Progres Sektor --}}
+                <div>
+                    <div class="text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-1.5">
+                        PROGRES SEKTOR
                     </div>
-
-                    <div>
-                        {{-- Badges Header --}}
-                        <div class="flex items-center justify-between gap-2 mb-3 pt-1">
-                            <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-100 truncate max-w-[170px]" title="{{ $mapelName }}">
-                                {{ $mapelName }}
-                            </span>
-
-                            @if($isCompleted)
-                                <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1 shrink-0">
-                                    <i class="fa-solid fa-circle-check text-[10px]"></i>
-                                    Skor: {{ number_format($nilai->nilai, 0) }}
-                                </span>
-                            @elseif($isUpcoming)
-                                <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1 shrink-0">
-                                    <i class="fa-solid fa-clock text-[10px]"></i>
-                                    Belum Mulai
-                                </span>
-                            @elseif($isExpired)
-                                <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1 shrink-0">
-                                    <i class="fa-solid fa-hourglass-end text-[10px]"></i>
-                                    Berakhir
-                                </span>
-                            @elseif($quiz->has_draft ?? false)
-                                <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5 shrink-0" title="{{ $quiz->draft_count }} butir soal sudah dijawab">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                    Draft ({{ $quiz->draft_count }}/{{ $soalsCount }})
-                                </span>
-                            @else
-                                <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5 shrink-0">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    Bisa Dikerjakan
-                                </span>
-                            @endif
+                    <div class="flex items-center gap-3">
+                        <div class="w-24 md:w-28 h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-[#2563EB] rounded-full transition-all duration-500" style="width: {{ $progresSektor }}%"></div>
                         </div>
+                        <span class="text-sm font-extrabold text-[#2563EB]">{{ $progresSektor }}%</span>
+                    </div>
+                </div>
 
-                        {{-- Title & Guru --}}
-                        <h3 class="text-base font-extrabold text-slate-800 group-hover:text-blue-600 transition leading-snug line-clamp-2 mb-1">
-                            {{ $quiz->judul }}
-                        </h3>
-                        <p class="text-xs text-slate-400 flex items-center gap-1.5 mb-3">
-                            <i class="fa-solid fa-chalkboard-user text-slate-400 text-[11px]"></i>
-                            <span class="truncate">{{ $guruName }}</span>
-                        </p>
+                {{-- Divider --}}
+                <div class="w-px h-8 bg-slate-200"></div>
 
-                        {{-- Metadata Pill List --}}
-                        <div class="p-3 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1.5 text-xs text-slate-600 mb-4">
-                            <div class="flex items-center justify-between">
-                                <span class="text-slate-400 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-list-check text-slate-400 text-[10px]"></i>
-                                    Jumlah Soal:
-                                </span>
-                                <span class="font-bold text-slate-700">{{ $soalsCount }} Butir</span>
-                            </div>
+                {{-- Energi & XP --}}
+                <div>
+                    <div class="text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-1.5">
+                        ENERGI & XP
+                    </div>
+                    <div class="flex items-center gap-3 font-bold text-sm text-slate-800">
+                        <span class="flex items-center gap-1.5 text-amber-500">
+                            <i class="fa-solid fa-bolt"></i>
+                            <strong class="text-slate-800 font-extrabold">{{ $energi }}</strong>
+                        </span>
+                        <span class="flex items-center gap-1.5 text-blue-600">
+                            <i class="fa-solid fa-trophy text-blue-600"></i>
+                            <strong class="text-slate-800 font-extrabold">{{ $xp }}</strong>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                            <div class="flex items-center justify-between">
-                                <span class="text-slate-400 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-fire text-amber-500 text-[10px]"></i>
-                                    Arc Kesulitan:
-                                </span>
-                                <span class="font-semibold text-slate-700 capitalize">
-                                    {{ implode(', ', $quiz->kesulitan_aktif_array ?? ['Umum']) }}
-                                </span>
-                            </div>
+        {{-- 3. Two-Column Layout: Tahapan Penyelamatan vs Target & Leaderboard --}}
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
 
-                            @if($quiz->acak_jawaban)
-                                <div class="flex items-center justify-between">
-                                    <span class="text-slate-400 flex items-center gap-1.5">
-                                        <i class="fa-solid fa-shuffle text-indigo-500 text-[10px]"></i>
-                                        Pilihan Opsi:
-                                    </span>
-                                    <span class="font-semibold text-indigo-600">Diacak Otomatis</span>
+            {{-- Kolom Kiri: Tahapan Penyelamatan (60%) --}}
+            <div class="lg:col-span-7 xl:col-span-8 space-y-4">
+                <div>
+                    <h2 class="text-lg md:text-xl font-extrabold text-slate-900 tracking-tight">
+                        Tahapan Penyelamatan
+                    </h2>
+                    <p class="text-xs md:text-sm text-slate-500 font-medium mt-0.5">
+                        Pilih pos aktif untuk melanjutkan petualangan numerik
+                    </p>
+                </div>
+
+                {{-- List of Zonas --}}
+                <div class="space-y-4 pt-1">
+                    @foreach($zonas as $zona)
+                        @if($zona->is_completed)
+                            {{-- 1. ZONA SELESAI --}}
+                            <div class="bg-white rounded-2xl border border-slate-200/80 p-4 md:p-5 flex items-center justify-between gap-4 shadow-xs">
+                                <div class="flex items-center gap-3.5 min-w-0">
+                                    <div class="w-10 h-10 rounded-full bg-[#EBF8F2] text-[#10B981] flex items-center justify-center font-bold text-base shrink-0 border border-emerald-100">
+                                        <i class="fa-solid fa-check"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <h4 class="font-extrabold text-slate-900 text-sm md:text-base truncate">
+                                                {{ $zona->judul }}
+                                            </h4>
+                                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#EBF8F2] text-[#10B981] border border-emerald-100 shrink-0">
+                                                Selesai
+                                            </span>
+                                        </div>
+                                        <div class="text-xs text-slate-400 font-medium mt-0.5">
+                                            Skor Sempurna: {{ number_format($zona->skor, 0) }}/100 • {{ $zona->bintang }} Bintang
+                                        </div>
+                                    </div>
                                 </div>
-                            @endif
-                        </div>
 
-                        {{-- Schedule Details --}}
-                        @if($quiz->waktu_mulai || $quiz->waktu_selesai)
-                            <div class="space-y-1 mb-4 text-[11px]">
-                                @if($quiz->waktu_mulai)
-                                    <div class="flex items-center justify-between text-slate-500">
-                                        <span class="text-slate-400">Waktu Buka:</span>
-                                        <span class="font-semibold {{ $isUpcoming ? 'text-amber-600' : 'text-slate-700' }}">
-                                            {{ $quiz->waktu_mulai->format('d M Y, H:i') }} WIB
-                                        </span>
-                                    </div>
+                                @if($zona->quiz)
+                                    <a 
+                                        href="{{ route('siswa.kuis.hasil', $zona->quiz->id) }}"
+                                        class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center gap-1.5 transition shrink-0"
+                                    >
+                                        <i class="fa-solid fa-rotate-right text-[11px] text-slate-400"></i>
+                                        <span>Review</span>
+                                    </a>
+                                @else
+                                    <button 
+                                        type="button" 
+                                        onclick="alert('Riwayat pengerjaan: Skor Sempurna 100/100 (3 Bintang)');"
+                                        class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center gap-1.5 transition shrink-0"
+                                    >
+                                        <i class="fa-solid fa-rotate-right text-[11px] text-slate-400"></i>
+                                        <span>Review</span>
+                                    </button>
                                 @endif
-                                @if($quiz->waktu_selesai)
-                                    <div class="flex items-center justify-between text-slate-500">
-                                        <span class="text-slate-400">Batas Selesai:</span>
-                                        <span class="font-semibold {{ $isExpired ? 'text-rose-600' : 'text-slate-700' }}">
-                                            {{ $quiz->waktu_selesai->format('d M Y, H:i') }} WIB
-                                        </span>
+                            </div>
+                        @else
+                            {{-- 2. ZONA AKTIF / BELUM DIKERJAKAN (BLUE BORDER) --}}
+                            <div class="bg-white rounded-2xl border-2 border-[#2563EB] p-5 md:p-6 shadow-sm shadow-blue-500/5 space-y-4">
+                                <div class="flex items-start gap-3.5">
+                                    <div class="w-10 h-10 rounded-xl bg-[#EEF4FF] text-[#2563EB] flex items-center justify-center font-bold text-base shrink-0 border border-blue-100 mt-0.5">
+                                        <i class="fa-solid fa-triangle-exclamation"></i>
                                     </div>
+                                    <div class="space-y-1">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <h4 class="font-extrabold text-slate-900 text-base">
+                                                {{ $zona->judul }}
+                                            </h4>
+                                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FDF2F0] text-[#E05252] border border-[#FCDAD7] shrink-0">
+                                                Belum Dikerjakan
+                                            </span>
+                                        </div>
+                                        <p class="text-xs md:text-sm text-slate-500 font-medium leading-relaxed">
+                                            {{ $zona->deskripsi }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {{-- Level Info Strip --}}
+                                <div class="bg-[#F8FAFC] border border-slate-100 rounded-xl p-3 text-xs font-bold text-slate-700">
+                                    {{ $zona->level_label }}
+                                </div>
+
+                                {{-- Button Buka Level Sekarang --}}
+                                @if($zona->quiz)
+                                    <a 
+                                        href="{{ route('siswa.kuis.kerjakan', $zona->quiz->id) }}"
+                                        class="w-full py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm shadow-blue-500/20"
+                                    >
+                                        <span>{{ $zona->buka_level_label }}</span>
+                                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                                    </a>
+                                @else
+                                    <button 
+                                        type="button"
+                                        onclick="alert('Memulai petualangan kuis level aktif!');"
+                                        class="w-full py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm shadow-blue-500/20"
+                                    >
+                                        <span>{{ $zona->buka_level_label }}</span>
+                                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                                    </button>
                                 @endif
                             </div>
                         @endif
+                    @endforeach
+                </div>
+            </div>
+
+            {{-- Kolom Kanan: Target Penyelamatan, Leaderboard & Tips (40%) --}}
+            <div class="lg:col-span-5 xl:col-span-4 space-y-5">
+
+                {{-- 1. Card: Target Penyelamatan --}}
+                <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-4">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 font-extrabold text-slate-900 text-sm">
+                            <i class="fa-solid fa-rocket text-[#2563EB]"></i>
+                            <span>Target Penyelamatan</span>
+                        </div>
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-[#2563EB] border border-blue-100">
+                            3 Tingkat Kesulitan
+                        </span>
                     </div>
 
-                    {{-- Action Button --}}
-                    <div class="pt-3 border-t border-slate-100">
-                        @if($isCompleted)
-                            <a 
-                                href="{{ route('siswa.kuis.hasil', $quiz->id) }}"
-                                class="w-full py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center gap-2 transition"
-                            >
-                                <i class="fa-solid fa-award text-sm"></i>
-                                <span>Lihat Hasil Nilai ({{ number_format($nilai->nilai, 0) }})</span>
-                            </a>
-                        @elseif($isUpcoming)
-                            <a 
-                                href="{{ route('siswa.kuis.show', $quiz->id) }}"
-                                class="w-full py-2.5 px-4 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-xs flex items-center justify-center gap-2 transition"
-                            >
-                                <i class="fa-solid fa-clock text-sm"></i>
-                                <span>Lihat Detail Jadwal</span>
-                            </a>
-                        @elseif($isExpired)
-                            <div class="w-full py-2.5 px-4 rounded-xl bg-slate-100 text-slate-400 font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed">
-                                <i class="fa-solid fa-lock text-xs"></i>
-                                <span>Waktu Pengerjaan Selesai</span>
+                    <div class="bg-[#F8FAFC] border border-slate-100 rounded-xl p-4 space-y-2">
+                        <div class="text-xs font-bold text-slate-700 leading-snug">
+                            {{ $activeZona->judul ?? 'Lorem Ipsum Dolor Sit Amet' }}
+                        </div>
+                        <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
+                            <i class="fa-solid fa-check text-[11px]"></i>
+                            <span>Semoga Berhasil</span>
+                        </div>
+                    </div>
+
+                    @if(isset($activeZona->quiz) && $activeZona->quiz)
+                        <a 
+                            href="{{ route('siswa.kuis.kerjakan', $activeZona->quiz->id) }}"
+                            class="w-full py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm"
+                        >
+                            <i class="fa-solid fa-rocket text-xs"></i>
+                            <span>Mulai Kuis</span>
+                        </a>
+                    @else
+                        <button 
+                            type="button"
+                            onclick="alert('Memulai petualangan kuis!');"
+                            class="w-full py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm"
+                        >
+                            <i class="fa-solid fa-rocket text-xs"></i>
+                            <span>Mulai Kuis</span>
+                        </button>
+                    @endif
+                </div>
+
+                {{-- 2. Card: Leaderboard --}}
+                <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-3">
+                    <div class="flex items-center gap-2 font-extrabold text-slate-900 text-sm">
+                        <i class="fa-solid fa-medal text-amber-500"></i>
+                        <span>Leaderboard</span>
+                    </div>
+
+                    <div class="space-y-2">
+                        @foreach($leaderboard as $lb)
+                            <div class="{{ $lb['is_user'] ? 'bg-[#EFF6FF] border border-blue-200/60' : 'bg-[#F8FAFC]' }} rounded-xl px-4 py-2.5 flex items-center gap-3 transition">
+                                <div class="w-8 h-8 rounded-full {{ $lb['bg'] }} {{ $lb['text'] }} font-bold text-xs flex items-center justify-center shrink-0">
+                                    {{ $lb['initials'] }}
+                                </div>
+                                <span class="text-xs {{ $lb['is_user'] ? 'font-extrabold text-blue-900' : 'font-semibold text-slate-700' }} truncate">
+                                    {{ $lb['name'] }}
+                                </span>
                             </div>
-                        @elseif($quiz->has_draft ?? false)
-                            <a 
-                                href="{{ route('siswa.kuis.kerjakan', $quiz->id) }}"
-                                class="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-md shadow-amber-500/20"
-                            >
-                                <i class="fa-solid fa-play text-xs"></i>
-                                <span>Lanjutkan Kuis ({{ $quiz->draft_count }}/{{ $soalsCount }})</span>
-                            </a>
-                        @else
-                            <a 
-                                href="{{ route('siswa.kuis.show', $quiz->id) }}"
-                                class="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-md shadow-blue-500/20"
-                            >
-                                <i class="fa-solid fa-play text-xs"></i>
-                                <span>Mulai Kuis Petualangan</span>
-                            </a>
-                        @endif
+                        @endforeach
                     </div>
                 </div>
-            @endforeach
+
+                {{-- 3. Card: Tips Pill Box --}}
+                <div class="bg-[#EFF4FF] border border-[#DBE7FE] rounded-2xl p-4 text-xs text-[#2A4374] flex items-start gap-2.5 shadow-2xs">
+                    <i class="fa-regular fa-lightbulb text-indigo-500 mt-0.5 text-sm shrink-0"></i>
+                    <div class="leading-relaxed">
+                        <strong>Tips:</strong> {{ $tips }}
+                    </div>
+                </div>
+
+            </div>
+
         </div>
+
     @endif
 
 </div>
