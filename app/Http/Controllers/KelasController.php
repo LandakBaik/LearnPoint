@@ -28,7 +28,12 @@ class KelasController extends Controller
 
         $kelases = $query->latest()->paginate(10)->withQueryString();
 
-        return view('admin.kelas.index', compact('kelases'));
+        $totalKelas = Kelas::count();
+        $countTingkat7 = Kelas::where('tingkatan', 7)->count();
+        $countTingkat8 = Kelas::where('tingkatan', 8)->count();
+        $countTingkat9 = Kelas::where('tingkatan', 9)->count();
+
+        return view('admin.kelas.index', compact('kelases', 'totalKelas', 'countTingkat7', 'countTingkat8', 'countTingkat9'));
     }
 
     /**

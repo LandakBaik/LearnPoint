@@ -28,7 +28,11 @@ class MapelController extends Controller
 
         $mapels = $query->latest()->paginate(10)->withQueryString();
 
-        return view('admin.mapel.index', compact('mapels'));
+        $totalMapel = Mapel::count();
+        $avgKkm = round(Mapel::avg('kkm') ?? 75, 1);
+        $totalAlokasi = \App\Models\PengampuKelas::count();
+
+        return view('admin.mapel.index', compact('mapels', 'totalMapel', 'avgKkm', 'totalAlokasi'));
     }
 
     /**

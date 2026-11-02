@@ -97,8 +97,11 @@ class DatabaseSeeder extends Seeder
         ], [
             'tahun_ajaran' => '2026/2027',
             'semester' => 'ganjil',
+
+        // 7. Seeder Tugas
+        ]);
+        $this->call([
+            TugasSeeder::class,
         ]);
     }
 }
-
-

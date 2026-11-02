@@ -37,25 +37,64 @@ class GuruMapelController extends Controller
         ]);
 
         $addedCount = 0;
+        $alreadyAssignedCount = 0;
+        $conflictClasses = [];
+
         foreach ($kelasIds as $kelasId) {
-            $exists = PengampuKelas::where('guru_mapel_id', $guruMapel->id)
-                ->where('kelas_id', $kelasId)
-                ->exists();
+            // Cek apakah di kelas ini mapel tersebut sudah diampu oleh guru (guru ini atau guru lain)
+            $existing = PengampuKelas::where('kelas_id', $kelasId)
+                ->whereHas('guruMapel', function ($q) use ($validated) {
+                    $q->where('mapel_id', $validated['mapel_id']);
+                })
+                ->with(['guruMapel.guru', 'kelas', 'guruMapel.mapel'])
+                ->first();
 
-            if (!$exists) {
-                PengampuKelas::create([
-                    'guru_mapel_id' => $guruMapel->id,
-                    'kelas_id'      => $kelasId,
-                ]);
-                $addedCount++;
+            if ($existing) {
+                if ($existing->guruMapel?->guru_id == $validated['guru_id']) {
+                    // Guru yang sama sudah mengajar mapel ini di kelas ini
+                    $alreadyAssignedCount++;
+                } else {
+                    // Konflik: Mapel ini di kelas ini sudah diampu oleh guru lain!
+                    $conflictClasses[] = [
+                        'kelas' => $existing->kelas?->nama_kelas ?? 'Kelas',
+                        'guru'  => $existing->guruMapel?->guru?->nama ?? 'Guru Lain',
+                        'mapel' => $existing->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran',
+                    ];
+                }
+                continue;
             }
+
+            PengampuKelas::create([
+                'guru_mapel_id' => $guruMapel->id,
+                'kelas_id'      => $kelasId,
+            ]);
+            $addedCount++;
         }
 
-        if ($addedCount === 0) {
-            return back()->withErrors(['kelas_ids' => 'Guru ini sudah terdaftar sebagai pengampu di seluruh kelas yang Anda pilih.']);
+        // Jika hanya 1 penugasan dan ada konflik guru lain (misal dari modal kelola kelas)
+        if (count($conflictClasses) > 0 && $addedCount === 0 && $alreadyAssignedCount === 0) {
+            $c = $conflictClasses[0];
+            return back()->with('error', "Mata pelajaran {$c['mapel']} di kelas {$c['kelas']} sudah diampu oleh {$c['guru']}. Dalam 1 kelas hanya diperbolehkan 1 guru untuk setiap mata pelajaran.");
         }
 
-        return back()->with('success', "Berhasil menugaskan guru ke {$addedCount} kelas!");
+        if ($addedCount === 0 && count($conflictClasses) === 0) {
+            return back()->with('warning', 'Semua kelas yang Anda pilih sudah terdaftar sebelumnya untuk guru ini. Tidak ada data baru yang ditambahkan.');
+        }
+
+        $messages = [];
+        if ($addedCount > 0) {
+            $messages[] = "Berhasil menugaskan guru ke {$addedCount} kelas!";
+        }
+        if ($alreadyAssignedCount > 0) {
+            $messages[] = "({$alreadyAssignedCount} kelas dilewati karena sudah terdaftar sebelumnya untuk guru ini).";
+        }
+        if (count($conflictClasses) > 0) {
+            $conflictDetails = collect($conflictClasses)->map(fn($c) => "{$c['kelas']} (diampu {$c['guru']})")->join(', ');
+            $messages[] = "Dilewati karena sudah memiliki guru pengampu lain: {$conflictDetails}.";
+        }
+
+        $flashType = $addedCount > 0 ? 'success' : 'warning';
+        return back()->with($flashType, implode(' ', $messages));
     }
 
     /**

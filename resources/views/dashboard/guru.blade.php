@@ -36,7 +36,7 @@
                 <span class="text-[11px] font-bold uppercase tracking-wider text-blue-700/90 block">KELAS DIAJAR</span>
                 <div class="text-2xl font-extrabold text-slate-900 leading-tight mt-1">{{ $totalKelasDiajar ?? 0 }}</div>
                 <div class="flex items-center justify-between gap-2 mt-2 pt-1 border-t border-slate-100">
-                    <span class="text-xs text-slate-400 truncate">Rombel aktif</span>
+                    <span class="text-xs text-slate-400 truncate">Kelas aktif</span>
                     <a class="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 group/link flex-shrink-0" href="{{ route('guru.jadwal') }}">
                         Lihat Jadwal <span class="group-hover/link:translate-x-0.5 transition-transform">→</span>
                     </a>
@@ -319,10 +319,10 @@
                     </div>
                 @endif
 
-                <!-- Daftar Mapel & Rombel yang Diampu -->
+                <!-- Daftar Mapel & Kelas yang Diampu -->
                 @if(isset($guruMapels) && $guruMapels->isNotEmpty())
                     <div class="pt-2 border-t border-slate-100 space-y-2">
-                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Rombel &amp; Mapel Diampu:</span>
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Kelas &amp; Mapel Diampu:</span>
                         <div class="space-y-1.5">
                             @foreach($guruMapels as $gm)
                                 <div class="p-2.5 rounded-xl bg-slate-50/70 border border-slate-100 flex items-center justify-between text-xs">

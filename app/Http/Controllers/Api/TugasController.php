@@ -428,7 +428,8 @@ class TugasController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $daftarTugas,
+            'message' => 'Berhasil mengambil data tugas',
+            'data'    => $daftarTugas,
         ]);
     }
 
