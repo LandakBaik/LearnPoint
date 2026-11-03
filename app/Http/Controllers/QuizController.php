@@ -804,6 +804,43 @@ class QuizController extends Controller
             }) ?? $planets->first();
         }
 
+        // Query Top 3 Leaderboard untuk Podiums di Hero Banner (Kiri: Top 2, Tengah: Top 1, Kanan: Top 3)
+        // HANYA data riil dari database (tanpa data dummy, dikosongkan jika belum ada data)
+        $topThree = collect();
+        try {
+            $realLeaderboardQuery = Nilai::whereNotNull('quiz_id')
+                ->where('status', 'selesai')
+                ->select('siswa_id', DB::raw('SUM(nilai) as total_skor'))
+                ->groupBy('siswa_id')
+                ->orderByDesc('total_skor')
+                ->take(3)
+                ->get();
+
+            foreach ($realLeaderboardQuery as $index => $item) {
+                $siswaModel = Siswa::with('user')->find($item->siswa_id);
+                if (!$siswaModel) continue;
+
+                $name = $siswaModel->nama_siswa ?? $siswaModel->user?->name ?? 'Siswa';
+                $foto = $siswaModel->foto ?? $siswaModel->user?->foto ?? null;
+                $initials = strtoupper(substr(explode(' ', trim($name))[0] ?? 'S', 0, 2));
+
+                $topThree->push((object)[
+                    'rank' => $index + 1,
+                    'name' => $name,
+                    'skor' => (int)$item->total_skor,
+                    'foto' => $foto,
+                    'initials' => $initials,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            $topThree = collect();
+        }
+
+        // Jika belum ada siswa di peringkat 1, 2, atau 3, nilai bernilai null (kosong)
+        $top1 = $topThree->get(0) ?? null;
+        $top2 = $topThree->get(1) ?? null;
+        $top3 = $topThree->get(2) ?? null;
+
         // Jika planet dipilih: Tampilkan Mode 2 (Tahapan Penyelamatan & Target - Gambar 2)
         if ($selectedPlanet) {
             $mapelId = $selectedPlanet->id;
@@ -895,19 +932,22 @@ class QuizController extends Controller
                 $activeZona = $zonas->firstWhere('status', 'belum_dikerjakan') ?? $zonas->first();
             }
 
-            // Leaderboard terhubung dengan data Nilai asli di database jika ada
+            // Leaderboard terhubung dengan data Nilai asli di database (tanpa data dummy)
             $leaderboard = collect();
             try {
                 $realScores = Nilai::whereNotNull('quiz_id')
-                    ->with('siswa')
+                    ->where('status', 'selesai')
                     ->select('siswa_id', DB::raw('MAX(nilai) as top_skor'))
                     ->groupBy('siswa_id')
                     ->orderByDesc('top_skor')
-                    ->take(3)
+                    ->take(5)
                     ->get();
 
                 foreach ($realScores as $rs) {
-                    $sName = $rs->siswa?->nama_siswa ?? 'Siswa';
+                    $sModel = Siswa::find($rs->siswa_id);
+                    if (!$sModel) continue;
+
+                    $sName = $sModel->nama_siswa ?? 'Siswa';
                     $isCurUser = ($siswa && $rs->siswa_id == $siswa->id);
                     $initials = strtoupper(substr(explode(' ', trim($sName))[0] ?? 'S', 0, 2));
 
@@ -923,18 +963,6 @@ class QuizController extends Controller
                 $leaderboard = collect();
             }
 
-            // Fallback leaderboard jika database masih kosong
-            if ($leaderboard->isEmpty()) {
-                $siswaName = $siswa?->nama_siswa ?? $user?->name ?? 'Budi';
-                $userInitials = strtoupper(substr(explode(' ', trim($siswaName))[0] ?? 'BU', 0, 2));
-
-                $leaderboard = collect([
-                    ['initials' => 'NA', 'name' => 'Nadia Azzahra', 'bg' => 'bg-blue-100', 'text' => 'text-[#2563EB]', 'is_user' => false],
-                    ['initials' => 'RP', 'name' => 'Rian Pratama', 'bg' => 'bg-emerald-100', 'text' => 'text-emerald-700', 'is_user' => false],
-                    ['initials' => $userInitials, 'name' => ($user ? explode(' ', trim($siswaName))[0] : 'Budi') . ' (Kamu)', 'bg' => 'bg-[#1D4ED8]', 'text' => 'text-white', 'is_user' => true],
-                ]);
-            }
-
             return view('Siswa.kuis.index', [
                 'viewMode' => 'mission',
                 'selectedPlanet' => $selectedPlanet,
@@ -947,6 +975,9 @@ class QuizController extends Controller
                 'leaderboard' => $leaderboard,
                 'tips' => $selectedPlanet->tips,
                 'kelas' => $kelas,
+                'top1' => $top1,
+                'top2' => $top2,
+                'top3' => $top3,
             ]);
         }
 
@@ -955,6 +986,9 @@ class QuizController extends Controller
             'viewMode' => 'planets',
             'planets' => $planets,
             'kelas' => $kelas,
+            'top1' => $top1,
+            'top2' => $top2,
+            'top3' => $top3,
         ]);
     }
 

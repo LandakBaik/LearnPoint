@@ -37,14 +37,95 @@
                     </p>
                 </div>
 
-                {{-- 3 Silhouette Planet Circles on the Right (Mockup Match) --}}
-                <div class="relative w-64 h-28 hidden md:block shrink-0 select-none pointer-events-none">
-                    <!-- Left circle -->
-                    <div class="absolute left-2 bottom-2 w-16 h-16 rounded-full bg-[#8C8E96] shadow-2xs"></div>
-                    <!-- Center circle (higher & larger) -->
-                    <div class="absolute left-20 top-0 w-20 h-20 rounded-full bg-[#8C8E96] shadow-2xs"></div>
-                    <!-- Right circle -->
-                    <div class="absolute right-2 bottom-2 w-16 h-16 rounded-full bg-[#8C8E96] shadow-2xs"></div>
+                {{-- Top 3 Leaderboard Podium Profile Circles (Kiri: Top 2, Tengah: Top 1, Kanan: Top 3) --}}
+                <div class="relative flex items-end justify-center gap-2.5 md:gap-3.5 shrink-0 select-none pt-4">
+                    {{-- TOP 2 (KIRI) --}}
+                    @if(isset($top2) && $top2)
+                        <div class="flex flex-col items-center group relative -mr-1 z-10 transition-transform hover:scale-105" title="Peringkat 2: {{ $top2->name }} ({{ number_format($top2->skor ?? 0, 0) }} XP)">
+                            <div class="relative">
+                                <div class="w-16 h-16 md:w-18 md:h-18 rounded-full border-2 border-white shadow-md overflow-hidden bg-slate-300 flex items-center justify-center ring-2 ring-slate-200">
+                                    @if(!empty($top2->foto))
+                                        <img src="{{ asset('storage/' . $top2->foto) }}" alt="{{ $top2->name }}" class="w-full h-full object-cover">
+                                    @else
+                                        <img src="https://ui-avatars.com/api/?name={{ urlencode($top2->name) }}&background=64748B&color=fff&size=160&bold=true" alt="{{ $top2->name }}" class="w-full h-full object-cover">
+                                    @endif
+                                </div>
+                                <!-- Badge Rank 2 -->
+                                <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-200 text-slate-800 border-2 border-white font-black text-[10px] flex items-center justify-center shadow-xs">
+                                    2
+                                </div>
+                            </div>
+                            <span class="text-[11px] font-bold text-slate-700 mt-1.5 max-w-[70px] truncate text-center">
+                                {{ explode(' ', trim($top2->name))[0] }}
+                            </span>
+                            <span class="text-[9px] font-semibold text-slate-400">Top 2</span>
+                        </div>
+                    @else
+                        {{-- Top 2 Kosong: Tampilkan shape bulat abu-abu polos sesuai mockup --}}
+                        <div class="flex flex-col items-center relative -mr-1 z-10">
+                            <div class="w-16 h-16 md:w-18 md:h-18 rounded-full bg-[#7E7E7E] shadow-xs"></div>
+                        </div>
+                    @endif
+
+                    {{-- TOP 1 (TENGAH - LEBIH TINGGI & BESAR) --}}
+                    @if(isset($top1) && $top1)
+                        <div class="flex flex-col items-center group relative z-20 -mb-1 transition-transform hover:scale-105" title="Peringkat 1: {{ $top1->name }} ({{ number_format($top1->skor ?? 0, 0) }} XP)">
+                            <div class="relative">
+                                <!-- Mahkota Emas Top 1 -->
+                                <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 text-amber-500 text-sm drop-shadow-xs animate-bounce">
+                                    <i class="fa-solid fa-crown"></i>
+                                </div>
+                                <div class="w-20 h-20 md:w-22 md:h-22 rounded-full border-3 border-amber-300 shadow-lg overflow-hidden bg-blue-100 flex items-center justify-center ring-4 ring-amber-100/70">
+                                    @if(!empty($top1->foto))
+                                        <img src="{{ asset('storage/' . $top1->foto) }}" alt="{{ $top1->name }}" class="w-full h-full object-cover">
+                                    @else
+                                        <img src="https://ui-avatars.com/api/?name={{ urlencode($top1->name) }}&background=2563EB&color=fff&size=160&bold=true" alt="{{ $top1->name }}" class="w-full h-full object-cover">
+                                    @endif
+                                </div>
+                                <!-- Badge Rank 1 -->
+                                <div class="absolute -bottom-1.5 -right-1 w-7 h-7 rounded-full bg-amber-400 text-amber-950 border-2 border-white font-black text-xs flex items-center justify-center shadow-xs">
+                                    1
+                                </div>
+                            </div>
+                            <span class="text-xs font-black text-slate-900 mt-1.5 max-w-[85px] truncate text-center">
+                                {{ explode(' ', trim($top1->name))[0] }}
+                            </span>
+                            <span class="text-[10px] font-bold text-amber-600">Juara 1</span>
+                        </div>
+                    @else
+                        {{-- Top 1 Kosong: Tampilkan shape bulat abu-abu polos tengah sesuai mockup --}}
+                        <div class="flex flex-col items-center relative z-20 -mb-3">
+                            <div class="w-20 h-20 md:w-22 md:h-22 rounded-full bg-[#7E7E7E] shadow-xs"></div>
+                        </div>
+                    @endif
+
+                    {{-- TOP 3 (KANAN) --}}
+                    @if(isset($top3) && $top3)
+                        <div class="flex flex-col items-center group relative -ml-1 z-10 transition-transform hover:scale-105" title="Peringkat 3: {{ $top3->name }} ({{ number_format($top3->skor ?? 0, 0) }} XP)">
+                            <div class="relative">
+                                <div class="w-16 h-16 md:w-18 md:h-18 rounded-full border-2 border-white shadow-md overflow-hidden bg-amber-100 flex items-center justify-center ring-2 ring-amber-200/60">
+                                    @if(!empty($top3->foto))
+                                        <img src="{{ asset('storage/' . $top3->foto) }}" alt="{{ $top3->name }}" class="w-full h-full object-cover">
+                                    @else
+                                        <img src="https://ui-avatars.com/api/?name={{ urlencode($top3->name) }}&background=D97706&color=fff&size=160&bold=true" alt="{{ $top3->name }}" class="w-full h-full object-cover">
+                                    @endif
+                                </div>
+                                <!-- Badge Rank 3 -->
+                                <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-amber-700 text-white border-2 border-white font-black text-[10px] flex items-center justify-center shadow-xs">
+                                    3
+                                </div>
+                            </div>
+                            <span class="text-[11px] font-bold text-slate-700 mt-1.5 max-w-[70px] truncate text-center">
+                                {{ explode(' ', trim($top3->name))[0] }}
+                            </span>
+                            <span class="text-[9px] font-semibold text-slate-400">Top 3</span>
+                        </div>
+                    @else
+                        {{-- Top 3 Kosong: Tampilkan shape bulat abu-abu polos sesuai mockup --}}
+                        <div class="flex flex-col items-center relative -ml-1 z-10">
+                            <div class="w-16 h-16 md:w-18 md:h-18 rounded-full bg-[#7E7E7E] shadow-xs"></div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -332,7 +413,7 @@
                     </div>
 
                     <div class="space-y-2">
-                        @foreach($leaderboard as $lb)
+                        @forelse($leaderboard as $lb)
                             <div class="{{ $lb['is_user'] ? 'bg-[#EFF6FF] border border-blue-200/60' : 'bg-[#F8FAFC]' }} rounded-xl px-4 py-2.5 flex items-center gap-3 transition">
                                 <div class="w-8 h-8 rounded-full {{ $lb['bg'] }} {{ $lb['text'] }} font-bold text-xs flex items-center justify-center shrink-0">
                                     {{ $lb['initials'] }}
@@ -341,7 +422,12 @@
                                     {{ $lb['name'] }}
                                 </span>
                             </div>
-                        @endforeach
+                        @empty
+                            <div class="py-5 text-center text-xs text-slate-400">
+                                <i class="fa-solid fa-trophy text-slate-300 text-xl mb-1.5 block"></i>
+                                <span>Belum ada data peringkat</span>
+                            </div>
+                        @endforelse
                     </div>
                 </div>
 

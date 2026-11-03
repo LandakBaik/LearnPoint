@@ -203,24 +203,6 @@
     </main>
     <!-- END: MainContent -->
 
-    <!-- BEGIN: Footer -->
-    <footer class="mt-auto border-t border-slate-200/80 bg-white py-6 px-6 lg:px-12 text-xs text-slate-500">
-        <div class="max-w-[1440px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-3 text-slate-500">
-                <span class="font-bold text-slate-800 hidden md:inline">LearnPoint</span>
-                <span class="text-slate-300 hidden md:inline">|</span>
-                <span>&copy; 2025 LearnPoint Indonesia. Portal Belajar Interaktif Siswa SMP. Hak Cipta Dilindungi.</span>
-            </div>
-            <div class="flex items-center gap-6 text-slate-500 font-medium">
-                <a href="#" class="hover:text-blue-600 transition">Panduan Siswa</a>
-                <a href="#" class="hover:text-blue-600 transition">Bantuan & Kontak</a>
-                <a href="#" class="hover:text-blue-600 transition">Kebijakan Privasi</a>
-                <a href="#" class="hover:text-blue-600 transition">Syarat & Ketentuan</a>
-            </div>
-        </div>
-    </footer>
-    <!-- END: Footer -->
-
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             @if(session('success'))
