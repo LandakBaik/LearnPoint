@@ -138,6 +138,9 @@
                         <a href="{{ route('siswa.dashboard') }}" class="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition">
                             <i class="fa-solid fa-house-chimney text-slate-400"></i> Beranda Belajar
                         </a>
+                        <a href="{{ route('siswa.kuis') }}" class="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition">
+                            <i class="fa-solid fa-gamepad text-slate-400"></i> Kuis Petualangan
+                        </a>
                         <a href="{{ route('siswa.jadwal') }}" class="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition">
                             <i class="fa-regular fa-calendar text-slate-400"></i> Jadwal Pelajaran
                         </a>
@@ -254,4 +257,4 @@
 
     @stack('scripts')
 </body>
-</html>
+</html> 

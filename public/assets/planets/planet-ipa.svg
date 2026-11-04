@@ -1,0 +1,47 @@
+<svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <radialGradient id="ipaOceanGrad" cx="35%" cy="30%" r="65%">
+            <stop offset="0%" stop-color="#A7F3D0"/>
+            <stop offset="30%" stop-color="#10B981"/>
+            <stop offset="75%" stop-color="#059669"/>
+            <stop offset="100%" stop-color="#064E3B"/>
+        </radialGradient>
+        <clipPath id="ipaPlanetClip">
+            <circle cx="36" cy="36" r="22"/>
+        </clipPath>
+    </defs>
+
+    <!-- Ambient Stars -->
+    <circle cx="12" cy="24" r="1.2" fill="#A7F3D0" opacity="0.8"/>
+    <circle cx="58" cy="18" r="1.5" fill="#6EE7B7" opacity="0.7"/>
+    <circle cx="60" cy="52" r="1.2" fill="#D1FAE5" opacity="0.8"/>
+
+    <!-- Atmosphere Aura Glow -->
+    <circle cx="36" cy="36" r="23" stroke="#A7F3D0" stroke-width="1.5" opacity="0.4"/>
+
+    <!-- Main Planet Sphere (Oceans) -->
+    <circle cx="36" cy="36" r="22" fill="url(#ipaOceanGrad)"/>
+
+    <!-- Landmasses & Flora Continents (Clipped) -->
+    <g clip-path="url(#ipaPlanetClip)">
+        <path d="M22 24 C 25 20, 34 22, 33 28 C 32 32, 26 33, 22 30 Z" fill="#34D399" opacity="0.9"/>
+        <path d="M24 23 C 27 21, 31 23, 30 26 C 29 28, 25 28, 24 26 Z" fill="#D1FAE5" opacity="0.6"/>
+
+        <path d="M38 22 C 45 20, 52 26, 49 34 C 47 38, 42 39, 40 33 C 38 29, 36 26, 38 22 Z" fill="#34D399" opacity="0.95"/>
+        <path d="M42 24 C 46 23, 49 28, 46 32 C 44 34, 41 33, 41 29 Z" fill="#ECFDF5" opacity="0.65"/>
+
+        <path d="M26 38 C 30 36, 36 39, 38 45 C 37 51, 28 52, 25 46 C 23 42, 24 39, 26 38 Z" fill="#059669" opacity="0.85"/>
+        <path d="M28 41 C 31 39, 34 41, 35 45 C 33 48, 29 48, 27 44 Z" fill="#6EE7B7" opacity="0.7"/>
+
+        <path d="M16 32 Q 24 34 32 30 Q 42 26 54 33" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" opacity="0.45" fill="none"/>
+        <path d="M20 44 Q 30 46 40 42 Q 48 40 56 46" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity="0.35" fill="none"/>
+
+        <path d="M14 36 A 22 22 0 0 0 58 36 A 22 14 0 0 1 14 36 Z" fill="#022C22" opacity="0.35" transform="rotate(-30 36 36)"/>
+    </g>
+
+    <!-- Orbit Line & Moon -->
+    <ellipse cx="36" cy="36" rx="28" ry="12" stroke="#6EE7B7" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.35" transform="rotate(-15 36 36)"/>
+    <circle cx="58" cy="26" r="3.5" fill="#D1FAE5"/>
+    <circle cx="57" cy="25" r="1.5" fill="#A7F3D0"/>
+</svg>
+

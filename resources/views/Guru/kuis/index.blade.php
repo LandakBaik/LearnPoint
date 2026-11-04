@@ -11,6 +11,37 @@
     todayMinDate: '{{ now()->format('Y-m-d\TH:i') }}',
     todayStartDate: '{{ now()->format('Y-m-d\T00:00') }}',
 
+    mapelData: {{ Js::from(array_values($mapelData)) }},
+    selectedMapel: '',
+    selectedTingkatan: '',
+    tingkatans: [],
+    kelases: [],
+
+    updateTingkatan() {
+        let mapel = this.mapelData.find(m => m.id == this.selectedMapel);
+        if (mapel && mapel.tingkatans) {
+            this.tingkatans = Object.keys(mapel.tingkatans).sort();
+        } else {
+            this.tingkatans = [];
+        }
+
+        if (!this.selectedTingkatan || !this.tingkatans.includes(this.selectedTingkatan)) {
+            this.selectedTingkatan = '';
+            this.kelases = [];
+        } else {
+            this.updateKelas();
+        }
+    },
+
+    updateKelas() {
+        let mapel = this.mapelData.find(m => m.id == this.selectedMapel);
+        if (mapel && this.selectedTingkatan && mapel.tingkatans[this.selectedTingkatan]) {
+            this.kelases = mapel.tingkatans[this.selectedTingkatan];
+        } else {
+            this.kelases = [];
+        }
+    },
+
     toggleSelectAll() {
         if (this.selectedQuizzes.length === this.allQuizIds.length) {
             this.selectedQuizzes = [];
@@ -667,6 +698,11 @@
 
             <form method="POST" action="{{ route('guru.kuis.store') }}"
                 @submit="
+                    if (![...$el.querySelectorAll('input[name=\'pengampu_kelas_ids[]\']:checked')].length) { 
+                        $event.preventDefault(); 
+                        Swal.fire({icon: 'warning', title: 'Peringatan', text: 'Silakan pilih minimal satu kelas sasaran untuk kuis ini!'}); 
+                        return;
+                    }
                     if (![...$el.querySelectorAll('input[name=\'kesulitan_aktif[]\']:checked')].length) { 
                         $event.preventDefault(); 
                         Swal.fire({icon: 'warning', title: 'Peringatan', text: 'Pilih minimal satu tingkat kesulitan (Arc) untuk petualangan kuis ini!'}); 
@@ -708,23 +744,82 @@
                     ></textarea>
                 </div>
 
-                {{-- Pengampu Kelas (Mapel & Kelas) --}}
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
-                        Mata Pelajaran & Kelas <span class="text-rose-500">*</span>
-                    </label>
-                    <select
-                        name="pengampu_kelas_id"
-                        required
-                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
-                    >
-                        <option value="">Pilih Mata Pelajaran & Kelas...</option>
-                        @foreach($pengampuKelases as $pk)
-                            <option value="{{ $pk->id }}">
-                                {{ $pk->guruMapel?->mapel?->nama_mapel }} - Kelas {{ $pk->kelas?->tingkatan }} {{ $pk->kelas?->nama_kelas }}
-                            </option>
-                        @endforeach
-                    </select>
+                {{-- Section Sasaran Kelas (Persis seperti Halaman Buat Materi) --}}
+                <div class="pt-2 border-t border-slate-100 space-y-3.5">
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                            Sasaran Kelas <span class="text-rose-500">*</span>
+                        </h4>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Pilih mata pelajaran, tingkatan kelas, dan kelas sasaran kuis ini.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        {{-- Mata Pelajaran --}}
+                        <div class="space-y-1">
+                            <label for="kuis_mapel_id" class="block text-xs font-bold text-slate-700">
+                                Mata Pelajaran <span class="text-rose-500">*</span>
+                            </label>
+                            <select
+                                name="mapel_id"
+                                id="kuis_mapel_id"
+                                x-model="selectedMapel"
+                                @change="updateTingkatan()"
+                                required
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition cursor-pointer"
+                            >
+                                <option value="">-- Pilih Mata Pelajaran --</option>
+                                <template x-for="mapel in mapelData" :key="mapel.id">
+                                    <option :value="mapel.id" x-text="mapel.nama"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        {{-- Tingkatan Kelas --}}
+                        <div class="space-y-1">
+                            <label for="kuis_tingkatan" class="block text-xs font-bold text-slate-700">
+                                Tingkat Kelas <span class="text-rose-500">*</span>
+                            </label>
+                            <select
+                                name="tingkatan"
+                                id="kuis_tingkatan"
+                                x-model="selectedTingkatan"
+                                @change="updateKelas()"
+                                :disabled="!selectedMapel || tingkatans.length === 0"
+                                required
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <option value="">-- Pilih Tingkat --</option>
+                                <template x-for="tingkat in tingkatans" :key="tingkat">
+                                    <option :value="tingkat" x-text="'Tingkat ' + tingkat"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Checkbox Kelas Sasaran --}}
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-700">
+                            Pilih Kelas <span class="text-rose-500">*</span>
+                        </label>
+
+                        <div x-show="!selectedTingkatan" class="p-4 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-400">
+                            Silakan pilih mata pelajaran dan tingkatan kelas terlebih dahulu.
+                        </div>
+
+                        <div x-show="selectedTingkatan" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5" style="display: none;">
+                            <template x-for="kelas in kelases" :key="kelas.pengampu_kelas_id">
+                                <label class="relative flex items-center p-3 rounded-xl border border-slate-200 bg-white cursor-pointer hover:bg-blue-50/70 hover:border-blue-300 transition-colors select-none">
+                                    <input
+                                        type="checkbox"
+                                        name="pengampu_kelas_ids[]"
+                                        :value="kelas.pengampu_kelas_id"
+                                        class="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                                    >
+                                    <span class="ml-2.5 text-xs font-semibold text-slate-800" x-text="kelas.nama_kelas"></span>
+                                </label>
+                            </template>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- Pilihan Arc Kesulitan yang Aktif (1 sampai 3 Arc) --}}

@@ -145,10 +145,10 @@
             @foreach($planets as $planet)
                 <div class="bg-white rounded-[24px] border border-slate-100 p-6 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group">
                     <div>
-                        {{-- Top Icon & Issue Badge --}}
+                        {{-- Top Planet Logo & Issue Badge --}}
                         <div class="flex items-center justify-between gap-3 mb-6">
-                            <div class="w-12 h-12 rounded-2xl {{ $planet->bg_color }} {{ $planet->text_color }} flex items-center justify-center font-bold text-xl shadow-2xs">
-                                {{ $planet->simbol }}
+                            <div class="w-14 h-14 rounded-2xl {{ $planet->bg_color }} border {{ $planet->border_color ?? 'border-slate-100' }} flex items-center justify-center p-1.5 shadow-2xs group-hover:scale-105 transition-all duration-300">
+                                @include('siswa.kuis.partials.planet-icon', ['planet' => $planet, 'size' => 'w-11 h-11'])
                             </div>
                             <span class="px-3.5 py-1.5 rounded-full bg-[#F8FAFC] border border-slate-200/80 text-slate-500 text-xs font-semibold">
                                 {{ $planet->masalah_terdeteksi }} masalah terdeteksi
@@ -200,17 +200,24 @@
         {{-- 2. Hero Card: Planet Info & Sector Stats --}}
         <div class="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#EBF3FE] via-[#EEF5FF] to-[#E3EFFF] p-6 md:p-8 border border-blue-100/60 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div class="space-y-1">
-                <div class="flex items-center gap-3">
-                    <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 leading-tight">
-                        Planet {{ $selectedPlanet->nama }}
-                    </h1>
-                    <a href="{{ route('siswa.kuis') }}" class="text-xs px-2.5 py-1 rounded-lg bg-white/70 hover:bg-white text-blue-600 font-semibold border border-blue-100 transition shadow-2xs" title="Ganti Planet">
-                        <i class="fa-solid fa-rotate-left mr-1"></i> Ganti Planet
-                    </a>
+                <div class="flex items-center gap-3.5">
+                    <div class="w-12 h-12 md:w-14 md:h-14 rounded-2xl {{ $selectedPlanet->bg_color ?? 'bg-blue-50' }} border {{ $selectedPlanet->border_color ?? 'border-blue-100' }} flex items-center justify-center p-1 shadow-2xs shrink-0">
+                        @include('siswa.kuis.partials.planet-icon', ['planet' => $selectedPlanet, 'size' => 'w-10 h-10 md:w-11 md:h-11'])
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                                Planet {{ $selectedPlanet->nama }}
+                            </h1>
+                            <a href="{{ route('siswa.kuis') }}" class="text-xs px-2.5 py-1 rounded-lg bg-white/70 hover:bg-white text-blue-600 font-semibold border border-blue-100 transition shadow-2xs" title="Ganti Planet">
+                                <i class="fa-solid fa-rotate-left mr-1"></i> Ganti Planet
+                            </a>
+                        </div>
+                        <p class="text-xs md:text-sm text-slate-600 font-medium mt-0.5">
+                            {{ $selectedPlanet->lore ?? 'Lorem Ipsum' }}
+                        </p>
+                    </div>
                 </div>
-                <p class="text-xs md:text-sm text-slate-600 font-medium">
-                    {{ $selectedPlanet->lore ?? 'Lorem Ipsum' }}
-                </p>
             </div>
 
             {{-- Right Stats Box --}}

@@ -70,6 +70,32 @@ class QuizController extends Controller
 
         $kelases = $pengampuKelases->pluck('kelas')->unique('id')->filter();
 
+        // Data terstruktur untuk pemilihan cascading Sasaran Kelas (Mapel -> Tingkatan -> Kelas)
+        $mapelData = [];
+        foreach ($pengampuKelases as $pk) {
+            $mapel = $pk->guruMapel?->mapel;
+            $kelas = $pk->kelas;
+            if (!$mapel || !$kelas) continue;
+
+            if (!isset($mapelData[$mapel->id])) {
+                $mapelData[$mapel->id] = [
+                    'id' => $mapel->id,
+                    'nama' => $mapel->nama_mapel,
+                    'tingkatans' => []
+                ];
+            }
+            if (!isset($mapelData[$mapel->id]['tingkatans'][$kelas->tingkatan])) {
+                $mapelData[$mapel->id]['tingkatans'][$kelas->tingkatan] = [];
+            }
+            $mapelData[$mapel->id]['tingkatans'][$kelas->tingkatan][] = [
+                'kelas_id' => $kelas->id,
+                'nama_kelas' => $kelas->nama_kelas,
+                'pengampu_kelas_id' => $pk->id,
+            ];
+        }
+
+        usort($mapelData, fn($a, $b) => strcmp($a['nama'], $b['nama']));
+
         // Statistik Dashboard Kuis Guru
         $baseGuruQuery = Quiz::whereHas('pengampuKelas.guruMapel', function ($q) use ($guruId) {
             $q->where('guru_id', $guruId);
@@ -89,6 +115,7 @@ class QuizController extends Controller
             'quizzes',
             'pengampuKelases',
             'kelases',
+            'mapelData',
             'totalKuis',
             'totalDraft',
             'totalPublished',
@@ -109,7 +136,9 @@ class QuizController extends Controller
         $validated = $request->validate([
             'judul'               => ['required', 'string', 'max:200'],
             'deskripsi'           => ['nullable', 'string', 'max:1000'],
-            'pengampu_kelas_id'   => ['required', 'exists:pengampu_kelas,id'],
+            'pengampu_kelas_id'   => ['nullable', 'exists:pengampu_kelas,id'],
+            'pengampu_kelas_ids'  => ['nullable', 'array', 'min:1'],
+            'pengampu_kelas_ids.*'=> ['exists:pengampu_kelas,id'],
             'kesulitan_aktif'     => ['required', 'array', 'min:1', 'max:3'],
             'kesulitan_aktif.*'   => ['string', 'in:Mudah,Sedang,Sulit'],
             'waktu_mulai'         => ['nullable', 'date', 'after_or_equal:today'],
@@ -124,33 +153,56 @@ class QuizController extends Controller
             'waktu_selesai.after'        => 'Waktu selesai kuis harus lebih lambat dari waktu mulai (tidak boleh sama atau lebih awal).',
         ]);
 
-        $isOwner = PengampuKelas::where('id', $validated['pengampu_kelas_id'])
+        $targetIds = [];
+        if ($request->filled('pengampu_kelas_ids')) {
+            $targetIds = (array) $request->input('pengampu_kelas_ids');
+        } elseif ($request->filled('pengampu_kelas_id')) {
+            $targetIds = [$request->input('pengampu_kelas_id')];
+        }
+
+        if (empty($targetIds)) {
+            return back()->withInput()->with('error', 'Silakan pilih minimal satu kelas sasaran untuk kuis ini.');
+        }
+
+        $validPengampu = PengampuKelas::whereIn('id', $targetIds)
             ->whereHas('guruMapel', function ($q) use ($guruId) {
                 $q->where('guru_id', $guruId);
-            })->exists();
+            })->pluck('id')->all();
 
-        if (!$isOwner) {
-            return back()->withInput()->with('error', 'Anda tidak memiliki hak akses pada kelas/mata pelajaran ini.');
+        if (empty($validPengampu)) {
+            return back()->withInput()->with('error', 'Anda tidak memiliki hak akses pada kelas/mata pelajaran yang dipilih.');
         }
 
         // Urutkan kesulitan agar konsisten: Mudah, Sedang, Sulit
         $orderedDifficulties = array_values(array_intersect(Quiz::KESULITAN_LIST, $validated['kesulitan_aktif']));
 
-        $quiz = Quiz::create([
-            'judul'             => $validated['judul'],
-            'deskripsi'         => $validated['deskripsi'] ?? null,
-            'pengampu_kelas_id' => $validated['pengampu_kelas_id'],
-            'kesulitan_aktif'   => $orderedDifficulties,
-            'waktu_mulai'       => $validated['waktu_mulai'] ?? null,
-            'waktu_selesai'     => $validated['waktu_selesai'] ?? null,
-            'acak_jawaban'      => $request->boolean('acak_jawaban'),
-            'status'            => $validated['status'] ?? 'draft',
-            'level'             => 'Level 1',
-            'kesulitan'         => $orderedDifficulties[0] ?? 'Mudah',
-        ]);
+        $firstQuiz = null;
+        $createdCount = 0;
+        foreach ($validPengampu as $pkId) {
+            $quiz = Quiz::create([
+                'judul'             => $validated['judul'],
+                'deskripsi'         => $validated['deskripsi'] ?? null,
+                'pengampu_kelas_id' => $pkId,
+                'kesulitan_aktif'   => $orderedDifficulties,
+                'waktu_mulai'       => $validated['waktu_mulai'] ?? null,
+                'waktu_selesai'     => $validated['waktu_selesai'] ?? null,
+                'acak_jawaban'      => $request->boolean('acak_jawaban'),
+                'status'            => $validated['status'] ?? 'draft',
+                'level'             => 'Level 1',
+                'kesulitan'         => $orderedDifficulties[0] ?? 'Mudah',
+            ]);
 
-        return redirect()->route('guru.kuis.show', $quiz)
-            ->with('success', "Draf kuis '{$quiz->judul}' berhasil dibuat! Silakan kelola arc, level tantangan, dan butir soal di bawah.");
+            if (!$firstQuiz) {
+                $firstQuiz = $quiz;
+            }
+            $createdCount++;
+        }
+
+        $msg = $createdCount > 1
+            ? "Draf kuis '{$firstQuiz->judul}' berhasil dibuat untuk {$createdCount} kelas!"
+            : "Draf kuis '{$firstQuiz->judul}' berhasil dibuat! Silakan kelola arc, level tantangan, dan butir soal di bawah.";
+
+        return redirect()->route('guru.kuis.show', $firstQuiz)->with('success', $msg);
     }
 
     /**

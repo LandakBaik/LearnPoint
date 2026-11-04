@@ -200,53 +200,54 @@
     </section>
     <!-- END: QuickAccessSection -->
 
-    <!-- BEGIN: NavigationTabs -->
-    <div class="bg-[#EEF2F6] p-1.5 rounded-2xl flex items-center max-w-full sm:max-w-fit" data-purpose="section-tabs">
-        <!-- Tab: Mata Pelajaran -->
-        <button @click="currentTab = 'mapel'"
-                :class="currentTab === 'mapel' ? 'bg-[#DCEAFE] text-blue-600 font-bold shadow-sm' : 'text-slate-500 font-semibold hover:text-slate-800'"
-                class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition"
-                type="button">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-linecap="round" stroke-linejoin="round"></path>
-            </svg>
-            <span>Mata Pelajaran</span>
-        </button>
+    <!-- BEGIN: NavigationTabs & Action Button -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5" data-purpose="section-tabs-bar">
+        <!-- Tabs Group: Mata Pelajaran, Statistik, Jadwal -->
+        <div class="bg-[#EEF2F6] p-1.5 rounded-2xl flex items-center max-w-full sm:max-w-fit overflow-x-auto" data-purpose="section-tabs">
+            <!-- Tab: Mata Pelajaran -->
+            <button @click="currentTab = 'mapel'"
+                    :class="currentTab === 'mapel' ? 'bg-[#DCEAFE] text-blue-600 font-bold shadow-sm' : 'text-slate-500 font-semibold hover:text-slate-800'"
+                    class="flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl text-sm transition shrink-0"
+                    type="button">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                <span>Mata Pelajaran</span>
+            </button>
 
-        <!-- Tab: Statistik -->
-        <button @click="currentTab = 'statistik'"
-                :class="currentTab === 'statistik' ? 'bg-[#DCEAFE] text-blue-600 font-bold shadow-sm' : 'text-slate-500 font-semibold hover:text-slate-800'"
-                class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition"
-                type="button">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M18 20V10m-6 10V4m-6 16v-6" stroke-linecap="round" stroke-linejoin="round"></path>
-            </svg>
-            <span>Statistik</span>
-        </button>
+            <!-- Tab: Statistik -->
+            <button @click="currentTab = 'statistik'"
+                    :class="currentTab === 'statistik' ? 'bg-[#DCEAFE] text-blue-600 font-bold shadow-sm' : 'text-slate-500 font-semibold hover:text-slate-800'"
+                    class="flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl text-sm transition shrink-0"
+                    type="button">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M18 20V10m-6 10V4m-6 16v-6" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                <span>Statistik</span>
+            </button>
 
-        <!-- Tab: Kuiz -->
-        <button @click="currentTab = 'kuiz'"
-                :class="currentTab === 'kuiz' ? 'bg-[#DCEAFE] text-blue-600 font-bold shadow-sm' : 'text-slate-500 font-semibold hover:text-slate-800'"
-                class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition"
-                type="button">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-linecap="round" stroke-linejoin="round"></path>
-            </svg>
-            <span>Kuiz</span>
-        </button>
+            <!-- Tab: Jadwal -->
+            <button @click="currentTab = 'jadwal'"
+                    :class="currentTab === 'jadwal' ? 'bg-[#DCEAFE] text-blue-600 font-bold shadow-sm' : 'text-slate-500 font-semibold hover:text-slate-800'"
+                    class="flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl text-sm transition shrink-0"
+                    type="button">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                <span>Jadwal</span>
+            </button>
+        </div>
 
-        <!-- Tab: Jadwal -->
-        <button @click="currentTab = 'jadwal'"
-                :class="currentTab === 'jadwal' ? 'bg-[#DCEAFE] text-blue-600 font-bold shadow-sm' : 'text-slate-500 font-semibold hover:text-slate-800'"
-                class="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm transition"
-                type="button">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
+        <!-- Tombol Kuis  -->
+        <a href="{{ route('siswa.kuis') }}"
+           class="inline-flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-2xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm shadow-xs hover:shadow-md transition-all duration-150 group shrink-0">
+            <span>Kuis</span>
+            <svg class="w-4 h-4 text-white/80 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
             </svg>
-            <span>Jadwal</span>
-        </button>
+        </a>
     </div>
-    <!-- END: NavigationTabs -->
+    <!-- END: NavigationTabs & Action Button -->
 
     <!-- BEGIN: SubjectsGridSection (Tab Mata Pelajaran) -->
     <section x-show="currentTab === 'mapel'" data-purpose="subjects-grid" class="space-y-5">
@@ -686,112 +687,6 @@
         </div>
     </section>
     <!-- END: DetailedStatisticsSection -->
-
-    <!-- BEGIN: QuizTabSection (Tab Kuiz) -->
-    <section x-show="currentTab === 'kuiz'" style="display: none;" class="space-y-5">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-                <h2 class="text-2xl font-extrabold text-[#0F2851] tracking-tight">Kuis Petualangan</h2>
-                <p class="text-sm text-slate-500 mt-1">Uji pemahaman dan asah kemampuan belajarmu dengan kuis interaktif dari gurumu.</p>
-            </div>
-            <a href="{{ route('siswa.kuis') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm self-start sm:self-auto">
-                <span>Buka Portal Kuis</span>
-                <i class="fa-solid fa-arrow-right text-[10px]"></i>
-            </a>
-        </div>
-
-        @if(isset($quizzes) && $quizzes->isNotEmpty())
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                @foreach($quizzes as $quiz)
-                    @php
-                        $nilai = $quiz->nilais->first();
-                        $isCompleted = $nilai !== null;
-                        $isUpcoming = $quiz->waktu_mulai && now()->lessThan($quiz->waktu_mulai);
-                        $isExpired = $quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai);
-                    @endphp
-                    <div class="bg-white rounded-[22px] p-5 border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.03)] flex flex-col justify-between hover:shadow-md transition group">
-                        <div>
-                            <div class="flex items-center justify-between mb-3">
-                                <span class="px-2.5 py-1 bg-blue-50 text-blue-600 font-bold text-xs rounded-lg">
-                                    {{ $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran' }}
-                                </span>
-                                @if($isCompleted)
-                                    <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-xs rounded-lg flex items-center gap-1">
-                                        <i class="fa-solid fa-check text-[10px]"></i>
-                                        Skor: {{ number_format($nilai->nilai, 0) }}
-                                    </span>
-                                @elseif($isUpcoming)
-                                    <span class="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-xs rounded-lg flex items-center gap-1">
-                                        <i class="fa-solid fa-clock text-[10px]"></i>
-                                        Belum Mulai
-                                    </span>
-                                @elseif($isExpired)
-                                    <span class="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 font-semibold text-xs rounded-lg flex items-center gap-1">
-                                        <i class="fa-solid fa-ban text-[10px]"></i>
-                                        Berakhir
-                                    </span>
-                                @else
-                                    <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-semibold text-xs rounded-lg flex items-center gap-1">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                        Tersedia
-                                    </span>
-                                @endif
-                            </div>
-                            <h3 class="text-base font-bold text-slate-800 mb-1 group-hover:text-blue-600 transition">{{ $quiz->judul }}</h3>
-                            <p class="text-xs text-slate-400 mb-2">
-                                Guru: <span class="font-medium text-slate-600">{{ $quiz->pengampuKelas?->guruMapel?->guru?->nama ?? 'Guru Pengampu' }}</span>
-                            </p>
-                            <div class="flex items-center gap-2 text-xs text-slate-500">
-                                <span class="inline-flex items-center gap-1">
-                                    <i class="fa-solid fa-list-check text-slate-400 text-[11px]"></i>
-                                    {{ $quiz->soals_count ?? $quiz->soals->count() }} Soal
-                                </span>
-                                <span>•</span>
-                                <span class="capitalize font-medium text-amber-600">
-                                    {{ implode(', ', $quiz->kesulitan_aktif_array ?? ['Umum']) }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                            <span class="text-xs text-slate-400">
-                                @if($quiz->waktu_selesai)
-                                    Batas: {{ $quiz->waktu_selesai->format('d M, H:i') }}
-                                @else
-                                    {{ $quiz->created_at ? $quiz->created_at->diffForHumans() : 'Aktif' }}
-                                @endif
-                            </span>
-
-                            @if($isCompleted)
-                                <a href="{{ route('siswa.kuis.hasil', $quiz->id) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold transition">
-                                    <span>Lihat Hasil</span>
-                                    <i class="fa-solid fa-award text-[11px]"></i>
-                                </a>
-                            @elseif($isExpired)
-                                <span class="inline-flex items-center gap-1 text-xs font-semibold text-slate-400">
-                                    Waktu Habis
-                                </span>
-                            @else
-                                <a href="{{ route('siswa.kuis.show', $quiz->id) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-xs">
-                                    <span>Mulai Kuiz</span>
-                                    <i class="fa-solid fa-play text-[9px]"></i>
-                                </a>
-                            @endif
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        @else
-            <div class="py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200 text-slate-400">
-                <svg class="w-10 h-10 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                </svg>
-                <p class="text-sm font-semibold text-slate-700">Belum ada kuiz aktif saat ini</p>
-                <p class="text-xs text-slate-400 mt-1">Kuiz dari gurumu akan muncul di sini setelah dipublikasikan.</p>
-            </div>
-        @endif
-    </section>
-    <!-- END: QuizTabSection -->
 
     <!-- BEGIN: JadwalTabSection (Tab Jadwal) -->
     <section x-show="currentTab === 'jadwal'" style="display: none;" class="space-y-5">

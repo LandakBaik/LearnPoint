@@ -228,6 +228,10 @@ class DashboardController extends Controller
             return redirect()->route('dashboard');
         }
 
+        if (in_array(request('tab'), ['kuiz', 'kuis'])) {
+            return redirect()->route('siswa.kuis');
+        }
+
         $siswa = $user->siswa;
         $anggotaKelas = $siswa?->anggotaKelases()?->latest()?->first();
         $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;

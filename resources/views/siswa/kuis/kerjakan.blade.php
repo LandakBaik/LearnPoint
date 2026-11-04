@@ -58,6 +58,12 @@
                 </div>
             @endif
 
+            {{-- Flagged / Ditandai Counter --}}
+            <div x-show="countFlagged() > 0" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-800 transition">
+                <i class="fa-solid fa-bookmark text-[11px] text-amber-600"></i>
+                <span x-text="countFlagged()"></span> Ditandai
+            </div>
+
             {{-- Progress Counter --}}
             <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-xs font-bold text-blue-700">
                 <i class="fa-solid fa-check-double text-[11px]"></i>
@@ -108,6 +114,20 @@
                             </div>
 
                             <div class="flex items-center gap-2 flex-wrap">
+                                {{-- Tombol Tandai Soal (Penanda / Ragu-ragu) --}}
+                                <button 
+                                    type="button" 
+                                    @click="toggleFlag({{ $soal->id }})"
+                                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer select-none border"
+                                    :class="isFlagged({{ $soal->id }}) 
+                                        ? 'bg-amber-500 text-white border-amber-600 shadow-xs ring-2 ring-amber-300/40' 
+                                        : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'"
+                                    :title="isFlagged({{ $soal->id }}) ? 'Hapus penanda ragu-ragu pada soal ini' : 'Tandai soal ini sebagai ragu-ragu'"
+                                >
+                                    <i :class="isFlagged({{ $soal->id }}) ? 'fa-solid fa-bookmark' : 'fa-regular fa-bookmark'" class="text-xs"></i>
+                                    <span x-text="isFlagged({{ $soal->id }}) ? 'Ditandai (Ragu)' : 'Tandai Soal'"></span>
+                                </button>
+
                                 @if($soal->kesulitan)
                                     <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider
                                         {{ $soal->kesulitan === 'Mudah' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
@@ -196,7 +216,7 @@
                         </div>
 
                         {{-- Navigation Step Buttons --}}
-                        <div class="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+                        <div class="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
                             <button 
                                 type="button" 
                                 @click="prevQuestion()"
@@ -206,6 +226,19 @@
                             >
                                 <i class="fa-solid fa-arrow-left text-[11px]"></i>
                                 <span>Sebelumnya</span>
+                            </button>
+
+                            {{-- Quick Toggle Penanda --}}
+                            <button
+                                type="button"
+                                @click="toggleFlag({{ $soal->id }})"
+                                class="px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer select-none border"
+                                :class="isFlagged({{ $soal->id }}) 
+                                    ? 'bg-amber-500 text-white border-amber-600 shadow-xs' 
+                                    : 'bg-amber-50/70 hover:bg-amber-100 text-amber-800 border-amber-200'"
+                            >
+                                <i :class="isFlagged({{ $soal->id }}) ? 'fa-solid fa-bookmark' : 'fa-regular fa-bookmark'" class="text-xs"></i>
+                                <span x-text="isFlagged({{ $soal->id }}) ? 'Soal Ditandai (Ragu)' : 'Tandai Soal (Ragu)'"></span>
                             </button>
 
                             <button 
@@ -251,15 +284,27 @@
                             <button 
                                 type="button" 
                                 @click="goToQuestion({{ $index }})"
-                                class="h-10 rounded-xl font-bold text-xs flex items-center justify-center transition border-2"
+                                class="relative h-10 rounded-xl font-bold text-xs flex items-center justify-center transition border-2"
                                 :class="{
                                     'border-blue-600 bg-blue-600 text-white shadow-sm ring-2 ring-blue-400/40': currentIndex === {{ $index }},
-                                    'border-emerald-500 bg-emerald-50 text-emerald-700': currentIndex !== {{ $index }} && isAnswered({{ $soal->id }}),
-                                    'border-slate-200 bg-white text-slate-600 hover:border-slate-300': currentIndex !== {{ $index }} && !isAnswered({{ $soal->id }})
+                                    'border-amber-400 bg-amber-50 text-amber-800': currentIndex !== {{ $index }} && isFlagged({{ $soal->id }}),
+                                    'border-emerald-500 bg-emerald-50 text-emerald-700': currentIndex !== {{ $index }} && !isFlagged({{ $soal->id }}) && isAnswered({{ $soal->id }}),
+                                    'border-slate-200 bg-white text-slate-600 hover:border-slate-300': currentIndex !== {{ $index }} && !isFlagged({{ $soal->id }}) && !isAnswered({{ $soal->id }})
                                 }"
                             >
                                 <span>{{ $index + 1 }}</span>
-                                <span x-show="isAnswered({{ $soal->id }}) && currentIndex !== {{ $index }}" class="ml-0.5 text-[9px]">
+
+                                {{-- Icon Penanda (Badge bookmark kecil di pojok kanan atas) --}}
+                                <span 
+                                    x-show="isFlagged({{ $soal->id }})" 
+                                    class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center text-[8px] shadow-xs ring-1 ring-white"
+                                    title="Soal ini ditandai ragu-ragu"
+                                >
+                                    <i class="fa-solid fa-bookmark"></i>
+                                </span>
+
+                                {{-- Icon Centang Sudah Dijawab jika tidak ditandai dan tidak aktif --}}
+                                <span x-show="isAnswered({{ $soal->id }}) && !isFlagged({{ $soal->id }}) && currentIndex !== {{ $index }}" class="ml-0.5 text-[9px]">
                                     <i class="fa-solid fa-check"></i>
                                 </span>
                             </button>
@@ -271,6 +316,12 @@
                         <div class="flex items-center gap-2">
                             <span class="w-3.5 h-3.5 rounded-md bg-blue-600 border border-blue-600 shrink-0"></span>
                             <span>Soal Sedang Dibuka</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3.5 h-3.5 rounded-md bg-amber-50 border border-amber-400 text-amber-600 shrink-0 flex items-center justify-center text-[8px] font-bold">
+                                <i class="fa-solid fa-bookmark text-[8px]"></i>
+                            </span>
+                            <span>Ditandai (Ragu-ragu)</span>
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="w-3.5 h-3.5 rounded-md bg-emerald-50 border border-emerald-500 text-emerald-600 shrink-0 flex items-center justify-center text-[8px] font-bold">✓</span>
@@ -318,9 +369,31 @@ function quizPlayer() {
         currentIndex: 0,
         totalQuestions: {{ $soals->count() }},
         answers: @json((object)($savedAnswers ?? [])),
+        flagged: (function() {
+            try {
+                return JSON.parse(localStorage.getItem('lp_quiz_{{ $quiz->id }}_flagged') || '{}');
+            } catch(e) {
+                return {};
+            }
+        })(),
         elapsedSeconds: 0,
         remainingSeconds: {{ $remainingSeconds !== null ? $remainingSeconds : 'null' }},
         timerInterval: null,
+
+        toggleFlag(soalId) {
+            this.flagged[soalId] = !this.flagged[soalId];
+            try {
+                localStorage.setItem('lp_quiz_{{ $quiz->id }}_flagged', JSON.stringify(this.flagged));
+            } catch(e) {}
+        },
+
+        isFlagged(soalId) {
+            return !!this.flagged[soalId];
+        },
+
+        countFlagged() {
+            return Object.values(this.flagged).filter(Boolean).length;
+        },
 
         initTimer() {
             // Timer berjalan setiap detik
@@ -478,25 +551,26 @@ function quizPlayer() {
         confirmSubmit() {
             const answered = this.countAnswered();
             const unanswered = this.totalQuestions - answered;
+            const flagged = this.countFlagged();
 
-            let htmlMessage = '';
+            let htmlMessage = `<div style="text-align: left; font-size: 13px; line-height: 1.6;">`;
             if (unanswered > 0) {
-                htmlMessage = `<div style="text-align: left; font-size: 13px; line-height: 1.6;">
-                    <p style="margin-bottom: 8px;">Kamu baru menjawab <strong>${answered}</strong> dari <strong>${this.totalQuestions}</strong> soal.</p>
-                    <p style="color: #e11d48; font-weight: 600;">⚠️ Masih ada ${unanswered} butir soal yang belum dijawab!</p>
-                    <p style="margin-top: 8px;">Apakah kamu yakin ingin tetap mengumpulkan kuis ini?</p>
-                </div>`;
+                htmlMessage += `<p style="margin-bottom: 8px;">Kamu baru menjawab <strong>${answered}</strong> dari <strong>${this.totalQuestions}</strong> soal.</p>
+                    <p style="color: #e11d48; font-weight: 600;">⚠️ Masih ada ${unanswered} butir soal yang belum dijawab!</p>`;
             } else {
-                htmlMessage = `<div style="text-align: left; font-size: 13px; line-height: 1.6;">
-                    <p>🎉 Luar biasa! Semua <strong>${this.totalQuestions}</strong> butir soal telah kamu jawab dengan lengkap.</p>
-                    <p style="margin-top: 6px;">Apakah kamu siap mengumpulkan kuis dan melihat nilai?</p>
-                </div>`;
+                htmlMessage += `<p style="margin-bottom: 8px;">🎉 Luar biasa! Semua <strong>${this.totalQuestions}</strong> butir soal telah kamu jawab lengkap.</p>`;
             }
+
+            if (flagged > 0) {
+                htmlMessage += `<p style="margin-top: 8px; color: #d97706; font-weight: 600;">🔖 Perhatian: Terdapat <strong>${flagged}</strong> butir soal yang masih kamu tandai sebagai ragu-ragu.</p>`;
+            }
+
+            htmlMessage += `<p style="margin-top: 8px;">Apakah kamu siap mengumpulkan kuis dan melihat hasilnya?</p></div>`;
 
             Swal.fire({
                 title: 'Kumpulkan Kuis?',
                 html: htmlMessage,
-                icon: unanswered > 0 ? 'warning' : 'question',
+                icon: (unanswered > 0 || flagged > 0) ? 'warning' : 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#10b981',
                 cancelButtonColor: '#64748b',
@@ -505,6 +579,9 @@ function quizPlayer() {
             }).then((result) => {
                 if (result.isConfirmed) {
                     clearInterval(this.timerInterval);
+                    try {
+                        localStorage.removeItem('lp_quiz_{{ $quiz->id }}_flagged');
+                    } catch(e) {}
                     document.getElementById('durasiInput').value = this.formatElapsedTime();
                     document.getElementById('quizForm').submit();
                 }
