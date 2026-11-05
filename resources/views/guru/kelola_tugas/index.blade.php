@@ -538,10 +538,10 @@
     </div>
 
     {{-- Modal Buat Tugas --}}
-    @include('guru.tugas.create')
+    @include('guru.kelola_tugas.create')
 
     {{-- Modal Edit dan Hapus Tugas --}}
-    @include('guru.tugas.edit')
+    @include('guru.kelola_tugas.edit')
 
 </div>
 @endsection

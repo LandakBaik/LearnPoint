@@ -113,7 +113,7 @@ class MateriController extends Controller
 
         $materiGroups = $materis->groupBy('id_grub_materi');
 
-        return view('Guru.materi.index', compact(
+        return view('guru.kelola_materi.index', compact(
             'materis',
             'materiGroups',
             'mapels',
@@ -169,7 +169,7 @@ class MateriController extends Controller
             }
         }
 
-        return view('Guru.materi.create', compact('mapelData'));
+        return view('guru.kelola_materi.create', compact('mapelData'));
     }
 
     /**
@@ -318,7 +318,7 @@ class MateriController extends Controller
             }
         }
 
-        return view('Guru.materi.edit', compact(
+        return view('guru.kelola_materi.edit', compact(
             'materis',
             'firstMateri',
             'mapels',

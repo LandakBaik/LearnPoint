@@ -33,7 +33,7 @@ class JadwalController extends Controller
             $jadwalUrl = $guru->jadwal_url;
         }
 
-        return view('Guru.Jadwal', compact('guru', 'guruMapels', 'jadwalUrl'));
+        return view('guru.jadwal.index', compact('guru', 'guruMapels', 'jadwalUrl'));
     }
 
     /**
@@ -57,7 +57,7 @@ class JadwalController extends Controller
 
         $activeTab = $request->query('tab', 'kelas');
 
-        return view('admin.jadwal.index', compact('kelases', 'gurus', 'mapels', 'activeTab'));
+        return view('admin.kelola_jadwal.index', compact('kelases', 'gurus', 'mapels', 'activeTab'));
     }
 
     /**

@@ -51,7 +51,7 @@
     @endphp
 
     <!-- Dashboard -->
-    @php $isDashboard = (request()->routeIs('siswa.dashboard') || request()->routeIs('guru.dashboard') || request()->routeIs('dashboard')) && request('tab') !== 'statistik'; @endphp
+    @php $isDashboard = (request()->routeIs('siswa.dashboard*') || request()->routeIs('siswa.beranda*') || request()->routeIs('guru.dashboard') || request()->routeIs('dashboard')) && request('tab') !== 'statistik'; @endphp
     <a 
         href="{{ route($dashboardRoute) }}" 
         class="flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm transition-all relative {{ $isDashboard ? $activeClass : $inactiveClass }}"
@@ -113,10 +113,10 @@
 
     <!-- Nilai / Statistik -->
     @php 
-        $isStatistik = (request()->routeIs('siswa.beranda*') && request('tab') === 'statistik') || request()->routeIs('siswa.nilai*'); 
+        $isStatistik = ((request()->routeIs('siswa.dashboard*') || request()->routeIs('siswa.beranda*')) && request('tab') === 'statistik') || request()->routeIs('siswa.nilai*'); 
     @endphp
     <a 
-        href="{{ route('siswa.beranda', ['tab' => 'statistik']) }}" 
+        href="{{ route('siswa.dashboard', ['tab' => 'statistik']) }}" 
         class="flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm transition-all relative {{ $isStatistik ? $activeClass : $inactiveClass }}"
     >
         <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

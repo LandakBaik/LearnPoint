@@ -151,7 +151,7 @@ class UjianController extends Controller
 
         $modeJadwalkan = request()->query('aksi') === 'jadwalkan';
 
-        return view('guru.ujian.index', compact(
+        return view('guru.kelola_ujian.index', compact(
             'ujians',
             'stats',
             'daftarKelas'
@@ -278,7 +278,7 @@ class UjianController extends Controller
             ->values()
             ->all();
 
-        return view('guru.ujian.create', compact(
+        return view('guru.kelola_ujian.create', compact(
             'pengampuKelases',
             'dataMapel'
         ));
@@ -612,7 +612,7 @@ class UjianController extends Controller
             'seleksiUjians',
         ]);
 
-        return view('guru.ujian.show', compact('ujian'));
+        return view('guru.kelola_ujian.show', compact('ujian'));
     }
 
 
@@ -686,7 +686,7 @@ class UjianController extends Controller
 
         $modeJadwalkan = request()->query('aksi') === 'jadwalkan';
 
-        return view('guru.ujian.edit', compact(
+        return view('guru.kelola_ujian.edit', compact(
             'ujian',
             'pengampuKelases',
             'grupUjians',

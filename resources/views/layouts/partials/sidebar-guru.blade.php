@@ -76,7 +76,7 @@
         </div>
 
         <!-- Materi -->
-        @php $isMateri = request()->routeIs('guru.materi'); @endphp
+        @php $isMateri = request()->routeIs('guru.materi*'); @endphp
         <a href="{{ route('guru.materi') }}"
            class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm transition-colors group {{ $isMateri ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs border border-blue-100/60' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50 font-medium' }}">
             <svg class="w-5 h-5 {{ $isMateri ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-600' }} transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
@@ -86,7 +86,7 @@
         </a>
 
         <!-- Tugas -->
-        @php $isTugas = request()->routeIs('guru.tugas'); @endphp
+        @php $isTugas = request()->routeIs('guru.tugas*'); @endphp
         <a href="{{ route('guru.tugas') }}"
            class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm transition-colors group {{ $isTugas ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs border border-blue-100/60' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50 font-medium' }}">
             <svg class="w-5 h-5 {{ $isTugas ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-600' }} transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
@@ -151,7 +151,7 @@
         </a>
 
         <!-- Profil -->
-        @php $isProfile = request()->routeIs('profile.show'); @endphp
+        @php $isProfile = request()->routeIs('profile.*'); @endphp
         <a href="{{ route('profile.show') }}"
            class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm transition-colors group {{ $isProfile ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs border border-blue-100/60' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50 font-medium' }}">
             <svg class="w-5 h-5 {{ $isProfile ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-600' }} transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">

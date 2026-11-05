@@ -10,7 +10,7 @@
     {{-- Navbar / Breadcrumb --}}
     <div class="flex flex-wrap items-center gap-3 text-sm font-medium mb-6">
 
-        <a href="{{ route('siswa.beranda') }}"
+        <a href="{{ route('siswa.dashboard') }}"
             class="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 hover:bg-slate-100 rounded-full border border-slate-200 transition shadow-sm shrink-0">
             <i class="fa-solid fa-arrow-left text-xs"></i>
             Kembali ke Beranda

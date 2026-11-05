@@ -48,7 +48,7 @@ class RoleMiddleware
 
         // Jika role tidak diizinkan, arahkan langsung ke dashboard masing-masing secara seamless
         $redirectRoute = match ($userRole) {
-            'operator' => 'operator.dashboard',
+            'operator', 'admin' => 'admin.dashboard',
             'guru' => 'guru.dashboard',
             'siswa' => 'siswa.dashboard',
             'kepala_sekolah' => 'kepala_sekolah.dashboard',

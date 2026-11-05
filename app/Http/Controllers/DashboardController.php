@@ -26,7 +26,7 @@ class DashboardController extends Controller
         $role = Auth::user()->role;
 
         return match ($role) {
-            'operator' => redirect()->route('operator.dashboard'),
+            'operator', 'admin' => redirect()->route('admin.dashboard'),
             'guru' => redirect()->route('guru.dashboard'),
             'siswa' => redirect()->route('siswa.dashboard'),
             'kepala_sekolah' => redirect()->route('kepala_sekolah.dashboard'),
@@ -81,7 +81,7 @@ class DashboardController extends Controller
             $siswaPerTingkat = [0, 0, 0];
         }
 
-        return view('dashboard.admin', compact(
+        return view('admin.dashboard', compact(
             'totalSiswa',
             'totalGuru',
             'totalKelas',
@@ -198,7 +198,7 @@ class DashboardController extends Controller
                 ->values();
         }
 
-        return view('dashboard.guru', compact(
+        return view('guru.dashboard', compact(
             'user',
             'guru',
             'totalSiswa',
@@ -446,7 +446,7 @@ class DashboardController extends Controller
             ],
         ];
 
-        return view('siswa.beranda', compact(
+        return view('siswa.dashboard', compact(
             'siswa',
             'kelas',
             'tahunAjaran',
@@ -480,6 +480,6 @@ class DashboardController extends Controller
         $totalKelas = Kelas::count();
         $totalMapel = Mapel::count();
 
-        return view('dashboard.kepala_sekolah', compact('totalSiswa', 'totalGuru', 'totalKelas', 'totalMapel'));
+        return view('kepala_sekolah.dashboard', compact('totalSiswa', 'totalGuru', 'totalKelas', 'totalMapel'));
     }
 }

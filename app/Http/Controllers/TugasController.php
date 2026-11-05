@@ -68,7 +68,7 @@ class TugasController extends Controller
             return $deadline->isFuture() && $deadline->lessThanOrEqualTo(now()->addHours(24));
         })->count();
 
-        return view('guru.tugas.index', compact(
+        return view('guru.kelola_tugas.index', compact(
             'tugases',
             'pengampuKelases',
             'kelases',
@@ -155,7 +155,7 @@ class TugasController extends Controller
 
         $pengumpulans = Nilai::with('siswa')->where('tugas_id', $id)->get();
 
-        return view('guru.tugas.show', compact('tugas', 'pengumpulans'));
+        return view('guru.kelola_tugas.show', compact('tugas', 'pengumpulans'));
     }
 
     // 4. Memperbarui Data Tugas (UPDATE)

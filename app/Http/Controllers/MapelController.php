@@ -32,7 +32,7 @@ class MapelController extends Controller
         $avgKkm = round(Mapel::avg('kkm') ?? 75, 1);
         $totalAlokasi = \App\Models\PengampuKelas::count();
 
-        return view('admin.mapel.index', compact('mapels', 'totalMapel', 'avgKkm', 'totalAlokasi'));
+        return view('admin.kelola_mapel.index', compact('mapels', 'totalMapel', 'avgKkm', 'totalAlokasi'));
     }
 
     /**
@@ -40,7 +40,7 @@ class MapelController extends Controller
      */
     public function create()
     {
-        return view('admin.mapel.create');
+        return view('admin.kelola_mapel.create');
     }
 
     /**
@@ -68,7 +68,7 @@ class MapelController extends Controller
         $gurus = Guru::orderBy('nama', 'asc')->get();
         $kelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();
 
-        return view('admin.mapel.show', compact('mapel', 'gurus', 'kelases'));
+        return view('admin.kelola_mapel.show', compact('mapel', 'gurus', 'kelases'));
     }
 
     /**
@@ -80,7 +80,7 @@ class MapelController extends Controller
         $gurus = Guru::orderBy('nama', 'asc')->get();
         $kelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();
 
-        return view('admin.mapel.edit', compact('mapel', 'gurus', 'kelases'));
+        return view('admin.kelola_mapel.edit', compact('mapel', 'gurus', 'kelases'));
     }
 
     /**

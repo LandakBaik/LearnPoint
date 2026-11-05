@@ -53,7 +53,7 @@ class SiswaController extends Controller
         $siswa = $query->latest()->paginate(10)->withQueryString();
         $kelases = Kelas::all();
 
-        return view('siswa.index', compact('siswa', 'kelases', 'totalSiswa', 'countLakiLaki', 'countPerempuan', 'countHasClass'));
+        return view('admin.kelola_siswa.index', compact('siswa', 'kelases', 'totalSiswa', 'countLakiLaki', 'countPerempuan', 'countHasClass'));
     }
 
     /**
@@ -63,7 +63,7 @@ class SiswaController extends Controller
     {
         $kelases = Kelas::all();
 
-        return view('siswa.create', compact('kelases'));
+        return view('admin.kelola_siswa.create', compact('kelases'));
     }
 
     /**
@@ -140,7 +140,7 @@ class SiswaController extends Controller
     {
         $siswa->load(['kelas.guru', 'user', 'anggotaKelases.kelas']);
 
-        return view('siswa.show', compact('siswa'));
+        return view('admin.kelola_siswa.show', compact('siswa'));
     }
 
     /**
@@ -150,7 +150,7 @@ class SiswaController extends Controller
     {
         $kelases = Kelas::all();
 
-        return view('siswa.edit', compact('siswa', 'kelases'));
+        return view('admin.kelola_siswa.edit', compact('siswa', 'kelases'));
     }
 
     /**

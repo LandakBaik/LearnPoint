@@ -111,7 +111,7 @@ class QuizController extends Controller
             $q->where('guru_id', $guruId);
         })->count();
 
-        return view('guru.kuis.index', compact(
+        return view('guru.kelola_kuis.index', compact(
             'quizzes',
             'pengampuKelases',
             'kelases',
@@ -256,7 +256,7 @@ class QuizController extends Controller
             ->orderBy('urutan')
             ->get();
 
-        return view('guru.kuis.show', compact(
+        return view('guru.kelola_kuis.show', compact(
             'quiz',
             'activeDifficulties',
             'activeArc',
@@ -1015,7 +1015,7 @@ class QuizController extends Controller
                 $leaderboard = collect();
             }
 
-            return view('Siswa.kuis.index', [
+            return view('siswa.kuis.index', [
                 'viewMode' => 'mission',
                 'selectedPlanet' => $selectedPlanet,
                 'planets' => $planets,
@@ -1034,7 +1034,7 @@ class QuizController extends Controller
         }
 
         // Tampilan Mode 1 (Pilihan Planet - Gambar 1)
-        return view('Siswa.kuis.index', [
+        return view('siswa.kuis.index', [
             'viewMode' => 'planets',
             'planets' => $planets,
             'kelas' => $kelas,
@@ -1185,7 +1185,7 @@ class QuizController extends Controller
 
         $quiz->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru']);
 
-        return view('Siswa.kuis.kerjakan', compact('quiz', 'soals', 'remainingSeconds', 'savedAnswers'));
+        return view('siswa.kuis.kerjakan', compact('quiz', 'soals', 'remainingSeconds', 'savedAnswers'));
     }
 
 
@@ -1454,7 +1454,7 @@ class QuizController extends Controller
         $totalBenar = $soals->isEmpty() ? 1 : $soals->filter(fn($s) => $s->menjawabs->first()?->benar)->count();
         $totalSalah = max(0, $totalSoal - $totalBenar);
 
-        return view('Siswa.kuis.hasil', compact('quiz', 'nilai', 'soals', 'totalSoal', 'totalBenar', 'totalSalah'));
+        return view('siswa.kuis.hasil', compact('quiz', 'nilai', 'soals', 'totalSoal', 'totalBenar', 'totalSalah'));
     }
 
     /**

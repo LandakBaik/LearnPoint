@@ -145,7 +145,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/siswa/tugas/{id}', [TugasController::class, 'showSiswa'])->name('siswa.tugas.show');
         Route::post('/siswa/tugas/{id}/kumpulkan', [TugasController::class, 'kumpulkanTugas'])->name('siswa.tugas.kumpulkan');
         Route::get('/siswa/jadwal', function () {
-            return redirect()->route('siswa.beranda', ['tab' => 'jadwal']);
+            return redirect()->route('siswa.dashboard', ['tab' => 'jadwal']);
         })->name('siswa.jadwal');
 
         // Kuis Petualangan Siswa
@@ -164,7 +164,7 @@ Route::middleware(['auth'])->group(function () {
 
         // User Toggle Status
         Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
-        Route::resource('users', UserController::class);
+        Route::resource('users', UserController::class)->except(['show']);
 
         // Guru CSV & Resource
         Route::get('/guru/template-csv', [GuruController::class, 'downloadTemplateCsv'])->name('guru.template-csv');

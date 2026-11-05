@@ -51,7 +51,7 @@ class UserController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return view('admin.users.index', compact('users', 'totalUsers', 'countOperator', 'countKepalaSekolah', 'countGuru', 'countSiswa'));
+        return view('admin.kelola_users.index', compact('users', 'totalUsers', 'countOperator', 'countKepalaSekolah', 'countGuru', 'countSiswa'));
     }
 
     /**
@@ -63,7 +63,7 @@ class UserController extends Controller
         $unlinkedGurus = Guru::whereDoesntHave('user')->get();
         $unlinkedSiswas = Siswa::whereDoesntHave('user')->get();
 
-        return view('admin.users.create', compact('unlinkedGurus', 'unlinkedSiswas'));
+        return view('admin.kelola_users.create', compact('unlinkedGurus', 'unlinkedSiswas'));
     }
 
     /**
@@ -115,7 +115,7 @@ class UserController extends Controller
             ->orWhere('id', $user->siswa_id)
             ->get();
 
-        return view('admin.users.edit', compact('user', 'unlinkedGurus', 'unlinkedSiswas'));
+        return view('admin.kelola_users.edit', compact('user', 'unlinkedGurus', 'unlinkedSiswas'));
     }
 
     /**

@@ -33,7 +33,7 @@ class KelasController extends Controller
         $countTingkat8 = Kelas::where('tingkatan', 8)->count();
         $countTingkat9 = Kelas::where('tingkatan', 9)->count();
 
-        return view('admin.kelas.index', compact('kelases', 'totalKelas', 'countTingkat7', 'countTingkat8', 'countTingkat9'));
+        return view('admin.kelola_kelas.index', compact('kelases', 'totalKelas', 'countTingkat7', 'countTingkat8', 'countTingkat9'));
     }
 
     /**
@@ -44,7 +44,7 @@ class KelasController extends Controller
         // Guru yang belum menjadi wali kelas di kelas lain
         $gurus = Guru::whereDoesntHave('kelas')->get();
 
-        return view('admin.kelas.create', compact('gurus'));
+        return view('admin.kelola_kelas.create', compact('gurus'));
     }
 
     /**
@@ -75,7 +75,7 @@ class KelasController extends Controller
         $allGurus = Guru::orderBy('nama', 'asc')->get();
         $allMapels = Mapel::orderBy('nama_mapel', 'asc')->get();
 
-        return view('admin.kelas.show', compact('kelas', 'allGurus', 'allMapels'));
+        return view('admin.kelola_kelas.show', compact('kelas', 'allGurus', 'allMapels'));
     }
 
     /**
@@ -88,7 +88,7 @@ class KelasController extends Controller
             ->orWhere('id', $kelas->guru_id)
             ->get();
 
-        return view('admin.kelas.edit', compact('kelas', 'gurus'));
+        return view('admin.kelola_kelas.edit', compact('kelas', 'gurus'));
     }
 
     /**

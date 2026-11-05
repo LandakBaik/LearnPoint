@@ -50,7 +50,7 @@ class GuruController extends Controller
 
         $gurus = $query->latest()->paginate(10)->withQueryString();
 
-        return view('admin.kelolaGuru.index', compact('gurus', 'totalGuru', 'countWaliKelas', 'countPengampu', 'countAktif'));
+        return view('admin.kelola_guru.index', compact('gurus', 'totalGuru', 'countWaliKelas', 'countPengampu', 'countAktif'));
     }
 
     /**
@@ -61,7 +61,7 @@ class GuruController extends Controller
         $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
         $kelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();
 
-        return view('admin.kelolaGuru.create', compact('mapels', 'kelases'));
+        return view('admin.kelola_guru.create', compact('mapels', 'kelases'));
     }
 
     /**
@@ -154,7 +154,7 @@ class GuruController extends Controller
         $allMapels = Mapel::orderBy('nama_mapel', 'asc')->get();
         $allKelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();
 
-        return view('admin.kelolaGuru.show', compact('guru', 'allMapels', 'allKelases'));
+        return view('admin.kelola_guru.show', compact('guru', 'allMapels', 'allKelases'));
     }
 
     /**
@@ -166,7 +166,7 @@ class GuruController extends Controller
         $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
         $kelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();
 
-        return view('admin.kelolaGuru.edit', compact('guru', 'mapels', 'kelases'));
+        return view('admin.kelola_guru.edit', compact('guru', 'mapels', 'kelases'));
     }
 
     /**
