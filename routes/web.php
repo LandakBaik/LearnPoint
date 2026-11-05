@@ -82,6 +82,9 @@ Route::middleware(['auth'])->group(function () {
         // Simpan ujian baru
         Route::post('/guru/ujian', [UjianController::class, 'store'])
             ->name('guru.ujian.store');
+            
+        Route::get('/guru/ujian/status-realtime', [UjianController::class, 'statusRealtime'])
+            ->name('guru.ujian.status-realtime');
 
         // Detail ujian
         Route::get('/guru/ujian/{ujian}', [UjianController::class, 'show'])
