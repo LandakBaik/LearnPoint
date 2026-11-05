@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
 use App\Helpers\DateHelper;
+use App\Http\Controllers\Controller;
 use App\Models\AnggotaKelas;
 use App\Models\Kelas;
 use App\Models\Siswa;
@@ -454,3 +455,4 @@ class SiswaController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 }
+

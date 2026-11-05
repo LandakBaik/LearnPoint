@@ -15,7 +15,7 @@ class NotifikasiController extends Controller
     {
         $user = $request->user();
         if (!$user) {
-            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+            return $this->unauthorizedResponse('Unauthenticated.');
         }
 
         $query = $user->notifikasi()->latest();
@@ -48,18 +48,15 @@ class NotifikasiController extends Controller
         $tugasCount    = $user->notifikasi()->whereIn('tipe', ['tugas_dikumpulkan', 'tugas_terlambat', 'tugas_baru', 'nilai_tugas'])->count();
         $evaluasiCount = $user->notifikasi()->whereIn('tipe', ['kuis_selesai', 'ujian_selesai', 'kuis_baru', 'ujian_baru'])->count();
 
-        return response()->json([
-            'success' => true,
-            'data'    => [
-                'counts' => [
-                    'total'        => $totalCount,
-                    'unread'       => $unreadCount,
-                    'tugas'        => $tugasCount,
-                    'evaluasi'     => $evaluasiCount,
-                ],
-                'filter' => $filter,
-                'notifikasis' => $notifikasis,
+        return $this->successResponse([
+            'counts' => [
+                'total'        => $totalCount,
+                'unread'       => $unreadCount,
+                'tugas'        => $tugasCount,
+                'evaluasi'     => $evaluasiCount,
             ],
+            'filter' => $filter,
+            'notifikasis' => $notifikasis,
         ]);
     }
 
@@ -69,16 +66,12 @@ class NotifikasiController extends Controller
     public function markAsRead(Request $request, Notifikasi $notifikasi)
     {
         if ($notifikasi->user_id !== $request->user()->id) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            return $this->forbiddenResponse();
         }
 
         $notifikasi->markAsRead();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Notifikasi berhasil ditandai sebagai dibaca.',
-            'data'    => $notifikasi,
-        ]);
+        return $this->successResponse($notifikasi, 'Notifikasi berhasil ditandai sebagai dibaca.');
     }
 
     /**
@@ -87,7 +80,7 @@ class NotifikasiController extends Controller
     public function toggleRead(Request $request, Notifikasi $notifikasi)
     {
         if ($notifikasi->user_id !== $request->user()->id) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            return $this->forbiddenResponse();
         }
 
         if ($notifikasi->is_read) {
@@ -98,15 +91,11 @@ class NotifikasiController extends Controller
             $message = 'Notifikasi berhasil ditandai sebagai dibaca.';
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data'    => [
-                'id'      => $notifikasi->id,
-                'is_read' => $notifikasi->is_read,
-                'read_at' => $notifikasi->read_at,
-            ],
-        ]);
+        return $this->successResponse([
+            'id'      => $notifikasi->id,
+            'is_read' => $notifikasi->is_read,
+            'read_at' => $notifikasi->read_at,
+        ], $message);
     }
 
     /**
@@ -122,10 +111,7 @@ class NotifikasiController extends Controller
             ]);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Semua notifikasi berhasil ditandai sudah dibaca.',
-        ]);
+        return $this->successResponse(null, 'Semua notifikasi berhasil ditandai sudah dibaca.');
     }
 
     /**
@@ -134,15 +120,12 @@ class NotifikasiController extends Controller
     public function destroy(Request $request, Notifikasi $notifikasi)
     {
         if ($notifikasi->user_id !== $request->user()->id) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            return $this->forbiddenResponse();
         }
 
         $notifikasi->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Notifikasi berhasil dihapus.',
-        ]);
+        return $this->successResponse(null, 'Notifikasi berhasil dihapus.');
     }
 
     /**
@@ -155,9 +138,6 @@ class NotifikasiController extends Controller
             $user->notifikasi()->delete();
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Semua riwayat notifikasi berhasil dibersihkan.',
-        ]);
+        return $this->successResponse(null, 'Semua riwayat notifikasi berhasil dibersihkan.');
     }
 }

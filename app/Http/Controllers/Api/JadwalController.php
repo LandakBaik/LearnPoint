@@ -16,7 +16,7 @@ class JadwalController extends Controller
         $guru = $user->guru;
 
         if (!$guru) {
-            return response()->json(['success' => false, 'message' => 'Profil guru tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
         }
 
         $guruMapels = $guru->guruMapels()
@@ -37,13 +37,10 @@ class JadwalController extends Controller
                 ];
             });
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'jadwal_url' => $guru->jadwal_url,
-                'jadwal_file' => $guru->jadwal,
-                'mengajar' => $guruMapels,
-            ],
+        return $this->successResponse([
+            'jadwal_url' => $guru->jadwal_url,
+            'jadwal_file' => $guru->jadwal,
+            'mengajar' => $guruMapels,
         ]);
     }
 
@@ -56,14 +53,14 @@ class JadwalController extends Controller
         $siswa = $user->siswa;
 
         if (!$siswa) {
-            return response()->json(['success' => false, 'message' => 'Profil siswa tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Profil siswa tidak ditemukan.');
         }
 
         $anggotaKelas = $siswa->anggotaKelases()?->latest()?->first();
         $kelas = $siswa->kelas ?? $anggotaKelas?->kelas;
 
         if (!$kelas) {
-            return response()->json(['success' => false, 'message' => 'Data kelas siswa tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Data kelas siswa tidak ditemukan.');
         }
 
         $pengampuKelases = $kelas->pengampuKelases()
@@ -77,19 +74,16 @@ class JadwalController extends Controller
                 ];
             });
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'kelas' => [
-                    'id' => $kelas->id,
-                    'nama_kelas' => $kelas->nama_kelas,
-                    'tingkatan' => $kelas->tingkatan,
-                    'wali_kelas' => $kelas->guru?->nama,
-                ],
-                'jadwal_url' => $kelas->jadwal_url,
-                'jadwal_file' => $kelas->jadwal,
-                'mata_pelajaran' => $pengampuKelases,
+        return $this->successResponse([
+            'kelas' => [
+                'id' => $kelas->id,
+                'nama_kelas' => $kelas->nama_kelas,
+                'tingkatan' => $kelas->tingkatan,
+                'wali_kelas' => $kelas->guru?->nama,
             ],
+            'jadwal_url' => $kelas->jadwal_url,
+            'jadwal_file' => $kelas->jadwal,
+            'mata_pelajaran' => $pengampuKelases,
         ]);
     }
 }

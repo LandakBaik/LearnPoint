@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\Mapel;
@@ -133,3 +134,4 @@ class MapelController extends Controller
         return redirect()->route('mapel.index')->with('success', 'Mata pelajaran berhasil dihapus!');
     }
 }
+

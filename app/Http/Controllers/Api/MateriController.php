@@ -26,7 +26,7 @@ class MateriController extends Controller
         $guruId = $user?->guru?->id;
 
         if (!$guruId) {
-            return response()->json(['success' => false, 'message' => 'Profil guru tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
         }
 
         $query = Materi::query()
@@ -95,10 +95,7 @@ class MateriController extends Controller
             ];
         })->values();
 
-        return response()->json([
-            'success' => true,
-            'data' => $grouped,
-        ]);
+        return $this->successResponse($grouped);
     }
 
     /**
@@ -126,12 +123,9 @@ class MateriController extends Controller
             ];
         })->values();
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'mapels' => $mapels,
-                'kelases' => $kelases,
-            ],
+        return $this->successResponse([
+            'mapels' => $mapels,
+            'kelases' => $kelases,
         ]);
     }
 
@@ -147,12 +141,12 @@ class MateriController extends Controller
             ->get();
 
         if ($materis->isEmpty()) {
-            return response()->json(['success' => false, 'message' => 'Materi tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Materi tidak ditemukan.');
         }
 
         $first = $materis->first();
         if ($first->pengampuKelas?->guruMapel?->guru_id !== $guruId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            return $this->forbiddenResponse('Akses ditolak.');
         }
 
         $kelases = $materis->map(function ($item) {
@@ -165,23 +159,20 @@ class MateriController extends Controller
             ];
         });
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id_grub_materi' => $first->id_grub_materi,
-                'judul' => $first->judul,
-                'deskripsi' => $first->deskripsi,
-                'url_youtube' => $first->url_youtube,
-                'file_materi' => $first->file_materi,
-                'file_url' => $first->file_materi ? asset('storage/' . $first->file_materi) : null,
-                'mapel' => [
-                    'id' => $first->pengampuKelas?->guruMapel?->mapel?->id,
-                    'nama_mapel' => $first->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
-                ],
-                'kelas_terkait' => $kelases,
-                'created_at' => $first->created_at,
-                'updated_at' => $first->updated_at,
+        return $this->successResponse([
+            'id_grub_materi' => $first->id_grub_materi,
+            'judul' => $first->judul,
+            'deskripsi' => $first->deskripsi,
+            'url_youtube' => $first->url_youtube,
+            'file_materi' => $first->file_materi,
+            'file_url' => $first->file_materi ? asset('storage/' . $first->file_materi) : null,
+            'mapel' => [
+                'id' => $first->pengampuKelas?->guruMapel?->mapel?->id,
+                'nama_mapel' => $first->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
             ],
+            'kelas_terkait' => $kelases,
+            'created_at' => $first->created_at,
+            'updated_at' => $first->updated_at,
         ]);
     }
 
@@ -204,11 +195,7 @@ class MateriController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal.',
-                'errors' => $validator->errors(),
-            ], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $validated = $validator->validated();
@@ -225,10 +212,7 @@ class MateriController extends Controller
             ->toArray();
 
         if (count($validPengampu) !== count($validated['pengampu_kelas_ids'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Terdapat kelas sasaran yang tidak valid atau bukan wewenang Anda.',
-            ], 422);
+            return $this->errorResponse('Terdapat kelas sasaran yang tidak valid atau bukan wewenang Anda.', 422);
         }
 
         $path = $request->file('file_materi')->store('materi_files', 'public');
@@ -263,14 +247,10 @@ class MateriController extends Controller
             }
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Materi berhasil ditambahkan ke ' . count($validPengampu) . ' kelas.',
-            'data' => [
-                'id_grub_materi' => $idGrubMateri,
-                'file_url' => asset('storage/' . $path),
-            ],
-        ], 201);
+        return $this->createdResponse([
+            'id_grub_materi' => $idGrubMateri,
+            'file_url' => asset('storage/' . $path),
+        ], 'Materi berhasil ditambahkan ke ' . count($validPengampu) . ' kelas.');
     }
 
     /**
@@ -285,12 +265,12 @@ class MateriController extends Controller
             ->get();
 
         if ($materis->isEmpty()) {
-            return response()->json(['success' => false, 'message' => 'Materi tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Materi tidak ditemukan.');
         }
 
         $firstMateri = $materis->first();
         if ($firstMateri->pengampuKelas?->guruMapel?->guru_id !== $guruId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            return $this->forbiddenResponse('Akses ditolak.');
         }
 
         $validator = Validator::make($request->all(), [
@@ -305,11 +285,7 @@ class MateriController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal.',
-                'errors' => $validator->errors(),
-            ], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $validated = $validator->validated();
@@ -326,10 +302,7 @@ class MateriController extends Controller
             ->toArray();
 
         if (count($validPengampu) !== count($validated['pengampu_kelas_ids'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Terdapat kelas sasaran yang tidak valid atau bukan wewenang Anda.',
-            ], 422);
+            return $this->errorResponse('Terdapat kelas sasaran yang tidak valid atau bukan wewenang Anda.', 422);
         }
 
         $filePath = $firstMateri->file_materi;
@@ -355,14 +328,10 @@ class MateriController extends Controller
             }
         });
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Grup materi berhasil diperbarui.',
-            'data' => [
-                'id_grub_materi' => $id_grub_materi,
-                'file_url' => $filePath ? asset('storage/' . $filePath) : null,
-            ],
-        ]);
+        return $this->successResponse([
+            'id_grub_materi' => $id_grub_materi,
+            'file_url' => $filePath ? asset('storage/' . $filePath) : null,
+        ], 'Grup materi berhasil diperbarui.');
     }
 
     /**
@@ -377,12 +346,12 @@ class MateriController extends Controller
             ->get();
 
         if ($materis->isEmpty()) {
-            return response()->json(['success' => false, 'message' => 'Materi tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Materi tidak ditemukan.');
         }
 
         $firstMateri = $materis->first();
         if ($firstMateri->pengampuKelas?->guruMapel?->guru_id !== $guruId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            return $this->forbiddenResponse('Akses ditolak.');
         }
 
         if ($firstMateri->file_materi && Storage::disk('public')->exists($firstMateri->file_materi)) {
@@ -391,10 +360,7 @@ class MateriController extends Controller
 
         Materi::where('id_grub_materi', $id_grub_materi)->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Materi berhasil dihapus.',
-        ]);
+        return $this->successResponse(null, 'Materi berhasil dihapus.');
     }
 
     /**
@@ -407,10 +373,7 @@ class MateriController extends Controller
         $kelasId = $kelas?->id;
 
         if (!$kelasId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data kelas siswa tidak ditemukan.',
-            ], 404);
+            return $this->notFoundResponse('Data kelas siswa tidak ditemukan.');
         }
 
         $daftarMapel = Mapel::whereHas('pengampuKelases', function ($q) use ($kelasId) {
@@ -438,10 +401,7 @@ class MateriController extends Controller
             ];
         });
 
-        return response()->json([
-            'success' => true,
-            'data' => $daftarMapel,
-        ]);
+        return $this->successResponse($daftarMapel);
     }
 
     /**
@@ -454,7 +414,7 @@ class MateriController extends Controller
         $kelasId = $kelas?->id;
 
         if (!$kelasId) {
-            return response()->json(['success' => false, 'message' => 'Data kelas siswa tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Data kelas siswa tidak ditemukan.');
         }
 
         $mapel = Mapel::whereHas('pengampuKelases', function ($q) use ($kelasId) {
@@ -462,7 +422,7 @@ class MateriController extends Controller
         })->find($mapelId);
 
         if (!$mapel) {
-            return response()->json(['success' => false, 'message' => 'Mata pelajaran tidak ditemukan atau bukan bagian dari kelas Anda.'], 404);
+            return $this->notFoundResponse('Mata pelajaran tidak ditemukan atau bukan bagian dari kelas Anda.');
         }
 
         $materis = Materi::with(['pengampuKelas.guruMapel.guru'])
@@ -488,15 +448,12 @@ class MateriController extends Controller
                 ];
             });
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'mapel' => [
-                    'id' => $mapel->id,
-                    'nama_mapel' => $mapel->nama_mapel,
-                ],
-                'materis' => $materis,
+        return $this->successResponse([
+            'mapel' => [
+                'id' => $mapel->id,
+                'nama_mapel' => $mapel->nama_mapel,
             ],
+            'materis' => $materis,
         ]);
     }
 }
