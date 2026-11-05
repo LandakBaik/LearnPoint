@@ -12,6 +12,7 @@ class Ujian extends Model
     protected $table = 'ujians';
 
     protected $fillable = [
+        'id_grup_ujian',
         'judul',
         'deskripsi',
         'kisi_kisi',
@@ -22,7 +23,6 @@ class Ujian extends Model
         'status',
         'dipublikasi_at',
         'pengampu_kelas_id',
-        'guru_mapel_id',
     ];
 
     protected function casts(): array
@@ -47,6 +47,20 @@ class Ujian extends Model
         );
     }
 
+    /**
+     * Mengambil semua ujian dalam satu grup.
+     */
+    public function grupUjians()
+    {
+        return $this->hasMany(
+            Ujian::class,
+            'id_grup_ujian',
+            'id_grup_ujian'
+        );
+    }
+
+
+
     public function soals()
     {
         return $this->hasMany(
@@ -61,6 +75,18 @@ class Ujian extends Model
             SeleksiUjian::class,
             'ujian_id'
         );
+    }
+
+    /**
+     * Memeriksa apakah ujian boleh diedit.
+     */
+    public function bolehDiedit(): bool
+    {
+        return in_array($this->status, [
+            'draft',
+            'unpublished',
+            'completed',
+        ], true);
     }
 
     // =========================================================
@@ -88,8 +114,8 @@ class Ujian extends Model
     }
 
     // =========================================================
-    // STATUS
-    // =========================================================
+// STATUS UJIAN
+// =========================================================
 
     public function getStatusLabelAttribute(): string
     {
@@ -97,7 +123,8 @@ class Ujian extends Model
             'draft' => 'Draft',
             'scheduled' => 'Terjadwal',
             'published' => 'Dipublikasi',
-            'finished' => 'Selesai',
+            'unpublished' => 'Tidak Dipublikasi',
+            'completed' => 'Selesai',
             default => 'Draft',
         };
     }
@@ -108,11 +135,49 @@ class Ujian extends Model
             'draft' => 'secondary',
             'scheduled' => 'warning',
             'published' => 'success',
-            'finished' => 'dark',
+            'unpublished' => 'secondary',
+            'completed' => 'dark',
             default => 'secondary',
         };
     }
 
+    /**
+     * Menghitung status ujian berdasarkan waktu saat ini.
+     */
+    public function hitungStatusTerbaru(): string
+    {
+        if (!$this->waktu_mulai || !$this->deadline) {
+            return 'draft';
+        }
+
+        if (now()->lt($this->waktu_mulai)) {
+            return 'scheduled';
+        }
+
+        if (now()->lte($this->deadline)) {
+            return 'published';
+        }
+
+        return 'completed';
+    }
+
+    /**
+     * Memperbarui status di database jika berubah.
+     */
+    public function sinkronisasiStatus(): void
+    {
+        $statusBaru = $this->hitungStatusTerbaru();
+
+        if ($this->status !== $statusBaru) {
+            $this->status = $statusBaru;
+
+            if ($statusBaru === 'published' && !$this->dipublikasi_at) {
+                $this->dipublikasi_at = now();
+            }
+
+            $this->save();
+        }
+    }
     // =========================================================
     // STATISTIK SOAL
     // =========================================================
@@ -147,4 +212,7 @@ class Ujian extends Model
                 ->count(),
         ];
     }
+
+
 }
+
