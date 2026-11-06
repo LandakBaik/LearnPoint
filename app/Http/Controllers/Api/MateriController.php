@@ -406,23 +406,43 @@ class MateriController extends Controller
         $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
         $kelasId = $kelas?->id;
 
-        if (!$kelasId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data kelas siswa tidak ditemukan.',
-            ], 404);
+        $query = Mapel::query();
+
+        if ($kelasId) {
+            $hasMapelInClass = Mapel::whereHas('pengampuKelases', function ($q) use ($kelasId) {
+                $q->where('kelas_id', $kelasId);
+            })->exists();
+
+            if ($hasMapelInClass) {
+                $query->whereHas('pengampuKelases', function ($q) use ($kelasId) {
+                    $q->where('kelas_id', $kelasId);
+                });
+            }
         }
 
-        $daftarMapel = Mapel::whereHas('pengampuKelases', function ($q) use ($kelasId) {
-            $q->where('kelas_id', $kelasId);
-        })
-        ->with(['pengampuKelases' => function ($q) use ($kelasId) {
-            $q->where('kelas_id', $kelasId)->with(['guruMapel.guru', 'materis']);
+        $daftarMapel = $query->with(['pengampuKelases' => function ($q) use ($kelasId) {
+            if ($kelasId) {
+                $hasInClass = PengampuKelas::where('kelas_id', $kelasId)->exists();
+                if ($hasInClass) {
+                    $q->where('kelas_id', $kelasId);
+                }
+            }
+            $q->with([
+                'guruMapel.guru',
+                'materis',
+                'quizzes' => function ($qq) {
+                    $qq->where('status', 'published');
+                },
+            ]);
         }])
         ->get()
         ->map(function ($mapel) {
             $materisCount = $mapel->pengampuKelases->sum(function ($pk) {
                 return $pk->materis->count();
+            });
+
+            $kuisCount = $mapel->pengampuKelases->sum(function ($pk) {
+                return $pk->quizzes->count();
             });
 
             $guruPengampu = $mapel->pengampuKelases->map(function ($pk) {
@@ -434,6 +454,7 @@ class MateriController extends Controller
                 'nama_mapel' => $mapel->nama_mapel,
                 'kode_mapel' => $mapel->kode_mapel,
                 'total_materi' => $materisCount,
+                'total_kuis' => $kuisCount,
                 'guru' => $guruPengampu,
             ];
         });
