@@ -409,6 +409,12 @@
 
         <div class="space-y-4">
             @forelse($ujians as $ujian)
+                @php
+                    $sesiUjian = $ujian->seleksiUjians->first();
+                    $nilaiUjian = $sesiUjian?->nilais?->first();
+                    $sudahDikerjakan = $nilaiUjian !== null;
+                @endphp
+
                 <div class="group flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/10 transition-all">
                     <div class="flex items-center gap-4 mb-4 sm:mb-0">
                         <div class="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
@@ -428,10 +434,24 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-between sm:justify-end gap-4">
-                        <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-600 border border-indigo-200">
-                            Terjadwal
-                        </span>
+                    <div class="flex items-center justify-between sm:justify-end gap-3">
+                        @if($sudahDikerjakan)
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                                ✓ Selesai (Nilai: {{ $nilaiUjian->nilai }})
+                            </span>
+                            <a href="{{ route('siswa.ujian.hasil', $ujian->id) }}"
+                               class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl transition">
+                                Lihat Hasil
+                            </a>
+                        @else
+                            <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-600 border border-indigo-200">
+                                {{ ucfirst($ujian->status ?? 'Terjadwal') }}
+                            </span>
+                            <a href="{{ route('siswa.ujian.kerjakan', $ujian->id) }}"
+                               class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow-xs">
+                                Kerjakan Ujian
+                            </a>
+                        @endif
                     </div>
                 </div>
             @empty

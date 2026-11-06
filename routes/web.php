@@ -28,6 +28,7 @@ use App\Http\Controllers\Guru\UjianController as GuruUjianController;
 use App\Http\Controllers\Siswa\MateriController as SiswaMateriController;
 use App\Http\Controllers\Siswa\QuizController as SiswaQuizController;
 use App\Http\Controllers\Siswa\TugasController as SiswaTugasController;
+use App\Http\Controllers\Siswa\UjianController as SiswaUjianController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -97,7 +98,7 @@ Route::middleware(['auth'])->group(function () {
         // Simpan ujian baru
         Route::post('/guru/ujian', [GuruUjianController::class, 'store'])
             ->name('guru.ujian.store');
-            
+
         Route::get('/guru/ujian/status-realtime', [GuruUjianController::class, 'statusRealtime'])
             ->name('guru.ujian.status-realtime');
 
@@ -124,6 +125,7 @@ Route::middleware(['auth'])->group(function () {
         // Jadwalkan ujian
         Route::post('/guru/ujian/{ujian}/schedule', [GuruUjianController::class, 'schedule'])
             ->name('guru.ujian.schedule');
+
 
         // Kuis Guru
         Route::get('/guru/kuis', [GuruQuizController::class, 'index'])
@@ -172,6 +174,13 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/siswa/kuis/{quiz}/simpan-draft', [SiswaQuizController::class, 'simpanDraft'])->name('siswa.kuis.simpan-draft');
         Route::post('/siswa/kuis/{quiz}/selesaikan', [SiswaQuizController::class, 'submit'])->name('siswa.kuis.submit');
         Route::get('/siswa/kuis/{quiz}/hasil', [SiswaQuizController::class, 'hasil'])->name('siswa.kuis.hasil');
+
+        Route::get('/siswa/ujian/{ujian}/kerjakan', [SiswaUjianController::class, 'kerjakan'])->name('siswa.ujian.kerjakan');
+        Route::post('/siswa/ujian/{ujian}/simpan-jawaban', [SiswaUjianController::class, 'simpanJawaban'])->name('siswa.ujian.simpan-jawaban');
+
+        // TAMBAHKAN 2 BARIS INI:
+        Route::post('/siswa/ujian/{ujian}/submit', [SiswaUjianController::class, 'submit'])->name('siswa.ujian.submit');
+        Route::get('/siswa/ujian/{ujian}/hasil', [SiswaUjianController::class, 'hasil'])->name('siswa.ujian.hasil');
     });
 
     // ==========================================
