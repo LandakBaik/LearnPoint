@@ -28,13 +28,18 @@
                 <i class="fa-solid fa-gamepad"></i>
             </div>
             <div>
-                <h2 class="text-sm md:text-base font-extrabold text-slate-800 leading-tight truncate max-w-xs md:max-w-md">
-                    {{ $quiz->judul }}
-                </h2>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h2 class="text-sm md:text-base font-extrabold text-slate-800 leading-tight truncate max-w-xs md:max-w-md">
+                        {{ $quiz->judul }}
+                    </h2>
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+                        {{ $selectedArc ?? 'Mudah' }} • Level {{ $selectedLevel ?? 1 }}
+                    </span>
+                </div>
                 <div class="flex items-center gap-2 mt-0.5 text-xs text-slate-400">
                     <span class="font-semibold text-blue-600">{{ $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran' }}</span>
                     <span>•</span>
-                    <span>Total <strong class="text-slate-700" x-text="totalQuestions"></strong> Soal</span>
+                    <span>Total <strong class="text-slate-700" x-text="totalQuestions"></strong> Soal pada Level Ini</span>
                 </div>
             </div>
         </div>
@@ -88,6 +93,9 @@
     <form id="quizForm" method="POST" action="{{ route('siswa.kuis.submit', $quiz->id) }}">
         @csrf
         <input type="hidden" name="durasi" id="durasiInput" value="00:00" />
+        <input type="hidden" name="arc" value="{{ $selectedArc ?? 'Mudah' }}" />
+        <input type="hidden" name="level" value="{{ $selectedLevel ?? 1 }}" />
+        <input type="hidden" name="step" value="{{ $selectedStep ?? 1 }}" />
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
@@ -524,7 +532,7 @@ function quizPlayer() {
                             timer: 1500,
                             showConfirmButton: false
                         }).then(() => {
-                            window.location.href = "{{ route('siswa.kuis') }}";
+                            window.location.href = "{{ route('siswa.kuis.show', $quiz->id) }}";
                         });
                     })
                     .catch(err => {

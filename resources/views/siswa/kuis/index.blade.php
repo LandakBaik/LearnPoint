@@ -345,7 +345,7 @@
                                 {{-- Button Buka Level Sekarang --}}
                                 @if($zona->quiz)
                                     <a 
-                                        href="{{ route('siswa.kuis.kerjakan', $zona->quiz->id) }}"
+                                        href="{{ route('siswa.kuis.show', $zona->quiz->id) }}"
                                         class="w-full py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm shadow-blue-500/20"
                                     >
                                         <span>{{ $zona->buka_level_label }}</span>
@@ -354,7 +354,7 @@
                                 @else
                                     <button 
                                         type="button"
-                                        onclick="alert('Memulai petualangan kuis level aktif!');"
+                                        onclick="alert('Pilih kuis dari daftar untuk membuka peta petualangan level!');"
                                         class="w-full py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm shadow-blue-500/20"
                                     >
                                         <span>{{ $zona->buka_level_label }}</span>
@@ -394,20 +394,20 @@
 
                     @if(isset($activeZona->quiz) && $activeZona->quiz)
                         <a 
-                            href="{{ route('siswa.kuis.kerjakan', $activeZona->quiz->id) }}"
+                            href="{{ route('siswa.kuis.show', $activeZona->quiz->id) }}"
                             class="w-full py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm"
                         >
-                            <i class="fa-solid fa-rocket text-xs"></i>
-                            <span>Mulai Kuis</span>
+                            <i class="fa-solid fa-map-location-dot text-xs"></i>
+                            <span>Buka Peta Petualangan</span>
                         </a>
                     @else
                         <button 
                             type="button"
-                            onclick="alert('Memulai petualangan kuis!');"
+                            onclick="alert('Pilih kuis dari daftar untuk membuka peta petualangan level!');"
                             class="w-full py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm"
                         >
-                            <i class="fa-solid fa-rocket text-xs"></i>
-                            <span>Mulai Kuis</span>
+                            <i class="fa-solid fa-map-location-dot text-xs"></i>
+                            <span>Buka Peta Petualangan</span>
                         </button>
                     @endif
                 </div>
