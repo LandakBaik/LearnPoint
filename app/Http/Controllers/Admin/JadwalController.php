@@ -1,41 +1,17 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
-use App\Models\AnggotaKelas;
+use App\Http\Controllers\Controller;
 use App\Models\Guru;
 use App\Models\GuruMapel;
 use App\Models\Kelas;
 use App\Models\Mapel;
-use App\Models\PengampuKelas;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class JadwalController extends Controller
 {
-    /**
-     * Halaman Jadwal Mengajar Guru (/guru/jadwal).
-     */
-    public function index()
-    {
-        $user = Auth::user();
-        $guru = $user->guru;
-
-        $guruMapels = collect();
-        $jadwalUrl = null;
-
-        if ($guru) {
-            $guruMapels = $guru->guruMapels()
-                ->with(['mapel', 'pengampuKelases.kelas'])
-                ->get();
-
-            $jadwalUrl = $guru->jadwal_url;
-        }
-
-        return view('guru.jadwal.index', compact('guru', 'guruMapels', 'jadwalUrl'));
-    }
-
     /**
      * Halaman Pengelolaan Jadwal untuk Admin/Operator.
      */
@@ -214,3 +190,4 @@ class JadwalController extends Controller
             ->with('success', $message);
     }
 }
+

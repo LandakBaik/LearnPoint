@@ -27,10 +27,7 @@ class DashboardController extends Controller
         $guru = $user->guru;
 
         if (!$guru) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Profil Guru tidak ditemukan untuk akun ini.',
-            ], 404);
+            return $this->notFoundResponse('Profil Guru tidak ditemukan untuk akun ini.');
         }
 
         $guruId = $guru->id;
@@ -167,41 +164,38 @@ class DashboardController extends Controller
             ->take(5)
             ->values();
 
-        return response()->json([
-            'success' => true,
-            'data'    => [
-                'user' => [
-                    'id'       => $user->id,
-                    'name'     => $user->name,
-                    'username' => $user->username,
-                    'email'    => $user->email,
-                    'role'     => $user->role,
-                ],
-                'guru' => [
-                    'id'            => $guru->id,
-                    'nama'          => $guru->nama,
-                    'nip'           => $guru->nip,
-                    'jenis_kelamin' => $guru->jenis_kelamin,
-                    'nomor_telepon' => $guru->nomor_telepon,
-                    'alamat'        => $guru->alamat,
-                    'jadwal_url'    => $guru->jadwal_url,
-                ],
-                'statistics' => [
-                    'total_siswa'        => $totalSiswa,
-                    'total_kelas'        => $totalKelas,
-                    'total_mapel'        => $totalMapel,
-                    'total_kelas_diajar' => $totalKelasDiajar,
-                    'total_mapel_diampu' => $totalMapelDiampu,
-                    'total_materi'       => $totalMateri,
-                    'total_tugas'        => $totalTugas,
-                    'total_kuis'         => $totalKuis,
-                    'total_ujian'        => $totalUjian,
-                    'perlu_dinilai'      => $perluDinilaiCount,
-                ],
-                'guru_mapels'           => $guruMapels,
-                'perlu_dinilai_tugases' => $perluDinilaiTugases,
-                'aktivitas_terbaru'     => $aktivitasTerbaru,
+        return $this->successResponse([
+            'user' => [
+                'id'       => $user->id,
+                'name'     => $user->name,
+                'username' => $user->username,
+                'email'    => $user->email,
+                'role'     => $user->role,
             ],
+            'guru' => [
+                'id'            => $guru->id,
+                'nama'          => $guru->nama,
+                'nip'           => $guru->nip,
+                'jenis_kelamin' => $guru->jenis_kelamin,
+                'nomor_telepon' => $guru->nomor_telepon,
+                'alamat'        => $guru->alamat,
+                'jadwal_url'    => $guru->jadwal_url,
+            ],
+            'statistics' => [
+                'total_siswa'        => $totalSiswa,
+                'total_kelas'        => $totalKelas,
+                'total_mapel'        => $totalMapel,
+                'total_kelas_diajar' => $totalKelasDiajar,
+                'total_mapel_diampu' => $totalMapelDiampu,
+                'total_materi'       => $totalMateri,
+                'total_tugas'        => $totalTugas,
+                'total_kuis'         => $totalKuis,
+                'total_ujian'        => $totalUjian,
+                'perlu_dinilai'      => $perluDinilaiCount,
+            ],
+            'guru_mapels'           => $guruMapels,
+            'perlu_dinilai_tugases' => $perluDinilaiTugases,
+            'aktivitas_terbaru'     => $aktivitasTerbaru,
         ]);
     }
 
@@ -214,10 +208,7 @@ class DashboardController extends Controller
         $siswa = $user->siswa;
 
         if (!$siswa) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Profil Siswa tidak ditemukan untuk akun ini.',
-            ], 404);
+            return $this->notFoundResponse('Profil Siswa tidak ditemukan untuk akun ini.');
         }
 
         $anggotaKelas = $siswa->anggotaKelases()?->latest()?->first();
@@ -404,55 +395,52 @@ class DashboardController extends Controller
                 });
         }
 
-        return response()->json([
-            'success' => true,
-            'data'    => [
-                'user' => [
-                    'id'       => $user->id,
-                    'name'     => $user->name,
-                    'username' => $user->username,
-                    'email'    => $user->email,
-                    'role'     => $user->role,
-                ],
-                'siswa' => [
-                    'id'            => $siswa->id,
-                    'nama_siswa'    => $siswa->nama_siswa,
-                    'nis'           => $siswa->nis,
-                    'jenis_kelamin' => $siswa->jenis_kelamin,
-                    'alamat'        => $siswa->alamat,
-                ],
-                'kelas' => $kelas ? [
-                    'id'         => $kelas->id,
-                    'nama_kelas' => $kelas->nama_kelas,
-                    'tingkatan'  => $kelas->tingkatan,
-                    'wali_kelas' => $kelas->guru?->nama,
-                    'jadwal_url' => $kelas->jadwal_url,
-                ] : null,
-                'akademik' => [
-                    'tahun_ajaran' => $tahunAjaran,
-                    'semester'     => $semester,
-                ],
-                'statistics' => [
-                    'total_mapel'         => $totalMapel,
-                    'tugas_menanti_count' => $tugasMenantiCount,
-                    'quiz_count'          => $quizCount,
-                    'ujian_count'         => $ujianCount,
-                    'unread_notif_count'  => $unreadNotifCount,
-                ],
-                'evaluasi' => [
-                    'rata_rata_semua' => $rataRataSemua,
-                    'kategori_nilai'  => $kategoriNilai,
-                    'donut_degree'    => $donutDegree,
-                    'rata_rata_tugas' => $rataRataTugas,
-                    'rata_rata_quiz'  => $rataRataQuiz,
-                    'rata_rata_ujian' => $rataRataUjian,
-                    'nilai_mapel'     => $listNilaiMapel,
-                ],
-                'tugas_terbaru'   => $tugasTerbaru,
-                'materi_terbaru'  => $materiTerbaru,
-                'kuis_tersedia'   => $quizzes,
-                'guru_pengampu'   => $guruPengampus,
+        return $this->successResponse([
+            'user' => [
+                'id'       => $user->id,
+                'name'     => $user->name,
+                'username' => $user->username,
+                'email'    => $user->email,
+                'role'     => $user->role,
             ],
+            'siswa' => [
+                'id'            => $siswa->id,
+                'nama_siswa'    => $siswa->nama_siswa,
+                'nis'           => $siswa->nis,
+                'jenis_kelamin' => $siswa->jenis_kelamin,
+                'alamat'        => $siswa->alamat,
+            ],
+            'kelas' => $kelas ? [
+                'id'         => $kelas->id,
+                'nama_kelas' => $kelas->nama_kelas,
+                'tingkatan'  => $kelas->tingkatan,
+                'wali_kelas' => $kelas->guru?->nama,
+                'jadwal_url' => $kelas->jadwal_url,
+            ] : null,
+            'akademik' => [
+                'tahun_ajaran' => $tahunAjaran,
+                'semester'     => $semester,
+            ],
+            'statistics' => [
+                'total_mapel'         => $totalMapel,
+                'tugas_menanti_count' => $tugasMenantiCount,
+                'quiz_count'          => $quizCount,
+                'ujian_count'         => $ujianCount,
+                'unread_notif_count'  => $unreadNotifCount,
+            ],
+            'evaluasi' => [
+                'rata_rata_semua' => $rataRataSemua,
+                'kategori_nilai'  => $kategoriNilai,
+                'donut_degree'    => $donutDegree,
+                'rata_rata_tugas' => $rataRataTugas,
+                'rata_rata_quiz'  => $rataRataQuiz,
+                'rata_rata_ujian' => $rataRataUjian,
+                'nilai_mapel'     => $listNilaiMapel,
+            ],
+            'tugas_terbaru'   => $tugasTerbaru,
+            'materi_terbaru'  => $materiTerbaru,
+            'kuis_tersedia'   => $quizzes,
+            'guru_pengampu'   => $guruPengampus,
         ]);
     }
 }

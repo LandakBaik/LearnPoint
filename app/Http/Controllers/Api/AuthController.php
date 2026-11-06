@@ -23,11 +23,7 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal.',
-                'errors'  => $validator->errors(),
-            ], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $login = $request->login;
@@ -36,40 +32,30 @@ class AuthController extends Controller
         $user = User::with(['guru', 'siswa.kelas'])->where($fieldType, $login)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Username/Email atau kata sandi yang Anda masukkan salah.',
-            ], 401);
+            return $this->unauthorizedResponse('Username/Email atau kata sandi yang Anda masukkan salah.');
         }
 
         if ($user->status === 'nonaktif') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Akun Anda saat ini berstatus NONAKTIF. Silakan hubungi pihak administrator/sekolah.',
-            ], 403);
+            return $this->forbiddenResponse('Akun Anda saat ini berstatus NONAKTIF. Silakan hubungi pihak administrator/sekolah.');
         }
 
         $deviceName = $request->input('device_name', 'Mobile App');
         $token = $user->createToken($deviceName)->plainTextToken;
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Login berhasil.',
-            'data'    => [
-                'token' => $token,
-                'token_type' => 'Bearer',
-                'user'  => [
-                    'id'       => $user->id,
-                    'name'     => $user->name,
-                    'username' => $user->username,
-                    'email'    => $user->email,
-                    'role'     => $user->role,
-                    'status'   => $user->status,
-                    'guru'     => $user->guru,
-                    'siswa'    => $user->siswa,
-                ],
+        return $this->successResponse([
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'user'  => [
+                'id'       => $user->id,
+                'name'     => $user->name,
+                'username' => $user->username,
+                'email'    => $user->email,
+                'role'     => $user->role,
+                'status'   => $user->status,
+                'guru'     => $user->guru,
+                'siswa'    => $user->siswa,
             ],
-        ]);
+        ], 'Login berhasil.');
     }
 
     /**
@@ -79,19 +65,16 @@ class AuthController extends Controller
     {
         $user = $request->user()->load(['guru', 'siswa.kelas']);
 
-        return response()->json([
-            'success' => true,
-            'data'    => [
-                'user' => [
-                    'id'       => $user->id,
-                    'name'     => $user->name,
-                    'username' => $user->username,
-                    'email'    => $user->email,
-                    'role'     => $user->role,
-                    'status'   => $user->status,
-                    'guru'     => $user->guru,
-                    'siswa'    => $user->siswa,
-                ],
+        return $this->successResponse([
+            'user' => [
+                'id'       => $user->id,
+                'name'     => $user->name,
+                'username' => $user->username,
+                'email'    => $user->email,
+                'role'     => $user->role,
+                'status'   => $user->status,
+                'guru'     => $user->guru,
+                'siswa'    => $user->siswa,
             ],
         ]);
     }
@@ -103,9 +86,6 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Berhasil keluar (logout).',
-        ]);
+        return $this->successResponse(null, 'Berhasil keluar (logout).');
     }
 }

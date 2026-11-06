@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Guru;
+
+use App\Http\Controllers\Controller;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use App\Models\Ujian;
@@ -421,7 +423,7 @@ class UjianController extends Controller
             $waktuMulai = Carbon::parse($validated['waktu_mulai']);
             $deadlineUjian = Carbon::parse($validated['deadline']);
 
-            // Jadwal harus berada antara pukul 07.00–17.00.
+            // Jadwal harus berada antara pukul 07.00â€“17.00.
             foreach ([$waktuMulai, $deadlineUjian] as $waktu) {
                 if (
                     $waktu->format('H:i') < '07:00' ||

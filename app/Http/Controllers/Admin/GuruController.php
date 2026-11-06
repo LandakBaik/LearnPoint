@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\Mapel;
@@ -403,3 +404,4 @@ class GuruController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 }
+

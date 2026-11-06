@@ -89,7 +89,7 @@ class MateriTugasStudentFlowTest extends TestCase
         ]);
         $request->setUserResolver(fn () => $guruUser);
 
-        $viewData = app(\App\Http\Controllers\MateriController::class)
+        $viewData = app(\App\Http\Controllers\Guru\MateriController::class)
             ->index($request)
             ->getData();
 

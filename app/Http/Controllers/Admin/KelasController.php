@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\Mapel;
@@ -118,3 +119,4 @@ class KelasController extends Controller
         return redirect()->route('kelas.index')->with('success', 'Data kelas berhasil dihapus!');
     }
 }
+

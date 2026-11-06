@@ -36,7 +36,7 @@ class QuizController extends Controller
         $guruId = $request->user()?->guru?->id;
 
         if (!$guruId) {
-            return response()->json(['success' => false, 'message' => 'Profil guru tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
         }
 
         $query = Quiz::with([
@@ -83,17 +83,14 @@ class QuizController extends Controller
             $q->where('guru_id', $guruId);
         })->count();
 
-        return response()->json([
-            'success' => true,
-            'data'    => [
-                'statistics' => [
-                    'total_kuis'      => $totalKuis,
-                    'total_draft'     => $totalDraft,
-                    'total_published' => $totalPublished,
-                    'total_soal'      => $totalSoal,
-                ],
-                'quizzes' => $quizzes,
+        return $this->successResponse([
+            'statistics' => [
+                'total_kuis'      => $totalKuis,
+                'total_draft'     => $totalDraft,
+                'total_published' => $totalPublished,
+                'total_soal'      => $totalSoal,
             ],
+            'quizzes' => $quizzes,
         ]);
     }
 
@@ -120,10 +117,7 @@ class QuizController extends Controller
                 ];
             });
 
-        return response()->json([
-            'success' => true,
-            'data'    => $pengampuKelases,
-        ]);
+        return $this->successResponse($pengampuKelases);
     }
 
     /**
@@ -195,24 +189,21 @@ class QuizController extends Controller
             ];
         });
 
-        return response()->json([
-            'success' => true,
-            'data'    => [
-                'id'                  => $quiz->id,
-                'judul'               => $quiz->judul,
-                'deskripsi'           => $quiz->deskripsi,
-                'status'              => $quiz->status,
-                'kesulitan_aktif'     => $quiz->kesulitan_aktif_array,
-                'waktu_mulai'         => $quiz->waktu_mulai?->format('Y-m-d H:i:s'),
-                'waktu_selesai'       => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
-                'acak_jawaban'        => (bool) $quiz->acak_jawaban,
-                'mapel'               => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
-                'kelas'               => $quiz->pengampuKelas?->kelas?->nama_kelas,
-                'pengampu_kelas_id'   => $quiz->pengampu_kelas_id,
-                'level_counts'        => $levelCounts,
-                'soals'               => $soals,
-                'nilais'              => $nilais,
-            ],
+        return $this->successResponse([
+            'id'                  => $quiz->id,
+            'judul'               => $quiz->judul,
+            'deskripsi'           => $quiz->deskripsi,
+            'status'              => $quiz->status,
+            'kesulitan_aktif'     => $quiz->kesulitan_aktif_array,
+            'waktu_mulai'         => $quiz->waktu_mulai?->format('Y-m-d H:i:s'),
+            'waktu_selesai'       => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
+            'acak_jawaban'        => (bool) $quiz->acak_jawaban,
+            'mapel'               => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+            'kelas'               => $quiz->pengampuKelas?->kelas?->nama_kelas,
+            'pengampu_kelas_id'   => $quiz->pengampu_kelas_id,
+            'level_counts'        => $levelCounts,
+            'soals'               => $soals,
+            'nilais'              => $nilais,
         ]);
     }
 
@@ -236,7 +227,7 @@ class QuizController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'message' => 'Validasi gagal.', 'errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $validated = $validator->validated();
@@ -247,7 +238,7 @@ class QuizController extends Controller
             })->exists();
 
         if (!$isOwner) {
-            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki hak akses pada kelas/mata pelajaran ini.'], 403);
+            return $this->forbiddenResponse('Anda tidak memiliki hak akses pada kelas/mata pelajaran ini.');
         }
 
         $orderedDifficulties = array_values(array_intersect(Quiz::KESULITAN_LIST, $validated['kesulitan_aktif']));
@@ -265,11 +256,7 @@ class QuizController extends Controller
             'kesulitan'         => $orderedDifficulties[0] ?? 'Mudah',
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Draf kuis berhasil dibuat.',
-            'data'    => $quiz,
-        ], 201);
+        return $this->createdResponse($quiz, 'Draf kuis berhasil dibuat.');
     }
 
     /**
@@ -293,7 +280,7 @@ class QuizController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'message' => 'Validasi gagal.', 'errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $validated = $validator->validated();
@@ -304,7 +291,7 @@ class QuizController extends Controller
             })->exists();
 
         if (!$isOwner) {
-            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki hak akses pada kelas/mata pelajaran ini.'], 403);
+            return $this->forbiddenResponse('Anda tidak memiliki hak akses pada kelas/mata pelajaran ini.');
         }
 
         $orderedDifficulties = array_values(array_intersect(Quiz::KESULITAN_LIST, $validated['kesulitan_aktif']));
@@ -320,11 +307,7 @@ class QuizController extends Controller
             'status'            => $validated['status'] ?? $quiz->status,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Pengaturan kuis berhasil diperbarui.',
-            'data'    => $quiz,
-        ]);
+        return $this->successResponse($quiz, 'Pengaturan kuis berhasil diperbarui.');
     }
 
     /**
@@ -338,28 +321,20 @@ class QuizController extends Controller
         if ($quiz->status === 'published') {
             $quiz->update(['status' => 'draft']);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Kuis berhasil diubah menjadi draf.',
+            return $this->successResponse([
                 'status'  => 'draft',
-            ]);
+            ], 'Kuis berhasil diubah menjadi draf.');
         }
 
         $activeDifficulties = $quiz->kesulitan_aktif_array;
         if (empty($activeDifficulties)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Aktifkan minimal satu tingkat kesulitan sebelum menerbitkan kuis.',
-            ], 422);
+            return $this->errorResponse('Aktifkan minimal satu tingkat kesulitan sebelum menerbitkan kuis.', 422);
         }
 
         foreach ($activeDifficulties as $difficulty) {
             $hasQuestions = $quiz->soals()->where('kesulitan', $difficulty)->exists();
             if (!$hasQuestions) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Tingkat kesulitan {$difficulty} belum memiliki butir soal. Tambahkan minimal satu soal terlebih dahulu.",
-                ], 422);
+                return $this->errorResponse("Tingkat kesulitan {$difficulty} belum memiliki butir soal. Tambahkan minimal satu soal terlebih dahulu.", 422);
             }
         }
 
@@ -379,11 +354,9 @@ class QuizController extends Controller
             );
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Kuis berhasil diterbitkan untuk siswa.',
+        return $this->successResponse([
             'status'  => 'published',
-        ]);
+        ], 'Kuis berhasil diterbitkan untuk siswa.');
     }
 
     /**
@@ -402,10 +375,7 @@ class QuizController extends Controller
 
         $quiz->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Kuis berhasil dihapus.',
-        ]);
+        return $this->successResponse(null, 'Kuis berhasil dihapus.');
     }
 
     /**
@@ -415,7 +385,7 @@ class QuizController extends Controller
     {
         $guruId = $request->user()?->guru?->id;
         if (!$guruId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            return $this->forbiddenResponse('Akses ditolak.');
         }
 
         $validator = Validator::make($request->all(), [
@@ -424,7 +394,7 @@ class QuizController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'message' => 'Validasi gagal.', 'errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $validated = $validator->validated();
@@ -438,7 +408,7 @@ class QuizController extends Controller
 
         $count = $quizzes->count();
         if ($count === 0) {
-            return response()->json(['success' => false, 'message' => 'Tidak ada kuis valid yang dapat dihapus.'], 404);
+            return $this->notFoundResponse('Tidak ada kuis valid yang dapat dihapus.');
         }
 
         DB::transaction(function () use ($quizzes) {
@@ -452,11 +422,9 @@ class QuizController extends Controller
             }
         });
 
-        return response()->json([
-            'success'       => true,
-            'message'       => "{$count} kuis berhasil dihapus.",
+        return $this->successResponse([
             'deleted_count' => $count,
-        ]);
+        ], "{$count} kuis berhasil dihapus.");
     }
 
     /**
@@ -479,14 +447,14 @@ class QuizController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'message' => 'Validasi gagal.', 'errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $validated = $validator->validated();
 
         $levelNum = (int) preg_replace('/[^0-9]/', '', $validated['level']);
         if ($levelNum < 1 || $levelNum > Quiz::MAX_LEVEL) {
-            return response()->json(['success' => false, 'message' => 'Level tidak valid. Maksimal 5 level.'], 422);
+            return $this->errorResponse('Level tidak valid. Maksimal 5 level.', 422);
         }
         $levelFormatted = 'Level ' . $levelNum;
 
@@ -497,10 +465,7 @@ class QuizController extends Controller
             ->count();
 
         if ($soalCount >= Quiz::MAX_SOAL) {
-            return response()->json([
-                'success' => false,
-                'message' => "Tingkat {$validated['kesulitan']} {$levelFormatted} sudah mencapai batas maksimal 10 soal.",
-            ], 422);
+            return $this->errorResponse("Tingkat {$validated['kesulitan']} {$levelFormatted} sudah mencapai batas maksimal 10 soal.", 422);
         }
 
         $gambarPath = null;
@@ -540,11 +505,7 @@ class QuizController extends Controller
             'ujian_id'      => null,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Soal berhasil ditambahkan.',
-            'data'    => $soal,
-        ], 201);
+        return $this->createdResponse($soal, 'Soal berhasil ditambahkan.');
     }
 
     /**
@@ -556,7 +517,7 @@ class QuizController extends Controller
         $this->authorizeGuru($quiz, $guruId);
 
         if ($soal->quiz_id !== $quiz->id) {
-            return response()->json(['success' => false, 'message' => 'Soal bukan milik kuis ini.'], 403);
+            return $this->forbiddenResponse('Soal bukan milik kuis ini.');
         }
 
         $validator = Validator::make($request->all(), [
@@ -571,7 +532,7 @@ class QuizController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'message' => 'Validasi gagal.', 'errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $validated = $validator->validated();
@@ -616,11 +577,7 @@ class QuizController extends Controller
 
         $soal->update($updateData);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Soal berhasil diperbarui.',
-            'data'    => $soal,
-        ]);
+        return $this->successResponse($soal, 'Soal berhasil diperbarui.');
     }
 
     /**
@@ -632,7 +589,7 @@ class QuizController extends Controller
         $this->authorizeGuru($quiz, $guruId);
 
         if ($soal->quiz_id !== $quiz->id) {
-            return response()->json(['success' => false, 'message' => 'Soal bukan milik kuis ini.'], 403);
+            return $this->forbiddenResponse('Soal bukan milik kuis ini.');
         }
 
         if ($soal->gambar && Storage::disk('public')->exists($soal->gambar)) {
@@ -641,10 +598,7 @@ class QuizController extends Controller
 
         $soal->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Soal berhasil dihapus.',
-        ]);
+        return $this->successResponse(null, 'Soal berhasil dihapus.');
     }
 
     /**
@@ -656,7 +610,14 @@ class QuizController extends Controller
         $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
         $kelasId = $kelas?->id;
 
-        $query = Quiz::where('status', 'published')
+        if (!$kelasId) {
+            return $this->notFoundResponse('Data kelas siswa tidak ditemukan.');
+        }
+
+        $query = Quiz::whereHas('pengampuKelas', function ($q) use ($kelasId) {
+            $q->where('kelas_id', $kelasId);
+        })
+        ->where('status', 'published')
         ->with([
             'pengampuKelas.guruMapel.mapel',
             'pengampuKelas.guruMapel.guru',
@@ -667,18 +628,6 @@ class QuizController extends Controller
             },
         ])
         ->withCount('soals');
-
-        if ($kelasId) {
-            $hasClassQuiz = (clone $query)->whereHas('pengampuKelas', function ($q) use ($kelasId) {
-                $q->where('kelas_id', $kelasId);
-            })->exists();
-
-            if ($hasClassQuiz) {
-                $query->whereHas('pengampuKelas', function ($q) use ($kelasId) {
-                    $q->where('kelas_id', $kelasId);
-                });
-            }
-        }
 
         if ($request->filled('mapel_id')) {
             $query->whereHas('pengampuKelas.guruMapel', function ($q) use ($request) {
@@ -711,10 +660,7 @@ class QuizController extends Controller
             ];
         });
 
-        return response()->json([
-            'success' => true,
-            'data'    => $quizzes,
-        ]);
+        return $this->successResponse($quizzes);
     }
 
     /**
@@ -726,12 +672,12 @@ class QuizController extends Controller
         $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
         $kelasId = $kelas?->id;
 
-        if ($kelasId && $quiz->pengampuKelas?->kelas_id && $quiz->pengampuKelas->kelas_id !== $kelasId) {
-            return response()->json(['success' => false, 'message' => 'Kuis tidak ditemukan untuk kelas Anda.'], 403);
+        if (!$kelasId || $quiz->pengampuKelas?->kelas_id !== $kelasId) {
+            return $this->forbiddenResponse('Kuis tidak ditemukan untuk kelas Anda.');
         }
 
         if ($quiz->status !== 'published') {
-            return response()->json(['success' => false, 'message' => 'Kuis belum dipublikasikan oleh guru.'], 403);
+            return $this->forbiddenResponse('Kuis belum dipublikasikan oleh guru.');
         }
 
         $quiz->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru', 'soals']);
@@ -770,30 +716,26 @@ class QuizController extends Controller
                 ->first()
             : null;
 
-        return response()->json([
-            'success' => true,
-            'data'    => [
-                'id'                 => $quiz->id,
-                'judul'              => $quiz->judul,
-                'deskripsi'          => $quiz->deskripsi,
-                'kesulitan_aktif'    => $quiz->kesulitan_aktif_array,
-                'waktu_mulai'        => $quiz->waktu_mulai?->format('Y-m-d H:i:s'),
-                'waktu_selesai'      => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
-                'acak_jawaban'       => (bool) $quiz->acak_jawaban,
-                'mapel_id'           => $quiz->pengampuKelas?->guruMapel?->mapel_id,
-                'mapel'              => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
-                'guru'               => $quiz->pengampuKelas?->guruMapel?->guru?->nama,
-                'soal_counts_by_arc' => $soalCountsByArc,
-                'levels'             => $levelsInfo,
-                'is_completed'       => $riwayatNilai !== null,
-                'result'             => $riwayatNilai ? [
-                    'id'           => $riwayatNilai->id,
-                    'nilai'        => $riwayatNilai->nilai,
-                    'status'       => $riwayatNilai->status,
-                    'durasi'       => $riwayatNilai->durasi,
-                    'completed_at' => $riwayatNilai->created_at,
-                ] : null,
-            ],
+        return $this->successResponse([
+            'id'                 => $quiz->id,
+            'judul'              => $quiz->judul,
+            'deskripsi'          => $quiz->deskripsi,
+            'kesulitan_aktif'    => $quiz->kesulitan_aktif_array,
+            'waktu_mulai'        => $quiz->waktu_mulai?->format('Y-m-d H:i:s'),
+            'waktu_selesai'      => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
+            'acak_jawaban'       => (bool) $quiz->acak_jawaban,
+            'mapel'              => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+            'guru'               => $quiz->pengampuKelas?->guruMapel?->guru?->nama,
+            'soal_counts_by_arc' => $soalCountsByArc,
+            'levels'             => $levelsInfo,
+            'is_completed'       => $riwayatNilai !== null,
+            'result'             => $riwayatNilai ? [
+                'id'           => $riwayatNilai->id,
+                'nilai'        => $riwayatNilai->nilai,
+                'status'       => $riwayatNilai->status,
+                'durasi'       => $riwayatNilai->durasi,
+                'completed_at' => $riwayatNilai->created_at,
+            ] : null,
         ]);
     }
 
@@ -806,26 +748,31 @@ class QuizController extends Controller
         $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
         $kelasId = $kelas?->id;
 
-        if ($kelasId && $quiz->pengampuKelas?->kelas_id && $quiz->pengampuKelas->kelas_id !== $kelasId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        if (!$kelasId || $quiz->pengampuKelas?->kelas_id !== $kelasId) {
+            return $this->forbiddenResponse('Akses ditolak.');
         }
 
         if ($quiz->status !== 'published') {
-            return response()->json(['success' => false, 'message' => 'Kuis belum dipublikasikan.'], 403);
+            return $this->forbiddenResponse('Kuis belum dipublikasikan.');
+        }
+
+        // Cek apakah siswa sudah pernah menyelesaikan seluruh kuis ini
+        $existing = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
+        $totalSoalQuiz = $quiz->soals()->count();
+        $answeredCount = Menjawab::where('siswa_id', $siswa->id)->whereIn('soal_id', $quiz->soals()->pluck('id'))->count();
+        if ($existing && $totalSoalQuiz > 0 && $answeredCount >= $totalSoalQuiz) {
+            return $this->errorResponse('Anda telah menyelesaikan kuis ini sebelumnya.', 400, [
+                'nilai'        => $existing->nilai,
+                'completed_at' => $existing->created_at,
+            ]);
         }
 
         if ($quiz->waktu_mulai && now()->lessThan($quiz->waktu_mulai)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Kuis belum dimulai. Jadwal mulai pada: ' . $quiz->waktu_mulai->format('d M Y, H:i') . ' WIB.',
-            ], 403);
+            return $this->forbiddenResponse('Kuis belum dimulai. Jadwal mulai pada: ' . $quiz->waktu_mulai->format('d M Y, H:i') . ' WIB.');
         }
 
         if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Waktu pengerjaan kuis telah berakhir.',
-            ], 403);
+            return $this->forbiddenResponse('Waktu pengerjaan kuis telah berakhir.');
         }
 
         $query = $quiz->soals();
@@ -880,16 +827,13 @@ class QuizController extends Controller
             ];
         });
 
-        return response()->json([
-            'success' => true,
-            'data'    => [
-                'quiz' => [
-                    'id'            => $quiz->id,
-                    'judul'         => $quiz->judul,
-                    'waktu_selesai' => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
-                ],
-                'soals' => $soals,
+        return $this->successResponse([
+            'quiz' => [
+                'id'            => $quiz->id,
+                'judul'         => $quiz->judul,
+                'waktu_selesai' => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
             ],
+            'soals' => $soals,
         ]);
     }
 
@@ -903,20 +847,28 @@ class QuizController extends Controller
         $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
         $kelasId = $kelas?->id;
 
-        if ($kelasId && $quiz->pengampuKelas?->kelas_id && $quiz->pengampuKelas->kelas_id !== $kelasId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        if (!$kelasId || $quiz->pengampuKelas?->kelas_id !== $kelasId) {
+            return $this->forbiddenResponse('Akses ditolak.');
         }
 
         if ($quiz->status !== 'published') {
-            return response()->json(['success' => false, 'message' => 'Kuis belum dipublikasikan.'], 403);
+            return $this->forbiddenResponse('Kuis belum dipublikasikan.');
+        }
+
+        // Cegah duplikasi submit jika seluruh kuis sudah tuntas
+        $existing = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
+        $totalSoalQuiz = $quiz->soals()->count();
+        $answeredCount = Menjawab::where('siswa_id', $siswa->id)->whereIn('soal_id', $quiz->soals()->pluck('id'))->count();
+        if ($existing && $totalSoalQuiz > 0 && $answeredCount >= $totalSoalQuiz) {
+            return $this->errorResponse('Jawaban kuis Anda sebelumnya sudah tersimpan.', 400, [
+                'nilai'  => $existing->nilai,
+                'durasi' => $existing->durasi,
+            ]);
         }
 
         // Cek toleransi batas waktu (toleransi 2 menit)
         if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai->copy()->addMinutes(2))) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Waktu pengumpulan kuis telah kedaluwarsa.',
-            ], 403);
+            return $this->forbiddenResponse('Waktu pengumpulan kuis telah kedaluwarsa.');
         }
 
         $validator = Validator::make($request->all(), [
@@ -925,7 +877,7 @@ class QuizController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'message' => 'Validasi gagal.', 'errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $soals = $quiz->soals;
@@ -1038,17 +990,13 @@ class QuizController extends Controller
             }
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Selamat! Kuis petualangan berhasil Anda selesaikan.',
-            'data'    => [
-                'nilai'        => $nilaiRecord->nilai,
-                'total_soal'   => $soals->count(),
-                'jumlah_benar' => $jumlahBenar,
-                'jumlah_salah' => $jumlahSalah,
-                'durasi_detik' => $nilaiRecord->durasi,
-            ],
-        ]);
+        return $this->successResponse([
+            'nilai'        => $nilaiRecord->nilai,
+            'total_soal'   => $soals->count(),
+            'jumlah_benar' => $jumlahBenar,
+            'jumlah_salah' => $jumlahSalah,
+            'durasi_detik' => $nilaiRecord->durasi,
+        ], 'Selamat! Kuis petualangan berhasil Anda selesaikan.');
     }
 
     /**
@@ -1060,13 +1008,13 @@ class QuizController extends Controller
         $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
         $kelasId = $kelas?->id;
 
-        if ($kelasId && $quiz->pengampuKelas?->kelas_id && $quiz->pengampuKelas->kelas_id !== $kelasId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        if (!$kelasId || $quiz->pengampuKelas?->kelas_id !== $kelasId) {
+            return $this->forbiddenResponse('Akses ditolak.');
         }
 
         $nilai = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
         if (!$nilai) {
-            return response()->json(['success' => false, 'message' => 'Anda belum menyelesaikan kuis ini.'], 404);
+            return $this->notFoundResponse('Anda belum menyelesaikan kuis ini.');
         }
 
         $quiz->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru']);
@@ -1094,25 +1042,22 @@ class QuizController extends Controller
             ];
         });
 
-        return response()->json([
-            'success' => true,
-            'data'    => [
-                'quiz' => [
-                    'id'    => $quiz->id,
-                    'judul' => $quiz->judul,
-                    'mapel' => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
-                    'guru'  => $quiz->pengampuKelas?->guruMapel?->guru?->nama,
-                ],
-                'summary' => [
-                    'nilai'        => $nilai->nilai,
-                    'durasi_detik' => $nilai->durasi,
-                    'total_soal'   => $totalSoal,
-                    'total_benar'  => $totalBenar,
-                    'total_salah'  => $totalSalah,
-                    'completed_at' => $nilai->created_at,
-                ],
-                'detail_soals' => $detailSoal,
+        return $this->successResponse([
+            'quiz' => [
+                'id'    => $quiz->id,
+                'judul' => $quiz->judul,
+                'mapel' => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+                'guru'  => $quiz->pengampuKelas?->guruMapel?->guru?->nama,
             ],
+            'summary' => [
+                'nilai'        => $nilai->nilai,
+                'durasi_detik' => $nilai->durasi,
+                'total_soal'   => $totalSoal,
+                'total_benar'  => $totalBenar,
+                'total_salah'  => $totalSalah,
+                'completed_at' => $nilai->created_at,
+            ],
+            'detail_soals' => $detailSoal,
         ]);
     }
 }
