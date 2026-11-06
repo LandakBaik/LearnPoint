@@ -27,19 +27,16 @@ class ProfileController extends Controller
             $user->siswa->load(['anggotaKelases.kelas', 'kelas.guru']);
         }
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'user' => [
-                    'id'       => $user->id,
-                    'name'     => $user->name,
-                    'username' => $user->username,
-                    'email'    => $user->email,
-                    'role'     => $user->role,
-                    'status'   => $user->status,
-                ],
-                'detail' => $user->isGuru() ? $user->guru : ($user->isSiswa() ? $user->siswa : null),
+        return $this->successResponse([
+            'user' => [
+                'id'       => $user->id,
+                'name'     => $user->name,
+                'username' => $user->username,
+                'email'    => $user->email,
+                'role'     => $user->role,
+                'status'   => $user->status,
             ],
+            'detail' => $user->isGuru() ? $user->guru : ($user->isSiswa() ? $user->siswa : null),
         ]);
     }
 
@@ -72,11 +69,7 @@ class ProfileController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal.',
-                'errors'  => $validator->errors(),
-            ], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $validated = $validator->validated();
@@ -111,21 +104,17 @@ class ProfileController extends Controller
             $user->siswa->update($siswaData);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Profil berhasil diperbarui.',
-            'data'    => [
-                'user' => [
-                    'id'       => $user->id,
-                    'name'     => $user->name,
-                    'username' => $user->username,
-                    'email'    => $user->email,
-                    'role'     => $user->role,
-                    'status'   => $user->status,
-                ],
-                'detail' => $user->isGuru() ? $user->guru : ($user->isSiswa() ? $user->siswa : null),
+        return $this->successResponse([
+            'user' => [
+                'id'       => $user->id,
+                'name'     => $user->name,
+                'username' => $user->username,
+                'email'    => $user->email,
+                'role'     => $user->role,
+                'status'   => $user->status,
             ],
-        ]);
+            'detail' => $user->isGuru() ? $user->guru : ($user->isSiswa() ? $user->siswa : null),
+        ], 'Profil berhasil diperbarui.');
     }
 
     /**
@@ -145,29 +134,20 @@ class ProfileController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal.',
-                'errors'  => $validator->errors(),
-            ], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Kata sandi saat ini yang Anda masukkan salah.',
-                'errors'  => ['current_password' => ['Kata sandi saat ini salah.']],
-            ], 422);
+            return $this->validationErrorResponse([
+                'current_password' => ['Kata sandi saat ini salah.'],
+            ], 'Kata sandi saat ini yang Anda masukkan salah.');
         }
 
         $user->update([
             'password' => Hash::make($request->password),
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Kata sandi berhasil diperbarui.',
-        ]);
+        return $this->successResponse(null, 'Kata sandi berhasil diperbarui.');
     }
 }
 

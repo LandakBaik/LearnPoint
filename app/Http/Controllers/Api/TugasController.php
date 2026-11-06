@@ -22,7 +22,7 @@ class TugasController extends Controller
         $guruId = $request->user()?->guru?->id;
 
         if (!$guruId) {
-            return response()->json(['success' => false, 'message' => 'Profil guru tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
         }
 
         $query = Tugas::with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.kelas'])
@@ -76,17 +76,14 @@ class TugasController extends Controller
             })
             ->count();
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'statistics' => [
-                    'total_tugas' => $totalTugas,
-                    'total_aktif' => $totalAktif,
-                    'total_selesai' => $totalSelesai,
-                    'perlu_dinilai' => $perluDinilai,
-                ],
-                'tugases' => $tugases,
+        return $this->successResponse([
+            'statistics' => [
+                'total_tugas' => $totalTugas,
+                'total_aktif' => $totalAktif,
+                'total_selesai' => $totalSelesai,
+                'perlu_dinilai' => $perluDinilai,
             ],
+            'tugases' => $tugases,
         ]);
     }
 
@@ -113,10 +110,7 @@ class TugasController extends Controller
                 ];
             });
 
-        return response()->json([
-            'success' => true,
-            'data' => $pengampuKelases,
-        ]);
+        return $this->successResponse($pengampuKelases);
     }
 
     /**
@@ -133,11 +127,11 @@ class TugasController extends Controller
         ])->find($id);
 
         if (!$tugas) {
-            return response()->json(['success' => false, 'message' => 'Tugas tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Tugas tidak ditemukan.');
         }
 
         if ($tugas->pengampuKelas?->guruMapel?->guru_id !== $guruId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            return $this->forbiddenResponse('Akses ditolak.');
         }
 
         $pengumpulans = $tugas->nilais->map(function ($item) {
@@ -156,21 +150,18 @@ class TugasController extends Controller
             ];
         });
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $tugas->id,
-                'judul' => $tugas->judul,
-                'deskripsi' => $tugas->deskripsi,
-                'deadline' => $tugas->deadline,
-                'tipe' => $tugas->tipe,
-                'file_lampiran' => $tugas->file_lampiran,
-                'file_url' => $tugas->file_lampiran ? asset('storage/' . $tugas->file_lampiran) : null,
-                'mapel' => $tugas->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
-                'kelas' => $tugas->pengampuKelas?->kelas?->nama_kelas,
-                'pengampu_kelas_id' => $tugas->pengampu_kelas_id,
-                'pengumpulans' => $pengumpulans,
-            ],
+        return $this->successResponse([
+            'id' => $tugas->id,
+            'judul' => $tugas->judul,
+            'deskripsi' => $tugas->deskripsi,
+            'deadline' => $tugas->deadline,
+            'tipe' => $tugas->tipe,
+            'file_lampiran' => $tugas->file_lampiran,
+            'file_url' => $tugas->file_lampiran ? asset('storage/' . $tugas->file_lampiran) : null,
+            'mapel' => $tugas->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+            'kelas' => $tugas->pengampuKelas?->kelas?->nama_kelas,
+            'pengampu_kelas_id' => $tugas->pengampu_kelas_id,
+            'pengumpulans' => $pengumpulans,
         ]);
     }
 
@@ -191,11 +182,7 @@ class TugasController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal.',
-                'errors' => $validator->errors(),
-            ], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $pengampu = PengampuKelas::where('id', $request->pengampu_kelas_id)
@@ -204,7 +191,7 @@ class TugasController extends Controller
             })->first();
 
         if (!$pengampu) {
-            return response()->json(['success' => false, 'message' => 'Kelas/Mapel tidak valid atau bukan wewenang Anda.'], 403);
+            return $this->forbiddenResponse('Kelas/Mapel tidak valid atau bukan wewenang Anda.');
         }
 
         $filePath = null;
@@ -233,11 +220,7 @@ class TugasController extends Controller
             $tugas->id
         );
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Tugas berhasil dibuat.',
-            'data' => $tugas,
-        ], 201);
+        return $this->createdResponse($tugas, 'Tugas berhasil dibuat.');
     }
 
     /**
@@ -249,11 +232,11 @@ class TugasController extends Controller
 
         $tugas = Tugas::with('pengampuKelas.guruMapel')->find($id);
         if (!$tugas) {
-            return response()->json(['success' => false, 'message' => 'Tugas tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Tugas tidak ditemukan.');
         }
 
         if ($tugas->pengampuKelas?->guruMapel?->guru_id !== $guruId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            return $this->forbiddenResponse('Akses ditolak.');
         }
 
         $validator = Validator::make($request->all(), [
@@ -266,11 +249,7 @@ class TugasController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal.',
-                'errors' => $validator->errors(),
-            ], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $filePath = $tugas->file_lampiran;
@@ -290,11 +269,7 @@ class TugasController extends Controller
             'pengampu_kelas_id' => $request->pengampu_kelas_id,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Tugas berhasil diperbarui.',
-            'data' => $tugas,
-        ]);
+        return $this->successResponse($tugas, 'Tugas berhasil diperbarui.');
     }
 
     /**
@@ -306,11 +281,11 @@ class TugasController extends Controller
 
         $tugas = Tugas::with('pengampuKelas.guruMapel')->find($id);
         if (!$tugas) {
-            return response()->json(['success' => false, 'message' => 'Tugas tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Tugas tidak ditemukan.');
         }
 
         if ($tugas->pengampuKelas?->guruMapel?->guru_id !== $guruId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            return $this->forbiddenResponse('Akses ditolak.');
         }
 
         if ($tugas->file_lampiran && Storage::disk('public')->exists($tugas->file_lampiran)) {
@@ -319,10 +294,7 @@ class TugasController extends Controller
 
         $tugas->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Tugas berhasil dihapus.',
-        ]);
+        return $this->successResponse(null, 'Tugas berhasil dihapus.');
     }
 
     /**
@@ -337,20 +309,16 @@ class TugasController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal.',
-                'errors' => $validator->errors(),
-            ], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $pengumpulan = Nilai::with(['tugas.pengampuKelas.guruMapel', 'siswa.user'])->find($id);
         if (!$pengumpulan) {
-            return response()->json(['success' => false, 'message' => 'Data pengumpulan tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Data pengumpulan tidak ditemukan.');
         }
 
         if ($pengumpulan->tugas?->pengampuKelas?->guruMapel?->guru_id !== $guruId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            return $this->forbiddenResponse('Akses ditolak.');
         }
 
         $pengumpulan->update([
@@ -372,11 +340,7 @@ class TugasController extends Controller
             );
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Nilai siswa berhasil disimpan.',
-            'data' => $pengumpulan,
-        ]);
+        return $this->successResponse($pengumpulan, 'Nilai siswa berhasil disimpan.');
     }
 
     /**
@@ -389,7 +353,7 @@ class TugasController extends Controller
         $kelasId = $kelas?->id;
 
         if (!$kelasId) {
-            return response()->json(['success' => false, 'message' => 'Data kelas siswa tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Data kelas siswa tidak ditemukan.');
         }
 
         $daftarTugas = Tugas::with([
@@ -426,11 +390,7 @@ class TugasController extends Controller
             ];
         });
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Berhasil mengambil data tugas',
-            'data'    => $daftarTugas,
-        ]);
+        return $this->successResponse($daftarTugas, 'Berhasil mengambil data tugas');
     }
 
     /**
@@ -443,7 +403,7 @@ class TugasController extends Controller
         $kelasId = $kelas?->id;
 
         if (!$kelasId) {
-            return response()->json(['success' => false, 'message' => 'Data kelas siswa tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Data kelas siswa tidak ditemukan.');
         }
 
         $tugas = Tugas::with([
@@ -459,32 +419,29 @@ class TugasController extends Controller
         ->find($id);
 
         if (!$tugas) {
-            return response()->json(['success' => false, 'message' => 'Tugas tidak ditemukan atau bukan untuk kelas Anda.'], 404);
+            return $this->notFoundResponse('Tugas tidak ditemukan atau bukan untuk kelas Anda.');
         }
 
         $pengumpulan = $tugas->nilais->first();
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $tugas->id,
-                'judul' => $tugas->judul,
-                'deskripsi' => $tugas->deskripsi,
-                'deadline' => $tugas->deadline,
-                'tipe' => $tugas->tipe,
-                'file_lampiran' => $tugas->file_lampiran,
-                'file_url' => $tugas->file_lampiran ? asset('storage/' . $tugas->file_lampiran) : null,
-                'mapel' => $tugas->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
-                'guru' => $tugas->pengampuKelas?->guruMapel?->guru?->nama,
-                'is_deadline_passed' => Carbon::parse($tugas->deadline)->isPast(),
-                'submission' => $pengumpulan ? [
-                    'id' => $pengumpulan->id,
-                    'file_jawaban_url' => $pengumpulan->file_jawaban ? asset('storage/' . $pengumpulan->file_jawaban) : null,
-                    'nilai' => $pengumpulan->nilai,
-                    'status' => $pengumpulan->status,
-                    'submitted_at' => $pengumpulan->created_at,
-                ] : null,
-            ],
+        return $this->successResponse([
+            'id' => $tugas->id,
+            'judul' => $tugas->judul,
+            'deskripsi' => $tugas->deskripsi,
+            'deadline' => $tugas->deadline,
+            'tipe' => $tugas->tipe,
+            'file_lampiran' => $tugas->file_lampiran,
+            'file_url' => $tugas->file_lampiran ? asset('storage/' . $tugas->file_lampiran) : null,
+            'mapel' => $tugas->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+            'guru' => $tugas->pengampuKelas?->guruMapel?->guru?->nama,
+            'is_deadline_passed' => Carbon::parse($tugas->deadline)->isPast(),
+            'submission' => $pengumpulan ? [
+                'id' => $pengumpulan->id,
+                'file_jawaban_url' => $pengumpulan->file_jawaban ? asset('storage/' . $pengumpulan->file_jawaban) : null,
+                'nilai' => $pengumpulan->nilai,
+                'status' => $pengumpulan->status,
+                'submitted_at' => $pengumpulan->created_at,
+            ] : null,
         ]);
     }
 
@@ -498,7 +455,7 @@ class TugasController extends Controller
         $kelasId = $kelas?->id;
 
         if (!$kelasId) {
-            return response()->json(['success' => false, 'message' => 'Data kelas siswa tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Data kelas siswa tidak ditemukan.');
         }
 
         $tugas = Tugas::with(['pengampuKelas.guruMapel.guru.user', 'pengampuKelas.kelas'])
@@ -507,7 +464,7 @@ class TugasController extends Controller
             })->find($id);
 
         if (!$tugas) {
-            return response()->json(['success' => false, 'message' => 'Tugas tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Tugas tidak ditemukan.');
         }
 
         $validator = Validator::make($request->all(), [
@@ -515,11 +472,7 @@ class TugasController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal.',
-                'errors' => $validator->errors(),
-            ], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $isLate = now()->gt($tugas->deadline);
@@ -570,15 +523,11 @@ class TugasController extends Controller
             }
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Tugas berhasil dikumpulkan.',
-            'data' => [
-                'id' => $pengumpulan->id,
-                'file_jawaban_url' => asset('storage/' . $filePath),
-                'status' => $pengumpulan->status,
-                'is_late' => $isLate,
-            ],
-        ]);
+        return $this->successResponse([
+            'id' => $pengumpulan->id,
+            'file_jawaban_url' => asset('storage/' . $filePath),
+            'status' => $pengumpulan->status,
+            'is_late' => $isLate,
+        ], 'Tugas berhasil dikumpulkan.');
     }
 }

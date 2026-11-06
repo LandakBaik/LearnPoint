@@ -33,7 +33,7 @@ class UjianController extends Controller
         $guruId = $request->user()?->guru?->id ?? $request->user()?->guru_id;
 
         if (!$guruId) {
-            return response()->json(['success' => false, 'message' => 'Profil guru tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
         }
 
         $query = Ujian::with([
@@ -55,10 +55,7 @@ class UjianController extends Controller
 
         $ujians = $query->latest()->paginate(15);
 
-        return response()->json([
-            'success' => true,
-            'data' => $ujians,
-        ]);
+        return $this->successResponse($ujians);
     }
 
     /**
@@ -84,10 +81,7 @@ class UjianController extends Controller
                 ];
             });
 
-        return response()->json([
-            'success' => true,
-            'data' => $pengampuKelases,
-        ]);
+        return $this->successResponse($pengampuKelases);
     }
 
     /**
@@ -118,24 +112,21 @@ class UjianController extends Controller
             ];
         });
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $ujian->id,
-                'judul' => $ujian->judul,
-                'deskripsi' => $ujian->deskripsi,
-                'kisi_kisi' => $ujian->kisi_kisi,
-                'durasi_menit' => $ujian->durasi_menit,
-                'kkm' => $ujian->kkm,
-                'status' => $ujian->status,
-                'waktu_mulai' => $ujian->waktu_mulai,
-                'deadline' => $ujian->deadline,
-                'dipublikasi_at' => $ujian->dipublikasi_at,
-                'mapel' => $ujian->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
-                'kelas' => $ujian->pengampuKelas?->kelas?->nama_kelas,
-                'pengampu_kelas_id' => $ujian->pengampu_kelas_id,
-                'soals' => $soals,
-            ],
+        return $this->successResponse([
+            'id' => $ujian->id,
+            'judul' => $ujian->judul,
+            'deskripsi' => $ujian->deskripsi,
+            'kisi_kisi' => $ujian->kisi_kisi,
+            'durasi_menit' => $ujian->durasi_menit,
+            'kkm' => $ujian->kkm,
+            'status' => $ujian->status,
+            'waktu_mulai' => $ujian->waktu_mulai,
+            'deadline' => $ujian->deadline,
+            'dipublikasi_at' => $ujian->dipublikasi_at,
+            'mapel' => $ujian->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+            'kelas' => $ujian->pengampuKelas?->kelas?->nama_kelas,
+            'pengampu_kelas_id' => $ujian->pengampu_kelas_id,
+            'soals' => $soals,
         ]);
     }
 
@@ -166,7 +157,7 @@ class UjianController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'message' => 'Validasi gagal.', 'errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $validated = $validator->validated();
@@ -176,7 +167,7 @@ class UjianController extends Controller
         })->find($validated['pengampu_kelas_id']);
 
         if (!$pengampuKelas) {
-            return response()->json(['success' => false, 'message' => 'Kelas pengampu tidak valid.'], 403);
+            return $this->forbiddenResponse('Kelas pengampu tidak valid.');
         }
 
         $action = $request->input('action', 'draft');
@@ -185,7 +176,7 @@ class UjianController extends Controller
             $status = 'published';
         } elseif ($action === 'schedule') {
             if (empty($validated['waktu_mulai']) || empty($validated['deadline'])) {
-                return response()->json(['success' => false, 'message' => 'Waktu mulai dan deadline wajib diisi jika menjadwalkan ujian.'], 422);
+                return $this->errorResponse('Waktu mulai dan deadline wajib diisi jika menjadwalkan ujian.', 422);
             }
             $status = 'scheduled';
         }
@@ -245,11 +236,7 @@ class UjianController extends Controller
             );
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Ujian berhasil dibuat.',
-            'data' => $ujian,
-        ], 201);
+        return $this->createdResponse($ujian, 'Ujian berhasil dibuat.');
     }
 
     /**
@@ -272,7 +259,7 @@ class UjianController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'message' => 'Validasi gagal.', 'errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $validated = $validator->validated();
@@ -287,11 +274,7 @@ class UjianController extends Controller
             'deadline' => $validated['deadline'] ?? $ujian->deadline,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Ujian berhasil diperbarui.',
-            'data' => $ujian,
-        ]);
+        return $this->successResponse($ujian, 'Ujian berhasil diperbarui.');
     }
 
     /**
@@ -310,10 +293,7 @@ class UjianController extends Controller
 
         $ujian->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Ujian berhasil dihapus.',
-        ]);
+        return $this->successResponse(null, 'Ujian berhasil dihapus.');
     }
 
     /**
@@ -343,11 +323,7 @@ class UjianController extends Controller
             );
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Ujian berhasil dipublikasikan.',
-            'data' => $ujian,
-        ]);
+        return $this->successResponse($ujian, 'Ujian berhasil dipublikasikan.');
     }
 
     /**
@@ -364,7 +340,7 @@ class UjianController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['success' => false, 'message' => 'Validasi gagal.', 'errors' => $validator->errors()], 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
         $ujian->update([
@@ -373,11 +349,7 @@ class UjianController extends Controller
             'status' => 'scheduled',
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Ujian berhasil dijadwalkan.',
-            'data' => $ujian,
-        ]);
+        return $this->successResponse($ujian, 'Ujian berhasil dijadwalkan.');
     }
 
     /**
@@ -390,7 +362,7 @@ class UjianController extends Controller
         $kelasId = $kelas?->id;
 
         if (!$kelasId) {
-            return response()->json(['success' => false, 'message' => 'Data kelas siswa tidak ditemukan.'], 404);
+            return $this->notFoundResponse('Data kelas siswa tidak ditemukan.');
         }
 
         $ujians = Ujian::with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru'])
@@ -415,10 +387,7 @@ class UjianController extends Controller
                 ];
             });
 
-        return response()->json([
-            'success' => true,
-            'data' => $ujians,
-        ]);
+        return $this->successResponse($ujians);
     }
 
     /**
@@ -431,26 +400,23 @@ class UjianController extends Controller
         $kelasId = $kelas?->id;
 
         if (!$kelasId || $ujian->pengampuKelas?->kelas_id !== $kelasId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            return $this->forbiddenResponse('Akses ditolak.');
         }
 
         $ujian->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru']);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $ujian->id,
-                'judul' => $ujian->judul,
-                'deskripsi' => $ujian->deskripsi,
-                'kisi_kisi' => $ujian->kisi_kisi,
-                'durasi_menit' => $ujian->durasi_menit,
-                'kkm' => $ujian->kkm,
-                'status' => $ujian->status,
-                'waktu_mulai' => $ujian->waktu_mulai,
-                'deadline' => $ujian->deadline,
-                'mapel' => $ujian->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
-                'guru' => $ujian->pengampuKelas?->guruMapel?->guru?->nama,
-            ],
+        return $this->successResponse([
+            'id' => $ujian->id,
+            'judul' => $ujian->judul,
+            'deskripsi' => $ujian->deskripsi,
+            'kisi_kisi' => $ujian->kisi_kisi,
+            'durasi_menit' => $ujian->durasi_menit,
+            'kkm' => $ujian->kkm,
+            'status' => $ujian->status,
+            'waktu_mulai' => $ujian->waktu_mulai,
+            'deadline' => $ujian->deadline,
+            'mapel' => $ujian->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+            'guru' => $ujian->pengampuKelas?->guruMapel?->guru?->nama,
         ]);
     }
 }

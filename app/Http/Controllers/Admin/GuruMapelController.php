@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\GuruMapel;
 use App\Models\PengampuKelas;
 use Illuminate\Http\Request;
@@ -117,3 +118,4 @@ class GuruMapelController extends Controller
         return back()->with('success', 'Penugasan guru pengampu mapel berhasil dihapus!');
     }
 }
+
