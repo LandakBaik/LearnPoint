@@ -119,9 +119,15 @@ class MateriController extends Controller
                 ->get();
         }
 
-        // Ambil ujian untuk mapel ini
+        // Ambil ujian untuk mapel ini beserta nilai siswa
         if ($kelasId) {
-            $ujians = Ujian::with(['pengampuKelas.guruMapel.guru'])
+            $ujians = Ujian::with([
+                'pengampuKelas.guruMapel.guru',
+                'seleksiUjians' => function ($q) use ($siswa) {
+                    if ($siswa) $q->where('siswa_id', $siswa->id);
+                },
+                'seleksiUjians.nilais'
+            ])
                 ->whereHas('pengampuKelas', function ($query) use ($kelasId, $id) {
                     $query->where('kelas_id', $kelasId)
                         ->whereHas('guruMapel', function ($query) use ($id) {
@@ -135,7 +141,13 @@ class MateriController extends Controller
         }
 
         if ($ujians->isEmpty()) {
-            $ujians = Ujian::with(['pengampuKelas.guruMapel.guru'])
+            $ujians = Ujian::with([
+                'pengampuKelas.guruMapel.guru',
+                'seleksiUjians' => function ($q) use ($siswa) {
+                    if ($siswa) $q->where('siswa_id', $siswa->id);
+                },
+                'seleksiUjians.nilais'
+            ])
                 ->whereHas('pengampuKelas.guruMapel', function ($query) use ($id) {
                     $query->where('mapel_id', $id);
                 })
