@@ -45,8 +45,8 @@
                         <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] text-white font-extrabold text-3xl sm:text-4xl flex items-center justify-center shadow-lg shadow-blue-500/25 border-4 border-white">
                             {{ $initials }}
                         </div>
-                        <a href="{{ route('profile.edit') }}" class="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl bg-white text-blue-600 flex items-center justify-center shadow-md border border-blue-100 hover:bg-blue-50 transition" title="Edit Profil">
-                            <i class="fa-solid fa-pen text-xs"></i>
+                        <a href="{{ route('profile.edit') }}" class="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl bg-white text-blue-600 flex items-center justify-center shadow-md border border-blue-100 hover:bg-blue-50 transition" title="Ubah Kata Sandi">
+                            <i class="fa-solid fa-key text-xs"></i>
                         </a>
                     </div>
 
@@ -88,8 +88,8 @@
                 <!-- Right Action Button -->
                 <div class="flex items-center justify-center md:justify-end shrink-0 z-10">
                     <a href="{{ route('profile.edit') }}" class="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition shadow-md shadow-blue-500/20 inline-flex items-center gap-2">
-                        <i class="fa-solid fa-user-pen text-xs"></i>
-                        <span>Edit Informasi Akun</span>
+                        <i class="fa-solid fa-key text-xs"></i>
+                        <span>Ubah Kata Sandi</span>
                     </a>
                 </div>
             </div>
@@ -257,7 +257,7 @@
                 <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-white shadow-md overflow-hidden bg-indigo-600 text-white font-extrabold text-2xl sm:text-3xl flex items-center justify-center">
                     {{ strtoupper(substr($user->name, 0, 1)) }}
                 </div>
-                <a href="{{ route('profile.edit') }}" class="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center shadow hover:bg-blue-700 transition-colors" title="Ubah Profil">
+                <a href="{{ route('profile.edit') }}" class="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center shadow hover:bg-blue-700 transition-colors" title="{{ $user->isGuru() ? 'Edit Profil' : 'Ubah Kata Sandi' }}">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                 </a>
             </div>
@@ -371,7 +371,7 @@
             <div class="flex justify-end pt-4">
                 <a href="{{ route('profile.edit') }}" class="px-8 py-2.5 rounded-full bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors shadow-sm inline-flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    Edit Profil
+                    {{ $user->isGuru() ? 'Edit Profil' : 'Ubah Kata Sandi' }}
                 </a>
             </div>
         </div>
