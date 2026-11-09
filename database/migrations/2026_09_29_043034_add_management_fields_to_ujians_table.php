@@ -17,7 +17,7 @@ return new class extends Migration
                 'draft',
                 'scheduled',
                 'published',
-                'finished',
+                'completed',
             ])->default('draft');
 
             $table->dateTime('dipublikasi_at')->nullable();

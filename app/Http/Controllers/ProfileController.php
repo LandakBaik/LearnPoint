@@ -6,7 +6,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
@@ -44,51 +43,71 @@ class ProfileController extends Controller
 
     /**
      * Simpan Perubahan Profil User.
+     *
+     * Aturan Edit Profil:
+     * 1. Admin/Operator/Kepala Sekolah: Hanya bisa ganti password saja. Edit nama dan email tidak diperbolehkan.
+     * 2. Guru: Nama dan email tidak diperbolehkan diubah. Selain itu (nomor telepon, jenis kelamin, password) boleh diubah.
+     * 3. Siswa: Hanya bisa ganti password saja. Edit nama dan email tidak diperbolehkan.
      */
     public function update(Request $request)
     {
         /** @var User $user */
         $user = Auth::user();
 
-        $rules = [
-            'name'     => 'required|string|max:100',
-            'email'    => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'password' => 'nullable|string|min:6|confirmed',
-        ];
-
         if ($user->isGuru()) {
-            $rules['nomor_telepon'] = 'nullable|string|max:20|regex:/^[0-9+\-\s]+$/';
-            $rules['jenis_kelamin'] = 'nullable|in:Laki-laki,Perempuan';
+            // Guru: Boleh ubah nomor telepon, jenis kelamin, dan password (opsional)
+            $rules = [
+                'nomor_telepon' => 'nullable|string|max:20|regex:/^[0-9+\-\s]+$/',
+                'jenis_kelamin' => 'nullable|in:Laki-laki,Perempuan,L,P',
+                'password'      => 'nullable|string|min:6|confirmed',
+            ];
+
+            $messages = [
+                'nomor_telepon.regex' => 'Nomor telepon hanya boleh berisi angka, tanda plus (+), minus (-), atau spasi.',
+                'jenis_kelamin.in'    => 'Pilihan jenis kelamin tidak valid.',
+                'password.min'        => 'Kata sandi baru minimal harus 6 karakter.',
+                'password.confirmed'  => 'Konfirmasi kata sandi baru tidak cocok.',
+            ];
+        } else {
+            // Admin (operator / kepala_sekolah) & Siswa: Hanya bisa ubah password
+            $rules = [
+                'password' => 'required|string|min:6|confirmed',
+            ];
+
+            $messages = [
+                'password.required'  => 'Kata sandi baru wajib diisi.',
+                'password.min'       => 'Kata sandi baru minimal harus 6 karakter.',
+                'password.confirmed' => 'Konfirmasi kata sandi baru tidak cocok.',
+            ];
         }
 
-        $validated = $request->validate($rules, [
-            'nomor_telepon.regex' => 'Nomor telepon hanya boleh berisi angka, tanda plus (+), minus (-), atau spasi.',
-            'jenis_kelamin.in'    => 'Pilihan jenis kelamin tidak valid.',
-        ]);
+        $validated = $request->validate($rules, $messages);
 
-        $updateData = [
-            'name'  => $validated['name'],
-            'email' => $validated['email'],
-        ];
-
+        // Update password jika diisi
         if (!empty($validated['password'])) {
-            $updateData['password'] = Hash::make($validated['password']);
+            $user->update([
+                'password' => Hash::make($validated['password']),
+            ]);
         }
 
-        $user->update($updateData);
-
-        // Jika guru, sinkronkan nama, nomor telepon, dan jenis kelamin di tabel gurus
+        // Khusus Guru: update nomor_telepon & jenis_kelamin (nama & email TIDAK diubah)
         if ($user->isGuru() && $user->guru) {
-            $guruData = ['nama' => $validated['name']];
+            $guruData = [];
             if ($request->has('nomor_telepon')) {
                 $guruData['nomor_telepon'] = $validated['nomor_telepon'] ?? null;
             }
             if ($request->has('jenis_kelamin')) {
                 $guruData['jenis_kelamin'] = $validated['jenis_kelamin'] ?? null;
             }
-            $user->guru->update($guruData);
+            if (!empty($guruData)) {
+                $user->guru->update($guruData);
+            }
         }
 
-        return redirect()->route('profile.show')->with('success', 'Profil Anda berhasil diperbarui.');
+        $successMessage = $user->isGuru()
+            ? 'Profil Anda berhasil diperbarui.'
+            : 'Kata sandi Anda berhasil diperbarui.';
+
+        return redirect()->route('profile.show')->with('success', $successMessage);
     }
 }

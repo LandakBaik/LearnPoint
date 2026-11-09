@@ -380,12 +380,22 @@ class MateriController extends Controller
             $q->where('kelas_id', $kelasId);
         })
         ->with(['pengampuKelases' => function ($q) use ($kelasId) {
-            $q->where('kelas_id', $kelasId)->with(['guruMapel.guru', 'materis']);
+            $q->where('kelas_id', $kelasId)->with([
+                'guruMapel.guru',
+                'materis',
+                'quizzes' => function ($qq) {
+                    $qq->where('status', 'published');
+                },
+            ]);
         }])
         ->get()
         ->map(function ($mapel) {
             $materisCount = $mapel->pengampuKelases->sum(function ($pk) {
                 return $pk->materis->count();
+            });
+
+            $kuisCount = $mapel->pengampuKelases->sum(function ($pk) {
+                return $pk->quizzes->count();
             });
 
             $guruPengampu = $mapel->pengampuKelases->map(function ($pk) {
@@ -397,6 +407,7 @@ class MateriController extends Controller
                 'nama_mapel' => $mapel->nama_mapel,
                 'kode_mapel' => $mapel->kode_mapel,
                 'total_materi' => $materisCount,
+                'total_kuis' => $kuisCount,
                 'guru' => $guruPengampu,
             ];
         });

@@ -41,30 +41,24 @@ class ProfileController extends Controller
     }
 
     /**
-     * Perbarui data profil (Nama, Email, dan informasi spesifik role).
+     * Perbarui data profil (Hanya diperbolehkan untuk guru memperbarui kontak/biodata; Nama dan Email tidak dapat diubah).
      */
     public function update(Request $request)
     {
         /** @var User $user */
         $user = $request->user();
 
-        $rules = [
-            'name'     => ['required', 'string', 'max:100'],
-            'email'    => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-        ];
-
-        if ($user->isGuru()) {
-            $rules['nomor_telepon'] = ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s]+$/'];
-            $rules['jenis_kelamin'] = ['nullable', 'in:Laki-laki,Perempuan'];
-            $rules['alamat']        = ['nullable', 'string', 'max:500'];
-        } elseif ($user->isSiswa()) {
-            $rules['alamat']        = ['nullable', 'string', 'max:500'];
-            $rules['nohp_wali']     = ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s]+$/'];
+        if (!$user->isGuru()) {
+            return $this->errorResponse('Nama dan email tidak diperbolehkan untuk diubah. Peran Anda hanya dapat memperbarui kata sandi akun.', 403);
         }
+
+        $rules = [
+            'nomor_telepon' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s]+$/'],
+            'jenis_kelamin' => ['nullable', 'in:Laki-laki,Perempuan,L,P'],
+        ];
 
         $validator = Validator::make($request->all(), $rules, [
             'nomor_telepon.regex' => 'Nomor telepon hanya boleh berisi angka, tanda plus (+), minus (-), atau spasi.',
-            'nohp_wali.regex'     => 'Nomor HP wali hanya boleh berisi angka, tanda plus (+), minus (-), atau spasi.',
             'jenis_kelamin.in'    => 'Pilihan jenis kelamin harus Laki-laki atau Perempuan.',
         ]);
 
@@ -74,34 +68,17 @@ class ProfileController extends Controller
 
         $validated = $validator->validated();
 
-        $user->update([
-            'name'  => $validated['name'],
-            'email' => $validated['email'],
-        ]);
-
-        if ($user->isGuru() && $user->guru) {
-            $guruData = ['nama' => $validated['name']];
+        if ($user->guru) {
+            $guruData = [];
             if ($request->has('nomor_telepon')) {
                 $guruData['nomor_telepon'] = $validated['nomor_telepon'] ?? null;
             }
             if ($request->has('jenis_kelamin')) {
                 $guruData['jenis_kelamin'] = $validated['jenis_kelamin'] ?? null;
             }
-            if ($request->has('alamat')) {
-                $guruData['alamat'] = $validated['alamat'] ?? null;
+            if (!empty($guruData)) {
+                $user->guru->update($guruData);
             }
-            $user->guru->update($guruData);
-        }
-
-        if ($user->isSiswa() && $user->siswa) {
-            $siswaData = ['nama_siswa' => $validated['name']];
-            if ($request->has('alamat')) {
-                $siswaData['alamat'] = $validated['alamat'] ?? null;
-            }
-            if ($request->has('nohp_wali')) {
-                $siswaData['nohp_wali'] = $validated['nohp_wali'] ?? null;
-            }
-            $user->siswa->update($siswaData);
         }
 
         return $this->successResponse([
@@ -113,8 +90,8 @@ class ProfileController extends Controller
                 'role'     => $user->role,
                 'status'   => $user->status,
             ],
-            'detail' => $user->isGuru() ? $user->guru : ($user->isSiswa() ? $user->siswa : null),
-        ], 'Profil berhasil diperbarui.');
+            'detail' => $user->guru,
+        ], 'Profil guru berhasil diperbarui.');
     }
 
     /**

@@ -622,7 +622,9 @@ class QuizController extends Controller
             'pengampuKelas.guruMapel.mapel',
             'pengampuKelas.guruMapel.guru',
             'nilais' => function ($q) use ($siswa) {
-                $q->where('siswa_id', $siswa->id);
+                if ($siswa) {
+                    $q->where('siswa_id', $siswa->id);
+                }
             },
         ])
         ->withCount('soals');
@@ -641,6 +643,7 @@ class QuizController extends Controller
                 'judul'           => $quiz->judul,
                 'deskripsi'       => $quiz->deskripsi,
                 'kesulitan_aktif' => $quiz->kesulitan_aktif_array,
+                'mapel_id'        => $quiz->pengampuKelas?->guruMapel?->mapel_id,
                 'mapel'           => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
                 'guru'            => $quiz->pengampuKelas?->guruMapel?->guru?->nama,
                 'total_soal'      => $quiz->soals_count,
@@ -677,16 +680,41 @@ class QuizController extends Controller
             return $this->forbiddenResponse('Kuis belum dipublikasikan oleh guru.');
         }
 
-        $quiz->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru']);
+        $quiz->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru', 'soals']);
 
         $soalCountsByArc = [];
         foreach ($quiz->kesulitan_aktif_array as $arc) {
-            $soalCountsByArc[$arc] = $quiz->soals()->where('kesulitan', $arc)->count();
+            $soalCountsByArc[$arc] = $quiz->soals->where('kesulitan', $arc)->count();
         }
 
-        $riwayatNilai = Nilai::where('siswa_id', $siswa->id)
-            ->where('quiz_id', $quiz->id)
-            ->first();
+        $soalIds = $quiz->soals->pluck('id');
+        $answeredSoalIds = $siswa
+            ? Menjawab::where('siswa_id', $siswa->id)
+                ->whereIn('soal_id', $soalIds)
+                ->pluck('soal_id')
+                ->toArray()
+            : [];
+
+        $levelsInfo = [];
+        foreach (Quiz::LEVEL_LIST as $index => $lvl) {
+            $soalsInLevel = $quiz->soals->where('level', $lvl);
+            $count = $soalsInLevel->count();
+            $answeredCount = $soalsInLevel->whereIn('id', $answeredSoalIds)->count();
+            $levelsInfo[] = [
+                'level_number'   => $index + 1,
+                'level'          => $lvl,
+                'total_soal'     => $count,
+                'answered_soal'  => $answeredCount,
+                'is_completed'   => $count > 0 && $answeredCount >= $count,
+                'is_unlocked'    => $count > 0,
+            ];
+        }
+
+        $riwayatNilai = $siswa
+            ? Nilai::where('siswa_id', $siswa->id)
+                ->where('quiz_id', $quiz->id)
+                ->first()
+            : null;
 
         return $this->successResponse([
             'id'                 => $quiz->id,
@@ -699,6 +727,7 @@ class QuizController extends Controller
             'mapel'              => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
             'guru'               => $quiz->pengampuKelas?->guruMapel?->guru?->nama,
             'soal_counts_by_arc' => $soalCountsByArc,
+            'levels'             => $levelsInfo,
             'is_completed'       => $riwayatNilai !== null,
             'result'             => $riwayatNilai ? [
                 'id'           => $riwayatNilai->id,
@@ -711,7 +740,7 @@ class QuizController extends Controller
     }
 
     /**
-     * SISWA: Ambil daftar butir soal kuis untuk dikerjakan (Kunci jawaban dirahasiakan).
+     * SISWA: Ambil daftar butir soal kuis untuk dikerjakan.
      */
     public function siswaKerjakan(Request $request, Quiz $quiz)
     {
@@ -727,9 +756,11 @@ class QuizController extends Controller
             return $this->forbiddenResponse('Kuis belum dipublikasikan.');
         }
 
-        // Cek apakah siswa sudah pernah mengerjakan kuis ini
+        // Cek apakah siswa sudah pernah menyelesaikan seluruh kuis ini
         $existing = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
-        if ($existing) {
+        $totalSoalQuiz = $quiz->soals()->count();
+        $answeredCount = Menjawab::where('siswa_id', $siswa->id)->whereIn('soal_id', $quiz->soals()->pluck('id'))->count();
+        if ($existing && $totalSoalQuiz > 0 && $answeredCount >= $totalSoalQuiz) {
             return $this->errorResponse('Anda telah menyelesaikan kuis ini sebelumnya.', 400, [
                 'nilai'        => $existing->nilai,
                 'completed_at' => $existing->created_at,
@@ -751,7 +782,13 @@ class QuizController extends Controller
         }
 
         if ($request->filled('level')) {
-            $query->where('level', $request->level);
+            $lvlInput = $request->level;
+            $levelNum = (int) preg_replace('/[^0-9]/', '', (string) $lvlInput);
+            if ($levelNum >= 1 && $levelNum <= Quiz::MAX_LEVEL) {
+                $query->where('level', 'Level ' . $levelNum);
+            } else {
+                $query->where('level', $lvlInput);
+            }
         }
 
         $soals = $query->orderBy('urutan')->get()->map(function ($s) use ($quiz) {
@@ -766,16 +803,27 @@ class QuizController extends Controller
                 $pilihan = $shuffled;
             }
 
+            $kunci = $s->kunci_jawaban;
+            if (is_array($kunci)) {
+                $kunci = $kunci[0] ?? 'a';
+            } elseif (is_string($kunci)) {
+                $decoded = json_decode($kunci, true);
+                if (is_array($decoded)) {
+                    $kunci = $decoded[0] ?? 'a';
+                }
+            }
+
             return [
-                'id'         => $s->id,
-                'urutan'     => $s->urutan,
-                'kesulitan'  => $s->kesulitan,
-                'level'      => $s->level,
-                'tipe_soal'  => $s->tipe_soal,
-                'pertanyaan' => $s->pertanyaan,
-                'pilihan'    => $pilihan,
-                'gambar_url' => $s->gambar ? asset('storage/' . $s->gambar) : null,
-                'bobot'      => $s->bobot,
+                'id'            => $s->id,
+                'urutan'        => $s->urutan,
+                'kesulitan'     => $s->kesulitan,
+                'level'         => $s->level,
+                'tipe_soal'     => $s->tipe_soal,
+                'pertanyaan'    => $s->pertanyaan,
+                'pilihan'       => $pilihan,
+                'kunci_jawaban' => strtolower(trim((string) $kunci)),
+                'gambar_url'    => $s->gambar ? asset('storage/' . $s->gambar) : null,
+                'bobot'         => $s->bobot,
             ];
         });
 
@@ -807,9 +855,11 @@ class QuizController extends Controller
             return $this->forbiddenResponse('Kuis belum dipublikasikan.');
         }
 
-        // Cegah duplikasi submit
+        // Cegah duplikasi submit jika seluruh kuis sudah tuntas
         $existing = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
-        if ($existing) {
+        $totalSoalQuiz = $quiz->soals()->count();
+        $answeredCount = Menjawab::where('siswa_id', $siswa->id)->whereIn('soal_id', $quiz->soals()->pluck('id'))->count();
+        if ($existing && $totalSoalQuiz > 0 && $answeredCount >= $totalSoalQuiz) {
             return $this->errorResponse('Jawaban kuis Anda sebelumnya sudah tersimpan.', 400, [
                 'nilai'  => $existing->nilai,
                 'durasi' => $existing->durasi,
@@ -836,20 +886,37 @@ class QuizController extends Controller
         $jumlahBenar = 0;
         $jumlahSalah = 0;
 
-        $nilaiRecord = null;
+        $wasAlreadyCompleted = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->exists();
 
-        DB::transaction(function () use ($soals, $request, $siswa, $quiz, &$skorDidapat, &$jumlahBenar, &$jumlahSalah, $totalBobot, &$nilaiRecord) {
+        $nilaiRecord = DB::transaction(function () use ($soals, $request, $siswa, $quiz, &$skorDidapat, &$jumlahBenar, &$jumlahSalah, $totalBobot) {
+            // 1. Simpan jawaban yang dikirim pada sesi/level ini terlebih dahulu
+            $submittedAnswers = $request->input('jawaban', []);
             foreach ($soals as $soal) {
-                $jawabanUser = $request->input("jawaban.{$soal->id}");
+                $jawabanUser = $submittedAnswers[$soal->id] ?? $submittedAnswers[(string) $soal->id] ?? null;
+
+                // Jika tidak dikirim di request ini (misal sedang submit per level), ambil dari riwayat Menjawab sebelumnya
+                if ($jawabanUser === null) {
+                    $existingAns = Menjawab::where('soal_id', $soal->id)
+                        ->where('siswa_id', $siswa->id)
+                        ->first();
+                    if ($existingAns) {
+                        $jawabanUser = $existingAns->jawaban_dipilih;
+                    }
+                }
+
                 $isBenar = false;
 
-                if ($jawabanUser !== null) {
+                if ($jawabanUser !== null && $jawabanUser !== '') {
                     $kunci = $soal->kunci_jawaban;
-                    $decodedKunci = json_decode($kunci, true);
-                    if (is_array($decodedKunci)) {
-                        $isBenar = in_array(strtolower(trim($jawabanUser)), array_map('strtolower', $decodedKunci));
+                    if (is_array($kunci)) {
+                        $isBenar = in_array(strtolower(trim((string) $jawabanUser)), array_map('strtolower', $kunci));
                     } else {
-                        $isBenar = strtolower(trim((string) $jawabanUser)) === strtolower(trim((string) $kunci));
+                        $decodedKunci = json_decode((string) $kunci, true);
+                        if (is_array($decodedKunci)) {
+                            $isBenar = in_array(strtolower(trim((string) $jawabanUser)), array_map('strtolower', $decodedKunci));
+                        } else {
+                            $isBenar = strtolower(trim((string) $jawabanUser)) === strtolower(trim((string) $kunci));
+                        }
                     }
 
                     if ($isBenar) {
@@ -858,21 +925,21 @@ class QuizController extends Controller
                     } else {
                         $jumlahSalah++;
                     }
+
+                    // Simpan ke tabel menjawabs
+                    Menjawab::updateOrCreate(
+                        [
+                            'soal_id'  => $soal->id,
+                            'siswa_id' => $siswa->id,
+                        ],
+                        [
+                            'jawaban_dipilih' => is_array($jawabanUser) ? json_encode($jawabanUser) : (string) $jawabanUser,
+                            'benar'           => $isBenar,
+                        ]
+                    );
                 } else {
                     $jumlahSalah++;
                 }
-
-                // Simpan ke tabel menjawabs
-                Menjawab::updateOrCreate(
-                    [
-                        'soal_id'  => $soal->id,
-                        'siswa_id' => $siswa->id,
-                    ],
-                    [
-                        'jawaban_dipilih' => is_array($jawabanUser) ? json_encode($jawabanUser) : (string) $jawabanUser,
-                        'benar'           => $isBenar,
-                    ]
-                );
             }
 
             $nilaiAkhir = $totalBobot > 0 ? round(($skorDidapat / $totalBobot) * 100, 2) : 0;
@@ -892,7 +959,7 @@ class QuizController extends Controller
                 }
             }
 
-            $nilaiRecord = Nilai::updateOrCreate(
+            return Nilai::updateOrCreate(
                 [
                     'siswa_id' => $siswa->id,
                     'quiz_id'  => $quiz->id,
@@ -905,20 +972,22 @@ class QuizController extends Controller
             );
         });
 
-        // Kirim notifikasi interaktif ke Guru pengampu
-        $guruUser = $quiz->pengampuKelas?->guruMapel?->guru?->user;
-        if ($guruUser) {
-            $namaSiswa = $siswa->nama_siswa ?? $user->name;
-            $namaKelas = $quiz->pengampuKelas?->kelas?->nama_kelas ?? 'Kelas';
-            Notifikasi::kirim(
-                $guruUser->id,
-                "Kuis Selesai Dikerjakan: {$quiz->judul}",
-                "Siswa {$namaSiswa} ({$namaKelas}) telah menyelesaikan kuis petualangan '{$quiz->judul}' dengan nilai {$nilaiRecord->nilai}.",
-                'kuis_selesai',
-                route('guru.kuis.show', $quiz->id),
-                $quiz->id,
-                ['siswa_id' => $siswa->id, 'quiz_id' => $quiz->id, 'nilai' => $nilaiRecord->nilai]
-            );
+        // Kirim notifikasi interaktif ke Guru pengampu (hanya saat pertama kali selesai agar tidak spam)
+        if (!$wasAlreadyCompleted) {
+            $guruUser = $quiz->pengampuKelas?->guruMapel?->guru?->user;
+            if ($guruUser) {
+                $namaSiswa = $siswa->nama_siswa ?? $user->name;
+                $namaKelas = $quiz->pengampuKelas?->kelas?->nama_kelas ?? 'Kelas';
+                Notifikasi::kirim(
+                    $guruUser->id,
+                    "Kuis Selesai Dikerjakan: {$quiz->judul}",
+                    "Siswa {$namaSiswa} ({$namaKelas}) telah menyelesaikan kuis petualangan '{$quiz->judul}' dengan nilai {$nilaiRecord->nilai}.",
+                    'kuis_selesai',
+                    route('guru.kuis.show', $quiz->id),
+                    $quiz->id,
+                    ['siswa_id' => $siswa->id, 'quiz_id' => $quiz->id, 'nilai' => $nilaiRecord->nilai]
+                );
+            }
         }
 
         return $this->successResponse([
