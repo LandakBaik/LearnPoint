@@ -74,7 +74,7 @@ class GuruController extends Controller
             'nama'                      => 'required|string|max:100|regex:/^[a-zA-Z\s\.,]+$/u',
             'nuptk'                     => 'required|numeric|digits:16|unique:gurus,nuptk',
             'jenis_kelamin'             => 'nullable|in:Laki-laki,Perempuan,L,P',
-            'nomor_telepon'             => 'nullable|string|max:20|regex:/^[0-9+\-\s]+$/',
+            'nomor_telepon'             => 'nullable|string|regex:/^[0-9]{10,13}$/',
             'assignments'               => 'nullable|array',
             'assignments.*.mapel_id'    => 'nullable|exists:mapels,id',
             'assignments.*.kelas_id'    => 'nullable|exists:kelases,id',
@@ -85,7 +85,7 @@ class GuruController extends Controller
             'nuptk.numeric'       => 'NUPTK guru harus berupa angka.',
             'nuptk.digits'        => 'NUPTK guru harus tepat 16 digit angka.',
             'nuptk.unique'        => 'NUPTK ini sudah terdaftar untuk guru lain.',
-            'nomor_telepon.regex' => 'Nomor telepon hanya boleh berisi angka, tanda plus (+), minus (-), atau spasi.',
+            'nomor_telepon.regex' => 'Nomor telepon harus berupa angka dan berisikan 10 hingga 13 digit.',
         ]);
 
         $guru = Guru::create([
@@ -179,7 +179,7 @@ class GuruController extends Controller
             'nama'            => 'required|string|max:100|regex:/^[a-zA-Z\s\.,]+$/u',
             'nuptk'           => ['required', 'numeric', 'digits:16', Rule::unique('gurus')->ignore($guru->id)],
             'jenis_kelamin'   => 'nullable|in:Laki-laki,Perempuan,L,P',
-            'nomor_telepon'   => 'nullable|string|max:20|regex:/^[0-9+\-\s]+$/',
+            'nomor_telepon'   => 'nullable|string|regex:/^[0-9]{10,13}$/',
             'new_mapel_id'    => 'nullable|exists:mapels,id',
             'new_kelas_ids'   => 'nullable|array',
             'new_kelas_ids.*' => 'exists:kelases,id',
@@ -189,7 +189,7 @@ class GuruController extends Controller
             'nuptk.numeric'       => 'NUPTK guru harus berupa angka.',
             'nuptk.digits'        => 'NUPTK guru harus tepat 16 digit angka.',
             'nuptk.unique'        => 'NUPTK ini sudah terdaftar untuk guru lain.',
-            'nomor_telepon.regex' => 'Nomor telepon hanya boleh berisi angka, tanda plus (+), minus (-), atau spasi.',
+            'nomor_telepon.regex' => 'Nomor telepon harus berupa angka dan berisikan 10 hingga 13 digit.',
         ]);
 
         $updateGuru = [

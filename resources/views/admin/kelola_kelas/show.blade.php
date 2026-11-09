@@ -68,7 +68,7 @@
             </div>
             @if($kelas->guru)
                 <h4 class="text-base font-bold text-slate-900 leading-snug">{{ $kelas->guru->nama }}</h4>
-                <p class="text-xs text-slate-500 mt-0.5">NIP: {{ $kelas->guru->nip }}</p>
+                <p class="text-xs text-slate-500 mt-0.5">NUPTK: {{ $kelas->guru->nuptk }}</p>
                 <a href="{{ route('guru.show', $kelas->guru->id) }}" class="text-xs text-blue-600 font-semibold hover:underline mt-2 inline-flex items-center gap-1">
                     <span>Lihat Profil Wali</span>
                     <span>&rarr;</span>
@@ -131,7 +131,7 @@
                             <th class="py-3 px-4">Mata Pelajaran</th>
                             <th class="py-3 px-4">Standar KKM</th>
                             <th class="py-3 px-4">Guru Pengampu</th>
-                            <th class="py-3 px-4">NIP</th>
+                            <th class="py-3 px-4">NUPTK</th>
                             <th class="py-3 px-4 text-right pr-4">Aksi</th>
                         </tr>
                     </thead>
@@ -170,7 +170,7 @@
                                     </div>
                                 </td>
                                 <td class="py-3.5 px-4 text-xs text-slate-500">
-                                    {{ $gm->guru->nip ?? '-' }}
+                                    {{ $gm->guru->nuptk ?? '-' }}
                                 </td>
                                 <td class="py-3.5 px-4 text-right pr-4 whitespace-nowrap">
                                     <form action="{{ route('guru-mapel.destroy', $gm->id) }}" method="POST" data-confirm="Hapus penugasan guru {{ $gm->guru->nama ?? '' }} untuk mapel ini di kelas {{ $kelas->nama_kelas }}?" class="inline">
@@ -394,7 +394,7 @@
                         >
                             <option value="">-- Pilih Guru --</option>
                             @foreach($allGurus as $guru)
-                                <option value="{{ $guru->id }}">{{ $guru->nama }} (NIP: {{ $guru->nip }})</option>
+                                <option value="{{ $guru->id }}">{{ $guru->nama }} (NUPTK: {{ $guru->nuptk }})</option>
                             @endforeach
                         </select>
                     </div>
