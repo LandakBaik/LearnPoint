@@ -85,13 +85,19 @@
                 <div>
                     <label for="nomor_telepon" class="block text-sm font-bold text-gray-700 mb-1">Nomor Telepon / WhatsApp</label>
                     <input 
-                        type="text" 
+                        type="tel" 
                         id="nomor_telepon" 
                         name="nomor_telepon" 
                         value="{{ old('nomor_telepon') }}" 
                         placeholder="Contoh: 081234567890" 
+                        maxlength="13"
+                        minlength="10"
+                        pattern="[0-9]{10,13}"
+                        inputmode="numeric"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 13)"
                         class="w-full px-4 py-2.5 rounded-xl border @error('nomor_telepon') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
+                    <p class="text-[11px] text-gray-400 mt-1">Hanya angka, 10 - 13 digit.</p>
                     @error('nomor_telepon')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror

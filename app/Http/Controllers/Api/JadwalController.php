@@ -70,7 +70,7 @@ class JadwalController extends Controller
                 return [
                     'mapel' => $pk->guruMapel?->mapel?->nama_mapel,
                     'guru' => $pk->guruMapel?->guru?->nama,
-                    'nip' => $pk->guruMapel?->guru?->nip,
+                    'nuptk' => $pk->guruMapel?->guru?->nuptk,
                 ];
             });
 

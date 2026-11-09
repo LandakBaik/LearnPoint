@@ -56,45 +56,45 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Nama Lengkap (Read-only) -->
                     <div class="space-y-1.5">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">
                             Nama Lengkap
                         </label>
                         <div class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-100 text-sm text-slate-700 font-medium flex items-center justify-between cursor-not-allowed select-none">
                             <span>{{ $user->name }}</span>
-                            <span class="text-[11px] font-sans text-slate-400 bg-white px-2 py-0.5 rounded-lg border border-slate-200">Tidak dapat diubah</span>
+                            <span class="text-[11px] text-slate-400 bg-white px-2 py-0.5 rounded-lg border border-slate-200">Tidak dapat diubah</span>
                         </div>
                     </div>
 
                     <!-- Email (Read-only) -->
                     <div class="space-y-1.5">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">
                             Alamat Email
                         </label>
                         <div class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-100 text-sm text-slate-700 font-medium flex items-center justify-between cursor-not-allowed select-none">
                             <span>{{ $user->email }}</span>
-                            <span class="text-[11px] font-sans text-slate-400 bg-white px-2 py-0.5 rounded-lg border border-slate-200">Tidak dapat diubah</span>
+                            <span class="text-[11px] text-slate-400 bg-white px-2 py-0.5 rounded-lg border border-slate-200">Tidak dapat diubah</span>
                         </div>
                     </div>
 
                     <!-- NIS (Read-only) -->
                     <div class="space-y-1.5">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">
                             Nomor Induk Siswa (NIS)
                         </label>
-                        <div class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-100 text-sm text-slate-600 font-mono flex items-center justify-between cursor-not-allowed select-none">
+                        <div class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-100 text-sm text-slate-700 font-medium flex items-center justify-between cursor-not-allowed select-none">
                             <span>{{ $user->siswa?->nis ?? '-' }}</span>
-                            <span class="text-[11px] font-sans text-slate-400 bg-white px-2 py-0.5 rounded-lg border border-slate-200">Permanen</span>
+                            <span class="text-[11px] text-slate-400 bg-white px-2 py-0.5 rounded-lg border border-slate-200">Permanen</span>
                         </div>
                     </div>
 
                     <!-- Username (Read-only) -->
                     <div class="space-y-1.5">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">
                             Username
                         </label>
-                        <div class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-100 text-sm text-slate-600 font-mono flex items-center justify-between cursor-not-allowed select-none">
+                        <div class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-100 text-sm text-slate-700 font-medium flex items-center justify-between cursor-not-allowed select-none">
                             <span>{{ $user->username }}</span>
-                            <span class="text-[11px] font-sans text-slate-400 bg-white px-2 py-0.5 rounded-lg border border-slate-200">Permanen</span>
+                            <span class="text-[11px] text-slate-400 bg-white px-2 py-0.5 rounded-lg border border-slate-200">Permanen</span>
                         </div>
                     </div>
                 </div>
@@ -228,9 +228,9 @@
                         <!-- NUPTK (Read-only) -->
                         <div class="space-y-1.5">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">NUPTK</label>
-                            <div class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-100 text-sm text-gray-700 font-mono flex items-center justify-between cursor-not-allowed select-none">
+                            <div class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-100 text-sm text-gray-700 font-medium flex items-center justify-between cursor-not-allowed select-none">
                                 <span>{{ $user->nuptk ?? $user->guru?->nuptk ?? $user->username }}</span>
-                                <span class="text-[11px] font-sans text-gray-400 bg-white px-2 py-0.5 rounded-md border border-gray-200">Permanen</span>
+                                <span class="text-[11px] text-gray-400 bg-white px-2 py-0.5 rounded-md border border-gray-200">Permanen</span>
                             </div>
                         </div>
 
@@ -239,7 +239,7 @@
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Peran Pengguna</label>
                             <div class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-100 text-sm text-blue-700 font-semibold flex items-center justify-between cursor-not-allowed select-none">
                                 <span>Guru Pengajar</span>
-                                <span class="text-[11px] font-sans text-gray-400 bg-white px-2 py-0.5 rounded-md border border-gray-200">Sistem</span>
+                                <span class="text-[11px] text-gray-400 bg-white px-2 py-0.5 rounded-md border border-gray-200">Sistem</span>
                             </div>
                         </div>
                     @else
@@ -248,15 +248,15 @@
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Peran Pengguna</label>
                             <div class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-100 text-sm text-blue-700 font-semibold flex items-center justify-between cursor-not-allowed select-none">
                                 <span>{{ ucfirst($user->role) }}</span>
-                                <span class="text-[11px] font-sans text-gray-400 bg-white px-2 py-0.5 rounded-md border border-gray-200">Sistem</span>
+                                <span class="text-[11px] text-gray-400 bg-white px-2 py-0.5 rounded-md border border-gray-200">Sistem</span>
                             </div>
                         </div>
 
                         <div class="space-y-1.5">
                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Username</label>
-                            <div class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-100 text-sm text-gray-700 font-mono flex items-center justify-between cursor-not-allowed select-none">
+                            <div class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-100 text-sm text-gray-700 font-medium flex items-center justify-between cursor-not-allowed select-none">
                                 <span>{{ $user->username }}</span>
-                                <span class="text-[11px] font-sans text-gray-400 bg-white px-2 py-0.5 rounded-md border border-gray-200">Permanen</span>
+                                <span class="text-[11px] text-gray-400 bg-white px-2 py-0.5 rounded-md border border-gray-200">Permanen</span>
                             </div>
                         </div>
                     @endif
@@ -277,13 +277,19 @@
                                 Nomor Telepon
                             </label>
                             <input 
-                                type="text" 
+                                type="tel" 
                                 id="nomor_telepon" 
                                 name="nomor_telepon" 
                                 value="{{ old('nomor_telepon', $user->guru?->nomor_telepon) }}" 
                                 placeholder="Contoh: 081234567890" 
+                                maxlength="13"
+                                minlength="10"
+                                pattern="[0-9]{10,13}"
+                                inputmode="numeric"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 13)"
                                 class="w-full px-4 py-2.5 rounded-xl border @error('nomor_telepon') border-rose-400 bg-rose-50/30 @else border-gray-300 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
+                            <p class="text-[11px] text-gray-400">Hanya angka, 10 - 13 digit.</p>
                             @error('nomor_telepon')
                                 <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                             @enderror

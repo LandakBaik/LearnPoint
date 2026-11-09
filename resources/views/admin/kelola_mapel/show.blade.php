@@ -122,7 +122,7 @@
                     <thead>
                         <tr class="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                             <th class="py-3.5 px-6">Nama Guru Pengampu</th>
-                            <th class="py-3.5 px-4">NIP</th>
+                            <th class="py-3.5 px-4">NUPTK</th>
                             <th class="py-3.5 px-4">Kelas yang Diajar</th>
                             <th class="py-3.5 px-4 text-center">Total Kelas</th>
                         </tr>
@@ -147,7 +147,7 @@
                                     </div>
                                 </td>
                                 <td class="py-3.5 px-4 text-slate-500">
-                                    {{ $first->guru->nip ?? '-' }}
+                                    {{ $first->guru->nuptk ?? '-' }}
                                 </td>
                                 <td class="py-3.5 px-4">
                                     <div class="flex flex-wrap items-center gap-1.5">
@@ -286,7 +286,7 @@
                         >
                             <option value="">-- Pilih Guru --</option>
                             @foreach($gurus as $guru)
-                                <option value="{{ $guru->id }}">{{ $guru->nama }} (NIP: {{ $guru->nip }})</option>
+                                <option value="{{ $guru->id }}">{{ $guru->nama }} (NUPTK: {{ $guru->nuptk }})</option>
                             @endforeach
                         </select>
                     </div>

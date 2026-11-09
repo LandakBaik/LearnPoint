@@ -157,4 +157,61 @@ class GuruNuptkAndProfileTest extends TestCase
         // Password berhasil diubah
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('passwordbaru123', $siswaUser->fresh()->password));
     }
+
+    public function test_guru_nomor_telepon_must_be_10_to_13_digits_and_numbers_only(): void
+    {
+        $guru = Guru::create([
+            'nama'          => 'Budi Santoso, S.Pd.',
+            'nuptk'         => '9876543210987654',
+            'status'        => 'aktif',
+            'nomor_telepon' => null,
+            'jenis_kelamin' => null,
+        ]);
+
+        $userGuru = User::factory()->create([
+            'name'     => 'Budi Santoso, S.Pd.',
+            'email'    => 'budi@guru.learnpoint.sch.id',
+            'username' => '9876543210987654',
+            'role'     => 'guru',
+            'status'   => 'aktif',
+            'guru_id'  => $guru->id,
+        ]);
+
+        // Kurang dari 10 digit (9 digit)
+        $response = $this->actingAs($userGuru)->put(route('profile.update'), [
+            'nomor_telepon' => '081234567',
+        ]);
+        $response->assertSessionHasErrors(['nomor_telepon']);
+
+        // Lebih dari 13 digit (14 digit)
+        $response = $this->actingAs($userGuru)->put(route('profile.update'), [
+            'nomor_telepon' => '08123456789012',
+        ]);
+        $response->assertSessionHasErrors(['nomor_telepon']);
+
+        // Mengandung karakter non-angka (tanda plus, minus, huruf)
+        $response = $this->actingAs($userGuru)->put(route('profile.update'), [
+            'nomor_telepon' => '+62812345678',
+        ]);
+        $response->assertSessionHasErrors(['nomor_telepon']);
+
+        $response = $this->actingAs($userGuru)->put(route('profile.update'), [
+            'nomor_telepon' => '0812-3456-789',
+        ]);
+        $response->assertSessionHasErrors(['nomor_telepon']);
+
+        // Tepat 10 digit angka -> Berhasil
+        $response = $this->actingAs($userGuru)->put(route('profile.update'), [
+            'nomor_telepon' => '0812345678',
+        ]);
+        $response->assertSessionHasNoErrors();
+        $this->assertEquals('0812345678', $guru->fresh()->nomor_telepon);
+
+        // Tepat 13 digit angka -> Berhasil
+        $response = $this->actingAs($userGuru)->put(route('profile.update'), [
+            'nomor_telepon' => '0812345678901',
+        ]);
+        $response->assertSessionHasNoErrors();
+        $this->assertEquals('0812345678901', $guru->fresh()->nomor_telepon);
+    }
 }

@@ -125,7 +125,7 @@
 
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
                         <span class="text-xs font-semibold text-slate-400">Nomor Induk Siswa (NIS)</span>
-                        <span class="font-mono font-bold text-blue-600 mt-1 sm:mt-0">{{ $siswa->nis ?? '-' }}</span>
+                        <span class="font-bold text-blue-600 mt-1 sm:mt-0">{{ $siswa->nis ?? '-' }}</span>
                     </div>
 
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
@@ -184,7 +184,7 @@
 
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
                         <span class="text-xs font-semibold text-slate-400">Nomor HP Wali</span>
-                        <span class="font-mono font-semibold text-slate-800 mt-1 sm:mt-0">{{ $siswa->nohp_wali ?? '-' }}</span>
+                        <span class="font-semibold text-slate-800 mt-1 sm:mt-0">{{ $siswa->nohp_wali ?? '-' }}</span>
                     </div>
                 </div>
             </div>
@@ -204,7 +204,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                     <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-100">
                         <span class="text-xs font-semibold text-slate-400 block mb-1">Username</span>
-                        <span class="font-mono font-bold text-slate-800">{{ $user->username }}</span>
+                        <span class="font-bold text-slate-800">{{ $user->username }}</span>
                     </div>
 
                     <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-100">
@@ -273,7 +273,7 @@
                     <span>{{ $user->email }}</span>
                     @if($user->isGuru() && $nuptkGuru)
                         <span>&bull;</span>
-                        <span class="font-mono bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded">NUPTK {{ $nuptkGuru }}</span>
+                        <span class="bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded">NUPTK {{ $nuptkGuru }}</span>
                     @endif
                     @if($user->isGuru() && $user->guru?->jenis_kelamin)
                         <span>&bull;</span>
@@ -315,7 +315,7 @@
                 @if($user->isGuru())
                     <div class="space-y-1.5">
                         <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">NUPTK</label>
-                        <div class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-800 font-mono font-medium bg-gray-50">
+                        <div class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-800 font-medium bg-gray-50">
                             {{ $nuptkGuru ?? '-' }}
                         </div>
                     </div>
