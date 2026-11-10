@@ -1,4 +1,3 @@
-
 <!-- Modal Buat Tugas Baru -->
 <div
     x-show="showModal"
@@ -107,28 +106,28 @@
             </div>
 
             <!-- Mata Pelajaran dan Kelas -->
-            <div class="space-y-1.5">
+            <div class="space-y-2">
                 <label class="block text-xs font-bold text-slate-700">
                     Mata Pelajaran & Kelas <span class="text-red-500">*</span>
                 </label>
 
-                <select
-                    name="pengampu_kelas_id"
-                    required
-                    class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-
-                    <option value="" disabled selected>
-                        -- Pilih Mapel & Kelas --
-                    </option>
-
+                <div class="space-y-2 rounded-xl border border-slate-200 p-3">
                     @foreach($pengampuKelases as $pk)
-                        <option value="{{ $pk->id }}">
+                    <label class="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition hover:bg-indigo-50">
+                        <input
+                            type="checkbox"
+                            name="pengampu_kelas_id[]"
+                            value="{{ $pk->id }}"
+                            class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+
+                        <span class="text-sm text-slate-700">
                             {{ $pk->guruMapel?->mapel?->nama_mapel ?? 'Mapel' }}
                             -
                             {{ $pk->kelas?->nama_kelas ?? 'Kelas' }}
-                        </option>
+                        </span>
+                    </label>
                     @endforeach
-                </select>
+                </div>
             </div>
 
             <!-- Deskripsi -->
@@ -348,65 +347,65 @@
 
 <!-- Validasi Deadline -->
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const deadlineInput = document.getElementById('deadline');
-    const deadlineError = document.getElementById('deadlineError');
-    const form = document.getElementById('formBuatTugas');
+    document.addEventListener('DOMContentLoaded', function() {
+        const deadlineInput = document.getElementById('deadline');
+        const deadlineError = document.getElementById('deadlineError');
+        const form = document.getElementById('formBuatTugas');
 
-    if (!deadlineInput || !form) return;
+        if (!deadlineInput || !form) return;
 
-    function getWaktuSekarang() {
-        const now = new Date();
-        const pad = angka => String(angka).padStart(2, '0');
+        function getWaktuSekarang() {
+            const now = new Date();
+            const pad = angka => String(angka).padStart(2, '0');
 
-        return now.getFullYear() + '-' +
-            pad(now.getMonth() + 1) + '-' +
-            pad(now.getDate()) + 'T' +
-            pad(now.getHours()) + ':' +
-            pad(now.getMinutes());
-    }
+            return now.getFullYear() + '-' +
+                pad(now.getMonth() + 1) + '-' +
+                pad(now.getDate()) + 'T' +
+                pad(now.getHours()) + ':' +
+                pad(now.getMinutes());
+        }
 
-    function updateMinDeadline() {
-        deadlineInput.min = getWaktuSekarang();
-    }
+        function updateMinDeadline() {
+            deadlineInput.min = getWaktuSekarang();
+        }
 
-    function tampilkanError(pesan) {
-        deadlineError.textContent = pesan;
-        deadlineError.classList.remove('hidden');
-        deadlineInput.classList.add('border-red-500');
-    }
+        function tampilkanError(pesan) {
+            deadlineError.textContent = pesan;
+            deadlineError.classList.remove('hidden');
+            deadlineInput.classList.add('border-red-500');
+        }
 
-    function sembunyikanError() {
-        deadlineError.classList.add('hidden');
-        deadlineInput.classList.remove('border-red-500');
-    }
+        function sembunyikanError() {
+            deadlineError.classList.add('hidden');
+            deadlineInput.classList.remove('border-red-500');
+        }
 
-    updateMinDeadline();
-
-    deadlineInput.addEventListener('focus', updateMinDeadline);
-
-    deadlineInput.addEventListener('change', function () {
         updateMinDeadline();
 
-        if (this.value && this.value < this.min) {
-            this.value = '';
-            tampilkanError('Deadline tidak boleh lebih awal dari waktu sekarang.');
-        } else {
+        deadlineInput.addEventListener('focus', updateMinDeadline);
+
+        deadlineInput.addEventListener('change', function() {
+            updateMinDeadline();
+
+            if (this.value && this.value < this.min) {
+                this.value = '';
+                tampilkanError('Deadline tidak boleh lebih awal dari waktu sekarang.');
+            } else {
+                sembunyikanError();
+            }
+        });
+
+        form.addEventListener('submit', function(event) {
+            updateMinDeadline();
+
+            if (!deadlineInput.value || deadlineInput.value < deadlineInput.min) {
+                event.preventDefault();
+                tampilkanError('Silakan pilih deadline setelah waktu sekarang.');
+                deadlineInput.focus();
+                return;
+            }
+
             sembunyikanError();
-        }
+        });
     });
-
-    form.addEventListener('submit', function (event) {
-        updateMinDeadline();
-
-        if (!deadlineInput.value || deadlineInput.value < deadlineInput.min) {
-            event.preventDefault();
-            tampilkanError('Silakan pilih deadline setelah waktu sekarang.');
-            deadlineInput.focus();
-            return;
-        }
-
-        sembunyikanError();
-    });
-});
 </script>

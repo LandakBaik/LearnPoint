@@ -55,15 +55,15 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         if ($user->isGuru()) {
-            // Guru: Boleh ubah nomor telepon, jenis kelamin, dan password (opsional)
+            // Guru: Boleh ubah nomor telepon (10-13 digit angka), jenis kelamin, dan password (opsional)
             $rules = [
-                'nomor_telepon' => 'nullable|string|max:20|regex:/^[0-9+\-\s]+$/',
+                'nomor_telepon' => 'nullable|string|regex:/^[0-9]{10,13}$/',
                 'jenis_kelamin' => 'nullable|in:Laki-laki,Perempuan,L,P',
                 'password'      => 'nullable|string|min:6|confirmed',
             ];
 
             $messages = [
-                'nomor_telepon.regex' => 'Nomor telepon hanya boleh berisi angka, tanda plus (+), minus (-), atau spasi.',
+                'nomor_telepon.regex' => 'Nomor telepon harus berupa angka dan berisikan 10 hingga 13 digit.',
                 'jenis_kelamin.in'    => 'Pilihan jenis kelamin tidak valid.',
                 'password.min'        => 'Kata sandi baru minimal harus 6 karakter.',
                 'password.confirmed'  => 'Konfirmasi kata sandi baru tidak cocok.',

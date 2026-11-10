@@ -8,6 +8,7 @@ use App\Models\Notifikasi;
 use App\Models\PengampuKelas;
 use App\Models\Tugas;
 use App\Models\Soal;
+use App\Models\Menjawab;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -408,11 +409,53 @@ class TugasController extends Controller
             ];
         })->values();
 
-        // Kirim data tugas dan daftar siswa ke halaman detail.
-        return view('guru.kelola_tugas.show', compact(
+        // Pilih halaman detail berdasarkan jenis tugas.
+        $halaman = $tugas->tipe === 'pilihan_ganda'
+            ? 'guru.kelola_tugas.show-pilihan-ganda'
+            : 'guru.kelola_tugas.show';
+
+        return view($halaman, compact(
             'tugas',
             'pengumpulans',
             'daftarSiswa'
+        ));
+    }
+
+    /*
+|--------------------------------------------------------------------------
+| MENAMPILKAN KUNCI JAWABAN PILIHAN GANDA
+|--------------------------------------------------------------------------
+*/
+    public function kunciJawaban(Request $request, string $id)
+    {
+        $user = $request->user();
+        $guru_id = $user?->guru?->id;
+
+        abort_unless($user?->role === 'guru' && $guru_id, 403);
+
+        // Ambil tugas beserta soal.
+        $tugas = Tugas::with([
+            'pengampuKelas.guruMapel.mapel',
+            'pengampuKelas.kelas',
+            'soals'
+        ])->findOrFail($id);
+
+        // Pastikan tugas milik guru yang sedang login.
+        if ($tugas->pengampuKelas?->guruMapel?->guru_id != $guru_id) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        // Halaman ini hanya untuk tugas pilihan ganda.
+        abort_unless($tugas->tipe === 'pilihan_ganda', 404);
+
+        // Urutkan soal berdasarkan nomor.
+        $soals = $tugas->soals
+            ->sortBy('urutan')
+            ->values();
+
+        return view('guru.kelola_tugas.kunci-jawaban', compact(
+            'tugas',
+            'soals'
         ));
     }
 

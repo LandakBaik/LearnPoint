@@ -85,6 +85,14 @@ Route::middleware(['auth'])->group(function () {
             ->name('guru.tugas.update');
         Route::delete('/guru/tugas/{id}', [GuruTugasController::class, 'destroy'])
             ->name('guru.tugas.destroy');
+        // Halaman kunci jawaban pilihan ganda
+        Route::get('/guru/tugas/{id}/kunci-jawaban', [GuruTugasController::class, 'kunciJawaban'])
+            ->name('guru.tugas.kunci-jawaban');
+
+        // Halaman detail jawaban siswa
+        Route::get('/guru/tugas/{id}/jawaban-siswa/{pengumpulanId}', [GuruTugasController::class, 'detailJawabanSiswa'])
+            ->name('guru.tugas.detail-jawaban-siswa');
+            
         Route::get('/guru/jadwal', [GuruJadwalController::class, 'index'])
             ->name('guru.jadwal');
 

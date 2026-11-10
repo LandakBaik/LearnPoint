@@ -53,12 +53,12 @@ class ProfileController extends Controller
         }
 
         $rules = [
-            'nomor_telepon' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s]+$/'],
+            'nomor_telepon' => ['nullable', 'string', 'regex:/^[0-9]{10,13}$/'],
             'jenis_kelamin' => ['nullable', 'in:Laki-laki,Perempuan,L,P'],
         ];
 
         $validator = Validator::make($request->all(), $rules, [
-            'nomor_telepon.regex' => 'Nomor telepon hanya boleh berisi angka, tanda plus (+), minus (-), atau spasi.',
+            'nomor_telepon.regex' => 'Nomor telepon harus berupa angka dan berisikan 10 hingga 13 digit.',
             'jenis_kelamin.in'    => 'Pilihan jenis kelamin harus Laki-laki atau Perempuan.',
         ]);
 
