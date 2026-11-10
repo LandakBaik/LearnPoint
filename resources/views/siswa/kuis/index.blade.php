@@ -290,19 +290,27 @@
                                                 Selesai
                                             </span>
                                         </div>
-                                        <div class="text-xs text-slate-400 font-medium mt-0.5">
-                                            Skor Sempurna: {{ number_format($zona->skor, 0) }}/100 • {{ $zona->bintang }} Bintang
+                                        <div class="text-xs text-slate-500 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                            <span>Nilai: <strong class="text-slate-800">{{ number_format($zona->skor, 0) }}/100</strong></span>
+                                            <span>•</span>
+                                            <span class="inline-flex items-center gap-0.5 text-amber-500 font-bold">
+                                                @for($s = 1; $s <= 3; $s++)
+                                                    <i class="fa-solid fa-star text-[11px] {{ $s <= $zona->bintang ? 'text-amber-400' : 'text-slate-200' }}"></i>
+                                                @endfor
+                                                <span class="text-slate-600 text-[11px] ml-1">({{ $zona->bintang }}/3 Bintang)</span>
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
 
                                 @if($zona->quiz)
                                     <a 
-                                        href="{{ route('siswa.kuis.hasil', $zona->quiz->id) }}"
+                                        href="{{ route('siswa.kuis.hasil-petualangan', $zona->quiz->id) }}"
                                         class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center gap-1.5 transition shrink-0"
+                                        title="Lihat Hasil Akhir Petualangan"
                                     >
-                                        <i class="fa-solid fa-rotate-right text-[11px] text-slate-400"></i>
-                                        <span>Review</span>
+                                        <i class="fa-solid fa-trophy text-[11px] text-amber-500"></i>
+                                        <span>Hasil Petualangan</span>
                                     </a>
                                 @else
                                     <button 

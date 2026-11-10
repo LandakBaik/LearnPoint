@@ -115,21 +115,71 @@
             </div>
         </div>
 
-        {{-- Sisi Kanan: Widget Progres Penyelamatan & Persentase --}}
-        <div class="bg-white rounded-2xl py-3 px-5 border border-blue-100 shadow-2xs flex items-center gap-4 shrink-0 self-start md:self-auto">
-            <div class="text-left">
-                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                    Progres Penyelamatan
+        {{-- Sisi Kanan: Widget Progres Penyelamatan & Persentase & Bintang --}}
+        <div class="flex items-center gap-3 shrink-0 self-start md:self-auto flex-wrap sm:flex-nowrap">
+            {{-- Widget Total Bintang --}}
+            <div class="bg-white rounded-2xl py-3 px-4 border border-amber-200/80 shadow-2xs flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-500 flex items-center justify-center text-lg shrink-0">
+                    <i class="fa-solid fa-star"></i>
                 </div>
-                <div class="text-sm sm:text-base font-extrabold text-[#2563EB] mt-0.5 whitespace-nowrap">
-                    {{ $totalSelesai }} dari {{ $totalLevel }} Level Selesai
+                <div>
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Total Bintang
+                    </div>
+                    <div class="text-sm font-black text-amber-600 whitespace-nowrap">
+                        {{ $totalBintang ?? 0 }} <span class="text-xs font-bold text-slate-400">/ {{ $maxBintang ?? (count($levelsData) * 3) }}</span>
+                    </div>
                 </div>
             </div>
-            <div class="w-12 h-12 rounded-full bg-[#EFF6FF] border border-[#BFDBFE] flex items-center justify-center text-sm font-black text-[#2563EB] shrink-0">
-                {{ $persentase }}%
+
+            {{-- Widget Progres Penyelamatan --}}
+            <div class="bg-white rounded-2xl py-3 px-5 border border-blue-100 shadow-2xs flex items-center gap-4">
+                <div class="text-left">
+                    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                        Progres Penyelamatan
+                    </div>
+                    <div class="text-sm sm:text-base font-extrabold text-[#2563EB] mt-0.5 whitespace-nowrap">
+                        {{ $totalSelesai }} dari {{ $totalLevel }} Level Selesai
+                    </div>
+                </div>
+                <div class="w-12 h-12 rounded-full bg-[#EFF6FF] border border-[#BFDBFE] flex items-center justify-center text-sm font-black text-[#2563EB] shrink-0">
+                    {{ $persentase }}%
+                </div>
             </div>
         </div>
     </div>
+
+    {{-- Banner Hasil Petualangan Tuntas (Jika Semua Level Selesai) --}}
+    @if($isAllCompleted || ($nilai && $nilai->status === 'selesai'))
+        <div class="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0 shadow-sm shadow-emerald-600/30">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-base font-black text-emerald-950">
+                            Seluruh Petualangan Kuis Tuntas!
+                        </h3>
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
+                            Nilai: {{ number_format((float)($nilai->nilai ?? 0), 0) }}/100
+                        </span>
+                    </div>
+                    <p class="text-xs text-emerald-800 font-medium mt-0.5">
+                        Nilai gabungan dari seluruh {{ $quiz->soals->count() }} butir soal telah dijumlahkan oleh sistem.
+                    </p>
+                </div>
+            </div>
+            <a 
+                href="{{ route('siswa.kuis.hasil-petualangan', $quiz->id) }}"
+                class="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-md shadow-emerald-500/20 shrink-0 self-start sm:self-auto"
+            >
+                <i class="fa-solid fa-award"></i>
+                <span>Lihat Hasil Petualangan</span>
+                <i class="fa-solid fa-arrow-right text-xs"></i>
+            </a>
+        </div>
+    @endif
 
     @if(count($levelsData) === 0)
         {{-- Empty State jika Guru belum membuat soal/level sama sekali --}}
@@ -293,6 +343,13 @@
                                     class="relative w-14 h-14 rounded-full border-2 {{ $lvl['is_final'] ? 'border-amber-400 bg-amber-50 text-amber-600' : 'border-[#10B981] bg-[#F0FDF4] text-[#10B981]' }} flex items-center justify-center font-bold text-xl shadow-xs transition"
                                     :class="selectedLevelId === {{ $lvl['id'] }} ? 'ring-4 {{ $lvl['is_final'] ? 'ring-amber-200' : 'ring-emerald-200' }} scale-105' : ''"
                                 >
+                                    {{-- Bintang Penanda Nilai pada Peta Petualangan --}}
+                                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-white/95 border border-amber-200 shadow-2xs z-30" title="Bintang Level: {{ $lvl['bintang'] ?? 0 }}/3 (Skor: {{ $lvl['skor_level'] }}%)">
+                                        @for($s = 1; $s <= 3; $s++)
+                                            <i class="fa-solid fa-star text-[8px] {{ $s <= ($lvl['bintang'] ?? 0) ? 'text-amber-400 drop-shadow-2xs' : 'text-slate-200' }}"></i>
+                                        @endfor
+                                    </div>
+
                                     @if($lvl['is_final'])
                                         <i class="fa-solid fa-trophy text-amber-500 text-lg"></i>
                                     @else
@@ -381,6 +438,30 @@
                     </div>
                 </div>
 
+                {{-- Card Pencapaian Bintang Level Ini (Tampil Saat Level Selesai) --}}
+                <template x-if="currentLevel.status === 'selesai'">
+                    <div class="p-4 rounded-2xl bg-gradient-to-br from-amber-50/90 via-yellow-50/60 to-amber-100/30 border border-amber-200/90 shadow-2xs space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-extrabold uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+                                <i class="fa-solid fa-medal text-amber-500"></i>
+                                <span>Bintang Nilai</span>
+                            </span>
+                            <span class="px-2.5 py-0.5 rounded-full bg-amber-100/90 text-amber-800 text-xs font-black" x-text="(currentLevel.bintang || 0) + ' dari 3 Bintang'"></span>
+                        </div>
+                        <div class="flex items-center justify-center gap-2 py-1">
+                            <template x-for="s in 3" :key="s">
+                                <i class="fa-solid fa-star text-2xl transition-transform" :class="s <= (currentLevel.bintang || 0) ? 'text-amber-400 drop-shadow-xs scale-105' : 'text-slate-200'"></i>
+                            </template>
+                        </div>
+                        <div class="text-[11px] text-center text-slate-600 font-medium border-t border-amber-200/60 pt-2">
+                            Skor Akurasi Level: <strong class="text-slate-900" x-text="currentLevel.skor_level + '/100'"></strong>
+                            <div class="text-[10px] text-slate-400 mt-0.5">
+                                (Nilai > 67: ⭐⭐⭐ | 34 - 67: ⭐⭐ | ≤ 33: ⭐)
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
                 {{-- Info Cards / Statistics (Data Riil Konfigurasi Guru) --}}
                 <div class="space-y-3 pt-1">
                     {{-- 1. Jumlah Soal Riil --}}
@@ -437,16 +518,33 @@
 
                     <template x-if="currentLevel.status === 'selesai'">
                         <div class="space-y-2.5">
-                            <a 
-                                :href="'{{ route('siswa.kuis.hasil', $quiz->id) }}?arc=' + encodeURIComponent(currentLevel.arc) + '&level=' + currentLevel.level_num"
-                                class="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-sm transition-all"
-                            >
-                                <i class="fa-solid fa-chart-pie text-xs"></i>
-                                <span>Lihat Hasil Level Ini</span>
-                            </a>
+                            @if($isAllCompleted || ($nilai && $nilai->status === 'selesai'))
+                                <a 
+                                    href="{{ route('siswa.kuis.hasil-petualangan', $quiz->id) }}"
+                                    class="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-sm transition-all"
+                                >
+                                    <i class="fa-solid fa-trophy text-xs"></i>
+                                    <span>Hasil Akhir Petualangan</span>
+                                </a>
+                                <a 
+                                    :href="'{{ route('siswa.kuis.hasil', $quiz->id) }}?arc=' + encodeURIComponent(currentLevel.arc) + '&level=' + currentLevel.level_num"
+                                    class="w-full py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                                >
+                                    <i class="fa-solid fa-chart-pie text-xs text-slate-500"></i>
+                                    <span>Review Level Ini</span>
+                                </a>
+                            @else
+                                <a 
+                                    :href="'{{ route('siswa.kuis.hasil', $quiz->id) }}?arc=' + encodeURIComponent(currentLevel.arc) + '&level=' + currentLevel.level_num"
+                                    class="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-sm transition-all"
+                                >
+                                    <i class="fa-solid fa-chart-pie text-xs"></i>
+                                    <span>Lihat Hasil Level Ini</span>
+                                </a>
+                            @endif
                             <a 
                                 :href="'{{ route('siswa.kuis.kerjakan', $quiz->id) }}?arc=' + encodeURIComponent(currentLevel.arc) + '&level=' + currentLevel.level_num"
-                                class="w-full py-3 rounded-2xl bg-white hover:bg-slate-50 text-[#2563EB] border border-blue-200 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                                class="w-full py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-[#2563EB] border border-blue-200 font-bold text-xs flex items-center justify-center gap-2 transition-all"
                             >
                                 <i class="fa-solid fa-rotate-right text-xs"></i>
                                 <span>Kerjakan Ulang Level</span>

@@ -192,4 +192,85 @@ class Quiz extends Model
             'description' => 'Kuis sedang aktif dan dapat dikerjakan',
         ];
     }
+
+    /**
+     * Hitung faktor bobot berdasarkan tingkat kesulitan (Arc).
+     * Mudah = 1, Sedang = 2, Sulit = 3.
+     */
+    public static function getFaktorKesulitan(?string $kesulitan): int
+    {
+        $k = ucfirst(strtolower(trim((string) $kesulitan)));
+        return match ($k) {
+            'Sulit'  => 3,
+            'Sedang' => 2,
+            default  => 1,
+        };
+    }
+
+    /**
+     * Rekalkulasi bobot semua butir soal kuis secara otomatis oleh sistem.
+     * Bobot ditentukan sistem (bukan guru) berdasarkan jumlah semua soal dan tingkat kesulitan:
+     * - Total bobot seluruh soal dalam kuis = 100.
+     * - Tiap soal berbobot proporsional terhadap faktor kesulitannya:
+     *   Bobot = (Faktor Kesulitan / Total Faktor Kesulitan) * 100.
+     */
+    public function sinkronisasiBobotSoal(): void
+    {
+        $soals = $this->soals()->get();
+        $totalSoal = $soals->count();
+
+        if ($totalSoal === 0) {
+            return;
+        }
+
+        $totalFaktor = 0;
+        foreach ($soals as $soal) {
+            $totalFaktor += self::getFaktorKesulitan($soal->kesulitan);
+        }
+
+        if ($totalFaktor <= 0) {
+            $totalFaktor = $totalSoal;
+        }
+
+        $akumulasi = 0.0;
+        $totalItems = $soals->count();
+
+        foreach ($soals as $index => $soal) {
+            $faktor = self::getFaktorKesulitan($soal->kesulitan);
+            if ($index === $totalItems - 1) {
+                // Pastikan total akhir tepat 100.00 untuk menghindari selisih pembulatan desimal
+                $bobot = max(0.01, round(100.00 - $akumulasi, 2));
+            } else {
+                $bobot = round(($faktor / $totalFaktor) * 100, 2);
+                $akumulasi += $bobot;
+            }
+
+            if (abs((float) $soal->bobot - (float) $bobot) > 0.001) {
+                $soal->bobot = $bobot;
+                $soal->saveQuietly();
+            }
+        }
+    }
+
+    /**
+     * Hitung jumlah bintang (1..3) penanda nilai pada kuis / peta petualangan.
+     * Aturan:
+     * - Nilai > 67: 3 Bintang (⭐⭐⭐)
+     * - Nilai 34..67: 2 Bintang (⭐⭐)
+     * - Nilai 1..33: 1 Bintang (⭐)
+     * - Nilai 0: 0 Bintang
+     */
+    public static function hitungBintang(float $nilai): int
+    {
+        if ($nilai > 67.0) {
+            return 3;
+        }
+        if ($nilai >= 34.0) {
+            return 2;
+        }
+        if ($nilai > 0.0) {
+            return 1;
+        }
+        return 0;
+    }
 }

@@ -65,4 +65,16 @@ class Siswa extends Model
     {
         return $this->hasMany(Nilai::class, 'siswa_id');
     }
+
+    public function siswaPowers()
+    {
+        return $this->hasMany(SiswaPower::class, 'siswa_id');
+    }
+
+    public function powers()
+    {
+        return $this->belongsToMany(Power::class, 'siswa_powers', 'siswa_id', 'power_id')
+            ->withPivot('jumlah')
+            ->withTimestamps();
+    }
 }

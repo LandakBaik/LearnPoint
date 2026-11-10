@@ -215,6 +215,9 @@ class QuizController extends Controller
 
         $this->authorizeGuru($quiz, $guruId);
 
+        // Pastikan bobot seluruh soal selalu tersinkronisasi otomatis oleh sistem
+        $quiz->sinkronisasiBobotSoal();
+
         $quiz->load([
             'pengampuKelas.guruMapel.mapel',
             'pengampuKelas.kelas',
@@ -537,6 +540,9 @@ class QuizController extends Controller
             'ujian_id'      => null,
         ]);
 
+        // Rekalkulasi bobot semua soal oleh sistem sesuai jumlah soal & tingkat kesulitan
+        $quiz->sinkronisasiBobotSoal();
+
         return redirect()->route('guru.kuis.show', [
             'quiz'  => $quiz,
             'arc'   => $kesulitan,
@@ -610,6 +616,9 @@ class QuizController extends Controller
             'gambar'        => $gambarPath,
         ]);
 
+        // Rekalkulasi bobot semua soal oleh sistem sesuai jumlah soal & tingkat kesulitan
+        $quiz->sinkronisasiBobotSoal();
+
         return redirect()->route('guru.kuis.show', [
             'quiz'  => $quiz,
             'arc'   => $soal->kesulitan ?? 'Mudah',
@@ -637,6 +646,9 @@ class QuizController extends Controller
         }
 
         $soal->delete();
+
+        // Rekalkulasi bobot semua soal oleh sistem setelah soal dihapus
+        $quiz->sinkronisasiBobotSoal();
 
         return redirect()->route('guru.kuis.show', [
             'quiz'  => $quiz,

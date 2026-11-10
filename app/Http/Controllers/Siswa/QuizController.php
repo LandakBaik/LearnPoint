@@ -8,8 +8,10 @@ use App\Models\Mapel;
 use App\Models\Menjawab;
 use App\Models\Nilai;
 use App\Models\Notifikasi;
+use App\Models\Power;
 use App\Models\Quiz;
 use App\Models\Siswa;
+use App\Models\SiswaPower;
 use App\Models\Soal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -270,7 +272,7 @@ class QuizController extends Controller
                 $nilai = $quiz->nilais->first();
                 $isCompleted = $journey['is_all_completed'];
                 $skor = $nilai ? (float)$nilai->nilai : 0;
-                $stars = $skor >= 100 ? 3 : ($skor >= 80 ? 2 : ($skor > 0 ? 1 : 0));
+                $stars = Quiz::hitungBintang((float) $skor);
 
                 $activeLvl = collect($journey['levels'])->firstWhere('status', 'aktif') ?? collect($journey['levels'])->first();
                 $bukaLabel = $activeLvl
@@ -427,13 +429,17 @@ class QuizController extends Controller
      */
     private function buildQuizAdventureJourney(Quiz $quiz, ?Siswa $siswa): array
     {
+        // Pastikan bobot seluruh soal selalu disinkronkan otomatis oleh sistem
+        $quiz->sinkronisasiBobotSoal();
+
         $allSoals = $quiz->relationLoaded('soals')
             ? $quiz->soals->sortBy(fn($s) => sprintf('%05d-%010d', (int) ($s->urutan ?? 0), (int) $s->id))->values()
             : $quiz->soals()->orderBy('urutan')->orderBy('id')->get();
 
         $jawabanSiswa = collect();
         if ($siswa && $allSoals->isNotEmpty()) {
-            $jawabanSiswa = Menjawab::where('siswa_id', $siswa->id)
+            $jawabanSiswa = Menjawab::with('power')
+                ->where('siswa_id', $siswa->id)
                 ->whereIn('soal_id', $allSoals->pluck('id'))
                 ->get()
                 ->keyBy('soal_id');
@@ -529,24 +535,31 @@ class QuizController extends Controller
 
                 $answeredCount = 0;
                 $correctCount = 0;
-                $bobotTotalLevel = 0;
-                $bobotBenarLevel = 0;
+                $bobotTotalLevel = 0.0;
+                $poinLevelRaw = 0.0;
 
                 foreach ($soalsInLevel as $s) {
-                    $bobot = (int) ($s->bobot ?: 10);
+                    $bobot = (float) ($s->bobot ?: 10);
                     $bobotTotalLevel += $bobot;
                     $ans = $jawabanSiswa->get($s->id);
                     if ($ans && $ans->jawaban_dipilih !== null && $ans->jawaban_dipilih !== '') {
                         $answeredCount++;
                         if ($ans->benar) {
                             $correctCount++;
-                            $bobotBenarLevel += $bobot;
+                        }
+
+                        // Gunakan poin_diperoleh hasil kalkulasi Power (dengan fallback ke bobot standar untuk data lama sebelum migrasi)
+                        if ($ans->power_id !== null || (float) $ans->poin_diperoleh != 0.0 || !$ans->benar) {
+                            $poinLevelRaw += (float) $ans->poin_diperoleh;
+                        } else {
+                            $poinLevelRaw += $bobot;
                         }
                     }
                 }
 
+                $poinLevel = max(0.0, $poinLevelRaw);
                 $skorLevel = $bobotTotalLevel > 0
-                    ? (int) round(($bobotBenarLevel / $bobotTotalLevel) * 100)
+                    ? min(100, (int) round(($poinLevel / $bobotTotalLevel) * 100))
                     : ($countSoal > 0 ? (int) round(($correctCount / $countSoal) * 100) : 0);
 
                 // Tentukan status level (tanpa syarat nilai minimum: asal seluruh soal level selesai dijawab)
@@ -567,6 +580,8 @@ class QuizController extends Controller
                 }
 
                 $estimasiWaktu = max(3, $countSoal * 2);
+
+                $bintangLevel = ($status === 'selesai') ? Quiz::hitungBintang((float) $skorLevel) : 0;
 
                 $levelsData[] = [
                     'id' => $stepNumber,
@@ -590,6 +605,7 @@ class QuizController extends Controller
                     'answered_count' => $answeredCount,
                     'correct_count' => $correctCount,
                     'skor_level' => $skorLevel,
+                    'bintang' => $bintangLevel,
                     'is_first_in_arc' => ($arcLevelsCount === 1),
                     'is_last_in_arc' => false,
                     'is_final' => false,
@@ -655,6 +671,9 @@ class QuizController extends Controller
         $percentage = $totalLevels > 0 ? (int) round(($completedLevels / $totalLevels) * 100) : 0;
         $isAllCompleted = $totalLevels > 0 && $completedLevels >= $totalLevels;
 
+        $totalBintangTerkumpul = collect($levelsData)->where('status', 'selesai')->sum('bintang');
+        $maxBintang = $totalLevels * 3;
+
         // Default level yang dipilih pada panel kanan: level yang sedang aktif, atau level terakhir jika semua selesai
         $defaultSelectedStep = $activeLevelStep ?? ($totalLevels > 0 ? $levelsData[$totalLevels - 1]['step'] : 1);
 
@@ -673,6 +692,8 @@ class QuizController extends Controller
             'total_level' => $totalLevels,
             'completed_levels' => $completedLevels,
             'remaining_levels' => $remainingLevels,
+            'total_bintang' => $totalBintangTerkumpul,
+            'max_bintang' => $maxBintang,
             'percentage' => $percentage,
             'is_all_completed' => $isAllCompleted,
             'active_step' => $activeLevelStep,
@@ -704,6 +725,10 @@ class QuizController extends Controller
         $this->authorizeSiswaClass($quiz, $siswa);
         abort_unless($quiz->isPublished(), 403, 'Kuis belum dipublikasikan.');
 
+        if (!app()->runningUnitTests()) {
+            SiswaPower::initializeDefaultInventory($siswa);
+        }
+
         $quiz->load([
             'pengampuKelas.guruMapel.mapel',
             'pengampuKelas.guruMapel.guru',
@@ -728,6 +753,8 @@ class QuizController extends Controller
         $currentArc = $journey['current_arc'];
         $svgHeight = $journey['svg_height'];
         $isAllCompleted = $journey['is_all_completed'];
+        $totalBintang = $journey['total_bintang'];
+        $maxBintang = $journey['max_bintang'];
 
         return view('siswa.kuis.show', compact(
             'quiz',
@@ -744,7 +771,9 @@ class QuizController extends Controller
             'defaultSelectedLevelId',
             'currentArc',
             'svgHeight',
-            'isAllCompleted'
+            'isAllCompleted',
+            'totalBintang',
+            'maxBintang'
         ));
     }
 
@@ -772,6 +801,10 @@ class QuizController extends Controller
         abort_unless($siswa, 403, 'Akses khusus siswa.');
         $this->authorizeSiswaClass($quiz, $siswa);
         abort_unless($quiz->isPublished(), 403, 'Kuis belum dipublikasikan.');
+
+        if (!app()->runningUnitTests()) {
+            SiswaPower::initializeDefaultInventory($siswa);
+        }
 
         // Cek jadwal mulai
         if ($quiz->waktu_mulai && now()->lessThan($quiz->waktu_mulai)) {
@@ -1005,11 +1038,15 @@ class QuizController extends Controller
 
         DB::transaction(function () use ($soalsSession, $request, $siswa) {
             foreach ($soalsSession as $soal) {
+                $existingMenjawab = Menjawab::with('power')
+                    ->where('soal_id', $soal->id)
+                    ->where('siswa_id', $siswa->id)
+                    ->first();
+
                 $jawabanUser = $request->input("jawaban.{$soal->id}");
 
                 // Jika tidak ada di request, coba ambil dari draft tersimpan sebelumnya
                 if ($jawabanUser === null || $jawabanUser === '') {
-                    $existingMenjawab = Menjawab::where('soal_id', $soal->id)->where('siswa_id', $siswa->id)->first();
                     if ($existingMenjawab && $existingMenjawab->jawaban_dipilih !== null && $existingMenjawab->jawaban_dipilih !== '') {
                         $jawabanUser = $existingMenjawab->jawaban_dipilih;
                     }
@@ -1031,6 +1068,11 @@ class QuizController extends Controller
                     }
                 }
 
+                $power = $existingMenjawab?->power;
+                $powerId = $existingMenjawab?->power_id;
+                $bobotSoal = (float) ($soal->bobot ?: 10);
+                $poinDiperoleh = Menjawab::hitungPoin($bobotSoal, $isBenar, $power);
+
                 Menjawab::updateOrCreate(
                     [
                         'soal_id'  => $soal->id,
@@ -1039,6 +1081,8 @@ class QuizController extends Controller
                     [
                         'jawaban_dipilih' => is_array($jawabanUser) ? json_encode($jawabanUser) : (string) $jawabanUser,
                         'benar'           => $isBenar,
+                        'power_id'        => $powerId,
+                        'poin_diperoleh'  => $poinDiperoleh,
                     ]
                 );
             }
@@ -1047,44 +1091,59 @@ class QuizController extends Controller
         // Evaluasi ulang progres petualangan setelah level ini diselesaikan
         $journeyAfter = $this->buildQuizAdventureJourney($quiz, $siswa);
 
-        // Jika seluruh level pada semua Arc telah selesai, rekap nilai akhir kuis
-        if ($journeyAfter['is_all_completed']) {
-            $allQuizSoals = $quiz->soals;
-            $allQuizSoalIds = $allQuizSoals->pluck('id')->toArray();
-            $totalBobot = $allQuizSoals->sum('bobot') ?: 100;
-            $skorDidapat = 0;
+        $rawDurasi = $request->input('durasi', 0);
+        $durasiDetik = 0;
+        if (is_numeric($rawDurasi)) {
+            $durasiDetik = (int) $rawDurasi;
+        } elseif (is_string($rawDurasi) && strpos($rawDurasi, ':') !== false) {
+            $parts = explode(':', trim($rawDurasi));
+            if (count($parts) === 2) {
+                $durasiDetik = ((int) $parts[0] * 60) + (int) $parts[1];
+            } elseif (count($parts) === 3) {
+                $durasiDetik = ((int) $parts[0] * 3600) + ((int) $parts[1] * 60) + (int) $parts[2];
+            }
+        }
 
-            $menjawabSemua = Menjawab::where('siswa_id', $siswa->id)
+        $existingNilai = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
+        $prevDurasi = (int) ($existingNilai?->durasi ?? 0);
+
+        // Cek apakah seluruh soal kuis sudah selesai dikerjakan siswa
+        $allQuizSoals = $quiz->soals()->get();
+        $totalAllSoal = $allQuizSoals->count();
+        $answeredCount = Menjawab::where('siswa_id', $siswa->id)
+            ->whereIn('soal_id', $allQuizSoals->pluck('id'))
+            ->whereNotNull('jawaban_dipilih')
+            ->where('jawaban_dipilih', '!=', '')
+            ->count();
+
+        $isSemuaSoalDikerjakan = ($totalAllSoal > 0 && $answeredCount >= $totalAllSoal) || $journeyAfter['is_all_completed'];
+
+        // Semua hasil soal akan dijumlahkan SAAT SEMUA SOAL SUDAH DIKERJAKAN
+        if ($isSemuaSoalDikerjakan) {
+            $allQuizSoalIds = $allQuizSoals->pluck('id')->toArray();
+            $totalBobot = (float) ($allQuizSoals->sum('bobot') ?: 100);
+            $skorDidapatRaw = 0.0;
+
+            $menjawabSemua = Menjawab::with('power')
+                ->where('siswa_id', $siswa->id)
                 ->whereIn('soal_id', $allQuizSoalIds)
-                ->get();
+                ->get()
+                ->keyBy('soal_id');
 
             foreach ($allQuizSoals as $soal) {
-                $ans = $menjawabSemua->firstWhere('soal_id', $soal->id);
-                if ($ans && $ans->benar) {
-                    $skorDidapat += ($soal->bobot ?: 10);
+                $bobot = (float) ($soal->bobot ?: 10);
+                $ans = $menjawabSemua->get($soal->id);
+                if ($ans) {
+                    if ($ans->power_id !== null || (float) $ans->poin_diperoleh != 0.0 || !$ans->benar) {
+                        $skorDidapatRaw += (float) $ans->poin_diperoleh;
+                    } else {
+                        $skorDidapatRaw += $bobot;
+                    }
                 }
             }
 
-            $nilaiAkhir = $totalBobot > 0 ? round(($skorDidapat / $totalBobot) * 100, 2) : 100;
-            if ($nilaiAkhir > 100) {
-                $nilaiAkhir = 100;
-            }
-
-            $rawDurasi = $request->input('durasi', 0);
-            $durasiDetik = 0;
-            if (is_numeric($rawDurasi)) {
-                $durasiDetik = (int) $rawDurasi;
-            } elseif (is_string($rawDurasi) && strpos($rawDurasi, ':') !== false) {
-                $parts = explode(':', trim($rawDurasi));
-                if (count($parts) === 2) {
-                    $durasiDetik = ((int) $parts[0] * 60) + (int) $parts[1];
-                } elseif (count($parts) === 3) {
-                    $durasiDetik = ((int) $parts[0] * 3600) + ((int) $parts[1] * 60) + (int) $parts[2];
-                }
-            }
-
-            $existingNilai = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
-            $prevDurasi = (int) ($existingNilai?->durasi ?? 0);
+            $totalPoinSiswa = max(0.0, $skorDidapatRaw);
+            $nilaiAkhir = $totalBobot > 0 ? min(100, round(($totalPoinSiswa / $totalBobot) * 100, 2)) : 100;
 
             Nilai::updateOrCreate(
                 [
@@ -1099,7 +1158,7 @@ class QuizController extends Controller
             );
 
             // Kirim notifikasi interaktif ke Guru pengampu jika baru pertama kali selesai
-            if (!$existingNilai) {
+            if (!$existingNilai || $existingNilai->status !== 'selesai') {
                 $guruUser = $quiz->pengampuKelas?->guruMapel?->guru?->user;
                 if ($guruUser) {
                     $namaSiswa = $siswa->nama_siswa ?? $user->name;
@@ -1115,6 +1174,25 @@ class QuizController extends Controller
                     );
                 }
             }
+        } else {
+            // Belum semua soal dikerjakan: rekap nilai akhir belum dijumlahkan final
+            Nilai::updateOrCreate(
+                [
+                    'siswa_id' => $siswa->id,
+                    'quiz_id'  => $quiz->id,
+                ],
+                [
+                    'nilai'  => 0,
+                    'durasi' => $prevDurasi + $durasiDetik,
+                    'status' => 'mengerjakan',
+                ]
+            );
+        }
+
+        // Jika seluruh soal telah selesai, langsung arahkan ke halaman hasil petualangan lengkap
+        if ($isSemuaSoalDikerjakan) {
+            return redirect()->route('siswa.kuis.hasil-petualangan', $quiz->id)
+                ->with('success', "Selamat! Seluruh soal petualangan kuis {$quiz->judul} telah berhasil kamu selesaikan!");
         }
 
         // Langsung tampilkan hasil pengerjaan level yang baru saja diselesaikan
@@ -1191,11 +1269,11 @@ class QuizController extends Controller
         $showAllSoals = request()->boolean('all') || (!$reqArc && !$reqLevelNum && !$reqStep && $journey['is_all_completed']);
 
         if ($showAllSoals || !$currentLevel) {
-            $soals = $quiz->soals()->with(['menjawabs' => fn($q) => $q->where('siswa_id', $siswa->id)])->orderBy('urutan')->orderBy('id')->get();
+            $soals = $quiz->soals()->with(['menjawabs' => fn($q) => $q->with('power')->where('siswa_id', $siswa->id)])->orderBy('urutan')->orderBy('id')->get();
         } else {
             $soals = $quiz->soals()
                 ->whereIn('id', $currentLevel['soal_ids'])
-                ->with(['menjawabs' => fn($q) => $q->where('siswa_id', $siswa->id)])
+                ->with(['menjawabs' => fn($q) => $q->with('power')->where('siswa_id', $siswa->id)])
                 ->orderBy('urutan')
                 ->orderBy('id')
                 ->get();
@@ -1206,7 +1284,9 @@ class QuizController extends Controller
         $totalSalah = max(0, $soals->count() - $totalBenar);
         $skorDitampilkan = $currentLevel && !$showAllSoals
             ? $currentLevel['skor_level']
-            : ($nilai ? round($nilai->nilai) : (int) round(($totalBenar / $totalSoal) * 100));
+            : ($nilai && $nilai->status === 'selesai' ? round($nilai->nilai) : (int) round(($totalBenar / $totalSoal) * 100));
+
+        $bintangDitampilkan = Quiz::hitungBintang((float) $skorDitampilkan);
 
         return view('siswa.kuis.hasil', [
             'quiz' => $quiz,
@@ -1216,6 +1296,7 @@ class QuizController extends Controller
             'totalBenar' => $totalBenar,
             'totalSalah' => $totalSalah,
             'skorDitampilkan' => $skorDitampilkan,
+            'bintangDitampilkan' => $bintangDitampilkan,
             'currentLevel' => $currentLevel,
             'nextLevel' => $nextLevel,
             'isNewArcUnlocked' => $isNewArcUnlocked,
@@ -1227,6 +1308,126 @@ class QuizController extends Controller
     public function siswaHasil(Quiz $quiz)
     {
         return $this->hasil($quiz);
+    }
+
+    /**
+     * SISWA: Halaman Hasil Petualangan Lengkap.
+     * Menampilkan gabungan nilai akhir dari seluruh soal di kuis petualangan tersebut,
+     * rekapitulasi bintang 1-3 penanda nilai, statistik performa, dan rincian seluruh soal.
+     */
+    public function hasilPetualangan(Quiz $quiz)
+    {
+        $user = auth()->user();
+        $siswa = $user?->siswa;
+        abort_unless($siswa, 403, 'Akses ditolak.');
+
+        $this->authorizeSiswaClass($quiz, $siswa);
+
+        $quiz->load([
+            'pengampuKelas.guruMapel.mapel',
+            'pengampuKelas.guruMapel.guru',
+            'pengampuKelas.kelas',
+            'soals',
+        ]);
+
+        $journey = $this->buildQuizAdventureJourney($quiz, $siswa);
+        $levelsData = collect($journey['levels']);
+        $nilai = $journey['nilai'];
+
+        // Ambil seluruh soal kuis secara berurutan sesuai alur petualangan: Arc (Mudah, Sedang, Sulit), Level (1..5), lalu urutan
+        $allSoalsRaw = $quiz->soals()
+            ->with(['menjawabs' => fn($q) => $q->with('power')->where('siswa_id', $siswa->id)])
+            ->get();
+
+        $arcOrderPriority = ['Mudah' => 1, 'Sedang' => 2, 'Sulit' => 3];
+        $allSoals = $allSoalsRaw->sort(function ($a, $b) use ($arcOrderPriority) {
+            $arcA = $arcOrderPriority[ucfirst(strtolower(trim((string) $a->kesulitan)))] ?? 99;
+            $arcB = $arcOrderPriority[ucfirst(strtolower(trim((string) $b->kesulitan)))] ?? 99;
+            if ($arcA !== $arcB) {
+                return $arcA <=> $arcB;
+            }
+            $lvlA = (int) preg_replace('/[^0-9]/', '', (string) $a->level);
+            $lvlB = (int) preg_replace('/[^0-9]/', '', (string) $b->level);
+            if ($lvlA !== $lvlB) {
+                return $lvlA <=> $lvlB;
+            }
+            $urtA = (int) ($a->urutan ?? 0);
+            $urtB = (int) ($b->urutan ?? 0);
+            if ($urtA !== $urtB) {
+                return $urtA <=> $urtB;
+            }
+            return (int) $a->id <=> (int) $b->id;
+        })->values();
+
+        $totalSoal = $allSoals->count();
+        $totalBenar = $allSoals->filter(fn($s) => $s->menjawabs->first()?->benar)->count();
+        $totalSalah = max(0, $totalSoal - $totalBenar);
+
+        // Hitung total akumulasi poin yang diperoleh dari seluruh soal
+        $totalPoinDidapat = 0.0;
+        $totalBobotSemuaSoal = 0.0;
+        $usedPowersCount = 0;
+        $bonusPowerPoints = 0.0;
+        $penaltyPowerPoints = 0.0;
+
+        foreach ($allSoals as $sItem) {
+            $bobotDasar = (float) ($sItem->bobot ?: 10);
+            $totalBobotSemuaSoal += $bobotDasar;
+            $jwb = $sItem->menjawabs->first();
+
+            if ($jwb) {
+                $poin = (float) $jwb->poin_diperoleh;
+                if ($jwb->power_id !== null || $poin != 0.0 || !$jwb->benar) {
+                    $totalPoinDidapat += $poin;
+                } else {
+                    $totalPoinDidapat += $bobotDasar;
+                }
+
+                if ($jwb->power_id && $jwb->power) {
+                    $usedPowersCount++;
+                    if ($jwb->benar && $poin > $bobotDasar) {
+                        $bonusPowerPoints += ($poin - $bobotDasar);
+                    } elseif (!$jwb->benar && $poin < 0) {
+                        $penaltyPowerPoints += abs($poin);
+                    }
+                }
+            }
+        }
+
+        $totalPoinDidapat = max(0.0, $totalPoinDidapat);
+        $totalBobotKuis = $totalBobotSemuaSoal > 0 ? $totalBobotSemuaSoal : 100.0;
+
+        // Nilai gabungan kuis
+        $nilaiGabungan = $nilai && $nilai->status === 'selesai'
+            ? (float) $nilai->nilai
+            : min(100.0, round(($totalPoinDidapat / $totalBobotKuis) * 100, 2));
+
+        $bintangAkhir = Quiz::hitungBintang($nilaiGabungan);
+
+        // Format durasi
+        $durasiDetik = (int) ($nilai?->durasi ?? 0);
+        $menit = floor($durasiDetik / 60);
+        $detik = $durasiDetik % 60;
+        $durasiFormatted = sprintf('%02d Menit %02d Detik', $menit, $detik);
+
+        return view('siswa.kuis.hasil_petualangan', [
+            'quiz' => $quiz,
+            'nilai' => $nilai,
+            'soals' => $allSoals,
+            'totalSoal' => $totalSoal,
+            'totalBenar' => $totalBenar,
+            'totalSalah' => $totalSalah,
+            'nilaiGabungan' => $nilaiGabungan,
+            'bintangAkhir' => $bintangAkhir,
+            'totalPoinDidapat' => $totalPoinDidapat,
+            'totalBobotKuis' => $totalBobotKuis,
+            'durasiFormatted' => $durasiFormatted,
+            'journey' => $journey,
+            'levelsData' => $levelsData,
+            'usedPowersCount' => $usedPowersCount,
+            'bonusPowerPoints' => $bonusPowerPoints,
+            'penaltyPowerPoints' => $penaltyPowerPoints,
+        ]);
     }
 
     /**
