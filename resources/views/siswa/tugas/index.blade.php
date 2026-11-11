@@ -1,3 +1,4 @@
+
 @extends('layouts.siswa')
 
 @section('title', 'Daftar Tugas - LearnPoint')
@@ -30,6 +31,7 @@
 
         {{-- Header --}}
         <div class="flex items-center gap-4 pt-0">
+
             <div class="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
                 <i class="fa-solid fa-clipboard-list text-2xl text-blue-600"></i>
             </div>
@@ -43,44 +45,45 @@
                     Kerjakan dan kumpulkan tugas sesuai tenggat waktu yang ditentukan guru pengampu.
                 </p>
             </div>
+
         </div>
 
         {{-- Daftar Tugas --}}
-        <div id="tugas-terbaru" class="w-full space-y-2 mt-4">
+        <div id="tugas-terbaru" class="w-full space-y-3 mt-4">
 
             @forelse($daftarTugas as $tugas)
 
             @php
-            $pengumpulan = $tugas->nilais->first();
-            $sudahDikumpul = $pengumpulan !== null;
+                $pengumpulan = $tugas->nilais->first();
+                $sudahDikumpul = $pengumpulan !== null;
 
-            $deadline = $tugas->deadline
-            ? \Carbon\Carbon::parse($tugas->deadline)
-            : null;
+                $deadline = $tugas->deadline
+                    ? \Carbon\Carbon::parse($tugas->deadline)
+                    : null;
 
-            $tenggatLewat = $deadline
-            ? $deadline->isPast()
-            : false;
+                $tenggatLewat = $deadline
+                    ? $deadline->isPast()
+                    : false;
 
-            $statusTerlambat = !$sudahDikumpul && $tenggatLewat;
+                $statusTerlambat = !$sudahDikumpul && $tenggatLewat;
 
-            $tenggatFormatted = $deadline
-            ? $deadline->isoFormat('D MMM YYYY, HH:mm')
-            : 'Tidak ada tenggat';
+                $tenggatFormatted = $deadline
+                    ? $deadline->isoFormat('D MMM YYYY, HH:mm')
+                    : 'Tidak ada tenggat';
 
-            $sisaWaktu = $deadline && !$tenggatLewat
-            ? now()->diffInSeconds($deadline)
-            : 0;
+                $sisaWaktu = $deadline && !$tenggatLewat
+                    ? now()->diffInSeconds($deadline)
+                    : 0;
 
-            $sisaWaktuFormatted = $sisaWaktu >= 86400
-            ? 'Sisa ' . (int) floor($sisaWaktu / 86400) . ' hari lagi'
-            : ($sisaWaktu > 0
-            ? 'Sisa ' . (int) ceil($sisaWaktu / 3600) . ' jam lagi'
-            : null);
+                $sisaWaktuFormatted = $sisaWaktu >= 86400
+                    ? 'Sisa ' . (int) floor($sisaWaktu / 86400) . ' hari lagi'
+                    : ($sisaWaktu > 0
+                        ? 'Sisa ' . (int) ceil($sisaWaktu / 3600) . ' jam lagi'
+                        : null);
             @endphp
 
             {{-- Card Tugas --}}
-            <div class="w-full bg-white p-5 rounded-2xl border border-blue-200/80 shadow-xs hover:shadow-md transition flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="w-full bg-white p-5 rounded-2xl border border-blue-200/80 shadow-sm hover:shadow-md transition flex flex-col md:flex-row md:items-center justify-between gap-5">
 
                 {{-- Informasi Tugas --}}
                 <div class="flex items-start gap-4 min-w-0 flex-1">
@@ -90,17 +93,41 @@
                         <i class="fa-regular fa-file-lines text-3xl"></i>
                     </div>
 
-                    <div class="space-y-1 min-w-0 flex-1">
+                    {{-- Detail Tugas --}}
+                    <div class="space-y-2 min-w-0 flex-1">
 
-                        {{-- Mata Pelajaran --}}
-                        <div>
-                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-600">
-                                {{ $tugas->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? $tugas->pengampuKelas?->guruMapel?->mapel?->nama ?? 'Mata Pelajaran' }}
+                        {{-- Informasi Mata Pelajaran, Guru, dan Tipe Tugas --}}
+                        <div class="flex flex-wrap items-center gap-2">
+
+                            {{-- Mata Pelajaran --}}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-600">
+                                <i class="fa-solid fa-book-open"></i>
+
+                                {{ $tugas->pengampuKelas?->guruMapel?->mapel?->nama_mapel
+                                    ?? $tugas->pengampuKelas?->guruMapel?->mapel?->nama
+                                    ?? 'Mata Pelajaran' }}
                             </span>
+
+                            {{-- Guru Pengampu --}}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-600">
+                                <i class="fa-solid fa-chalkboard-user"></i>
+
+                                {{ $tugas->pengampuKelas?->guruMapel?->guru?->nama_guru
+                                    ?? $tugas->pengampuKelas?->guruMapel?->guru?->nama
+                                    ?? 'Guru belum tersedia' }}
+                            </span>
+
+                            {{-- Tipe Tugas --}}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-600">
+                                <i class="fa-solid fa-file-circle-check"></i>
+
+                                {{ $tugas->tipe_tugas ?? 'Tugas' }}
+                            </span>
+
                         </div>
 
                         {{-- Judul Tugas --}}
-                        <h3 class="text-base font-bold text-slate-800">
+                        <h3 class="text-base font-bold text-slate-800 break-words">
                             {{ $loop->iteration }}. {{ $tugas->judul }}
                         </h3>
 
@@ -114,26 +141,26 @@
 
                             @if($sisaWaktuFormatted && !$sudahDikumpul)
 
-                            <span class="text-slate-300">|</span>
+                                <span class="text-slate-300">|</span>
 
-                            <span class="font-semibold text-blue-600">
-                                <i class="fa-regular fa-clock mr-1"></i>
-                                {{ $sisaWaktuFormatted }}
-                            </span>
+                                <span class="font-semibold text-blue-600">
+                                    <i class="fa-regular fa-clock mr-1"></i>
+                                    {{ $sisaWaktuFormatted }}
+                                </span>
 
                             @elseif($statusTerlambat)
 
-                            <span class="font-semibold text-red-500">
-                                <i class="fa-solid fa-triangle-exclamation mr-1"></i>
-                                Tenggat telah lewat
-                            </span>
+                                <span class="font-semibold text-red-500">
+                                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                                    Tenggat telah lewat
+                                </span>
 
                             @elseif($sudahDikumpul)
 
-                            <span class="font-semibold text-amber-600">
-                                <i class="fa-regular fa-clock mr-1"></i>
-                                Menunggu Penilaian
-                            </span>
+                                <span class="font-semibold text-amber-600">
+                                    <i class="fa-regular fa-clock mr-1"></i>
+                                    Menunggu Penilaian
+                                </span>
 
                             @endif
 
@@ -145,6 +172,7 @@
                         </p>
 
                     </div>
+
                 </div>
 
                 {{-- Tombol Aksi --}}
@@ -157,9 +185,9 @@
                                 : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md' }}">
 
                         @if($sudahDikumpul)
-                        Lihat Jawaban
+                            Lihat Jawaban
                         @else
-                        Kerjakan
+                            Kerjakan
                         @endif
 
                         <i class="fa-solid fa-arrow-right"></i>
@@ -190,7 +218,9 @@
             @endforelse
 
         </div>
+
     </div>
+
 </div>
 
 @endsection
