@@ -25,6 +25,7 @@ use App\Http\Controllers\Guru\TugasController as GuruTugasController;
 use App\Http\Controllers\Guru\UjianController as GuruUjianController;
 
 // Siswa Controllers
+use App\Http\Controllers\Siswa\GachaBannerController as SiswaGachaBannerController;
 use App\Http\Controllers\Siswa\MateriController as SiswaMateriController;
 use App\Http\Controllers\Siswa\PowerController as SiswaPowerController;
 use App\Http\Controllers\Siswa\QuizController as SiswaQuizController;
@@ -189,6 +190,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/siswa/kuis/{quiz}/powers', [SiswaPowerController::class, 'index'])->name('siswa.kuis.powers.index');
         Route::post('/siswa/kuis/{quiz}/powers/use', [SiswaPowerController::class, 'usePower'])->name('siswa.kuis.powers.use');
         Route::post('/siswa/kuis/{quiz}/powers/second-chance', [SiswaPowerController::class, 'verifySecondChance'])->name('siswa.kuis.powers.second-chance');
+
+        // Sistem Gacha Power & Kustomisasi Banner Siswa
+        Route::get('/siswa/gacha', [SiswaGachaBannerController::class, 'index'])->name('siswa.gacha');
+        Route::post('/siswa/gacha/pull', [SiswaGachaBannerController::class, 'pull'])->name('siswa.gacha.pull');
+        Route::post('/siswa/banner/equip', [SiswaGachaBannerController::class, 'equipBanner'])->name('siswa.banner.equip');
 
         Route::get('/siswa/ujian/{ujian}/kerjakan', [SiswaUjianController::class, 'kerjakan'])->name('siswa.ujian.kerjakan');
         Route::post('/siswa/ujian/{ujian}/simpan-jawaban', [SiswaUjianController::class, 'simpanJawaban'])->name('siswa.ujian.simpan-jawaban');

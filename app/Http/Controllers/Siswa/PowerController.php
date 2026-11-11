@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
-use App\Models\Kelas;
 use App\Models\Menjawab;
 use App\Models\Nilai;
 use App\Models\Power;
@@ -11,11 +10,15 @@ use App\Models\Quiz;
 use App\Models\Siswa;
 use App\Models\SiswaPower;
 use App\Models\Soal;
+use App\Services\QuizService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PowerController extends Controller
 {
+    public function __construct(
+        protected QuizService $quizService
+    ) {}
     /**
      * Mengambil daftar Power milik siswa beserta status efek Power yang sudah aktif
      * pada soal-soal di kuis yang sedang dikerjakan.
@@ -576,39 +579,12 @@ class PowerController extends Controller
 
     private function checkIsAnswerCorrect(Soal $soal, string $jawabanUser): bool
     {
-        $cleanUser = strtolower(trim($jawabanUser));
-        $kunci = $soal->kunci_jawaban;
-        if (is_array($kunci)) {
-            $cleanKunci = array_map(fn($k) => strtolower(trim((string) $k)), $kunci);
-            return in_array($cleanUser, $cleanKunci, true);
-        }
-        return $cleanUser === $this->extractCleanKunci($soal);
+        return $this->quizService->isAnswerCorrect($soal, $jawabanUser);
     }
 
     private function isSiswaAuthorizedForQuiz(Quiz $quiz, Siswa $siswa): bool
     {
-        $quizKelasId = $quiz->pengampuKelas?->kelas_id;
-        if (!$quizKelasId) {
-            return true;
-        }
-
-        $siswaKelasIds = $siswa->anggotaKelases()->pluck('kelas_id')->toArray();
-        if ($siswa->kelas?->id) {
-            $siswaKelasIds[] = $siswa->kelas->id;
-        }
-
-        if (empty($siswaKelasIds)) {
-            return true;
-        }
-
-        if (!in_array($quizKelasId, $siswaKelasIds)) {
-            if (Kelas::count() <= 1) {
-                return true;
-            }
-            return false;
-        }
-
-        return true;
+        return $this->quizService->isSiswaAuthorizedForQuiz($quiz, $siswa);
     }
 }
 

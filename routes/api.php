@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\GachaBannerController;
 use App\Http\Controllers\Api\JadwalController;
 use App\Http\Controllers\Api\MateriController;
 use App\Http\Controllers\Api\NotifikasiController;
@@ -126,6 +127,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/kuis/{quiz}/submit', [QuizController::class, 'siswaSubmit']);
         Route::post('/kuis/{quiz}/kerjakan', [QuizController::class, 'siswaSubmit']); // Aliasing
         Route::get('/kuis/{quiz}/hasil', [QuizController::class, 'siswaHasil']);
+
+        // Gacha Power & Banner Siswa
+        Route::get('/gacha/status', [GachaBannerController::class, 'status']);
+        Route::post('/gacha/pull', [GachaBannerController::class, 'pull']);
+        Route::post('/banner/equip', [GachaBannerController::class, 'equipBanner']);
 
         // Ujian Evaluasi Siswa
         Route::get('/ujian', [UjianController::class, 'siswaIndex']);
