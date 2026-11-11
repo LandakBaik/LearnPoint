@@ -175,7 +175,7 @@ class DashboardController extends Controller
             'guru' => [
                 'id'            => $guru->id,
                 'nama'          => $guru->nama,
-                'nip'           => $guru->nip,
+                'nuptk'         => $guru->nuptk,
                 'jenis_kelamin' => $guru->jenis_kelamin,
                 'nomor_telepon' => $guru->nomor_telepon,
                 'alamat'        => $guru->alamat,
@@ -390,7 +390,7 @@ class DashboardController extends Controller
                         'mapel'             => $pk->guruMapel?->mapel?->nama_mapel,
                         'kode_mapel'        => $pk->guruMapel?->mapel?->kode_mapel,
                         'guru'              => $pk->guruMapel?->guru?->nama,
-                        'nip'               => $pk->guruMapel?->guru?->nip,
+                        'nuptk'             => $pk->guruMapel?->guru?->nuptk,
                     ];
                 });
         }

@@ -103,5 +103,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             TugasSeeder::class,
         ]);
+
+        // 8. Katalog Master Power & Inventaris Awal Siswa
+        \App\Models\Power::ensureDefaultCatalog();
+        \App\Models\SiswaPower::initializeDefaultInventory($siswa);
     }
 }

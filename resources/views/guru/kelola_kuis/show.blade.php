@@ -542,8 +542,10 @@
 
                                 <div class="flex items-center gap-2 shrink-0">
                                     <span
-                                        class="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
-                                        {{ $soal->bobot }} Poin
+                                        class="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 flex items-center gap-1"
+                                        title="Bobot ditentukan otomatis oleh sistem sesuai jumlah semua soal dan tingkat kesulitan">
+                                        <i class="fa-solid fa-calculator text-[10px]"></i>
+                                        <span>{{ rtrim(rtrim(number_format((float)$soal->bobot, 2), '0'), '.') }} Poin</span>
                                     </span>
 
                                     {{-- Edit Soal --}}
@@ -681,11 +683,17 @@
                     {{-- Bobot & Gambar --}}
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
-                                Bobot Poin <span class="text-rose-500">*</span>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5 flex items-center justify-between">
+                                <span>Bobot Soal</span>
+                                <span class="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                                    Otomatis Sistem
+                                </span>
                             </label>
-                            <input type="number" name="bobot" value="10" min="1" max="100" required
-                                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition">
+                            <div class="w-full px-3.5 py-2.5 rounded-xl border border-blue-100 bg-blue-50/60 text-xs text-blue-900 flex items-center gap-2">
+                                <i class="fa-solid fa-calculator text-blue-600 shrink-0"></i>
+                                <span>Dihitung otomatis oleh sistem berdasarkan jumlah total soal & tingkat kesulitan (Mudah 1x, Sedang 2x, Sulit 3x).</span>
+                            </div>
+                            <input type="hidden" name="bobot" value="10">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
@@ -789,12 +797,20 @@
                     {{-- Bobot & Gambar --}}
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
-                                Bobot Poin <span class="text-rose-500">*</span>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5 flex items-center justify-between">
+                                <span>Bobot Soal</span>
+                                <span class="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                                    Otomatis Sistem
+                                </span>
                             </label>
-                            <input type="number" name="bobot" x-model="editSoalData.bobot" min="1"
-                                max="100" required
-                                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition">
+                            <div class="w-full px-3.5 py-2.5 rounded-xl border border-blue-100 bg-blue-50/60 text-xs text-blue-900 flex items-center justify-between gap-2">
+                                <span class="flex items-center gap-1.5 font-bold">
+                                    <i class="fa-solid fa-calculator text-blue-600"></i>
+                                    <span x-text="editSoalData.bobot ? editSoalData.bobot + ' Poin' : 'Dihitung Sistem'"></span>
+                                </span>
+                                <span class="text-[10px] text-blue-600 font-medium">Auto-recalculated</span>
+                            </div>
+                            <input type="hidden" name="bobot" x-model="editSoalData.bobot">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">

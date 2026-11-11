@@ -26,6 +26,7 @@ use App\Http\Controllers\Guru\UjianController as GuruUjianController;
 
 // Siswa Controllers
 use App\Http\Controllers\Siswa\MateriController as SiswaMateriController;
+use App\Http\Controllers\Siswa\PowerController as SiswaPowerController;
 use App\Http\Controllers\Siswa\QuizController as SiswaQuizController;
 use App\Http\Controllers\Siswa\TugasController as SiswaTugasController;
 use App\Http\Controllers\Siswa\UjianController as SiswaUjianController;
@@ -84,6 +85,14 @@ Route::middleware(['auth'])->group(function () {
             ->name('guru.tugas.update');
         Route::delete('/guru/tugas/{id}', [GuruTugasController::class, 'destroy'])
             ->name('guru.tugas.destroy');
+        // Halaman kunci jawaban pilihan ganda
+        Route::get('/guru/tugas/{id}/kunci-jawaban', [GuruTugasController::class, 'kunciJawaban'])
+            ->name('guru.tugas.kunci-jawaban');
+
+        // Halaman detail jawaban siswa
+        Route::get('/guru/tugas/{id}/jawaban-siswa/{pengumpulanId}', [GuruTugasController::class, 'detailJawabanSiswa'])
+            ->name('guru.tugas.detail-jawaban-siswa');
+            
         Route::get('/guru/jadwal', [GuruJadwalController::class, 'index'])
             ->name('guru.jadwal');
 
@@ -174,6 +183,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/siswa/kuis/{quiz}/simpan-draft', [SiswaQuizController::class, 'simpanDraft'])->name('siswa.kuis.simpan-draft');
         Route::post('/siswa/kuis/{quiz}/selesaikan', [SiswaQuizController::class, 'submit'])->name('siswa.kuis.submit');
         Route::get('/siswa/kuis/{quiz}/hasil', [SiswaQuizController::class, 'hasil'])->name('siswa.kuis.hasil');
+        Route::get('/siswa/kuis/{quiz}/hasil-petualangan', [SiswaQuizController::class, 'hasilPetualangan'])->name('siswa.kuis.hasil-petualangan');
+
+        // Sistem Power Kuis Petualangan Siswa
+        Route::get('/siswa/kuis/{quiz}/powers', [SiswaPowerController::class, 'index'])->name('siswa.kuis.powers.index');
+        Route::post('/siswa/kuis/{quiz}/powers/use', [SiswaPowerController::class, 'usePower'])->name('siswa.kuis.powers.use');
+        Route::post('/siswa/kuis/{quiz}/powers/second-chance', [SiswaPowerController::class, 'verifySecondChance'])->name('siswa.kuis.powers.second-chance');
 
         Route::get('/siswa/ujian/{ujian}/kerjakan', [SiswaUjianController::class, 'kerjakan'])->name('siswa.ujian.kerjakan');
         Route::post('/siswa/ujian/{ujian}/simpan-jawaban', [SiswaUjianController::class, 'simpanJawaban'])->name('siswa.ujian.simpan-jawaban');
