@@ -647,16 +647,6 @@
                     </button>
                 </div>
 
-                @php
-                    $guruAssigned = $guru->pengampuKelases->map(function($pk) {
-                        return [
-                            'kelas_id' => $pk->kelas_id,
-                            'mapel_id' => $pk->guruMapel?->mapel_id,
-                            'mapel_nama' => $pk->guruMapel?->mapel?->nama_mapel ?? 'Mapel',
-                        ];
-                    });
-                @endphp
-
                 <form 
                     action="{{ route('guru-mapel.store') }}" 
                     method="POST" 
@@ -664,22 +654,36 @@
                     x-data="{
                         selectedMapelId: '',
                         selectedClasses: [],
-                        guruAssignments: {{ $guruAssigned->toJson() }},
+                        allPengampus: {{ $allExistingPengampus->toJson() }},
                         allClassIds: {{ $allKelases->pluck('id')->toJson() }},
-                        isAssigned(kelasId) {
+                        currentGuruId: {{ $guru->id }},
+
+                        isAssignedToThisGuru(kelasId) {
                             if (!this.selectedMapelId) return false;
-                            return this.guruAssignments.some(a => a.kelas_id == kelasId && a.mapel_id == this.selectedMapelId);
+                            return this.allPengampus.some(p => p.mapel_id == this.selectedMapelId && p.kelas_id == kelasId && p.guru_id == this.currentGuruId);
                         },
+
+                        getOtherGuruName(kelasId) {
+                            if (!this.selectedMapelId) return null;
+                            const found = this.allPengampus.find(p => p.mapel_id == this.selectedMapelId && p.kelas_id == kelasId && p.guru_id != this.currentGuruId);
+                            return found ? found.guru_nama : null;
+                        },
+
                         isDisabled(kelasId) {
-                            return this.isAssigned(kelasId);
+                            if (!this.selectedMapelId) return true;
+                            return this.isAssignedToThisGuru(kelasId) || Boolean(this.getOtherGuruName(kelasId));
                         },
+
                         getAvailableClassIds() {
+                            if (!this.selectedMapelId) return [];
                             return this.allClassIds.filter(id => !this.isDisabled(id));
                         },
+
                         isAllAvailableSelected() {
                             const available = this.getAvailableClassIds();
                             return available.length > 0 && available.every(id => this.selectedClasses.includes(id));
                         },
+
                         toggleAll() {
                             const available = this.getAvailableClassIds();
                             if (available.length === 0) return;
@@ -689,6 +693,10 @@
                                 const set = new Set([...this.selectedClasses, ...available]);
                                 this.selectedClasses = Array.from(set);
                             }
+                        },
+
+                        onMapelChange() {
+                            this.selectedClasses = this.selectedClasses.filter(id => !this.isDisabled(id));
                         }
                     }"
                 >
@@ -703,6 +711,7 @@
                         <select id="guru_modal_mapel_id" 
                                 name="mapel_id" 
                                 x-model="selectedMapelId"
+                                @change="onMapelChange()"
                                 required 
                                 class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-800">
                             <option value="">-- Pilih Mata Pelajaran --</option>
@@ -718,69 +727,89 @@
                             <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
                                 Pilih Kelas yang Diampu <span class="text-rose-500">*</span>
                             </label>
-                            <button type="button" 
-                                    @click="toggleAll()" 
-                                    :disabled="getAvailableClassIds().length === 0"
-                                    :class="getAvailableClassIds().length === 0 ? 'opacity-40 cursor-not-allowed' : 'text-blue-600 hover:text-blue-800 hover:underline'"
-                                    class="text-[11px] font-bold transition-all">
-                                <span x-text="getAvailableClassIds().length === 0 ? 'Semua Kelas Sudah Terisi' : (isAllAvailableSelected() ? 'Batalkan Semua' : 'Pilih Semua Kelas Tersedia')"></span>
-                            </button>
+                            <template x-if="selectedMapelId">
+                                <button type="button" 
+                                        @click="toggleAll()" 
+                                        :disabled="getAvailableClassIds().length === 0"
+                                        :class="getAvailableClassIds().length === 0 ? 'opacity-40 cursor-not-allowed' : 'text-blue-600 hover:text-blue-800 hover:underline'"
+                                        class="text-[11px] font-bold transition-all">
+                                    <span x-text="getAvailableClassIds().length === 0 ? 'Semua Kelas Sudah Terisi' : (isAllAvailableSelected() ? 'Batalkan Semua' : 'Pilih Semua Kelas Tersedia')"></span>
+                                </button>
+                            </template>
                         </div>
 
-                        <div class="max-h-56 overflow-y-auto p-3 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
-                            @foreach($allKelases->groupBy('tingkatan') as $tingkat => $kelasList)
-                                <div>
-                                    <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Tingkat {{ $tingkat }}</p>
-                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                        @foreach($kelasList as $kelas)
-                                            <label 
-                                                :class="isDisabled({{ $kelas->id }}) 
-                                                    ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed select-none opacity-80' 
-                                                    : (selectedClasses.includes({{ $kelas->id }}) ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-400/30' : 'bg-white border-slate-200 hover:border-blue-300 hover:bg-blue-50/30') + ' cursor-pointer text-slate-800 shadow-2xs'"
-                                                class="flex items-center justify-between p-2 rounded-lg border transition-all text-xs font-medium"
-                                            >
-                                                <div class="flex items-center gap-2 truncate">
-                                                    <template x-if="isDisabled({{ $kelas->id }})">
-                                                        <span class="w-4 h-4 rounded bg-slate-200 text-slate-500 flex items-center justify-center shrink-0">
-                                                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                                        </span>
-                                                    </template>
-                                                    <template x-if="!isDisabled({{ $kelas->id }})">
-                                                        <input type="checkbox" 
-                                                               name="kelas_ids[]" 
-                                                               value="{{ $kelas->id }}"
-                                                               x-model="selectedClasses"
-                                                               class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
-                                                    </template>
-                                                    <span :class="isDisabled({{ $kelas->id }}) ? 'text-slate-400 font-normal line-through' : 'text-slate-800 font-bold'">
-                                                        {{ $kelas->nama_kelas }}
-                                                    </span>
-                                                </div>
+                        <template x-if="!selectedMapelId">
+                            <div class="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs text-amber-800">
+                                Pilih mata pelajaran terlebih dahulu untuk melihat ketersediaan kelas.
+                            </div>
+                        </template>
 
-                                                <div>
-                                                    <template x-if="isDisabled({{ $kelas->id }})">
-                                                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 whitespace-nowrap">
-                                                            Sudah Diampu
+                        <template x-if="selectedMapelId">
+                            <div class="max-h-56 overflow-y-auto p-3 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+                                @foreach($allKelases->groupBy('tingkatan') as $tingkat => $kelasList)
+                                    <div>
+                                        <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">Tingkat {{ $tingkat }}</p>
+                                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                            @foreach($kelasList as $kelas)
+                                                <label 
+                                                    :class="isDisabled({{ $kelas->id }}) 
+                                                        ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed select-none opacity-80' 
+                                                        : (selectedClasses.includes({{ $kelas->id }}) ? 'bg-blue-50/70 border-blue-300 ring-1 ring-blue-400/30' : 'bg-white border-slate-200 hover:border-blue-300 hover:bg-blue-50/30') + ' cursor-pointer text-slate-800 shadow-2xs'"
+                                                    class="flex items-center justify-between p-2 rounded-lg border transition-all text-xs font-medium"
+                                                >
+                                                    <div class="flex items-center gap-2 truncate">
+                                                        <template x-if="isDisabled({{ $kelas->id }})">
+                                                            <span class="w-4 h-4 rounded bg-slate-200 text-slate-500 flex items-center justify-center shrink-0">
+                                                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                            </span>
+                                                        </template>
+                                                        <template x-if="!isDisabled({{ $kelas->id }})">
+                                                            <input type="checkbox" 
+                                                                   name="kelas_ids[]" 
+                                                                   value="{{ $kelas->id }}"
+                                                                   x-model="selectedClasses"
+                                                                   class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
+                                                        </template>
+                                                        <span :class="isDisabled({{ $kelas->id }}) ? 'text-slate-400 font-normal line-through' : 'text-slate-800 font-bold'">
+                                                            {{ $kelas->nama_kelas }}
                                                         </span>
-                                                    </template>
-                                                    <template x-if="!isDisabled({{ $kelas->id }})">
-                                                        <span class="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
-                                                            Tersedia
-                                                        </span>
-                                                    </template>
-                                                </div>
-                                            </label>
-                                        @endforeach
+                                                    </div>
+
+                                                    <div class="shrink-0 ml-1">
+                                                        <template x-if="isAssignedToThisGuru({{ $kelas->id }})">
+                                                            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 whitespace-nowrap">
+                                                                Sudah Diampu
+                                                            </span>
+                                                        </template>
+                                                        <template x-if="!isAssignedToThisGuru({{ $kelas->id }}) && getOtherGuruName({{ $kelas->id }})">
+                                                            <span 
+                                                                class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 truncate max-w-[110px] inline-block align-middle"
+                                                                :title="'Sudah diampu oleh ' + getOtherGuruName({{ $kelas->id }})"
+                                                                x-text="'🔒 ' + getOtherGuruName({{ $kelas->id }})"
+                                                            ></span>
+                                                        </template>
+                                                        <template x-if="!isDisabled({{ $kelas->id }})">
+                                                            <span class="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+                                                                Tersedia
+                                                            </span>
+                                                        </template>
+                                                    </div>
+                                                </label>
+                                            @endforeach
+                                        </div>
                                     </div>
-                                </div>
-                            @endforeach
-                        </div>
+                                @endforeach
+                            </div>
+                        </template>
                         <div class="flex items-center gap-3 text-[11px] text-slate-500 pt-1">
                             <span class="inline-flex items-center gap-1">
                                 <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Kelas tersedia
                             </span>
                             <span class="inline-flex items-center gap-1">
-                                <span class="w-2 h-2 rounded-full bg-slate-400"></span> Sudah diajar guru ini (terkunci)
+                                <span class="w-2 h-2 rounded-full bg-blue-500"></span> Sudah diampu guru ini
+                            </span>
+                            <span class="inline-flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-rose-500"></span> 🔒 Diampu guru lain (terkunci)
                             </span>
                         </div>
                     </div>

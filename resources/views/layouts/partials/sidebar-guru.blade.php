@@ -130,6 +130,16 @@
             <span>Jadwal</span>
         </a>
 
+        <!-- Relokasi Mapel & Kelas -->
+        @php $isRelokasi = request()->routeIs('guru.relokasi*'); @endphp
+        <a href="{{ route('guru.relokasi.index') }}"
+           class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm transition-colors group {{ $isRelokasi ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs border border-blue-100/60' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50 font-medium' }}">
+            <svg class="w-5 h-5 {{ $isRelokasi ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-600' }} transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+            <span>Relokasi Mapel/Kelas</span>
+        </a>
+
         <!-- Notifikasi -->
         @php $isNotifikasi = request()->routeIs('notifikasi.index'); @endphp
         <a href="{{ route('notifikasi.index') }}"
