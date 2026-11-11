@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Guru\JadwalController as GuruJadwalController;
 use App\Http\Controllers\Guru\MateriController as GuruMateriController;
 use App\Http\Controllers\Guru\QuizController as GuruQuizController;
+use App\Http\Controllers\Guru\RelokasiAktivitasController as GuruRelokasiAktivitasController;
 use App\Http\Controllers\Guru\TugasController as GuruTugasController;
 use App\Http\Controllers\Guru\UjianController as GuruUjianController;
 
@@ -160,6 +161,12 @@ Route::middleware(['auth'])->group(function () {
             ->name('guru.kuis.soal.update');
         Route::delete('/guru/kuis/{quiz}/soal/{soal}', [GuruQuizController::class, 'destroySoal'])
             ->name('guru.kuis.soal.destroy');
+
+        // Pusat Relokasi / Duplikasi Mapel & Kelas (Solusi Human Error Guru)
+        Route::get('/guru/relokasi', [GuruRelokasiAktivitasController::class, 'index'])
+            ->name('guru.relokasi.index');
+        Route::post('/guru/relokasi', [GuruRelokasiAktivitasController::class, 'relocate'])
+            ->name('guru.relokasi.store');
     });
 
     // ==========================================
@@ -232,6 +239,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Guru Mapel Assignment
         Route::post('/guru-mapel', [AdminGuruMapelController::class, 'store'])->name('guru-mapel.store');
+        Route::put('/guru-mapel/{guruMapel}/reassign', [AdminGuruMapelController::class, 'reassign'])->name('guru-mapel.reassign');
         Route::delete('/guru-mapel/{guruMapel}', [AdminGuruMapelController::class, 'destroy'])->name('guru-mapel.destroy');
 
         // Jadwal (Foto)

@@ -61,8 +61,16 @@ class GuruController extends Controller
     {
         $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
         $kelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();
+        $existingPengampus = \App\Models\PengampuKelas::with(['guruMapel.guru'])
+            ->get()
+            ->map(fn($pk) => [
+                'mapel_id'  => $pk->guruMapel?->mapel_id,
+                'kelas_id'  => $pk->kelas_id,
+                'guru_id'   => $pk->guruMapel?->guru_id,
+                'guru_nama' => $pk->guruMapel?->guru?->nama,
+            ]);
 
-        return view('admin.kelola_guru.create', compact('mapels', 'kelases'));
+        return view('admin.kelola_guru.create', compact('mapels', 'kelases', 'existingPengampus'));
     }
 
     /**
@@ -88,52 +96,94 @@ class GuruController extends Controller
             'nomor_telepon.regex' => 'Nomor telepon harus berupa angka dan berisikan 10 hingga 13 digit.',
         ]);
 
-        $guru = Guru::create([
-            'nama'          => $validated['nama'],
-            'nuptk'         => $validated['nuptk'],
-            'jenis_kelamin' => $validated['jenis_kelamin'] ?? null,
-            'nomor_telepon' => $validated['nomor_telepon'] ?? null,
-            'status'        => 'aktif',
-        ]);
-
-        // Auto Create Akun User Guru (Poin 5)
-        $autoEmail = $validated['nuptk'] . '@guru.learnpoint.sch.id';
-        User::firstOrCreate(
-            ['username' => $validated['nuptk']],
-            [
-                'name'     => $validated['nama'],
-                'email'    => $autoEmail,
-                'password' => Hash::make($validated['nuptk']),
-                'role'     => 'guru',
-                'status'   => 'aktif',
-                'guru_id'  => $guru->id,
-            ]
-        );
-
-        // Tambah penugasan mapel yang diampu sekaligus jika ada
+        // Validasi aturan: 1 kelas hanya boleh diampu oleh 1 guru per mata pelajaran
         if (!empty($validated['assignments'])) {
-            foreach ($validated['assignments'] as $assign) {
-                if (!empty($assign['mapel_id'])) {
-                    $kelasIds = $assign['kelas_ids'] ?? [];
-                    if (!empty($assign['kelas_id']) && !in_array($assign['kelas_id'], $kelasIds)) {
-                        $kelasIds[] = $assign['kelas_id'];
-                    }
+            $seenPairs = [];
+            foreach ($validated['assignments'] as $idx => $assign) {
+                if (empty($assign['mapel_id'])) {
+                    continue;
+                }
+                $mapelId = $assign['mapel_id'];
+                $kelasIds = $assign['kelas_ids'] ?? [];
+                if (!empty($assign['kelas_id']) && !in_array($assign['kelas_id'], $kelasIds)) {
+                    $kelasIds[] = $assign['kelas_id'];
+                }
 
-                    if (!empty($kelasIds)) {
-                        $gm = \App\Models\GuruMapel::firstOrCreate([
-                            'guru_id'  => $guru->id,
-                            'mapel_id' => $assign['mapel_id'],
+                foreach ($kelasIds as $kId) {
+                    $pairKey = "{$mapelId}-{$kId}";
+                    if (isset($seenPairs[$pairKey])) {
+                        return back()->withInput()->withErrors([
+                            "assignments" => "Mata pelajaran dan kelas yang sama dipilih lebih dari satu kali pada form penugasan."
                         ]);
-                        foreach ($kelasIds as $kId) {
-                            \App\Models\PengampuKelas::firstOrCreate([
-                                'guru_mapel_id' => $gm->id,
-                                'kelas_id'      => $kId,
-                            ]);
-                        }
+                    }
+                    $seenPairs[$pairKey] = true;
+
+                    // Cek apakah mata pelajaran ini di kelas ini sudah diampu guru lain
+                    $existing = \App\Models\PengampuKelas::where('kelas_id', $kId)
+                        ->whereHas('guruMapel', fn($q) => $q->where('mapel_id', $mapelId))
+                        ->with(['guruMapel.guru', 'guruMapel.mapel', 'kelas'])
+                        ->first();
+
+                    if ($existing) {
+                        $guruNama = $existing->guruMapel?->guru?->nama ?? 'Guru Lain';
+                        $mapelNama = $existing->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+                        $kelasNama = $existing->kelas?->nama_kelas ?? 'Kelas';
+                        return back()->withInput()->withErrors([
+                            "assignments" => "Mata pelajaran {$mapelNama} di kelas {$kelasNama} sudah diampu oleh {$guruNama}. Hanya diperbolehkan 1 guru untuk setiap mata pelajaran dalam 1 kelas."
+                        ]);
                     }
                 }
             }
         }
+
+        DB::transaction(function () use ($validated) {
+            $guru = Guru::create([
+                'nama'          => $validated['nama'],
+                'nuptk'         => $validated['nuptk'],
+                'jenis_kelamin' => $validated['jenis_kelamin'] ?? null,
+                'nomor_telepon' => $validated['nomor_telepon'] ?? null,
+                'status'        => 'aktif',
+            ]);
+
+            // Auto Create Akun User Guru (Poin 5)
+            $autoEmail = $validated['nuptk'] . '@guru.learnpoint.sch.id';
+            User::firstOrCreate(
+                ['username' => $validated['nuptk']],
+                [
+                    'name'     => $validated['nama'],
+                    'email'    => $autoEmail,
+                    'password' => Hash::make($validated['nuptk']),
+                    'role'     => 'guru',
+                    'status'   => 'aktif',
+                    'guru_id'  => $guru->id,
+                ]
+            );
+
+            // Tambah penugasan mapel yang diampu sekaligus jika ada
+            if (!empty($validated['assignments'])) {
+                foreach ($validated['assignments'] as $assign) {
+                    if (!empty($assign['mapel_id'])) {
+                        $kelasIds = $assign['kelas_ids'] ?? [];
+                        if (!empty($assign['kelas_id']) && !in_array($assign['kelas_id'], $kelasIds)) {
+                            $kelasIds[] = $assign['kelas_id'];
+                        }
+
+                        if (!empty($kelasIds)) {
+                            $gm = \App\Models\GuruMapel::firstOrCreate([
+                                'guru_id'  => $guru->id,
+                                'mapel_id' => $assign['mapel_id'],
+                            ]);
+                            foreach ($kelasIds as $kId) {
+                                \App\Models\PengampuKelas::firstOrCreate([
+                                    'guru_mapel_id' => $gm->id,
+                                    'kelas_id'      => $kId,
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
+        });
 
         return redirect()->route('guru.index')->with('success', 'Data guru dan akun pengguna berhasil ditambahkan secara otomatis!');
     }
@@ -154,8 +204,16 @@ class GuruController extends Controller
 
         $allMapels = Mapel::orderBy('nama_mapel', 'asc')->get();
         $allKelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();
+        $allExistingPengampus = \App\Models\PengampuKelas::with(['guruMapel.guru'])
+            ->get()
+            ->map(fn($pk) => [
+                'mapel_id'  => $pk->guruMapel?->mapel_id,
+                'kelas_id'  => $pk->kelas_id,
+                'guru_id'   => $pk->guruMapel?->guru_id,
+                'guru_nama' => $pk->guruMapel?->guru?->nama,
+            ]);
 
-        return view('admin.kelola_guru.show', compact('guru', 'allMapels', 'allKelases'));
+        return view('admin.kelola_guru.show', compact('guru', 'allMapels', 'allKelases', 'allExistingPengampus'));
     }
 
     /**
@@ -166,8 +224,16 @@ class GuruController extends Controller
         $guru->load(['user', 'pengampuKelases.guruMapel.mapel', 'pengampuKelases.kelas']);
         $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
         $kelases = Kelas::orderBy('tingkatan', 'asc')->orderBy('nama_kelas', 'asc')->get();
+        $allExistingPengampus = \App\Models\PengampuKelas::with(['guruMapel.guru'])
+            ->get()
+            ->map(fn($pk) => [
+                'mapel_id'  => $pk->guruMapel?->mapel_id,
+                'kelas_id'  => $pk->kelas_id,
+                'guru_id'   => $pk->guruMapel?->guru_id,
+                'guru_nama' => $pk->guruMapel?->guru?->nama,
+            ]);
 
-        return view('admin.kelola_guru.edit', compact('guru', 'mapels', 'kelases'));
+        return view('admin.kelola_guru.edit', compact('guru', 'mapels', 'kelases', 'allExistingPengampus'));
     }
 
     /**
@@ -192,41 +258,62 @@ class GuruController extends Controller
             'nomor_telepon.regex' => 'Nomor telepon harus berupa angka dan berisikan 10 hingga 13 digit.',
         ]);
 
-        $updateGuru = [
-            'nama'  => $validated['nama'],
-            'nuptk' => $validated['nuptk'],
-        ];
-        if ($request->has('jenis_kelamin')) {
-            $updateGuru['jenis_kelamin'] = $validated['jenis_kelamin'] ?? null;
-        }
-        if ($request->has('nomor_telepon')) {
-            $updateGuru['nomor_telepon'] = $validated['nomor_telepon'] ?? null;
-        }
-        $guru->update($updateGuru);
-
-        // Update user name jika terhubung
-        if ($guru->user) {
-            $guru->user->update(['name' => $validated['nama']]);
-        }
-
         // Tambah penugasan baru jika dipilih
         $newKelasIds = $request->input('new_kelas_ids', []);
         if ($request->filled('new_kelas_id') && !in_array($request->new_kelas_id, $newKelasIds)) {
             $newKelasIds[] = $request->new_kelas_id;
         }
 
+        // Cek konflik guru lain pada mapel dan kelas yang dipilih
         if (!empty($validated['new_mapel_id']) && !empty($newKelasIds)) {
-            $gm = \App\Models\GuruMapel::firstOrCreate([
-                'guru_id'  => $guru->id,
-                'mapel_id' => $validated['new_mapel_id'],
-            ]);
             foreach ($newKelasIds as $kId) {
-                \App\Models\PengampuKelas::firstOrCreate([
-                    'guru_mapel_id' => $gm->id,
-                    'kelas_id'      => $kId,
-                ]);
+                $existing = \App\Models\PengampuKelas::where('kelas_id', $kId)
+                    ->whereHas('guruMapel', fn($q) => $q->where('mapel_id', $validated['new_mapel_id']))
+                    ->with(['guruMapel.guru', 'guruMapel.mapel', 'kelas'])
+                    ->first();
+
+                if ($existing && $existing->guruMapel?->guru_id != $guru->id) {
+                    $guruNama = $existing->guruMapel?->guru?->nama ?? 'Guru Lain';
+                    $mapelNama = $existing->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+                    $kelasNama = $existing->kelas?->nama_kelas ?? 'Kelas';
+                    return back()->withInput()->withErrors([
+                        'new_kelas_ids' => "Mata pelajaran {$mapelNama} di kelas {$kelasNama} sudah diampu oleh {$guruNama}. Hanya diperbolehkan 1 guru untuk setiap mata pelajaran dalam 1 kelas."
+                    ]);
+                }
             }
         }
+
+        DB::transaction(function () use ($validated, $guru, $request, $newKelasIds) {
+            $updateGuru = [
+                'nama'  => $validated['nama'],
+                'nuptk' => $validated['nuptk'],
+            ];
+            if ($request->has('jenis_kelamin')) {
+                $updateGuru['jenis_kelamin'] = $validated['jenis_kelamin'] ?? null;
+            }
+            if ($request->has('nomor_telepon')) {
+                $updateGuru['nomor_telepon'] = $validated['nomor_telepon'] ?? null;
+            }
+            $guru->update($updateGuru);
+
+            // Update user name jika terhubung
+            if ($guru->user) {
+                $guru->user->update(['name' => $validated['nama']]);
+            }
+
+            if (!empty($validated['new_mapel_id']) && !empty($newKelasIds)) {
+                $gm = \App\Models\GuruMapel::firstOrCreate([
+                    'guru_id'  => $guru->id,
+                    'mapel_id' => $validated['new_mapel_id'],
+                ]);
+                foreach ($newKelasIds as $kId) {
+                    \App\Models\PengampuKelas::firstOrCreate([
+                        'guru_mapel_id' => $gm->id,
+                        'kelas_id'      => $kId,
+                    ]);
+                }
+            }
+        });
 
         return redirect()->route('guru.edit', $guru->id)->with('success', 'Data guru dan penugasan mengajar berhasil diperbarui!');
     }
