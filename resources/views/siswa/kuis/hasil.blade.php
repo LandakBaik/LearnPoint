@@ -141,6 +141,16 @@
             <span class="text-[11px] text-slate-500 font-medium block pt-1">
                 Progres Petualangan: <strong class="text-slate-700">{{ $journey['completed_levels'] ?? 1 }} dari {{ $journey['total_levels'] ?? 1 }} Level Selesai</strong>
             </span>
+
+            {{-- Indikator Saldo Koin Siswa --}}
+            <div class="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs font-bold px-2">
+                <span class="text-slate-500 flex items-center gap-1">
+                    <i class="fa-solid fa-coins text-amber-500"></i> Saldo Koin:
+                </span>
+                <span class="text-amber-600 font-black">
+                    {{ number_format(auth()->user()?->siswa?->koin ?? 0, 0, ',', '.') }} Koin
+                </span>
+            </div>
         </div>
 
         {{-- Statistics Grid --}}

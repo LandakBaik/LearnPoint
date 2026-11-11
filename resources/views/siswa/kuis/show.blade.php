@@ -3,6 +3,9 @@
 @section('title', 'Peta Petualangan - ' . ($quiz->judul ?? 'Kuis'))
 
 @section('content')
+{{-- Komponen Modal Gacha Power & Banner --}}
+@include('siswa.kuis.partials.gacha-modal')
+
 <div 
     class="max-w-7xl mx-auto space-y-6 pb-12"
     x-data="{
@@ -115,8 +118,28 @@
             </div>
         </div>
 
-        {{-- Sisi Kanan: Widget Progres Penyelamatan & Persentase & Bintang --}}
+        {{-- Sisi Kanan: Widget Koin, Gacha & Progres --}}
         <div class="flex items-center gap-3 shrink-0 self-start md:self-auto flex-wrap sm:flex-nowrap">
+            {{-- Widget Koin & Tombol Gacha --}}
+            <a 
+                href="{{ route('siswa.gacha') }}"
+                class="bg-white hover:bg-amber-50/50 rounded-2xl py-2.5 px-4 border border-amber-200/90 shadow-2xs flex items-center gap-3 transition cursor-pointer"
+                title="Buka Peti Gacha Power & Banner"
+            >
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 text-white flex items-center justify-center text-lg shrink-0 shadow-xs">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <div class="text-left">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Koin Siswa
+                    </div>
+                    <div class="text-sm font-black text-amber-600 whitespace-nowrap flex items-center gap-1">
+                        <span>{{ number_format(auth()->user()?->siswa?->koin ?? 0, 0, ',', '.') }}</span>
+                        <span class="text-[10px] font-bold text-amber-500 ml-1 underline">Gacha</span>
+                    </div>
+                </div>
+            </a>
+
             {{-- Widget Total Bintang --}}
             <div class="bg-white rounded-2xl py-3 px-4 border border-amber-200/80 shadow-2xs flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-500 flex items-center justify-center text-lg shrink-0">
