@@ -111,6 +111,21 @@
         @endif
     </a>
 
+    <!-- Wish / Gacha (Genshin Style) -->
+    @php $isGacha = request()->routeIs('siswa.gacha*'); @endphp
+    <a 
+        href="{{ route('siswa.gacha') }}" 
+        class="flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm transition-all relative {{ $isGacha ? $activeClass : $inactiveClass }}"
+    >
+        <div class="w-5 h-5 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-wand-magic-sparkles text-sm {{ $isGacha ? 'text-amber-300' : 'text-amber-400' }}"></i>
+        </div>
+        <span class="text-base font-semibold">Wish & Gacha</span>
+        @if($isGacha)
+            <span class="w-2 h-6 bg-white rounded-full ml-auto shrink-0 shadow-sm"></span>
+        @endif
+    </a>
+
     <!-- Nilai / Statistik -->
     @php 
         $isStatistik = ((request()->routeIs('siswa.dashboard*') || request()->routeIs('siswa.beranda*')) && request('tab') === 'statistik') || request()->routeIs('siswa.nilai*'); 

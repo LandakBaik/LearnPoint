@@ -97,11 +97,16 @@ class DatabaseSeeder extends Seeder
         ], [
             'tahun_ajaran' => '2026/2027',
             'semester' => 'ganjil',
-
-        // 7. Seeder Tugas
         ]);
+
+        // 7. Seeder Tugas & Kuis Petualangan
         $this->call([
             TugasSeeder::class,
+            QuizSeeder::class,
         ]);
+
+        // 8. Katalog Master Items (Power & Banner) & Inventaris Awal Siswa
+        \App\Models\Item::ensureDefaultCatalog();
+        \App\Models\Inventory::initializeDefaultInventory($siswa);
     }
 }

@@ -16,6 +16,29 @@ class PengampuKelas extends Model
         'kelas_id',
     ];
 
+    protected static function booted()
+    {
+        static::saving(function ($pengampuKelas) {
+            $mapelId = $pengampuKelas->guruMapel?->mapel_id 
+                ?? GuruMapel::where('id', $pengampuKelas->guru_mapel_id)->value('mapel_id');
+
+            if ($mapelId && $pengampuKelas->kelas_id) {
+                $query = static::where('kelas_id', $pengampuKelas->kelas_id)
+                    ->whereHas('guruMapel', function ($q) use ($mapelId) {
+                        $q->where('mapel_id', $mapelId);
+                    });
+
+                if ($pengampuKelas->exists) {
+                    $query->where('id', '!=', $pengampuKelas->id);
+                }
+
+                if ($query->exists()) {
+                    throw new \InvalidArgumentException("Mata pelajaran ini sudah memiliki guru pengampu di kelas tersebut. Hanya diperbolehkan 1 guru untuk setiap mata pelajaran dalam satu kelas.");
+                }
+            }
+        });
+    }
+
     public function guruMapel()
     {
         return $this->belongsTo(GuruMapel::class, 'guru_mapel_id');

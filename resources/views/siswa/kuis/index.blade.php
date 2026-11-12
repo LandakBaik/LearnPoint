@@ -5,6 +5,9 @@
 @section('content')
 <div class="space-y-6">
 
+    {{-- Komponen Modal Gacha Power & Banner --}}
+    @include('siswa.kuis.partials.gacha-modal')
+
     @if($viewMode === 'planets')
         {{-- ================================================================= --}}
         {{-- MODE 1: GALAXY MAP / PILIHAN PLANET (SESUAI GAMBAR 1)           --}}
@@ -130,14 +133,29 @@
             </div>
         </div>
 
-        {{-- 3. Section Title --}}
-        <div class="pt-2">
-            <h2 class="text-lg md:text-xl font-extrabold text-slate-900 tracking-tight">
-                Pilihan pelanet yang ingin diselamatkan!!!
-            </h2>
-            <p class="text-xs md:text-sm text-slate-500 font-medium mt-0.5">
-                Pilih planet yang mau ditolong
-            </p>
+        {{-- 3. Section Title & Tombol Peti Gacha --}}
+        <div class="pt-2 flex items-center justify-between gap-4 flex-wrap">
+            <div>
+                <h2 class="text-lg md:text-xl font-extrabold text-slate-900 tracking-tight">
+                    Pilihan pelanet yang ingin diselamatkan!!!
+                </h2>
+                <p class="text-xs md:text-sm text-slate-500 font-medium mt-0.5">
+                    Pilih planet yang mau ditolong
+                </p>
+            </div>
+
+            {{-- Tombol Buka Peti Gacha --}}
+            <a 
+                href="{{ route('siswa.gacha') }}"
+                class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-extrabold text-xs flex items-center gap-2 shadow-md shadow-amber-500/20 transition cursor-pointer"
+            >
+                <i class="fa-solid fa-box-open text-sm"></i>
+                <span>Buka Peti Gacha</span>
+                <span class="px-2 py-0.5 rounded-full bg-white/20 text-white text-[11px] font-black">
+                    <i class="fa-solid fa-coins text-[10px] mr-0.5 text-amber-200"></i>
+                    {{ number_format(auth()->user()?->siswa?->koin ?? 0, 0, ',', '.') }}
+                </span>
+            </a>
         </div>
 
         {{-- 4. Planet Cards Grid --}}
@@ -238,21 +256,24 @@
                 {{-- Divider --}}
                 <div class="w-px h-8 bg-slate-200"></div>
 
-                {{-- Energi & XP --}}
-                <div>
-                    <div class="text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-1.5">
-                        ENERGI & XP
+                {{-- Koin & Tombol Gacha --}}
+                <div class="flex items-center gap-3">
+                    <div>
+                        <div class="text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-1">
+                            KOIN ANDA
+                        </div>
+                        <div class="flex items-center gap-1.5 font-black text-sm text-amber-600">
+                            <i class="fa-solid fa-coins text-amber-500"></i>
+                            <span>{{ number_format(auth()->user()?->siswa?->koin ?? 0, 0, ',', '.') }}</span>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-3 font-bold text-sm text-slate-800">
-                        <span class="flex items-center gap-1.5 text-amber-500">
-                            <i class="fa-solid fa-bolt"></i>
-                            <strong class="text-slate-800 font-extrabold">{{ $energi }}</strong>
-                        </span>
-                        <span class="flex items-center gap-1.5 text-blue-600">
-                            <i class="fa-solid fa-trophy text-blue-600"></i>
-                            <strong class="text-slate-800 font-extrabold">{{ $xp }}</strong>
-                        </span>
-                    </div>
+                    <a 
+                        href="{{ route('siswa.gacha') }}"
+                        class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 text-white font-extrabold text-[11px] flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+                        title="Buka Peti Gacha Power & Banner"
+                    >
+                        <i class="fa-solid fa-box-open"></i> Gacha
+                    </a>
                 </div>
             </div>
         </div>
@@ -273,7 +294,7 @@
 
                 {{-- List of Zonas --}}
                 <div class="space-y-4 pt-1">
-                    @foreach($zonas as $zona)
+                    @forelse($zonas as $zona)
                         @if($zona->is_completed)
                             {{-- 1. ZONA SELESAI --}}
                             <div class="bg-white rounded-2xl border border-slate-200/80 p-4 md:p-5 flex items-center justify-between gap-4 shadow-xs">
@@ -290,29 +311,28 @@
                                                 Selesai
                                             </span>
                                         </div>
-                                        <div class="text-xs text-slate-400 font-medium mt-0.5">
-                                            Skor Sempurna: {{ number_format($zona->skor, 0) }}/100 • {{ $zona->bintang }} Bintang
+                                        <div class="text-xs text-slate-500 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                            <span>Nilai: <strong class="text-slate-800">{{ number_format($zona->skor, 0) }}/100</strong></span>
+                                            <span>•</span>
+                                            <span class="inline-flex items-center gap-0.5 text-amber-500 font-bold">
+                                                @for($s = 1; $s <= 3; $s++)
+                                                    <i class="fa-solid fa-star text-[11px] {{ $s <= $zona->bintang ? 'text-amber-400' : 'text-slate-200' }}"></i>
+                                                @endfor
+                                                <span class="text-slate-600 text-[11px] ml-1">({{ $zona->bintang }}/3 Bintang)</span>
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
 
                                 @if($zona->quiz)
                                     <a 
-                                        href="{{ route('siswa.kuis.hasil', $zona->quiz->id) }}"
+                                        href="{{ route('siswa.kuis.hasil-petualangan', $zona->quiz->id) }}"
                                         class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center gap-1.5 transition shrink-0"
+                                        title="Lihat Hasil Akhir Petualangan"
                                     >
-                                        <i class="fa-solid fa-rotate-right text-[11px] text-slate-400"></i>
-                                        <span>Review</span>
+                                        <i class="fa-solid fa-trophy text-[11px] text-amber-500"></i>
+                                        <span>Hasil Petualangan</span>
                                     </a>
-                                @else
-                                    <button 
-                                        type="button" 
-                                        onclick="alert('Riwayat pengerjaan: Skor Sempurna 100/100 (3 Bintang)');"
-                                        class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center gap-1.5 transition shrink-0"
-                                    >
-                                        <i class="fa-solid fa-rotate-right text-[11px] text-slate-400"></i>
-                                        <span>Review</span>
-                                    </button>
                                 @endif
                             </div>
                         @else
@@ -351,19 +371,20 @@
                                         <span>{{ $zona->buka_level_label }}</span>
                                         <i class="fa-solid fa-arrow-right text-xs"></i>
                                     </a>
-                                @else
-                                    <button 
-                                        type="button"
-                                        onclick="alert('Pilih kuis dari daftar untuk membuka peta petualangan level!');"
-                                        class="w-full py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm flex items-center justify-center gap-2 transition shadow-sm shadow-blue-500/20"
-                                    >
-                                        <span>{{ $zona->buka_level_label }}</span>
-                                        <i class="fa-solid fa-arrow-right text-xs"></i>
-                                    </button>
                                 @endif
                             </div>
                         @endif
-                    @endforeach
+                    @empty
+                        <div class="bg-white rounded-2xl border border-slate-200/80 p-8 text-center space-y-2 shadow-xs">
+                            <div class="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center mx-auto border border-slate-100">
+                                <i class="fa-solid fa-compass text-lg"></i>
+                            </div>
+                            <h4 class="font-extrabold text-slate-800 text-sm">Belum Ada Zona Misi</h4>
+                            <p class="text-xs text-slate-500 font-medium max-w-sm mx-auto">
+                                Belum ada kuis petualangan yang diterbitkan oleh guru untuk planet {{ $selectedPlanet->nama }}.
+                            </p>
+                        </div>
+                    @endforelse
                 </div>
             </div>
 

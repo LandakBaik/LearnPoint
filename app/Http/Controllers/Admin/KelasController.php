@@ -71,12 +71,34 @@ class KelasController extends Controller
     {
         // Parameter binding route 'kelas' returns $kela
         $kelas = $kela;
-        $kelas->load(['guru', 'siswas', 'anggotaKelases.siswa', 'pengampuKelases.guruMapel.guru', 'pengampuKelases.guruMapel.mapel']);
+        $kelas->load([
+            'guru',
+            'siswas',
+            'anggotaKelases.siswa',
+            'pengampuKelases' => fn($q) => $q->withCount(['materis', 'tugases', 'quizzes', 'ujians']),
+            'pengampuKelases.guruMapel.guru',
+            'pengampuKelases.guruMapel.mapel',
+        ]);
 
         $allGurus = Guru::orderBy('nama', 'asc')->get();
         $allMapels = Mapel::orderBy('nama_mapel', 'asc')->get();
 
-        return view('admin.kelola_kelas.show', compact('kelas', 'allGurus', 'allMapels'));
+        // Daftar penugasan kelas lain untuk mendeteksi fitur Tukar Kelas (Swap) antar guru di mapel yang sama
+        $otherPengampus = \App\Models\PengampuKelas::with(['guruMapel.guru', 'guruMapel.mapel', 'kelas'])
+            ->where('kelas_id', '!=', $kelas->id)
+            ->get()
+            ->map(fn($pk) => [
+                'pengampu_id' => $pk->id,
+                'mapel_id'    => $pk->guruMapel?->mapel_id,
+                'guru_id'     => $pk->guruMapel?->guru_id,
+                'guru_nama'   => $pk->guruMapel?->guru?->nama,
+                'kelas_id'    => $pk->kelas_id,
+                'nama_kelas'  => $pk->kelas?->nama_kelas,
+                'tingkatan'   => $pk->kelas?->tingkatan,
+            ])
+            ->values();
+
+        return view('admin.kelola_kelas.show', compact('kelas', 'allGurus', 'allMapels', 'otherPengampus'));
     }
 
     /**
@@ -114,6 +136,22 @@ class KelasController extends Controller
      */
     public function destroy(Kelas $kela)
     {
+        $hasActivities = $kela->pengampuKelases()
+            ->where(function ($q) {
+                $q->has('materis')
+                    ->orHas('tugases')
+                    ->orHas('quizzes')
+                    ->orHas('ujians');
+            })
+            ->exists();
+
+        if ($hasActivities) {
+            return redirect()->route('kelas.index')->with(
+                'error',
+                "Kelas {$kela->nama_kelas} tidak dapat dihapus karena sudah memiliki materi, tugas, kuis, atau ujian aktif yang terkait dengan nilai siswa."
+            );
+        }
+
         $kela->delete();
 
         return redirect()->route('kelas.index')->with('success', 'Data kelas berhasil dihapus!');

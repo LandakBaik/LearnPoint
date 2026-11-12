@@ -108,7 +108,23 @@ class MapelController extends Controller
             $newKelasIds[] = $request->new_kelas_id;
         }
 
+        // Cek konflik guru lain pada kelas yang dipilih untuk mapel ini
         if (!empty($validated['new_guru_id']) && !empty($newKelasIds)) {
+            foreach ($newKelasIds as $kId) {
+                $existing = \App\Models\PengampuKelas::where('kelas_id', $kId)
+                    ->whereHas('guruMapel', fn($q) => $q->where('mapel_id', $mapel->id))
+                    ->with(['guruMapel.guru', 'kelas'])
+                    ->first();
+
+                if ($existing && $existing->guruMapel?->guru_id != $validated['new_guru_id']) {
+                    $guruNama = $existing->guruMapel?->guru?->nama ?? 'Guru Lain';
+                    $kelasNama = $existing->kelas?->nama_kelas ?? 'Kelas';
+                    return back()->withInput()->withErrors([
+                        'new_kelas_ids' => "Kelas {$kelasNama} sudah diampu oleh {$guruNama} untuk mata pelajaran {$mapel->nama_mapel}. Hanya diperbolehkan 1 guru untuk setiap mata pelajaran dalam 1 kelas."
+                    ]);
+                }
+            }
+
             $gm = \App\Models\GuruMapel::firstOrCreate([
                 'guru_id'  => $validated['new_guru_id'],
                 'mapel_id' => $mapel->id,
@@ -129,6 +145,22 @@ class MapelController extends Controller
      */
     public function destroy(Mapel $mapel)
     {
+        $hasActivities = $mapel->pengampuKelases()
+            ->where(function ($q) {
+                $q->has('materis')
+                    ->orHas('tugases')
+                    ->orHas('quizzes')
+                    ->orHas('ujians');
+            })
+            ->exists();
+
+        if ($hasActivities) {
+            return redirect()->route('mapel.index')->with(
+                'error',
+                "Mata pelajaran {$mapel->nama_mapel} tidak dapat dihapus karena sudah memiliki aktivitas pembelajaran (Materi/Tugas/Kuis/Ujian) dan nilai siswa yang aktif."
+            );
+        }
+
         $mapel->delete();
 
         return redirect()->route('mapel.index')->with('success', 'Mata pelajaran berhasil dihapus!');

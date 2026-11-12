@@ -405,7 +405,6 @@ class MateriController extends Controller
             return [
                 'id' => $mapel->id,
                 'nama_mapel' => $mapel->nama_mapel,
-                'kode_mapel' => $mapel->kode_mapel,
                 'total_materi' => $materisCount,
                 'total_kuis' => $kuisCount,
                 'guru' => $guruPengampu,
@@ -421,12 +420,16 @@ class MateriController extends Controller
     public function siswaShow(Request $request, $mapelId)
     {
         $siswa = $request->user()?->siswa;
-        $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $anggotaKelas = $siswa?->anggotaKelases()?->latest()?->first();
+        $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;
         $kelasId = $kelas?->id;
 
         if (!$kelasId) {
             return $this->notFoundResponse('Data kelas siswa tidak ditemukan.');
         }
+
+        $tahunAjaran = $anggotaKelas?->tahun_ajaran ?? '2026/2027';
+        $semester = $anggotaKelas?->semester ? ucfirst($anggotaKelas->semester) : 'Ganjil';
 
         $mapel = Mapel::whereHas('pengampuKelases', function ($q) use ($kelasId) {
             $q->where('kelas_id', $kelasId);
@@ -463,6 +466,10 @@ class MateriController extends Controller
             'mapel' => [
                 'id' => $mapel->id,
                 'nama_mapel' => $mapel->nama_mapel,
+                'nama_kelas' => $kelas?->nama_kelas,
+                'tingkatan' => $kelas?->tingkatan,
+                'semester' => $semester,
+                'tahun_ajaran' => $tahunAjaran,
             ],
             'materis' => $materis,
         ]);

@@ -14,11 +14,40 @@
         color: #ffffff;
         border-color: #2563eb;
     }
+    .option-card input[type="radio"]:disabled + label {
+        cursor: not-allowed;
+    }
 </style>
 @endpush
 
 @section('content')
-<div x-data="quizPlayer()" x-init="initTimer()" class="max-w-5xl mx-auto space-y-6">
+@php
+    // Siapkan metadata soal untuk mekanisme prototype Power (tanpa mengubah controller/database)
+    $powerQuestionsMeta = [];
+    $powerQuestionIds = [];
+    foreach ($soals as $s) {
+        $pilihanMap = $s->pilihan_shuffled ?? $s->pilihan ?? [];
+        $rawKunci = $s->kunci_jawaban;
+        if (is_array($rawKunci)) {
+            $cleanKunci = strtolower(trim((string) ($rawKunci[0] ?? 'a')));
+        } else {
+            $cleanKunci = strtolower(trim((string) $rawKunci, " \t\n\r\0\x0B\"'[]"));
+        }
+        $powerQuestionIds[] = (int) $s->id;
+        $powerQuestionsMeta[$s->id] = [
+            'id' => (int) $s->id,
+            'bobot' => (float) ($s->bobot ?: 10),
+            'correctKey' => $cleanKunci ?: 'a',
+            'optionKeys' => is_array($pilihanMap) ? array_map('strtolower', array_keys($pilihanMap)) : ['a', 'b', 'c', 'd'],
+            'options' => is_array($pilihanMap) ? $pilihanMap : [],
+        ];
+    }
+@endphp
+
+<div x-data="quizPlayer()" x-init="initTimer(); initPowerBackend()" class="max-w-5xl mx-auto space-y-6 pb-12">
+
+    {{-- Komponen Modal & Toast Power (Terpisah di Partial) --}}
+    @include('siswa.kuis.partials.power-panel')
 
     {{-- 1. Sticky Header Bar Pengerjaan --}}
     <div class="sticky top-16 z-30 bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -44,12 +73,27 @@
             </div>
         </div>
 
-        {{-- Live Timer & Progress Summary --}}
-        <div class="flex items-center justify-between md:justify-end gap-3 shrink-0">
+        {{-- Live Timer, Tombol Power & Progress Summary --}}
+        <div class="flex items-center justify-between md:justify-end gap-2.5 flex-wrap shrink-0">
+            {{-- TOMBOL POWER UTAMA --}}
+            <button 
+                type="button" 
+                @click="openPowerPanel()"
+                class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-extrabold transition cursor-pointer shadow-sm shadow-blue-500/20"
+                title="Buka Tas Power Petualangan"
+            >
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                <span>Power</span>
+                <span 
+                    class="px-1.5 py-0.2 rounded-md bg-white/20 text-white text-[11px] font-black"
+                    x-text="totalPowerRemaining()"
+                ></span>
+            </button>
+
             {{-- Elapsed Time Counter --}}
             <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600">
                 <i class="fa-regular fa-clock text-blue-600"></i>
-                <span>Durasi:</span>
+                <span class="hidden sm:inline">Durasi:</span>
                 <span class="font-mono font-bold text-slate-800" x-text="formatElapsedTime()">00:00</span>
             </div>
 
@@ -64,7 +108,7 @@
             @endif
 
             {{-- Flagged / Ditandai Counter --}}
-            <div x-show="countFlagged() > 0" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-800 transition">
+            <div x-show="countFlagged() > 0" x-cloak class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-800 transition">
                 <i class="fa-solid fa-bookmark text-[11px] text-amber-600"></i>
                 <span x-text="countFlagged()"></span> Ditandai
             </div>
@@ -74,18 +118,6 @@
                 <i class="fa-solid fa-check-double text-[11px]"></i>
                 <span x-text="countAnswered()"></span>/<span x-text="totalQuestions"></span> Terjawab
             </div>
-
-            {{-- Simpan & Keluar Button --}}
-            <button 
-                type="button" 
-                @click="saveAndExit()" 
-                class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-xs font-bold text-amber-800 transition cursor-pointer shadow-xs shrink-0"
-                title="Simpan jawaban saat ini dan lanjutkan pengerjaan nanti"
-            >
-                <i class="fa-solid fa-floppy-disk text-amber-600"></i>
-                <span class="hidden sm:inline">Simpan & Keluar</span>
-                <span class="sm:hidden">Keluar</span>
-            </button>
         </div>
     </div>
 
@@ -102,12 +134,16 @@
             {{-- 2. Area Lembar Pertanyaan (8 Cols) --}}
             <div class="lg:col-span-8 space-y-5">
                 @foreach($soals as $index => $soal)
+                    @php
+                        $bobotSoal = (int) ($soal->bobot ?: 10);
+                    @endphp
                     <div 
                         x-show="currentIndex === {{ $index }}" 
                         x-transition:enter="transition ease-out duration-200"
                         x-transition:enter-start="opacity-0 translate-y-2"
                         x-transition:enter-end="opacity-100 translate-y-0"
-                        class="bg-white rounded-3xl border border-slate-200/90 p-6 md:p-8 shadow-xs space-y-6"
+                        class="bg-white rounded-3xl border p-6 md:p-8 shadow-xs space-y-6 transition-all"
+                        :class="getActivePowersForQuestion({{ $soal->id }}).length > 0 ? 'border-blue-300 ring-2 ring-blue-100/80' : 'border-slate-200/90'"
                         style="{{ $index !== 0 ? 'display: none;' : '' }}"
                     >
                         {{-- Question Header Badges --}}
@@ -122,6 +158,18 @@
                             </div>
 
                             <div class="flex items-center gap-2 flex-wrap">
+                                {{-- Tombol Pintas Gunakan Power pada Soal Ini --}}
+                                <button 
+                                    type="button" 
+                                    @click="openPowerPanel()"
+                                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer select-none border bg-[#EFF6FF] hover:bg-blue-100/80 text-[#2563EB] border-blue-200"
+                                    title="Gunakan item Power pada soal ini"
+                                >
+                                    <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+                                    <span>Gunakan Power</span>
+                                    <span class="px-1.5 py-0.2 rounded-md bg-blue-600 text-white text-[10px] font-black" x-text="totalPowerRemaining()"></span>
+                                </button>
+
                                 {{-- Tombol Tandai Soal (Penanda / Ragu-ragu) --}}
                                 <button 
                                     type="button" 
@@ -145,16 +193,66 @@
                                     </span>
                                 @endif
 
-                                @if($soal->level)
-                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-600">
-                                        {{ $soal->level }}
+                                {{-- Badge Bobot Soal (Berubah Dinamis Jika Power Pengganda Skor Aktif) --}}
+                                <template x-if="!getQuestionMultiplier({{ $soal->id }})">
+                                    <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                                        Bobot: {{ $bobotSoal }} Poin
                                     </span>
-                                @endif
-
-                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700">
-                                    Bobot: {{ number_format($soal->bobot, 0) }} Poin
-                                </span>
+                                </template>
+                                <template x-if="getQuestionMultiplier({{ $soal->id }}) === 'two_x_score'">
+                                    <span class="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-amber-50 text-amber-700 border border-amber-300 flex items-center gap-1 animate-pulse">
+                                        <i class="fa-solid fa-bolt text-[10px]"></i>
+                                        <span>Bobot 2X: {{ $bobotSoal * 2 }} Poin</span>
+                                    </span>
+                                </template>
+                                <template x-if="getQuestionMultiplier({{ $soal->id }}) === 'double_side_knife'">
+                                    <span class="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-rose-50 text-rose-700 border border-rose-300 flex items-center gap-1">
+                                        <i class="fa-solid fa-khanda text-[10px]"></i>
+                                        <span>Benar +{{ $bobotSoal * 2 }} | Salah -{{ round($bobotSoal * 0.5) }} Poin</span>
+                                    </span>
+                                </template>
                             </div>
+                        </div>
+
+                        {{-- BANNER INDIKATOR POWER AKTIF PADA SOAL INI --}}
+                        <div 
+                            x-show="getActivePowersForQuestion({{ $soal->id }}).length > 0" 
+                            x-cloak
+                            x-transition
+                            class="p-3.5 rounded-2xl bg-[#EFF6FF] border border-blue-200 space-y-2"
+                        >
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#2563EB] flex items-center gap-1.5">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                    <span>Efek Power Aktif pada Soal Ini:</span>
+                                </span>
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <template x-for="actPower in getActivePowersForQuestion({{ $soal->id }})" :key="actPower.id">
+                                        <span 
+                                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold border shadow-2xs"
+                                            :class="actPower.activePillClass"
+                                        >
+                                            <i :class="actPower.icon" class="text-[10px]"></i>
+                                            <span x-text="actPower.name"></span>
+                                        </span>
+                                    </template>
+                                </div>
+                            </div>
+
+                            {{-- Detail Status Second Chance यदि Aktif --}}
+                            <template x-if="isSecondChanceArmed({{ $soal->id }})">
+                                <div class="text-xs font-semibold text-emerald-800 bg-emerald-50/90 border border-emerald-200 rounded-xl px-3 py-2 flex items-center gap-2">
+                                    <i class="fa-solid fa-shield-heart text-emerald-600"></i>
+                                    <span><strong>Perisai Second Chance Siaga:</strong> Jika pilihan jawaban pertamamu salah, sistem otomatis menahan kesalahan tersebut dan memberimu kesempatan memilih ulang!</span>
+                                </div>
+                            </template>
+
+                            <template x-if="isSecondChanceUsed({{ $soal->id }})">
+                                <div class="text-xs font-semibold text-emerald-800 bg-emerald-100/80 border border-emerald-300 rounded-xl px-3 py-2 flex items-center gap-2">
+                                    <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                                    <span><strong>Second Chance Telah Melindungimu!</strong> Pilihan yang kurang tepat sudah dicoret. Silakan pilih jawaban yang benar!</span>
+                                </div>
+                            </template>
                         </div>
 
                         {{-- Question Text --}}
@@ -174,13 +272,38 @@
                                     />
                                 </div>
                             @endif
+
+                            {{-- KARTU BANTUAN HINT (EFEK LUCKY CLOVER) --}}
+                            <div 
+                                x-show="getQuestionHint({{ $soal->id }})" 
+                                x-cloak
+                                x-transition
+                                class="p-4 rounded-2xl bg-teal-50/90 border border-teal-200 text-teal-900 flex items-start gap-3 shadow-2xs"
+                            >
+                                <div class="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 text-sm shadow-xs">
+                                    <i class="fa-solid fa-clover"></i>
+                                </div>
+                                <div class="space-y-0.5 text-xs sm:text-sm">
+                                    <span class="font-extrabold text-teal-800 uppercase tracking-wider text-[11px] block">
+                                        Bantuan Lucky Clover (Hint Soal)
+                                    </span>
+                                    <p class="font-semibold text-teal-900 leading-relaxed" x-text="getQuestionHint({{ $soal->id }})"></p>
+                                </div>
+                            </div>
                         </div>
 
                         {{-- Choice Options (Pilihan Jawaban 2-6) --}}
                         <div class="space-y-3 pt-2">
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                                Pilihan Jawaban:
-                            </span>
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                                    Pilihan Jawaban:
+                                </span>
+                                <template x-if="questionPowerState[{{ $soal->id }}] && questionPowerState[{{ $soal->id }}].eliminatedOptions.length > 0">
+                                    <span class="text-[11px] font-bold text-indigo-600">
+                                        <span x-text="questionPowerState[{{ $soal->id }}].eliminatedOptions.length"></span> Opsi Salah Dieliminasi
+                                    </span>
+                                </template>
+                            </div>
 
                             @php
                                 $pilihanMap = $soal->pilihan_shuffled ?? $soal->pilihan;
@@ -189,29 +312,60 @@
                             @if(is_array($pilihanMap) && count($pilihanMap) > 0)
                                 <div class="space-y-2.5">
                                     @foreach($pilihanMap as $optKey => $optVal)
+                                        @php
+                                            $optKeyLower = strtolower((string) $optKey);
+                                        @endphp
                                         <div class="option-card relative">
                                             <input 
                                                 type="radio" 
                                                 id="opt_{{ $soal->id }}_{{ $optKey }}" 
                                                 name="jawaban[{{ $soal->id }}]" 
                                                 value="{{ $optKey }}"
-                                                x-model="answers[{{ $soal->id }}]"
+                                                :disabled="isOptionEliminated({{ $soal->id }}, '{{ $optKeyLower }}')"
+                                                :checked="answers[{{ $soal->id }}] === '{{ $optKey }}'"
                                                 @change="recordAnswer({{ $soal->id }}, '{{ $optKey }}')"
-                                                {{ ($savedAnswers[$soal->id] ?? '') === $optKey ? 'checked' : '' }}
                                                 class="sr-only"
                                             />
                                             <label 
                                                 for="opt_{{ $soal->id }}_{{ $optKey }}"
-                                                class="flex items-center gap-3.5 p-4 rounded-2xl border-2 border-slate-200/80 bg-white hover:border-blue-400 hover:bg-slate-50/50 cursor-pointer transition select-none group"
+                                                class="flex items-center justify-between gap-3.5 p-4 rounded-2xl border-2 transition select-none group"
+                                                :class="isOptionEliminated({{ $soal->id }}, '{{ $optKeyLower }}')
+                                                    ? 'border-slate-200 bg-slate-100/80 opacity-55 cursor-not-allowed'
+                                                    : (answers[{{ $soal->id }}] === '{{ $optKey }}'
+                                                        ? 'border-blue-600 bg-blue-50/70 cursor-pointer'
+                                                        : 'border-slate-200/80 bg-white hover:border-blue-400 hover:bg-slate-50/50 cursor-pointer')"
                                             >
-                                                {{-- Letter Badge (A, B, C, D, E, F) --}}
-                                                <span class="option-badge w-8 h-8 rounded-xl border-2 border-slate-300 text-slate-600 font-extrabold text-xs uppercase flex items-center justify-center shrink-0 transition group-hover:border-blue-500 group-hover:text-blue-600">
-                                                    {{ $optKey }}
-                                                </span>
+                                                <div class="flex items-center gap-3.5 min-w-0 flex-1">
+                                                    {{-- Letter Badge (A, B, C, D) --}}
+                                                    <span 
+                                                        class="option-badge w-8 h-8 rounded-xl border-2 font-extrabold text-xs uppercase flex items-center justify-center shrink-0 transition"
+                                                        :class="isOptionEliminated({{ $soal->id }}, '{{ $optKeyLower }}')
+                                                            ? 'border-slate-300 bg-slate-200 text-slate-400'
+                                                            : (answers[{{ $soal->id }}] === '{{ $optKey }}'
+                                                                ? 'border-blue-600 bg-blue-600 text-white'
+                                                                : 'border-slate-300 text-slate-600 group-hover:border-blue-500 group-hover:text-blue-600')"
+                                                    >
+                                                        {{ $optKey }}
+                                                    </span>
 
-                                                <span class="text-sm font-semibold text-slate-700 flex-1 leading-snug">
-                                                    {{ $optVal }}
-                                                </span>
+                                                    <span 
+                                                        class="text-sm font-semibold flex-1 leading-snug"
+                                                        :class="isOptionEliminated({{ $soal->id }}, '{{ $optKeyLower }}') ? 'line-through text-slate-400' : 'text-slate-700'"
+                                                    >
+                                                        {{ $optVal }}
+                                                    </span>
+                                                </div>
+
+                                                {{-- Badge Keterangan jika Opsi Dieliminasi oleh Power --}}
+                                                <template x-if="isOptionEliminated({{ $soal->id }}, '{{ $optKeyLower }}')">
+                                                    <span 
+                                                        class="px-2.5 py-1 rounded-lg text-[10px] font-extrabold shrink-0 border"
+                                                        :class="isOptionBlockedBySecondChance({{ $soal->id }}, '{{ $optKeyLower }}')
+                                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                            : 'bg-slate-200/80 text-slate-600 border-slate-300'"
+                                                        x-text="isOptionBlockedBySecondChance({{ $soal->id }}, '{{ $optKeyLower }}') ? 'Salah • Ditahan Second Chance' : 'Dieliminasi Power'"
+                                                    ></span>
+                                                </template>
                                             </label>
                                         </div>
                                     @endforeach
@@ -273,9 +427,9 @@
                 @endforeach
             </div>
 
-            {{-- 3. Sidebar Navigasi Nomor Soal (4 Cols) --}}
+            {{-- 3. Sidebar Navigasi Nomor Soal & Widget Power (4 Cols) --}}
             <div class="lg:col-span-4 space-y-5">
-                <div class="bg-white rounded-3xl border border-slate-200/90 p-5 shadow-xs sticky top-36 space-y-4">
+                <div class="bg-white rounded-3xl border border-slate-200/90 p-5 shadow-xs sticky top-36 space-y-5">
                     <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                         <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                             <i class="fa-solid fa-table-cells-large text-blue-600"></i>
@@ -302,9 +456,20 @@
                             >
                                 <span>{{ $index + 1 }}</span>
 
+                                {{-- Badge petir kecil di pojok kiri atas jika soal ini memiliki Power aktif --}}
+                                <span 
+                                    x-show="getActivePowersForQuestion({{ $soal->id }}).length > 0" 
+                                    x-cloak
+                                    class="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[8px] shadow-xs ring-1 ring-white"
+                                    title="Power aktif pada soal ini"
+                                >
+                                    <i class="fa-solid fa-bolt"></i>
+                                </span>
+
                                 {{-- Icon Penanda (Badge bookmark kecil di pojok kanan atas) --}}
                                 <span 
                                     x-show="isFlagged({{ $soal->id }})" 
+                                    x-cloak
                                     class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center text-[8px] shadow-xs ring-1 ring-white"
                                     title="Soal ini ditandai ragu-ragu"
                                 >
@@ -317,6 +482,50 @@
                                 </span>
                             </button>
                         @endforeach
+                    </div>
+
+                    {{-- WIDGET STATUS & SIMULASI POWER (PROTOTYPE) --}}
+                    <div class="p-4 rounded-2xl bg-[#EFF5FF] border border-[#DCE9FE] space-y-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <div class="w-7 h-7 rounded-lg bg-[#2563EB] text-white flex items-center justify-center text-xs shadow-2xs">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-extrabold text-slate-900 leading-none">Item Power</h5>
+                                    <span class="text-[10px] font-semibold text-slate-500"><span x-text="totalPowerRemaining()"></span> Power Tersedia</span>
+                                </div>
+                            </div>
+                            <button 
+                                type="button" 
+                                @click="openPowerPanel()"
+                                class="px-3 py-1.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-[11px] font-extrabold transition cursor-pointer shadow-2xs"
+                            >
+                                Buka Panel
+                            </button>
+                        </div>
+
+                        {{-- Ringkasan Efek Power yang Sedang Berjalan --}}
+                        <div class="bg-white/90 rounded-xl p-3 border border-blue-100 space-y-1.5 text-[11px]">
+                            <div class="flex items-center justify-between text-slate-500 font-semibold">
+                                <span>Power Digunakan:</span>
+                                <strong class="text-slate-800" x-text="powerUsageLog.length + ' Item'"></strong>
+                            </div>
+                            <div class="flex items-center justify-between text-slate-500 font-semibold">
+                                <span>Bonus Pengganda Skor:</span>
+                                <strong class="text-emerald-600" x-text="'+' + calculatePowerScoreSummary().bonusPoints + ' Poin'"></strong>
+                            </div>
+                            <template x-if="calculatePowerScoreSummary().penaltyPoints > 0">
+                                <div class="flex items-center justify-between text-slate-500 font-semibold">
+                                    <span>Penalti Double Knife:</span>
+                                    <strong class="text-rose-600" x-text="'-' + calculatePowerScoreSummary().penaltyPoints + ' Poin'"></strong>
+                                </div>
+                            </template>
+                            <div class="pt-1.5 border-t border-slate-100 flex items-center justify-between font-extrabold text-slate-800">
+                                <span>Estimasi Skor + Power:</span>
+                                <span class="text-[#2563EB]" x-text="calculatePowerScoreSummary().normalizedScoreWithPower + ' / 100'"></span>
+                            </div>
+                        </div>
                     </div>
 
                     {{-- Legend Keterangan --}}
@@ -341,24 +550,15 @@
                         </div>
                     </div>
 
-                    {{-- Tombol Aksi Kuis --}}
-                    <div class="pt-2 space-y-2">
+                    {{-- Tombol Aksi Kuis (Tanpa Fitur Simpan Draft: 1 Sesi Langsung Submit Level) --}}
+                    <div class="pt-2">
                         <button 
                             type="button" 
                             @click="confirmSubmit()"
                             class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-md shadow-emerald-600/20 cursor-pointer"
                         >
                             <i class="fa-solid fa-paper-plane text-xs"></i>
-                            <span>Kumpulkan & Selesaikan Kuis</span>
-                        </button>
-
-                        <button 
-                            type="button" 
-                            @click="saveAndExit()" 
-                            class="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer border border-slate-200"
-                        >
-                            <i class="fa-solid fa-floppy-disk text-slate-500"></i>
-                            <span>Simpan & Keluar (Lanjut Nanti)</span>
+                            <span>Kumpulkan & Selesaikan Level</span>
                         </button>
                     </div>
                 </div>
@@ -371,9 +571,24 @@
 @endsection
 
 @push('scripts')
+{{-- Modul Logika Sistem Power (Terintegrasi Backend) --}}
+@include('siswa.kuis.partials.power-script')
+
 <script>
 function quizPlayer() {
+    const powerSystem = window.createLearnPointPowerSystem({
+        quizId: {{ $quiz->id }},
+        levelKey: '{{ ($selectedArc ?? "Mudah") . "_" . ($selectedLevel ?? 1) }}',
+        questionIds: @json($powerQuestionIds),
+        questionsMeta: @json($powerQuestionsMeta),
+        csrfToken: '{{ csrf_token() }}',
+        indexUrl: "{{ route('siswa.kuis.powers.index', $quiz->id) }}",
+        useUrl: "{{ route('siswa.kuis.powers.use', $quiz->id) }}",
+        secondChanceUrl: "{{ route('siswa.kuis.powers.second-chance', $quiz->id) }}"
+    });
+
     return {
+        ...powerSystem,
         currentIndex: 0,
         totalQuestions: {{ $soals->count() }},
         answers: @json((object)($savedAnswers ?? [])),
@@ -404,18 +619,15 @@ function quizPlayer() {
         },
 
         initTimer() {
-            // Timer berjalan setiap detik
             this.timerInterval = setInterval(() => {
                 this.elapsedSeconds++;
 
-                // Update hidden durasi
                 const durasiFormatted = this.formatElapsedTime();
                 const durasiEl = document.getElementById('durasiInput');
                 if (durasiEl) {
                     durasiEl.value = durasiFormatted;
                 }
 
-                // Hitung countdown jika ada batas waktu
                 if (this.remainingSeconds !== null) {
                     this.remainingSeconds--;
                     if (this.remainingSeconds <= 0) {
@@ -459,22 +671,23 @@ function quizPlayer() {
         },
 
         recordAnswer(soalId, optionKey) {
-            this.answers[soalId] = optionKey;
-            // Silent autosave di latar belakang
-            this.silentAutoSave(soalId, optionKey);
-        },
+            const cleanOpt = String(optionKey).toLowerCase();
 
-        silentAutoSave(soalId, optionKey) {
-            const formData = new FormData();
-            formData.append(`jawaban[${soalId}]`, optionKey);
-            fetch("{{ route('siswa.kuis.simpan-draft', $quiz->id) }}", {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json'
-                },
-                body: formData
-            }).catch(() => {});
+            // Cegah memilih opsi yang sudah dieliminasi oleh Power
+            if (this.isOptionEliminated(soalId, cleanOpt)) {
+                return;
+            }
+
+            // Cek apakah Perisai Second Chance sedang siaga pada soal ini
+            const meta = (@json($powerQuestionsMeta))[soalId];
+            if (this.isSecondChanceArmed(soalId) && meta && cleanOpt !== String(meta.correctKey).toLowerCase()) {
+                this.triggerSecondChanceProtection(soalId, cleanOpt);
+                this.persistSessionPowerSummary();
+                return;
+            }
+
+            this.answers[soalId] = optionKey;
+            this.persistSessionPowerSummary();
         },
 
         isAnswered(soalId) {
@@ -485,65 +698,8 @@ function quizPlayer() {
             return Object.values(this.answers).filter(v => v !== '' && v !== null).length;
         },
 
-        saveAndExit() {
-            const answered = this.countAnswered();
-            Swal.fire({
-                title: 'Simpan & Keluar?',
-                html: `<div style="text-align: left; font-size: 13px; line-height: 1.6;">
-                    <p style="margin-bottom: 8px;">Kamu telah menjawab <strong>${answered}</strong> dari <strong>${this.totalQuestions}</strong> butir soal.</p>
-                    <p style="color: #d97706; font-weight: 600;">💾 Seluruh jawabanmu akan disimpan dan kamu bisa melanjutkan mengerjakan kuis ini nanti.</p>
-                    <p style="margin-top: 8px;">Apakah kamu ingin menyimpan dan keluar sekarang?</p>
-                </div>`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#f59e0b',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Ya, Simpan & Keluar',
-                cancelButtonText: 'Lanjut Mengerjakan'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    clearInterval(this.timerInterval);
-                    Swal.fire({
-                        title: 'Menyimpan Jawaban...',
-                        text: 'Mohon tunggu sebentar',
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-
-                    const form = document.getElementById('quizForm');
-                    const formData = new FormData(form);
-
-                    fetch("{{ route('siswa.kuis.simpan-draft', $quiz->id) }}", {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Accept': 'application/json'
-                        },
-                        body: formData
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        Swal.fire({
-                            title: 'Berhasil Disimpan!',
-                            text: 'Jawaban kamu tersimpan dengan aman. Kamu bisa melanjutkannya kapan saja.',
-                            icon: 'success',
-                            timer: 1500,
-                            showConfirmButton: false
-                        }).then(() => {
-                            window.location.href = "{{ route('siswa.kuis.show', $quiz->id) }}";
-                        });
-                    })
-                    .catch(err => {
-                        form.action = "{{ route('siswa.kuis.simpan-draft', $quiz->id) }}";
-                        form.submit();
-                    });
-                }
-            });
-        },
-
         autoSubmitOnTimeUp() {
+            this.persistSessionPowerSummary();
             Swal.fire({
                 title: 'Waktu Habis!',
                 text: 'Batas waktu pengerjaan kuis telah tercapai. Jawaban kamu akan otomatis dikumpulkan.',
@@ -560,6 +716,7 @@ function quizPlayer() {
             const answered = this.countAnswered();
             const unanswered = this.totalQuestions - answered;
             const flagged = this.countFlagged();
+            const powerSum = this.calculatePowerScoreSummary();
 
             let htmlMessage = `<div style="text-align: left; font-size: 13px; line-height: 1.6;">`;
             if (unanswered > 0) {
@@ -567,6 +724,13 @@ function quizPlayer() {
                     <p style="color: #e11d48; font-weight: 600;">⚠️ Masih ada ${unanswered} butir soal yang belum dijawab!</p>`;
             } else {
                 htmlMessage += `<p style="margin-bottom: 8px;">🎉 Luar biasa! Semua <strong>${this.totalQuestions}</strong> butir soal telah kamu jawab lengkap.</p>`;
+            }
+
+            if (powerSum.usedCount > 0) {
+                htmlMessage += `<div style="margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a;">
+                    <div style="font-weight: 800; font-size: 12px; margin-bottom: 4px;">⚡ Efek Power Aktif (${powerSum.usedCount} Item Digunakan)</div>
+                    <div style="font-size: 12px;">Bonus Pengganda: <strong>+${powerSum.bonusPoints} Poin</strong> ${powerSum.penaltyPoints > 0 ? `| Penalti: <strong style="color:#e11d48;">-${powerSum.penaltyPoints} Poin</strong>` : ''}</div>
+                </div>`;
             }
 
             if (flagged > 0) {
@@ -587,6 +751,7 @@ function quizPlayer() {
             }).then((result) => {
                 if (result.isConfirmed) {
                     clearInterval(this.timerInterval);
+                    this.persistSessionPowerSummary();
                     try {
                         localStorage.removeItem('lp_quiz_{{ $quiz->id }}_flagged');
                     } catch(e) {}

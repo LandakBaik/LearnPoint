@@ -103,18 +103,54 @@
         </div>
 
         {{-- Score Highlight Banner --}}
-        <div class="relative z-10 max-w-xs mx-auto p-5 rounded-2xl bg-slate-50 border border-slate-200/80">
+        <div class="relative z-10 max-w-sm mx-auto p-5 rounded-3xl bg-slate-50 border border-slate-200/80 space-y-2">
             <span class="text-xs uppercase font-bold text-slate-400 tracking-wider">
-                {{ ($currentLevel && empty($showAllSoals)) ? 'Skor Akurasi Level Ini' : 'Nilai Akhir Kuis' }}
+                {{ ($currentLevel && empty($showAllSoals)) ? 'Skor Akurasi ' . $currentLevel['full_nama'] : 'Nilai Akhir Kuis' }}
             </span>
             <div class="text-5xl font-black tracking-tight mt-1
                 {{ $isIstimewa ? 'text-amber-600' : ($isLulus ? 'text-emerald-600' : 'text-blue-600') }}">
                 {{ number_format($skor, 0) }}
                 <span class="text-lg font-bold text-slate-400">/ 100</span>
             </div>
-            <span class="text-[11px] text-slate-500 font-medium block mt-1">
+
+            {{-- Bintang Penanda Nilai (Aturan: >67 -> 3 Bintang, 34-67 -> 2 Bintang, <=33 -> 1 Bintang) --}}
+            @php
+                $bintangFinal = $bintangDitampilkan ?? \App\Models\Quiz::hitungBintang($skor);
+            @endphp
+            <div class="pt-2 border-t border-slate-200/60">
+                <div class="flex items-center justify-center gap-2">
+                    @for($s = 1; $s <= 3; $s++)
+                        <i class="fa-solid fa-star text-2xl {{ $s <= $bintangFinal ? 'text-amber-400 drop-shadow-xs' : 'text-slate-200' }}"></i>
+                    @endfor
+                </div>
+                <div class="text-xs font-black text-amber-700 mt-1">
+                    {{ $bintangFinal }} dari 3 Bintang
+                </div>
+                <div class="text-[10px] text-slate-400 font-medium">
+                    (Nilai > 67: ⭐⭐⭐ • 34 - 67: ⭐⭐ • ≤ 33: ⭐)
+                </div>
+            </div>
+
+            @if($currentLevel && empty($showAllSoals) && !$isAllDone)
+                <div class="mt-2 pt-2 border-t border-slate-200/60 text-[11px] font-semibold text-blue-700 bg-blue-50/70 rounded-xl p-2 flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-circle-info text-blue-500"></i>
+                    <span>Semua hasil soal akan dijumlahkan saat semua soal sudah dikerjakan.</span>
+                </div>
+            @endif
+
+            <span class="text-[11px] text-slate-500 font-medium block pt-1">
                 Progres Petualangan: <strong class="text-slate-700">{{ $journey['completed_levels'] ?? 1 }} dari {{ $journey['total_levels'] ?? 1 }} Level Selesai</strong>
             </span>
+
+            {{-- Indikator Saldo Koin Siswa --}}
+            <div class="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs font-bold px-2">
+                <span class="text-slate-500 flex items-center gap-1">
+                    <i class="fa-solid fa-coins text-amber-500"></i> Saldo Koin:
+                </span>
+                <span class="text-amber-600 font-black">
+                    {{ number_format(auth()->user()?->siswa?->koin ?? 0, 0, ',', '.') }} Koin
+                </span>
+            </div>
         </div>
 
         {{-- Statistics Grid --}}
@@ -134,6 +170,54 @@
                 <div class="text-xl font-black text-slate-800 mt-0.5">{{ $totalSoal }} Butir</div>
             </div>
         </div>
+
+        {{-- Ringkasan Efek Power dari Database (Tampil otomatis jika siswa menggunakan Power pada sesi ini) --}}
+        @php
+            $usedPowersCount = 0;
+            $bonusPowerPoints = 0.0;
+            $penaltyPowerPoints = 0.0;
+
+            foreach ($soals as $sItem) {
+                $jwb = $sItem->menjawabs->first();
+                if ($jwb && $jwb->power_id && $jwb->power) {
+                    $usedPowersCount++;
+                    $bobotDasar = (float) ($sItem->bobot ?: 10);
+                    $poinDidapat = (float) $jwb->poin_diperoleh;
+                    if ($jwb->benar && $poinDidapat > $bobotDasar) {
+                        $bonusPowerPoints += ($poinDidapat - $bobotDasar);
+                    } elseif (!$jwb->benar && $poinDidapat < 0) {
+                        $penaltyPowerPoints += abs($poinDidapat);
+                    }
+                }
+            }
+        @endphp
+        @if($usedPowersCount > 0)
+            <div class="relative z-10 max-w-xl mx-auto p-4 rounded-2xl bg-[#EFF5FF] border border-[#DCE9FE] text-left space-y-2.5">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <span class="text-xs font-extrabold text-[#2563EB] flex items-center gap-1.5 uppercase tracking-wider">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>Ringkasan Efek Power</span>
+                    </span>
+                    <span class="px-2.5 py-0.5 rounded-full bg-blue-600 text-white text-[10px] font-extrabold">
+                        {{ $usedPowersCount }} Power Digunakan
+                    </span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center bg-white rounded-xl p-3 border border-blue-100 text-xs">
+                    <div>
+                        <div class="text-[10px] text-slate-400 font-semibold">Bonus Pengganda</div>
+                        <div class="font-extrabold text-emerald-600 mt-0.5">+{{ rtrim(rtrim(number_format($bonusPowerPoints, 2, '.', ''), '0'), '.') }} Poin</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-slate-400 font-semibold">Penalti Risiko</div>
+                        <div class="font-extrabold text-rose-600 mt-0.5">-{{ rtrim(rtrim(number_format($penaltyPowerPoints, 2, '.', ''), '0'), '.') }} Poin</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-slate-400 font-semibold">Skor Akhir</div>
+                        <div class="font-black text-[#2563EB] mt-0.5">{{ number_format($skor, 0) }} / 100</div>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         {{-- Banner Notifikasi Level / Arc Berikutnya Terbuka Otomatis --}}
         @if(!empty($nextLevel))
@@ -161,25 +245,24 @@
                 </div>
             </div>
         @elseif($isAllDone)
-            <div class="relative z-10 max-w-xl mx-auto p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center justify-between gap-4 text-left">
+            <div class="relative z-10 max-w-xl mx-auto p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
                 <div class="flex items-center gap-3.5">
                     <div class="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-lg shrink-0 shadow-xs">
                         <i class="fa-solid fa-crown"></i>
                     </div>
                     <div>
                         <div class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700">
-                            Kuis Selesai Sepenuhnya
+                            Petualangan Kuis Selesai Sepenuhnya
                         </div>
                         <p class="text-xs sm:text-sm font-bold text-emerald-950 mt-0.5">
-                            Seluruh Arc telah kamu selesaikan! Nilai akhir kuis kamu tercatat <strong>{{ number_format((float)($nilai->nilai ?? $skor), 0) }}/100</strong>.
+                            Seluruh level telah kamu tuntaskan! Nilai gabungan kuis kamu tercatat <strong>{{ number_format((float)($nilai->nilai ?? $skor), 0) }}/100</strong>.
                         </p>
                     </div>
                 </div>
-                @if(empty($showAllSoals))
-                    <a href="{{ route('siswa.kuis.hasil', ['quiz' => $quiz->id, 'all' => 1]) }}" class="px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-100 text-xs font-extrabold shrink-0 transition">
-                        Rekap Semua Soal
-                    </a>
-                @endif
+                <a href="{{ route('siswa.kuis.hasil-petualangan', $quiz->id) }}" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shrink-0 transition shadow-xs flex items-center gap-1.5 self-stretch sm:self-auto justify-center">
+                    <i class="fa-solid fa-trophy"></i>
+                    <span>Hasil Petualangan</span>
+                </a>
             </div>
         @endif
 
@@ -193,11 +276,19 @@
                     <span>Lanjut ke {{ $nextLevel['full_nama'] }}</span>
                     <i class="fa-solid fa-arrow-right text-xs"></i>
                 </a>
+            @else
+                <a 
+                    href="{{ route('siswa.kuis.hasil-petualangan', $quiz->id) }}"
+                    class="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-md shadow-emerald-500/20"
+                >
+                    <i class="fa-solid fa-award text-xs"></i>
+                    <span>Buka Halaman Hasil Petualangan</span>
+                </a>
             @endif
 
             <a 
                 href="{{ route('siswa.kuis.show', $quiz->id) }}"
-                class="w-full sm:w-auto px-6 py-3 rounded-xl {{ !empty($nextLevel) ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-md shadow-blue-500/20' }} font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition"
+                class="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition"
             >
                 <i class="fa-solid fa-route text-xs"></i>
                 <span>Lihat Peta Petualangan</span>
@@ -232,6 +323,14 @@
                 @php
                     $jawaban = $soal->menjawabs->first();
                     $isBenar = $jawaban && $jawaban->benar;
+                    $powerUsed = $jawaban?->power;
+                    $bobotDasar = (float) ($soal->bobot ?: 10);
+                    $poinSoal = $jawaban
+                        ? (($jawaban->power_id !== null || (float) $jawaban->poin_diperoleh != 0.0 || !$isBenar)
+                            ? (float) $jawaban->poin_diperoleh
+                            : $bobotDasar)
+                        : 0.0;
+                    $poinFormatted = ($poinSoal > 0 ? '+' : '') . rtrim(rtrim(number_format($poinSoal, 2, '.', ''), '0'), '.') . ' Poin';
                 @endphp
                 <div class="py-3.5 flex items-center justify-between gap-4">
                     <div class="flex items-center gap-3">
@@ -239,17 +338,29 @@
                             {{ $isBenar ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' }}">
                             {{ $index + 1 }}
                         </span>
-                        <div>
+                        <div class="space-y-1">
                             <p class="text-xs font-semibold text-slate-800 line-clamp-2 max-w-md sm:max-w-xl">
                                 {{ $soal->pertanyaan }}
                             </p>
-                            <span class="text-[10px] text-slate-400 capitalize">
-                                {{ $soal->kesulitan ?? 'Mudah' }} • {{ $soal->level ?? 'Level 1' }} • Bobot: {{ number_format($soal->bobot ?? 10, 0) }} Poin
-                            </span>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-[10px] text-slate-400 capitalize">
+                                    {{ $soal->kesulitan ?? 'Mudah' }} • {{ $soal->level ?? 'Level 1' }} • Bobot: {{ number_format($bobotDasar, 0) }} Poin
+                                </span>
+                                @if($powerUsed)
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border {{ $powerUsed->ui_classes['activePillClass'] ?? 'bg-blue-50 text-blue-700 border-blue-200' }}">
+                                        <i class="{{ $powerUsed->icon }} text-[9px]"></i>
+                                        <span>{{ $powerUsed->nama }}</span>
+                                    </span>
+                                @endif
+                            </div>
                         </div>
                     </div>
 
-                    <div class="shrink-0">
+                    <div class="shrink-0 flex items-center gap-2">
+                        <span class="px-2.5 py-1 rounded-lg text-[11px] font-extrabold border
+                            {{ $poinSoal > $bobotDasar ? 'bg-amber-50 text-amber-700 border-amber-200' : ($poinSoal < 0 ? 'bg-rose-50 text-rose-700 border-rose-200' : ($poinSoal > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-500 border-slate-200')) }}">
+                            {{ $poinFormatted }}
+                        </span>
                         @if($isBenar)
                             <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
                                 <i class="fa-solid fa-check text-[11px]"></i>

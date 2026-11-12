@@ -3,7 +3,78 @@
 @section('title', 'Tambah Data Guru')
 
 @section('content')
-<div class="max-w-3xl mx-auto space-y-6" x-data="{ assignments: [] }">
+<div class="max-w-3xl mx-auto space-y-6" 
+    x-data="{ 
+        assignments: [],
+        existingPengampus: {{ $existingPengampus->toJson() }},
+        allClassIds: {{ $kelases->pluck('id')->toJson() }},
+
+        getExistingPengampu(mapelId, kelasId) {
+            if (!mapelId) return null;
+            return this.existingPengampus.find(p => p.mapel_id == mapelId && p.kelas_id == kelasId);
+        },
+
+        isChosenInOtherRow(mapelId, kelasId, currentIndex) {
+            if (!mapelId) return false;
+            return this.assignments.some((row, idx) => {
+                if (idx === currentIndex) return false;
+                return row.mapel_id == mapelId && Array.isArray(row.kelas_ids) && row.kelas_ids.includes(kelasId);
+            });
+        },
+
+        isClassDisabled(kelasId, mapelId, currentIndex) {
+            if (!mapelId) return true;
+            if (this.getExistingPengampu(mapelId, kelasId)) return true;
+            if (this.isChosenInOtherRow(mapelId, kelasId, currentIndex)) return true;
+            return false;
+        },
+
+        getConflictTeacherName(mapelId, kelasId, currentIndex) {
+            if (!mapelId) return '';
+            const existing = this.getExistingPengampu(mapelId, kelasId);
+            if (existing) return existing.guru_nama;
+            if (this.isChosenInOtherRow(mapelId, kelasId, currentIndex)) return 'Baris Lain';
+            return '';
+        },
+
+        getAvailableClassIds(mapelId, currentIndex) {
+            if (!mapelId) return [];
+            return this.allClassIds.filter(id => !this.isClassDisabled(id, mapelId, currentIndex));
+        },
+
+        isAllAvailableSelected(index) {
+            const item = this.assignments[index];
+            if (!item || !item.mapel_id) return false;
+            const available = this.getAvailableClassIds(item.mapel_id, index);
+            if (available.length === 0) return false;
+            const selected = item.kelas_ids || [];
+            return available.every(id => selected.includes(id));
+        },
+
+        toggleAllForRow(index) {
+            const item = this.assignments[index];
+            if (!item || !item.mapel_id) return;
+            if (!Array.isArray(item.kelas_ids)) item.kelas_ids = [];
+            const available = this.getAvailableClassIds(item.mapel_id, index);
+            if (available.length === 0) return;
+
+            if (this.isAllAvailableSelected(index)) {
+                item.kelas_ids = item.kelas_ids.filter(id => !available.includes(id));
+            } else {
+                const set = new Set([...item.kelas_ids, ...available]);
+                item.kelas_ids = Array.from(set);
+            }
+        },
+
+        onMapelChange(index) {
+            const item = this.assignments[index];
+            if (!item) return;
+            if (Array.isArray(item.kelas_ids)) {
+                item.kelas_ids = item.kelas_ids.filter(id => !this.isClassDisabled(id, item.mapel_id, index));
+            }
+        }
+    }"
+>
 
     <!-- Header Navigation -->
     <div class="flex items-center gap-3">
@@ -130,7 +201,7 @@
                     </div>
                     <button 
                         type="button" 
-                        @click="assignments.push({ mapel_id: '', kelas_id: '' })"
+                        @click="assignments.push({ mapel_id: '', kelas_ids: [] })"
                         class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition-colors"
                     >
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -156,7 +227,13 @@
 
                             <div>
                                 <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1">Mata Pelajaran <span class="text-rose-500">*</span></label>
-                                <select :name="'assignments[' + index + '][mapel_id]'" x-model="item.mapel_id" required class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-indigo-500">
+                                <select 
+                                    :name="'assignments[' + index + '][mapel_id]'" 
+                                    x-model="item.mapel_id" 
+                                    @change="onMapelChange(index)"
+                                    required 
+                                    class="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-indigo-500"
+                                >
                                     <option value="">-- Pilih Mata Pelajaran --</option>
                                     @foreach($mapels as $m)
                                         <option value="{{ $m->id }}">{{ $m->nama_mapel }} (KKM: {{ $m->kkm }})</option>
@@ -164,27 +241,80 @@
                                 </select>
                             </div>
 
-                            <div>
-                                <label class="block text-[11px] font-bold text-gray-500 uppercase mb-1.5">Pilih Kelas yang Diampu (Bisa Lebih Dari Satu) <span class="text-rose-500">*</span></label>
-                                <div class="max-h-44 overflow-y-auto p-2.5 bg-white rounded-xl border border-gray-200 space-y-2.5">
-                                    @foreach($kelases->groupBy('tingkatan') as $tingkat => $kelasList)
-                                        <div>
-                                            <p class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 mb-1">Tingkat {{ $tingkat }}</p>
-                                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                                @foreach($kelasList as $k)
-                                                    <label class="flex items-center gap-2 p-1.5 rounded-lg bg-gray-50 border border-gray-100 hover:border-indigo-300 hover:bg-indigo-50/30 cursor-pointer text-xs text-gray-700 font-medium">
-                                                        <input 
-                                                            type="checkbox" 
-                                                            :name="'assignments[' + index + '][kelas_ids][]'" 
-                                                            value="{{ $k->id }}"
-                                                            class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300">
-                                                        <span>{{ $k->nama_kelas }}</span>
-                                                    </label>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    @endforeach
+                            <!-- Pilih Kelas -->
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <label class="block text-[11px] font-bold text-gray-500 uppercase">Pilih Kelas yang Diampu (Bisa Lebih Dari Satu) <span class="text-rose-500">*</span></label>
+                                    <template x-if="item.mapel_id">
+                                        <button 
+                                            type="button" 
+                                            @click="toggleAllForRow(index)"
+                                            :disabled="getAvailableClassIds(item.mapel_id, index).length === 0"
+                                            :class="getAvailableClassIds(item.mapel_id, index).length === 0 ? 'opacity-40 cursor-not-allowed' : 'text-indigo-600 hover:text-indigo-800 hover:underline'"
+                                            class="text-[11px] font-bold transition-all"
+                                        >
+                                            <span x-text="getAvailableClassIds(item.mapel_id, index).length === 0 ? 'Semua Kelas Sudah Terisi' : (isAllAvailableSelected(index) ? 'Batalkan Semua' : 'Pilih Semua Kelas Tersedia')"></span>
+                                        </button>
+                                    </template>
                                 </div>
+
+                                <template x-if="!item.mapel_id">
+                                    <div class="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs text-amber-800">
+                                        Pilih mata pelajaran terlebih dahulu untuk melihat ketersediaan kelas.
+                                    </div>
+                                </template>
+
+                                <template x-if="item.mapel_id">
+                                    <div class="max-h-52 overflow-y-auto p-2.5 bg-white rounded-xl border border-gray-200 space-y-2.5">
+                                        @foreach($kelases->groupBy('tingkatan') as $tingkat => $kelasList)
+                                            <div>
+                                                <p class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 mb-1">Tingkat {{ $tingkat }}</p>
+                                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                    @foreach($kelasList as $k)
+                                                        <label 
+                                                            :class="isClassDisabled({{ $k->id }}, item.mapel_id, index) 
+                                                                ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-80 select-none' 
+                                                                : ((item.kelas_ids || []).includes({{ $k->id }}) ? 'bg-indigo-50/70 border-indigo-300 ring-1 ring-indigo-400/30' : 'bg-gray-50 border-gray-200/80 hover:border-indigo-300 hover:bg-indigo-50/30') + ' cursor-pointer text-gray-800'"
+                                                            class="flex items-center justify-between p-2 rounded-xl border transition-all text-xs font-medium"
+                                                        >
+                                                            <div class="flex items-center gap-2 truncate">
+                                                                <template x-if="isClassDisabled({{ $k->id }}, item.mapel_id, index)">
+                                                                    <span class="w-3.5 h-3.5 rounded bg-gray-200 text-gray-400 flex items-center justify-center shrink-0 text-[10px] font-bold">✕</span>
+                                                                </template>
+                                                                <template x-if="!isClassDisabled({{ $k->id }}, item.mapel_id, index)">
+                                                                    <input 
+                                                                        type="checkbox" 
+                                                                        :name="'assignments[' + index + '][kelas_ids][]'" 
+                                                                        value="{{ $k->id }}"
+                                                                        x-model="item.kelas_ids"
+                                                                        class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                                                </template>
+                                                                <span :class="isClassDisabled({{ $k->id }}, item.mapel_id, index) ? 'text-gray-400 font-normal line-through' : 'text-gray-800 font-bold'">
+                                                                    {{ $k->nama_kelas }}
+                                                                </span>
+                                                            </div>
+
+                                                            <div class="shrink-0 ml-1">
+                                                                <template x-if="isClassDisabled({{ $k->id }}, item.mapel_id, index)">
+                                                                    <span 
+                                                                        class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 truncate max-w-[110px] inline-block align-middle"
+                                                                        :title="'Sudah diampu: ' + getConflictTeacherName(item.mapel_id, {{ $k->id }}, index)"
+                                                                        x-text="'🔒 ' + getConflictTeacherName(item.mapel_id, {{ $k->id }}, index)"
+                                                                    ></span>
+                                                                </template>
+                                                                <template x-if="!isClassDisabled({{ $k->id }}, item.mapel_id, index)">
+                                                                    <span class="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+                                                                        Tersedia
+                                                                    </span>
+                                                                </template>
+                                                            </div>
+                                                        </label>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </template>
                             </div>
                         </div>
                     </template>

@@ -3,50 +3,101 @@
 @section('title', 'E-Learning Dashboard - LearnPoint')
 
 @section('content')
-<div x-data="{ currentTab: '{{ request('tab', 'mapel') }}', zoomJadwalModal: false }" class="space-y-6">
+<div x-data="dashboardPage()" class="space-y-6">
 
     <!-- BEGIN: WelcomeBanner -->
-    <section class="relative overflow-hidden rounded-[24px] bg-gradient-to-r from-[#EBF4FF] via-[#EDF6FF] to-[#DCEEFE] p-7 md:p-9 border border-blue-100 shadow-sm" data-purpose="welcome-banner">
-        <div class="relative z-10 max-w-2xl">
-            <h1 class="text-2xl md:text-[28px] font-extrabold text-[#0F2851] tracking-tight mb-3">
+    @php
+        $activeBanner = $siswa?->active_banner ?? ['theme' => 'light', 'gif_url' => null];
+        $isDarkTheme = ($activeBanner['theme'] ?? 'light') === 'dark';
+        $activeBannerUrl = !empty($activeBanner['gif_url']) ? asset($activeBanner['gif_url']) : null;
+    @endphp
+    <section class="relative overflow-hidden rounded-[26px] p-7 md:p-9 border shadow-lg transition-all duration-300 min-h-[220px] md:min-h-[250px] flex flex-col justify-between {{ $activeBannerUrl ? 'border-slate-700/80 shadow-slate-950/20' : 'bg-gradient-to-r from-[#EBF4FF] via-[#EDF6FF] to-[#DCEEFE] border-blue-100 shadow-sm' }}" data-purpose="welcome-banner">
+        
+        {{-- Background GIF jika menggunakan custom banner (Tampil jernih, tajam, dan tidak redup) --}}
+        @if(!empty($activeBannerUrl))
+            <img src="{{ $activeBannerUrl }}" alt="{{ $activeBanner['nama'] }}" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0">
+            {{-- Gradasi terarah: Gelap lembut di area teks kiri agar terbaca, transparan total di kanan agar animasi GIF terlihat jelas --}}
+            <div class="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/45 to-transparent z-0 pointer-events-none"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-slate-950/20 z-0 pointer-events-none"></div>
+        @endif
+
+        {{-- Tombol Aksi di Pojok Kanan Atas: Peti Gacha & Ganti Banner --}}
+        <div class="absolute top-4 right-4 z-20 flex items-center gap-2">
+            <a 
+                href="{{ route('siswa.gacha') }}" 
+                class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 shadow-md backdrop-blur-md cursor-pointer bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white border border-amber-300/40 hover:scale-[1.02] active:scale-95"
+                title="Buka Halaman Wish & Gacha"
+            >
+                <i class="fa-solid fa-box-open text-xs"></i>
+                <span>Peti Gacha</span>
+            </a>
+
+            <button 
+                type="button" 
+                @click="bannerModalOpen = true"
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md backdrop-blur-md cursor-pointer {{ $isDarkTheme && $activeBannerUrl ? 'bg-slate-900/70 hover:bg-slate-900/90 text-white border border-white/25 hover:border-white/40' : 'bg-white/80 hover:bg-white text-slate-700 border border-slate-200' }}"
+                title="Ganti Banner GIF Dashboard"
+            >
+                <i class="fa-solid fa-paintbrush text-xs"></i>
+                <span class="hidden sm:inline">Ubah Banner</span>
+            </button>
+        </div>
+
+        <div class="relative z-10 max-w-2xl my-auto">
+            <div class="flex items-center gap-2 mb-2">
+                @if(!empty($activeBannerUrl))
+                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/40 text-white backdrop-blur-md border border-white/20 shadow-xs flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        <i class="fa-solid fa-sparkles text-amber-300 text-[10px]"></i>
+                        {{ $activeBanner['nama'] }}
+                    </span>
+                @endif
+            </div>
+
+            <h1 class="text-2xl md:text-[30px] font-black tracking-tight mb-3 {{ $isDarkTheme && $activeBannerUrl ? 'text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]' : 'text-[#0F2851]' }}">
                 Selamat Datang, {{ $siswa->nama_siswa ?? auth()->user()->name }}!
             </h1>
 
             <!-- Student Meta Badges -->
-            <div class="flex flex-wrap items-center gap-y-2 text-sm text-[#475569] font-medium mb-4">
+            <div class="flex flex-wrap items-center gap-2 text-sm font-semibold mb-3 {{ $isDarkTheme && $activeBannerUrl ? 'text-slate-100' : 'text-[#475569]' }}">
                 <!-- Class Meta -->
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-[#2563EB]" fill="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl {{ $activeBannerUrl ? 'bg-black/35 backdrop-blur-sm border border-white/10 text-white' : '' }}">
+                    <svg class="w-4 h-4 {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-300' : 'text-[#2563EB]' }}" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 3L1 9L12 15L21 10.09V17H23V9M5 13.18V17.18C5 19.94 8.13 22 12 22C15.87 22 19 19.94 19 17.18V13.18L12 17L5 13.18Z"></path>
                     </svg>
-                    <span>Kelas: <strong class="font-semibold text-[#2563EB]">{{ $kelas->nama_kelas ?? ($siswa?->anggotaKelases?->first()?->kelas?->nama_kelas ?? 'Belum Ditentukan') }}</strong></span>
+                    <span>Kelas: <strong class="font-bold {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-200' : 'text-[#2563EB]' }}">{{ $kelas->nama_kelas ?? ($siswa?->anggotaKelases?->first()?->kelas?->nama_kelas ?? 'Belum Ditentukan') }}</strong></span>
                 </div>
-                <span class="mx-3 text-slate-300">|</span>
 
                 <!-- Generation Meta -->
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-[#2563EB]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl {{ $activeBannerUrl ? 'bg-black/35 backdrop-blur-sm border border-white/10 text-white' : '' }}">
+                    <svg class="w-4 h-4 {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-300' : 'text-[#2563EB]' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
                     </svg>
-                    <span>Angkatan: <strong class="font-semibold text-[#2563EB]">{{ $tahunAjaran ?? ($siswa?->anggotaKelases?->first()?->tahun_ajaran ?? '2024') }}</strong></span>
+                    <span>Angkatan: <strong class="font-bold {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-200' : 'text-[#2563EB]' }}">{{ $tahunAjaran ?? ($siswa?->anggotaKelases?->first()?->tahun_ajaran ?? '2024') }}</strong></span>
                 </div>
-                <span class="mx-3 text-slate-300">|</span>
 
                 <!-- Student ID Meta -->
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-[#2563EB]" fill="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl {{ $activeBannerUrl ? 'bg-black/35 backdrop-blur-sm border border-white/10 text-white' : '' }}">
+                    <svg class="w-4 h-4 {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-300' : 'text-[#2563EB]' }}" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
                     </svg>
-                    <span>NIS: <strong class="font-semibold text-[#2563EB]">{{ $siswa->nis ?? '-' }}</strong></span>
+                    <span>NIS: <strong class="font-bold {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-200' : 'text-[#2563EB]' }}">{{ $siswa->nis ?? '-' }}</strong></span>
                 </div>
+
+                {{-- Koin Siswa --}}
+                <a href="{{ route('siswa.gacha') }}" class="flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold transition hover:scale-105 active:scale-95 cursor-pointer {{ $activeBannerUrl ? 'bg-black/40 backdrop-blur-sm border border-amber-400/30 text-amber-300 shadow-sm' : 'text-amber-600' }}" title="Buka Halaman Wish & Gacha">
+                    <i class="fa-solid fa-coins text-amber-400"></i>
+                    <span>{{ number_format($siswa->koin ?? 0, 0, ',', '.') }} Koin</span>
+                </a>
             </div>
 
-            <p class="text-sm font-medium text-slate-500">
+            <p class="text-sm font-medium {{ $isDarkTheme && $activeBannerUrl ? 'text-slate-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]' : 'text-slate-500' }}">
                 Terus semangat belajar dan raih cita-citamu!
             </p>
         </div>
 
-        <!-- Right 3D Books Illustration Graphic -->
+        @if(empty($activeBannerUrl))
+        <!-- Right 3D Books Illustration Graphic (hanya jika banner default) -->
         <div class="absolute right-6 -bottom-2 hidden lg:flex items-end pointer-events-none select-none">
             <svg class="w-[280px] h-[160px]" fill="none" viewBox="0 0 340 190" xmlns="http://www.w3.org/2000/svg">
                 <!-- Ambient Shadow -->
@@ -82,7 +133,102 @@
                 <rect fill="#F59E0B" height="38" rx="2" transform="rotate(12 282 70)" width="7" x="282" y="70"></rect>
             </svg>
         </div>
+        @endif
     </section>
+    <!-- END: WelcomeBanner -->
+
+    <!-- MODAL LEMARI KOLEKSI BANNER GIF SISWA -->
+    <div 
+        x-show="bannerModalOpen" 
+        x-cloak 
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+        role="dialog"
+    >
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" @click="bannerModalOpen = false"></div>
+        <div class="relative w-full max-w-2xl bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-7 z-10 space-y-5">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-paintbrush"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-extrabold text-slate-800">Koleksi Banner GIF Dashboard</h3>
+                        <p class="text-xs text-slate-400">Pilih banner animasi favoritmu yang didapatkan dari Gacha!</p>
+                    </div>
+                </div>
+                <button type="button" @click="bannerModalOpen = false" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-1">
+                <template x-for="b in bannerList" :key="b.kode">
+                    <div 
+                        class="rounded-2xl border-2 p-3.5 flex flex-col justify-between gap-3 transition-all relative overflow-hidden"
+                        :class="b.is_equipped ? 'border-blue-500 bg-blue-50/40' : (b.is_unlocked ? 'border-slate-200 bg-white hover:border-blue-300' : 'border-slate-100 bg-slate-50 opacity-60')"
+                    >
+                        {{-- Preview Banner --}}
+                        <div class="h-24 rounded-xl overflow-hidden relative bg-slate-100 flex items-center justify-center border border-slate-200/80">
+                            <template x-if="b.gif_url">
+                                <img :src="'{{ asset('') }}' + b.gif_url" :alt="b.nama" class="w-full h-full object-cover">
+                            </template>
+                            <template x-if="!b.gif_url">
+                                <div class="w-full h-full bg-gradient-to-r from-blue-100 to-indigo-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                                    <i class="fa-solid fa-book-open mr-1.5"></i> Tema Bawaan
+                                </div>
+                            </template>
+
+                            <span 
+                                class="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md"
+                                :class="b.rarity === 'legendary' ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-white shadow-xs' : (b.rarity === 'epic' ? 'bg-purple-600/90 text-white' : (b.rarity === 'rare' ? 'bg-blue-600/90 text-white' : 'bg-slate-700/80 text-white'))"
+                                x-text="b.badge"
+                            ></span>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between gap-2">
+                                <h4 class="text-xs font-extrabold text-slate-800" x-text="b.nama"></h4>
+                                <template x-if="b.is_equipped">
+                                    <span class="text-[10px] font-bold text-blue-600 flex items-center gap-1">
+                                        <i class="fa-solid fa-check"></i> Aktif
+                                    </span>
+                                </template>
+                            </div>
+                            <p class="text-[11px] text-slate-500 line-clamp-2 mt-0.5" x-text="b.deskripsi"></p>
+                        </div>
+
+                        <div>
+                            <template x-if="b.is_equipped">
+                                <button type="button" disabled class="w-full py-2 rounded-xl bg-blue-600 text-white text-xs font-bold cursor-default">
+                                    Sedang Digunakan
+                                </button>
+                            </template>
+                            <template x-if="b.is_unlocked && !b.is_equipped">
+                                <button type="button" @click="equipBanner(b.kode)" class="w-full py-2 rounded-xl bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 text-xs font-bold transition cursor-pointer">
+                                    Pasang Banner
+                                </button>
+                            </template>
+                            <template x-if="!b.is_unlocked">
+                                <div class="w-full py-2 rounded-xl bg-slate-100 text-slate-400 text-xs font-semibold text-center flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-lock text-[10px]"></i> Dapatkan via Gacha
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span class="flex items-center gap-1.5 font-bold text-amber-600">
+                    <i class="fa-solid fa-coins"></i> Saldo: {{ number_format($siswa->koin ?? 0, 0, ',', '.') }} Koin
+                </span>
+                <a href="{{ route('siswa.gacha') }}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-extrabold flex items-center gap-1.5 shadow-xs transition">
+                    <i class="fa-solid fa-box-open text-xs"></i>
+                    Buka Peti Gacha <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </a>
+            </div>
+        </div>
+    </div>
     <!-- END: WelcomeBanner -->
 
     <!-- BEGIN: QuickAccessSection -->
@@ -238,14 +384,21 @@
             </button>
         </div>
 
-        <!-- Tombol Kuis  -->
-        <a href="{{ route('siswa.kuis') }}"
-           class="inline-flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-2xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm shadow-xs hover:shadow-md transition-all duration-150 group shrink-0">
-            <span>Kuis</span>
-            <svg class="w-4 h-4 text-white/80 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
-            </svg>
-        </a>
+        <!-- Tombol Aksi Kuis & Peti Gacha -->
+        <div class="flex items-center gap-2.5 shrink-0">
+            <a href="{{ route('siswa.gacha') }}"
+               class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-extrabold text-sm shadow-xs hover:shadow-md transition-all duration-150">
+                <i class="fa-solid fa-box-open text-sm"></i>
+                <span>Peti Gacha</span>
+            </a>
+            <a href="{{ route('siswa.kuis') }}"
+               class="inline-flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-2xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm shadow-xs hover:shadow-md transition-all duration-150 group">
+                <span>Kuis</span>
+                <svg class="w-4 h-4 text-white/80 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+            </a>
+        </div>
     </div>
     <!-- END: NavigationTabs & Action Button -->
 
@@ -812,4 +965,38 @@
     <!-- END: JadwalTabSection -->
 
 </div>
+
+@push('scripts')
+<script>
+function dashboardPage() {
+    return {
+        currentTab: '{{ request('tab', 'mapel') }}',
+        zoomJadwalModal: false,
+        bannerModalOpen: false,
+        currentBannerCode: '{{ $siswa->equipped_banner ?? 'default' }}',
+        bannerList: @json($siswa?->banners_list ?? []),
+        activeBannerData: @json($siswa?->active_banner ?? ['theme' => 'light', 'gif_url' => null]),
+        equipBanner(code) {
+            fetch('{{ route('siswa.banner.equip') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ banner_code: code })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Gagal mengubah banner');
+                }
+            })
+            .catch(() => alert('Terjadi kesalahan jaringan.'));
+        }
+    };
+}
+</script>
+@endpush
 @endsection
