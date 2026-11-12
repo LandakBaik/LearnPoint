@@ -304,9 +304,11 @@ class TugasController extends Controller
             });
 
             // Kirim notifikasi kepada guru
-            if ($tugas->guru && $tugas->guru->user_id) {
+            $guru = $tugas->pengampuKelas?->guruMapel?->guru;
+
+            if ($guru && $guru->user_id) {
                 Notifikasi::kirim(
-                    $tugas->guru->user_id,
+                    $guru->user_id,
                     'Tugas Pilihan Ganda Dikumpulkan',
                     'Siswa telah mengumpulkan tugas pilihan ganda.',
                     'tugas',
@@ -318,7 +320,6 @@ class TugasController extends Controller
                     ]
                 );
             }
-
             // Ambil nilai yang baru disimpan
             $nilai = Nilai::where('siswa_id', $siswa->id)
                 ->where('tugas_id', $tugas->id)
@@ -332,14 +333,13 @@ class TugasController extends Controller
                 );
         }
 
-
         // 5. Pengumpulan tugas upload file
 
         $validated = $request->validate([
             'file_jawaban' => [
                 'required',
                 'file',
-                'mimes:pdf,docx,jpg,png',
+                'mimes:pdf,docx,jpg,jpeg,png',
                 'max:10240',
             ],
         ]);
@@ -349,7 +349,7 @@ class TugasController extends Controller
             ->where('tugas_id', $tugas->id)
             ->first();
 
-        // Simpan file baru
+        // Simpan file baru ke storage/app/public/jawaban_tugas
         $file = $request->file('file_jawaban')
             ->store('jawaban_tugas', 'public');
 
@@ -378,9 +378,11 @@ class TugasController extends Controller
         }
 
         // Kirim notifikasi kepada guru
-        if ($tugas->guru && $tugas->guru->user_id) {
+        $guru = $tugas->pengampuKelas?->guruMapel?->guru;
+
+        if ($guru && $guru->user_id) {
             Notifikasi::kirim(
-                $tugas->guru->user_id,
+                $guru->user_id,
                 'Tugas Upload Dikumpulkan',
                 'Siswa telah mengumpulkan tugas upload.',
                 'tugas',
@@ -397,7 +399,6 @@ class TugasController extends Controller
             ->route('siswa.tugas.show', $tugas->id)
             ->with('success', 'Tugas berhasil dikumpulkan!');
     }
-
 
     // 6. Method tambahan
     public function indexSiswa()
