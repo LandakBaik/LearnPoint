@@ -8,6 +8,7 @@ use App\Models\Notifikasi;
 use App\Models\PengampuKelas;
 use App\Models\Tugas;
 use App\Models\Soal;
+use App\Models\Menjawab;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -127,7 +128,8 @@ class TugasController extends Controller
                     }
 
                     $jumlahPilihan = collect($value)
-                        ->filter(fn ($jawaban) =>
+                        ->filter(
+                            fn($jawaban) =>
                             is_string($jawaban) && trim($jawaban) !== ''
                         )
                         ->count();
@@ -463,7 +465,65 @@ class TugasController extends Controller
         ));
     }
 
-    // 7. Memperbarui tugas
+    // 7. Menampilkan detail jawaban siswa
+    public function detailJawabanSiswa(
+        Request $request,
+        string $id,
+        string $pengumpulanId
+    ) {
+        $user = $request->user();
+        $guru_id = $user?->guru?->id;
+
+        abort_unless($user?->role === 'guru' && $guru_id, 403);
+
+        // Mengambil tugas dan memastikan tugas milik guru.
+        $tugas = Tugas::with([
+            'pengampuKelas.guruMapel.mapel',
+            'pengampuKelas.kelas',
+            'soals'
+        ])->findOrFail($id);
+
+        abort_unless(
+            $tugas->pengampuKelas?->guruMapel?->guru_id == $guru_id,
+            403,
+            'Akses ditolak.'
+        );
+
+        // Mengambil data pengumpulan siswa.
+        $pengumpulan = Nilai::with([
+            'siswa',
+            'tugas'
+        ])
+            ->where('tugas_id', $tugas->id)
+            ->findOrFail($pengumpulanId);
+
+        // Mengambil identitas siswa.
+        $siswa = $pengumpulan->siswa;
+
+        // Mengambil seluruh soal tugas.
+        $soals = $tugas->soals
+            ->sortBy('urutan')
+            ->values();
+
+        // Mengambil jawaban siswa berdasarkan ID siswa dan soal.
+        $jawabans = Menjawab::where('siswa_id', $pengumpulan->siswa_id)
+            ->whereIn('soal_id', $soals->pluck('id'))
+            ->get()
+            ->keyBy('soal_id');
+
+        return view(
+            'guru.kelola_tugas.detail-jawaban-siswa',
+            compact(
+                'tugas',
+                'pengumpulan',
+                'siswa',
+                'soals',
+                'jawabans'
+            )
+        );
+    }
+
+    // 8. Memperbarui tugas
     public function update(Request $request, string $id)
     {
         $user = $request->user();
@@ -558,7 +618,7 @@ class TugasController extends Controller
             ->with('success', 'Tugas berhasil diperbarui!');
     }
 
-    // 8. Menghapus tugas
+    // 9. Menghapus tugas
     public function destroy(Request $request, string $id)
     {
         $user = $request->user();
@@ -595,7 +655,7 @@ class TugasController extends Controller
             ->with('success', 'Tugas berhasil dihapus!');
     }
 
-    // 9. Memberikan nilai kepada siswa
+    // 10. Memberikan nilai kepada siswa
     public function berikanNilai(Request $request, string $id)
     {
         $user = $request->user();
