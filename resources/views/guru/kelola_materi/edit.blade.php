@@ -5,9 +5,10 @@
 @section('content')
 <div class="space-y-6" x-data="{
     kelasPerMapel: {{ Js::from($kelasPerMapel) }},
-    selectedMapelId: '{{ $selectedMapelId }}',
-    selectedTingkatan: '{{ $selectedTingkatan }}',
-    selectedKelasIds: {{ Js::from(array_map('strval', $selectedKelasIds)) }},
+    selectedMapelId: '{{ old('mapel_id', $selectedMapelId) }}',
+    selectedTingkatan: '{{ old('tingkatan', $selectedTingkatan) }}',
+    selectedKelasIds: {{ Js::from(array_map('strval', old('pengampu_kelas_ids', $selectedKelasIds))) }},
+    tingkatans: [],
     kelases: [],
 
     fileName: '',
@@ -15,6 +16,28 @@
     hasNewFile: false,
 
     init() {
+        this.updateTingkatan(false);
+        this.loadKelas();
+    },
+
+    updateTingkatan(resetSelection = true) {
+        if (this.kelasPerMapel[this.selectedMapelId]) {
+            this.tingkatans = Object.keys(this.kelasPerMapel[this.selectedMapelId]).sort();
+        } else {
+            this.tingkatans = [];
+        }
+
+        if (resetSelection) {
+            this.selectedKelasIds = [];
+            if (!this.tingkatans.includes(String(this.selectedTingkatan))) {
+                this.selectedTingkatan = this.tingkatans.length > 0 ? this.tingkatans[0] : '';
+            }
+            this.loadKelas();
+        }
+    },
+
+    onTingkatanChange() {
+        this.selectedKelasIds = [];
         this.loadKelas();
     },
 
@@ -46,7 +69,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Edit Materi</h1>
-            <p class="text-sm text-gray-500 mt-1">Perbarui informasi materi. Mata pelajaran dan tingkatan tidak dapat diubah.</p>
+            <p class="text-sm text-gray-500 mt-1">Perbarui informasi materi, mata pelajaran, tingkatan, atau kelas sasaran.</p>
         </div>
         <div>
             <a href="{{ route('guru.materi') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors shadow-sm cursor-pointer">
@@ -93,7 +116,7 @@
                             value="{{ old('judul', $firstMateri->judul) }}"
                             placeholder="Contoh: Sistem Persamaan Linear"
                             class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm font-medium text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-400"
-                            maxlength="255"
+                            maxlength="200"
                             required
                         >
                     </div>
@@ -113,27 +136,44 @@
                 </div>
             </div>
 
-            {{-- Section 2: Sasaran Kelas (Lock Mapel & Tingkatan) --}}
+            {{-- Section 2: Sasaran Kelas --}}
             <div class="pt-2">
                 <h3 class="text-lg font-bold text-gray-900 mb-4 pb-2 border-b border-gray-100">Sasaran Kelas</h3>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-                    {{-- Mata Pelajaran (readonly) --}}
+                    {{-- Mata Pelajaran --}}
                     <div class="space-y-1.5">
-                        <label class="block text-sm font-bold text-gray-700">Mata Pelajaran</label>
-                        <div class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-100 text-sm font-medium text-gray-500 flex items-center gap-2">
-                            <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                            {{ $mapels->firstWhere('id', $selectedMapelId)?->nama_mapel ?? '-' }}
-                        </div>
+                        <label for="mapel_id" class="block text-sm font-bold text-gray-700">Mata Pelajaran <span class="text-red-500">*</span></label>
+                        <select
+                            name="mapel_id"
+                            id="mapel_id"
+                            x-model="selectedMapelId"
+                            @change="updateTingkatan(true)"
+                            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm font-medium text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer"
+                            required
+                        >
+                            @foreach($mapels as $mapel)
+                                <option value="{{ $mapel->id }}">{{ $mapel->nama_mapel }}</option>
+                            @endforeach
+                        </select>
                     </div>
 
-                    {{-- Tingkatan (readonly) --}}
+                    {{-- Tingkatan --}}
                     <div class="space-y-1.5">
-                        <label class="block text-sm font-bold text-gray-700">Tingkat Kelas</label>
-                        <div class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-100 text-sm font-medium text-gray-500 flex items-center gap-2">
-                            <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                            Tingkat {{ $selectedTingkatan }}
-                        </div>
+                        <label for="tingkatan" class="block text-sm font-bold text-gray-700">Tingkat Kelas <span class="text-red-500">*</span></label>
+                        <select
+                            name="tingkatan"
+                            id="tingkatan"
+                            x-model="selectedTingkatan"
+                            @change="onTingkatanChange()"
+                            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm font-medium text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer"
+                            :disabled="!selectedMapelId || tingkatans.length === 0"
+                            required
+                        >
+                            <template x-for="tingkat in tingkatans" :key="tingkat">
+                                <option :value="tingkat" :selected="String(tingkat) === String(selectedTingkatan)" x-text="'Tingkat ' + tingkat"></option>
+                            </template>
+                        </select>
                     </div>
                 </div>
 
@@ -244,6 +284,7 @@
                             id="url_youtube"
                             value="{{ old('url_youtube', $firstMateri->url_youtube) }}"
                             placeholder="Contoh: https://www.youtube.com/watch?v=..."
+                            maxlength="2048"
                             class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm font-medium text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-gray-400"
                         >
                     </div>

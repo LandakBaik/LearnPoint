@@ -114,7 +114,7 @@ class DashboardController extends Controller
             $totalKelasDiajar = 1;
         }
         $totalMapelDiampu = $guru ? $guru->guruMapels()->count() : 0;
-        $totalMateri = $guru ? Materi::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))->count() : 0;
+        $totalMateri = $guru ? Materi::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))->distinct('id_grub_materi')->count('id_grub_materi') : 0;
         $totalTugas = $guru ? Tugas::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))->count() : 0;
         $totalKuis = $guru ? Quiz::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))->count() : 0;
         $totalUjian = $guru ? Ujian::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))->count() : 0;
@@ -147,18 +147,29 @@ class DashboardController extends Controller
             $materis = Materi::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))
                 ->with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.kelas'])
                 ->latest()
-                ->take(4)
                 ->get()
-                ->map(fn($m) => [
-                    'tipe' => 'Materi',
-                    'judul' => $m->judul,
-                    'kategori' => 'Modul Ajar',
-                    'mapel' => $m->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran',
-                    'kelas' => $m->pengampuKelas?->kelas?->nama_kelas ?? '-',
-                    'waktu' => $m->created_at,
-                    'status' => 'Aktif',
-                    'url' => route('guru.materi'),
-                ]);
+                ->groupBy('id_grub_materi')
+                ->take(4)
+                ->map(function ($group) {
+                    $m = $group->first();
+                    $kelasNames = $group->map(fn($item) => $item->pengampuKelas?->kelas?->nama_kelas)
+                        ->filter()
+                        ->unique()
+                        ->sort()
+                        ->implode(', ');
+
+                    return [
+                        'tipe' => 'Materi',
+                        'judul' => $m->judul,
+                        'kategori' => 'Modul Ajar',
+                        'mapel' => $m->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran',
+                        'kelas' => $kelasNames !== '' ? $kelasNames : '-',
+                        'waktu' => $m->created_at,
+                        'status' => 'Aktif',
+                        'url' => route('guru.materi'),
+                    ];
+                })
+                ->values();
 
             $tugases = Tugas::whereHas('pengampuKelas.guruMapel', fn($q) => $q->where('guru_id', $guru->id))
                 ->with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.kelas'])
