@@ -123,6 +123,7 @@ class QuizController extends Controller
 
             return view('siswa.kuis.index', [
                 'viewMode'       => 'mission',
+                'siswa'          => $siswa,
                 'selectedPlanet' => $selectedPlanet,
                 'planets'        => $planets,
                 'zonas'          => $zonas,
@@ -142,6 +143,7 @@ class QuizController extends Controller
         // Tampilan Mode 1 (Pilihan Planet)
         return view('siswa.kuis.index', [
             'viewMode' => 'planets',
+            'siswa'    => $siswa,
             'planets'  => $planets,
             'kelas'    => $kelas,
             'top1'     => $top1,
