@@ -18,6 +18,7 @@ class Menjawab extends Model
         'jawaban_dipilih',
         'benar',
         'poin_diperoleh',
+        'koin_diklaim',
     ];
 
     protected function casts(): array
@@ -25,6 +26,7 @@ class Menjawab extends Model
         return [
             'benar' => 'boolean',
             'poin_diperoleh' => 'decimal:2',
+            'koin_diklaim' => 'boolean',
         ];
     }
 

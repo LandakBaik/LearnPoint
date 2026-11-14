@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\GuruMapel;
 use App\Models\PengampuKelas;
+use App\Services\AcademicRelocationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -72,10 +73,10 @@ class GuruMapelController extends Controller
             $addedCount++;
         }
 
-        // Jika hanya 1 penugasan dan ada konflik guru lain (misal dari modal kelola kelas)
-        if (count($conflictClasses) > 0 && $addedCount === 0 && $alreadyAssignedCount === 0) {
-            $c = $conflictClasses[0];
-            return back()->with('error', "Mata pelajaran {$c['mapel']} di kelas {$c['kelas']} sudah diampu oleh {$c['guru']}. Dalam 1 kelas hanya diperbolehkan 1 guru untuk setiap mata pelajaran.");
+        // Jika terdapat konflik dan tidak ada kelas yang berhasil ditambahkan
+        if (count($conflictClasses) > 0 && $addedCount === 0) {
+            $conflictDetails = collect($conflictClasses)->map(fn($c) => "{$c['kelas']} (diampu {$c['guru']})")->join(', ');
+            return back()->with('error', "Gagal menugaskan: Mata pelajaran {$conflictClasses[0]['mapel']} di kelas {$conflictDetails} sudah memiliki guru pengampu. Dalam 1 kelas hanya diperbolehkan 1 guru untuk setiap mata pelajaran.");
         }
 
         if ($addedCount === 0 && count($conflictClasses) === 0) {
@@ -99,10 +100,49 @@ class GuruMapelController extends Controller
     }
 
     /**
-     * Hapus penugasan guru pengampu mapel pada kelas tertentu.
+     * Ganti Guru Pengampu pada suatu kelas atau Tukar Kelas (Swap) antar 2 guru (Solusi Studi Kasus 1).
      */
-    public function destroy(PengampuKelas $guruMapel)
+    public function reassign(Request $request, PengampuKelas $guruMapel, AcademicRelocationService $relocationService)
     {
+        $validated = $request->validate([
+            'target_guru_id'        => 'required|exists:gurus,id',
+            'mode'                  => 'nullable|in:serah_terima,bawa_soal_reset_nilai',
+            'swap_with_pengampu_id' => 'nullable|exists:pengampu_kelas,id',
+        ]);
+
+        try {
+            $result = $relocationService->reassignOrSwapGuru(
+                $guruMapel,
+                (int) $validated['target_guru_id'],
+                $validated['mode'] ?? 'serah_terima',
+                !empty($validated['swap_with_pengampu_id']) ? (int) $validated['swap_with_pengampu_id'] : null
+            );
+
+            return back()->with('success', $result['message']);
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Hapus penugasan guru pengampu mapel pada kelas tertentu.
+     * Dilengkapi proteksi agar data tugas/kuis/ujian/nilai tidak ikut terhapus akibat human error.
+     */
+    public function destroy(Request $request, PengampuKelas $guruMapel, AcademicRelocationService $relocationService)
+    {
+        $summary = $relocationService->getPengampuActivitySummary($guruMapel);
+
+        if ($summary['has_data'] && !$request->boolean('force_delete')) {
+            $kelasNama = $guruMapel->kelas?->nama_kelas ?? 'Kelas';
+            $mapelNama = $guruMapel->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+            $guruNama = $guruMapel->guruMapel?->guru?->nama ?? 'Guru';
+
+            return back()->with(
+                'error',
+                "Penugasan {$guruNama} ({$mapelNama} - {$kelasNama}) tidak dapat dihapus langsung karena sudah memiliki {$summary['total_aktivitas']} aktivitas pembelajaran ({$summary['materi_count']} Materi, {$summary['tugas_count']} Tugas, {$summary['quiz_count']} Kuis, {$summary['ujian_count']} Ujian) dan {$summary['total_pengerjaan']} data nilai siswa. Silakan gunakan tombol 'Ganti / Tukar Guru' agar data nilai siswa tidak hilang!"
+            );
+        }
+
         $parentGuruMapel = $guruMapel->guruMapel;
         $guruMapel->delete();
 

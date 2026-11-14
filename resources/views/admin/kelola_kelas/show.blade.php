@@ -3,7 +3,45 @@
 @section('title', 'Detail Kelas: ' . $kelas->nama_kelas)
 
 @section('content')
-<div class="max-w-6xl mx-auto space-y-6" x-data="{ modalOpen: false, modalImg: '', assignModalOpen: false }">
+<div class="max-w-6xl mx-auto space-y-6" x-data="{
+    modalOpen: false,
+    modalImg: '',
+    assignModalOpen: false,
+    reassignModalOpen: false,
+    otherPengampus: {{ Js::from($otherPengampus ?? []) }},
+    reassignData: {
+        pengampu_id: '',
+        mapel_id: '',
+        mapel_nama: '',
+        old_guru_id: '',
+        old_guru_nama: '',
+        target_guru_id: '',
+        swap_with_pengampu_id: '',
+        mode: 'serah_terima',
+        total_aktivitas: 0
+    },
+    openReassignModal(item) {
+        this.reassignData = {
+            pengampu_id: item.pengampu_id,
+            mapel_id: item.mapel_id,
+            mapel_nama: item.mapel_nama,
+            old_guru_id: item.old_guru_id,
+            old_guru_nama: item.old_guru_nama,
+            target_guru_id: '',
+            swap_with_pengampu_id: '',
+            mode: 'serah_terima',
+            total_aktivitas: item.total_aktivitas || 0
+        };
+        this.reassignModalOpen = true;
+    },
+    getSwapCandidates() {
+        if (!this.reassignData.target_guru_id || !this.reassignData.mapel_id) return [];
+        return this.otherPengampus.filter(p =>
+            String(p.mapel_id) === String(this.reassignData.mapel_id) &&
+            String(p.guru_id) === String(this.reassignData.target_guru_id)
+        );
+    }
+}">
 
     <!-- Header Navigation & Actions -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -131,12 +169,15 @@
                             <th class="py-3 px-4">Mata Pelajaran</th>
                             <th class="py-3 px-4">Standar KKM</th>
                             <th class="py-3 px-4">Guru Pengampu</th>
-                            <th class="py-3 px-4">NUPTK</th>
+                            <th class="py-3 px-4">Aktivitas Terbuat</th>
                             <th class="py-3 px-4 text-right pr-4">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @foreach($kelas->pengampuKelases as $gm)
+                            @php
+                                $totalAktivitasGm = ($gm->materis_count ?? 0) + ($gm->tugases_count ?? 0) + ($gm->quizzes_count ?? 0) + ($gm->ujians_count ?? 0);
+                            @endphp
                             <tr class="hover:bg-slate-50/60 transition-colors">
                                 <td class="py-3.5 px-4 font-bold text-slate-900">
                                     <div class="flex items-center gap-2.5">
@@ -163,23 +204,46 @@
                                         </div>
                                         <div>
                                             <p class="text-xs font-bold text-slate-800">{{ $gm->guru->nama ?? 'Guru Tidak Ditemukan' }}</p>
-                                            @if($gm->guru)
-                                                <a href="{{ route('guru.show', $gm->guru->id) }}" class="text-[10px] text-blue-600 hover:underline">Lihat Profil Guru</a>
-                                            @endif
+                                            <p class="text-[10px] text-slate-400 font-normal">NUPTK: {{ $gm->guru->nuptk ?? '-' }}</p>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="py-3.5 px-4 text-xs text-slate-500">
-                                    {{ $gm->guru->nuptk ?? '-' }}
+                                <td class="py-3.5 px-4 text-xs">
+                                    @if($totalAktivitasGm > 0)
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] font-bold" title="{{ $gm->materis_count ?? 0 }} Materi, {{ $gm->tugases_count ?? 0 }} Tugas, {{ $gm->quizzes_count ?? 0 }} Kuis, {{ $gm->ujians_count ?? 0 }} Ujian">
+                                            <span>{{ $totalAktivitasGm }} Aktivitas</span>
+                                        </span>
+                                    @else
+                                        <span class="text-[11px] text-slate-400 italic">Belum ada</span>
+                                    @endif
                                 </td>
                                 <td class="py-3.5 px-4 text-right pr-4 whitespace-nowrap">
-                                    <form action="{{ route('guru-mapel.destroy', $gm->id) }}" method="POST" data-confirm="Hapus penugasan guru {{ $gm->guru->nama ?? '' }} untuk mapel ini di kelas {{ $kelas->nama_kelas }}?" class="inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Hapus Pengampu">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    <div class="inline-flex items-center justify-end gap-1.5">
+                                        <button
+                                            type="button"
+                                            @click="openReassignModal({
+                                                pengampu_id: '{{ $gm->id }}',
+                                                mapel_id: '{{ $gm->guruMapel?->mapel_id }}',
+                                                mapel_nama: '{{ addslashes($gm->mapel->nama_mapel ?? 'Mata Pelajaran') }}',
+                                                old_guru_id: '{{ $gm->guruMapel?->guru_id }}',
+                                                old_guru_nama: '{{ addslashes($gm->guru->nama ?? 'Guru') }}',
+                                                total_aktivitas: {{ $totalAktivitasGm }}
+                                            })"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200/80 text-[11px] font-bold transition-colors"
+                                            title="Ganti atau Tukar Guru Pengampu tanpa menghapus tugas/nilai siswa"
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                                            <span>Ganti / Tukar Guru</span>
                                         </button>
-                                    </form>
+
+                                        <form action="{{ route('guru-mapel.destroy', $gm->id) }}" method="POST" data-confirm="Hapus penugasan guru {{ $gm->guru->nama ?? '' }} untuk mapel ini di kelas {{ $kelas->nama_kelas }}?" class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Hapus Pengampu">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -413,6 +477,147 @@
                             class="px-5 py-2.5 rounded-xl {{ $availableMapelsCount === 0 ? 'bg-slate-200 cursor-not-allowed text-slate-400' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 hover:-translate-y-0.5' }} text-xs font-bold transition-all"
                         >
                             Simpan Pengampu
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ganti / Tukar Guru Pengampu (Penanganan Human Error Studi Kasus 1) -->
+    <div 
+        x-show="reassignModalOpen" 
+        class="fixed inset-0 z-50 overflow-y-auto"
+        style="display: none;"
+    >
+        <div class="min-h-screen px-4 text-center flex items-center justify-center">
+            <!-- Backdrop -->
+            <div 
+                class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" 
+                @click="reassignModalOpen = false"
+            ></div>
+
+            <!-- Modal Content -->
+            <div class="relative bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 text-left shadow-2xl border border-slate-100 z-10 space-y-5">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div>
+                        <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-extrabold uppercase tracking-wider">
+                            Koreksi Hak Akses Kelas
+                        </span>
+                        <h3 class="text-lg font-extrabold text-slate-900 mt-1">Ganti / Tukar Guru Pengampu</h3>
+                        <p class="text-xs text-slate-500">
+                            Mapel <strong class="text-slate-800" x-text="reassignData.mapel_nama"></strong> &bull; Kelas <strong class="text-slate-800">{{ $kelas->nama_kelas }}</strong>
+                        </p>
+                    </div>
+                    <button 
+                        type="button" 
+                        @click="reassignModalOpen = false"
+                        class="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition-colors"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <form :action="'{{ url('/guru-mapel') }}/' + reassignData.pengampu_id + '/reassign'" method="POST" class="space-y-4">
+                    @csrf
+                    @method('PUT')
+
+                    <!-- Info Guru Saat Ini -->
+                    <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Guru Pengampu Saat Ini</span>
+                            <p class="font-bold text-slate-800 mt-0.5" x-text="reassignData.old_guru_nama"></p>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold text-[11px]" x-text="reassignData.total_aktivitas + ' Aktivitas'"></span>
+                    </div>
+
+                    <!-- Pilih Guru Baru -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                            Pilih Guru Pengganti / Pasangan Tukar <span class="text-rose-500">*</span>
+                        </label>
+                        <select 
+                            name="target_guru_id" 
+                            x-model="reassignData.target_guru_id"
+                            @change="reassignData.swap_with_pengampu_id = getSwapCandidates().length === 1 ? String(getSwapCandidates()[0].pengampu_id) : ''"
+                            required 
+                            class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-semibold text-slate-800 transition-all"
+                        >
+                            <option value="">-- Pilih Guru --</option>
+                            @foreach($allGurus as $guru)
+                                <option value="{{ $guru->id }}" x-bind:disabled="String(reassignData.old_guru_id) === '{{ $guru->id }}'">
+                                    {{ $guru->nama }} (NUPTK: {{ $guru->nuptk }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Opsi Tukar Kelas (Swap) Otomatis jika Guru Tujuan Mengampu Mapel yang Sama di Kelas Lain -->
+                    <div x-show="getSwapCandidates().length > 0" class="p-4 rounded-2xl bg-blue-50/70 border border-blue-200/80 space-y-2.5">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                            <div class="text-xs">
+                                <p class="font-bold text-blue-900">Deteksi Kelas Tertukar (Swap Kelas)</p>
+                                <p class="text-[11px] text-blue-700 mt-0.5">
+                                    Guru yang Anda pilih juga mengampu mata pelajaran ini di kelas lain. Apakah Anda ingin <strong>menukar kelas</strong> kedua guru tersebut?
+                                </p>
+                            </div>
+                        </div>
+
+                        <select 
+                            name="swap_with_pengampu_id" 
+                            x-model="reassignData.swap_with_pengampu_id"
+                            class="w-full px-3.5 py-2 rounded-xl border border-blue-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        >
+                            <option value="">Tidak, hanya ganti guru di kelas {{ $kelas->nama_kelas }} saja</option>
+                            <template x-for="cand in getSwapCandidates()" :key="cand.pengampu_id">
+                                <option :value="String(cand.pengampu_id)" x-text="'🔄 Tukar dengan Kelas ' + cand.nama_kelas + ' (Saat ini diampu ' + cand.guru_nama + ')'"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- Mode Penanganan Tugas, Ujian & Nilai Siswa -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                            Penanganan Tugas, Kuis, Ujian & Nilai Siswa
+                        </label>
+
+                        <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all"
+                               :class="reassignData.mode === 'serah_terima' ? 'bg-emerald-50/70 border-emerald-300' : 'bg-white border-slate-200 hover:bg-slate-50'">
+                            <input type="radio" name="mode" value="serah_terima" x-model="reassignData.mode" class="mt-1 text-emerald-600 focus:ring-emerald-500">
+                            <div class="text-xs">
+                                <p class="font-bold text-slate-900">Serah Terima Kelas (Direkomendasikan — Nilai 100% Utuh)</p>
+                                <p class="text-[11px] text-slate-500 mt-0.5">
+                                    Seluruh tugas, kuis, ujian, dan nilai yang sudah dikerjakan siswa di kelas ini tetap sah dan langsung beralih ke guru baru.
+                                </p>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all"
+                               :class="reassignData.mode === 'bawa_soal_reset_nilai' ? 'bg-rose-50/70 border-rose-300' : 'bg-white border-slate-200 hover:bg-slate-50'">
+                            <input type="radio" name="mode" value="bawa_soal_reset_nilai" x-model="reassignData.mode" class="mt-1 text-rose-600 focus:ring-rose-500">
+                            <div class="text-xs">
+                                <p class="font-bold text-slate-900">Bawa Soal ke Kelas Baru &amp; Reset Pengerjaan Siswa</p>
+                                <p class="text-[11px] text-slate-500 mt-0.5">
+                                    Jika ditukar, soal masing-masing guru ikut pindah ke kelas barunya, dan pengerjaan siswa dari kelas yang salah akan di-reset (item Power kuis dikembalikan).
+                                </p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="pt-3 flex items-center justify-end gap-3">
+                        <button 
+                            type="button" 
+                            @click="reassignModalOpen = false"
+                            class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                        >
+                            Batal
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white shadow-md shadow-amber-500/20 hover:-translate-y-0.5 text-xs font-bold transition-all"
+                        >
+                            Proses Perubahan Guru
                         </button>
                     </div>
                 </form>
