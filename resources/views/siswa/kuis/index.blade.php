@@ -156,7 +156,7 @@
             </div>
         </div>
 
-        {{-- 3. Section Title & Tombol Peti Gacha --}}
+        {{-- 3. Section Title, Panduan & Tombol Peti Gacha --}}
         <div class="pt-2 flex items-center justify-between gap-4 flex-wrap">
             <div>
                 <h2 class="text-lg md:text-xl font-extrabold text-slate-900 tracking-tight">
@@ -167,18 +167,30 @@
                 </p>
             </div>
 
-            {{-- Tombol Buka Peti Gacha --}}
-            <a 
-                href="{{ route('siswa.gacha') }}"
-                class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-extrabold text-xs flex items-center gap-2 shadow-md shadow-amber-500/20 transition cursor-pointer"
-            >
-                <i class="fa-solid fa-box-open text-sm"></i>
-                <span>Buka Peti Gacha</span>
-                <span class="px-2 py-0.5 rounded-full bg-white/20 text-white text-[11px] font-black">
-                    <i class="fa-solid fa-coins text-[10px] mr-0.5 text-amber-200"></i>
-                    <!-- {{ number_format(auth()->user()?->siswa?->koin ?? 0, 0, ',', '.') }} -->
-                </span>
-            </a>
+            <div class="flex items-center gap-2.5 flex-wrap">
+                {{-- Tombol Panduan Kuis --}}
+                <a 
+                    href="{{ route('siswa.kuis.panduan') }}"
+                    class="px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 hover:text-blue-600 font-bold text-xs flex items-center gap-2 border border-slate-200 transition shadow-2xs cursor-pointer"
+                    title="Buku Panduan Petualangan & Aturan Main"
+                >
+                    <i class="fa-solid fa-circle-question text-blue-500 text-sm"></i>
+                    <span>Panduan Kuis</span>
+                </a>
+
+                {{-- Tombol Buka Peti Gacha --}}
+                <a 
+                    href="{{ route('siswa.gacha') }}"
+                    class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-extrabold text-xs flex items-center gap-2 shadow-md shadow-amber-500/20 transition cursor-pointer"
+                >
+                    <i class="fa-solid fa-box-open text-sm"></i>
+                    <span>Buka Peti Gacha</span>
+                    <span class="px-2 py-0.5 rounded-full bg-white/20 text-white text-[11px] font-black">
+                        <i class="fa-solid fa-coins text-[10px] mr-0.5 text-amber-200"></i>
+                        {{ number_format(auth()->user()?->siswa?->koin ?? 0, 0, ',', '.') }}
+                    </span>
+                </a>
+            </div>
         </div>
 
         {{-- 4. Planet Cards Grid --}}

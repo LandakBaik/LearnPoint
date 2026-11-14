@@ -34,6 +34,22 @@ class GachaBannerController extends Controller
     }
 
     /**
+     * Halaman Panduan & Penjelasan Sistem Wish / Gacha Antariksa.
+     */
+    public function panduan()
+    {
+        $user = auth()->user();
+        $siswa = $user?->siswa;
+        abort_unless($siswa, 403, 'Akses ditolak.');
+
+        Item::ensureDefaultCatalog();
+        $powers = Item::powers()->where('is_active', true)->get();
+        $banners = $siswa->banners_list;
+
+        return view('siswa.gacha.panduan', compact('siswa', 'powers', 'banners'));
+    }
+
+    /**
      * Memproses tarikan Gacha (1x atau 10x) untuk Siswa.
      */
     public function pull(Request $request)

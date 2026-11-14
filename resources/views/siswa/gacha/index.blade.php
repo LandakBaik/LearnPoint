@@ -137,8 +137,31 @@
             </div>
         </div>
 
-        {{-- Sisi Kanan: Saldo Koin & Pity Counter --}}
+        {{-- Sisi Kanan: Panduan, Audio Toggle, Saldo Koin & Pity Counter --}}
         <div class="flex items-center gap-3 shrink-0 self-start sm:self-auto flex-wrap">
+            {{-- Tombol Panduan Gacha --}}
+            <a 
+                href="{{ route('siswa.gacha.panduan') }}"
+                class="px-3.5 py-2 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 hover:border-amber-400/50 text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                title="Penjelasan Lengkap Sistem Wish, Rate Peluang & Pity"
+            >
+                <i class="fa-solid fa-circle-question text-amber-400"></i>
+                <span class="hidden sm:inline">Panduan Wish</span>
+            </a>
+
+            {{-- Tombol Mute / Unmute Audio --}}
+            <button
+                type="button"
+                @click="toggleSound()"
+                :title="soundEnabled ? 'Matikan Efek Suara' : 'Nyalakan Efek Suara'"
+                class="w-10 h-10 rounded-2xl border flex items-center justify-center transition cursor-pointer"
+                :class="soundEnabled 
+                    ? 'bg-slate-800/80 border-slate-700/80 text-amber-400 hover:border-amber-400/60 hover:bg-slate-800' 
+                    : 'bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-300'"
+            >
+                <i class="fa-solid text-sm" :class="soundEnabled ? 'fa-volume-high' : 'fa-volume-xmark'"></i>
+            </button>
+
             {{-- Counter Pity --}}
             <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl px-4 py-2 text-center">
                 <div class="text-[9px] font-extrabold uppercase tracking-widest text-slate-400">PITY BANNER</div>

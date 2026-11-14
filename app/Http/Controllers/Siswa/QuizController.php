@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
+use App\Models\Item;
 use App\Models\Mapel;
 use App\Models\Menjawab;
 use App\Models\Nilai;
@@ -150,6 +151,20 @@ class QuizController extends Controller
             'top2'     => $top2,
             'top3'     => $top3,
         ]);
+    }
+
+    /**
+     * SISWA: Menampilkan panduan dan penjelasan lengkap sistem Kuis Petualangan.
+     */
+    public function panduan()
+    {
+        $siswa = auth()->user()?->siswa;
+        abort_unless($siswa, 403, 'Akses ditolak.');
+
+        Item::ensureDefaultCatalog();
+        $powers = Item::powers()->where('is_active', true)->get();
+
+        return view('siswa.kuis.panduan', compact('siswa', 'powers'));
     }
 
     public function siswaIndex(Request $request)
