@@ -22,22 +22,15 @@
 
 @section('content')
 @php
-    // Siapkan metadata soal untuk mekanisme prototype Power (tanpa mengubah controller/database)
+    // Siapkan metadata soal untuk mekanisme Power (tanpa menyertakan kunci jawaban ke client)
     $powerQuestionsMeta = [];
     $powerQuestionIds = [];
     foreach ($soals as $s) {
         $pilihanMap = $s->pilihan_shuffled ?? $s->pilihan ?? [];
-        $rawKunci = $s->kunci_jawaban;
-        if (is_array($rawKunci)) {
-            $cleanKunci = strtolower(trim((string) ($rawKunci[0] ?? 'a')));
-        } else {
-            $cleanKunci = strtolower(trim((string) $rawKunci, " \t\n\r\0\x0B\"'[]"));
-        }
         $powerQuestionIds[] = (int) $s->id;
         $powerQuestionsMeta[$s->id] = [
             'id' => (int) $s->id,
             'bobot' => (float) ($s->bobot ?: 10),
-            'correctKey' => $cleanKunci ?: 'a',
             'optionKeys' => is_array($pilihanMap) ? array_map('strtolower', array_keys($pilihanMap)) : ['a', 'b', 'c', 'd'],
             'options' => is_array($pilihanMap) ? $pilihanMap : [],
         ];
@@ -512,18 +505,12 @@
                                 <strong class="text-slate-800" x-text="powerUsageLog.length + ' Item'"></strong>
                             </div>
                             <div class="flex items-center justify-between text-slate-500 font-semibold">
-                                <span>Bonus Pengganda Skor:</span>
-                                <strong class="text-emerald-600" x-text="'+' + calculatePowerScoreSummary().bonusPoints + ' Poin'"></strong>
+                                <span>Pengganda Skor Aktif:</span>
+                                <strong class="text-blue-600" x-text="calculatePowerScoreSummary().activeMultiplierCount + ' Soal'"></strong>
                             </div>
-                            <template x-if="calculatePowerScoreSummary().penaltyPoints > 0">
-                                <div class="flex items-center justify-between text-slate-500 font-semibold">
-                                    <span>Penalti Double Knife:</span>
-                                    <strong class="text-rose-600" x-text="'-' + calculatePowerScoreSummary().penaltyPoints + ' Poin'"></strong>
-                                </div>
-                            </template>
-                            <div class="pt-1.5 border-t border-slate-100 flex items-center justify-between font-extrabold text-slate-800">
-                                <span>Estimasi Skor + Power:</span>
-                                <span class="text-[#2563EB]" x-text="calculatePowerScoreSummary().normalizedScoreWithPower + ' / 100'"></span>
+                            <div class="pt-1.5 border-t border-slate-100 text-[10px] text-slate-500 leading-relaxed">
+                                <i class="fa-solid fa-shield-halved text-blue-500 mr-1"></i>
+                                Skor akhir & efek Power dihitung otomatis oleh sistem setelah level dikumpulkan.
                             </div>
                         </div>
                     </div>
@@ -670,7 +657,7 @@ function quizPlayer() {
             }
         },
 
-        recordAnswer(soalId, optionKey) {
+        async recordAnswer(soalId, optionKey) {
             const cleanOpt = String(optionKey).toLowerCase();
 
             // Cegah memilih opsi yang sudah dieliminasi oleh Power
@@ -678,15 +665,17 @@ function quizPlayer() {
                 return;
             }
 
-            // Cek apakah Perisai Second Chance sedang siaga pada soal ini
-            const meta = (@json($powerQuestionsMeta))[soalId];
-            if (this.isSecondChanceArmed(soalId) && meta && cleanOpt !== String(meta.correctKey).toLowerCase()) {
-                this.triggerSecondChanceProtection(soalId, cleanOpt);
-                this.persistSessionPowerSummary();
-                return;
+            // Jika Perisai Second Chance sedang siaga pada soal ini, verifikasi ke backend (tanpa bocor kunci di client)
+            if (this.isSecondChanceArmed(soalId)) {
+                this.answers[soalId] = optionKey;
+                const protectedWrong = await this.verifyAndTriggerSecondChance(soalId, cleanOpt);
+                if (protectedWrong) {
+                    return;
+                }
+            } else {
+                this.answers[soalId] = optionKey;
             }
 
-            this.answers[soalId] = optionKey;
             this.persistSessionPowerSummary();
         },
 
@@ -729,7 +718,7 @@ function quizPlayer() {
             if (powerSum.usedCount > 0) {
                 htmlMessage += `<div style="margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a;">
                     <div style="font-weight: 800; font-size: 12px; margin-bottom: 4px;">⚡ Efek Power Aktif (${powerSum.usedCount} Item Digunakan)</div>
-                    <div style="font-size: 12px;">Bonus Pengganda: <strong>+${powerSum.bonusPoints} Poin</strong> ${powerSum.penaltyPoints > 0 ? `| Penalti: <strong style="color:#e11d48;">-${powerSum.penaltyPoints} Poin</strong>` : ''}</div>
+                    <div style="font-size: 12px;">Efek bonus & penalti Power akan dihitung otomatis setelah jawaban dikumpulkan.</div>
                 </div>`;
             }
 
