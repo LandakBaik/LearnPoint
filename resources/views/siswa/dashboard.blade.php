@@ -11,27 +11,15 @@
         $isDarkTheme = ($activeBanner['theme'] ?? 'light') === 'dark';
         $activeBannerUrl = !empty($activeBanner['gif_url']) ? asset($activeBanner['gif_url']) : null;
     @endphp
-    <section class="relative overflow-hidden rounded-[26px] p-7 md:p-9 border shadow-lg transition-all duration-300 min-h-[220px] md:min-h-[250px] flex flex-col justify-between {{ $activeBannerUrl ? 'border-slate-700/80 shadow-slate-950/20' : 'bg-gradient-to-r from-[#EBF4FF] via-[#EDF6FF] to-[#DCEEFE] border-blue-100 shadow-sm' }}" data-purpose="welcome-banner">
+    <section class="relative overflow-hidden rounded-[26px] p-7 md:p-9 border transition-all duration-300 min-h-[280px] md:min-h-[320px] flex flex-col justify-between {{ $activeBannerUrl ? 'border-slate-700/80 shadow-none' : 'bg-gradient-to-r from-[#EBF4FF] via-[#EDF6FF] to-[#DCEEFE] border-blue-100 shadow-sm' }}" data-purpose="welcome-banner">
         
-        {{-- Background GIF jika menggunakan custom banner (Tampil jernih, tajam, dan tidak redup) --}}
+        {{-- Background GIF jika menggunakan custom banner (Tampil jernih, tajam, penuh tanpa lapisan shadow) --}}
         @if(!empty($activeBannerUrl))
             <img src="{{ $activeBannerUrl }}" alt="{{ $activeBanner['nama'] }}" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0">
-            {{-- Gradasi terarah: Gelap lembut di area teks kiri agar terbaca, transparan total di kanan agar animasi GIF terlihat jelas --}}
-            <div class="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/45 to-transparent z-0 pointer-events-none"></div>
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-slate-950/20 z-0 pointer-events-none"></div>
         @endif
 
-        {{-- Tombol Aksi di Pojok Kanan Atas: Peti Gacha & Ganti Banner --}}
+        {{-- Tombol Aksi di Pojok Kanan Atas: Ganti Banner --}}
         <div class="absolute top-4 right-4 z-20 flex items-center gap-2">
-            <a 
-                href="{{ route('siswa.gacha') }}" 
-                class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 shadow-md backdrop-blur-md cursor-pointer bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white border border-amber-300/40 hover:scale-[1.02] active:scale-95"
-                title="Buka Halaman Wish & Gacha"
-            >
-                <i class="fa-solid fa-box-open text-xs"></i>
-                <span>Peti Gacha</span>
-            </a>
-
             <button 
                 type="button" 
                 @click="bannerModalOpen = true"
@@ -97,7 +85,7 @@
         </div>
 
         @if(empty($activeBannerUrl))
-        <!-- Right 3D Books Illustration Graphic (hanya jika banner default) -->
+        <!-- Right 3D Books Illustration Graphic (banner default) -->
         <div class="absolute right-6 -bottom-2 hidden lg:flex items-end pointer-events-none select-none">
             <svg class="w-[280px] h-[160px]" fill="none" viewBox="0 0 340 190" xmlns="http://www.w3.org/2000/svg">
                 <!-- Ambient Shadow -->
@@ -222,10 +210,6 @@
                 <span class="flex items-center gap-1.5 font-bold text-amber-600">
                     <i class="fa-solid fa-coins"></i> Saldo: {{ number_format($siswa->koin ?? 0, 0, ',', '.') }} Koin
                 </span>
-                <a href="{{ route('siswa.gacha') }}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-extrabold flex items-center gap-1.5 shadow-xs transition">
-                    <i class="fa-solid fa-box-open text-xs"></i>
-                    Buka Peti Gacha <i class="fa-solid fa-arrow-right text-[10px]"></i>
-                </a>
             </div>
         </div>
     </div>
@@ -384,13 +368,8 @@
             </button>
         </div>
 
-        <!-- Tombol Aksi Kuis & Peti Gacha -->
+        <!-- Tombol Aksi Kuis -->
         <div class="flex items-center gap-2.5 shrink-0">
-            <a href="{{ route('siswa.gacha') }}"
-               class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-extrabold text-sm shadow-xs hover:shadow-md transition-all duration-150">
-                <i class="fa-solid fa-box-open text-sm"></i>
-                <span>Peti Gacha</span>
-            </a>
             <a href="{{ route('siswa.kuis') }}"
                class="inline-flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-2xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm shadow-xs hover:shadow-md transition-all duration-150 group">
                 <span>Kuis</span>
