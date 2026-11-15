@@ -193,39 +193,41 @@
             </div>
         </div>
 
-        {{-- 4. Planet Cards Grid --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {{-- 4. Planet Cards Grid (Mobile-style Zig-Zag Layout) --}}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8 px-3 sm:px-5 py-3">
             @forelse($planets as $planet)
-                <div class="bg-white rounded-[24px] border border-slate-100 p-6 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group">
-                    <div>
-                        {{-- Top Planet Logo & Issue Badge --}}
-                        <div class="flex items-center justify-between gap-3 mb-6">
-                            <div class="w-14 h-14 rounded-2xl {{ $planet->bg_color }} border {{ $planet->border_color ?? 'border-slate-100' }} flex items-center justify-center p-1.5 shadow-2xs group-hover:scale-105 transition-all duration-300">
-                                @include('siswa.kuis.partials.planet-icon', ['planet' => $planet, 'size' => 'w-11 h-11'])
-                            </div>
-                            <span class="px-3.5 py-1.5 rounded-full bg-[#F8FAFC] border border-slate-200/80 text-slate-500 text-xs font-semibold">
+                @php
+                    $isRight = $loop->index % 2 === 1;
+                @endphp
+                <a 
+                    href="{{ route('siswa.kuis', ['mapel_id' => $planet->id]) }}"
+                    class="group relative flex items-center justify-between bg-[#F4F5F7] hover:bg-[#ECEEF2] rounded-[24px] min-h-[148px] sm:min-h-[164px] px-5 sm:px-7 py-5 shadow-[0_6px_20px_rgba(15,23,42,0.06)] hover:shadow-[0_12px_28px_rgba(37,99,235,0.12)] border border-slate-200/60 hover:border-blue-300/70 transition-all duration-300 {{ $isRight ? 'flex-row-reverse text-right' : 'flex-row text-left' }}"
+                >
+                    {{-- Asset Planet (Menonjol di sisi kiri/kanan secara bergantian) --}}
+                    <div class="shrink-0 pointer-events-none select-none {{ $isRight ? '-mr-8 sm:-mr-10 -my-6' : '-ml-8 sm:-ml-10 -my-6' }}">
+                        <img 
+                            src="{{ asset('Images/planets/planet1.png') }}" 
+                            alt="Planet {{ $planet->nama }}" 
+                            class="w-36 h-36 sm:w-44 sm:h-44 object-contain drop-shadow-[0_12px_18px_rgba(15,23,42,0.18)] transition-transform duration-500 group-hover:scale-105 group-hover:rotate-3"
+                        >
+                    </div>
+
+                    {{-- Nama Mapel & Deskripsi --}}
+                    <div class="flex-1 min-w-0 {{ $isRight ? 'pr-3 sm:pr-5' : 'pl-3 sm:pl-5' }}">
+                        <h3 class="text-lg sm:text-xl font-extrabold text-slate-900 group-hover:text-blue-600 transition leading-snug truncate">
+                            {{ $planet->nama }}
+                        </h3>
+                        <p class="text-xs sm:text-sm text-slate-500 font-medium mt-1 line-clamp-2">
+                            {{ $planet->deskripsi }}
+                        </p>
+                        <div class="mt-3 flex items-center gap-2 {{ $isRight ? 'justify-end' : 'justify-start' }}">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 border border-slate-200/80 text-[11px] font-bold text-slate-600 shadow-2xs">
+                                <span class="w-1.5 h-1.5 rounded-full {{ $planet->masalah_terdeteksi > 0 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500' }}"></span>
                                 {{ $planet->masalah_terdeteksi }} masalah terdeteksi
                             </span>
                         </div>
-
-                        {{-- Title & Description --}}
-                        <h3 class="text-base md:text-lg font-extrabold text-slate-900 group-hover:text-blue-600 transition mb-1">
-                            {{ $planet->nama }}
-                        </h3>
-                        <p class="text-xs md:text-sm text-slate-500 font-medium mb-8">
-                            {{ $planet->deskripsi }}
-                        </p>
                     </div>
-
-                    {{-- Pergi Action Button --}}
-                    <a 
-                        href="{{ route('siswa.kuis', ['mapel_id' => $planet->id]) }}"
-                        class="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:border-blue-500 hover:text-blue-600 text-slate-700 font-semibold text-xs flex items-center justify-center gap-2 transition bg-white hover:bg-blue-50/20"
-                    >
-                        <span>Pergi</span>
-                        <i class="fa-solid fa-arrow-right text-[11px]"></i>
-                    </a>
-                </div>
+                </a>
             @empty
                 <div class="col-span-full bg-white rounded-[24px] border border-slate-200/80 p-10 text-center space-y-2">
                     <i class="fa-solid fa-planet-ringed text-3xl text-slate-300"></i>
