@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -11,12 +10,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('ujians', function (Blueprint $table) {
-            $table->string('id_grup_ujian', 36)
-                ->nullable()
-                ->after('id')
-                ->index();
-        });
+        if (!Schema::hasColumn('ujians', 'id_grup_ujian')) {
+            Schema::table('ujians', function (Blueprint $table) {
+                $table->string('id_grup_ujian', 36)
+                    ->nullable()
+                    ->after('id')
+                    ->index();
+            });
+        }
 
         // Ujian lama mendapatkan grup masing-masing.
         // Jadi data lama tidak otomatis tergabung.
@@ -34,9 +35,11 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('ujians', function (Blueprint $table) {
-            $table->dropIndex(['id_grup_ujian']);
-            $table->dropColumn('id_grup_ujian');
-        });
+        if (Schema::hasColumn('ujians', 'id_grup_ujian')) {
+            Schema::table('ujians', function (Blueprint $table) {
+                $table->dropIndex(['id_grup_ujian']);
+                $table->dropColumn('id_grup_ujian');
+            });
+        }
     }
 };

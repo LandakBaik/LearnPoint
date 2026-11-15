@@ -16,21 +16,33 @@ class Ujian extends Model
         'judul',
         'deskripsi',
         'kisi_kisi',
-        'waktu_mulai',
-        'deadline',
+        'pengampu_kelas_id',
+        'sesi',             // <-- Tambahan
         'durasi_menit',
         'kkm',
+        'tampilkan_nilai',
+        'waktu_mulai',
+        'waktu_mulai_sesi', // <-- Tambahan
+        'deadline',
         'status',
+        'jenis_ujian',
+        'parent_ujian_id',
+        'kebijakan_remidi',
+        'peserta_khusus',
+        'token',
+        'unlock_code',
         'dipublikasi_at',
-        'pengampu_kelas_id',
     ];
 
     protected function casts(): array
     {
         return [
             'waktu_mulai' => 'datetime',
+            'waktu_mulai_sesi' => 'datetime',
             'deadline' => 'datetime',
             'dipublikasi_at' => 'datetime',
+            'peserta_khusus' => 'array',
+            'tampilkan_nilai'  => 'boolean',
             'kkm' => 'decimal:2',
         ];
     }
@@ -38,7 +50,10 @@ class Ujian extends Model
     // =========================================================
     // RELASI
     // =========================================================
-
+    public function parentUjian()
+    {
+        return $this->belongsTo(Ujian::class, 'parent_ujian_id');
+    }
     public function pengampuKelas()
     {
         return $this->belongsTo(
@@ -166,6 +181,35 @@ class Ujian extends Model
      */
     public function sinkronisasiStatus(): void
     {
+        // 1. JANGAN ubah jika status adalah draft atau sudah ditarik (unpublished)
+        if (in_array($this->status, ['draft', 'unpublished'], true)) {
+            return;
+        }
+
+        // Jika belum ada jadwal lengkap, lewati
+        if (!$this->waktu_mulai || !$this->deadline) {
+            return;
+        }
+
+        $now = now();
+        $mulai = \Carbon\Carbon::parse($this->waktu_mulai);
+        $deadline = \Carbon\Carbon::parse($this->deadline);
+
+        // 2. Sinkronkan status hanya untuk ujian yang aktif berjalan atau terjadwal
+        if ($now->greaterThan($deadline)) {
+            if ($this->status !== 'completed') {
+                $this->update(['status' => 'completed']);
+            }
+        } elseif ($now->greaterThanOrEqualTo($mulai)) {
+            if ($this->status !== 'published') {
+                $this->update(['status' => 'published']);
+            }
+        } else {
+            if ($this->status !== 'scheduled') {
+                $this->update(['status' => 'scheduled']);
+            }
+        }
+
         $statusBaru = $this->hitungStatusTerbaru();
 
         if ($this->status !== $statusBaru) {

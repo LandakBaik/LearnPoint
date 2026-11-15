@@ -87,45 +87,51 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/guru/jadwal', [GuruJadwalController::class, 'index'])
             ->name('guru.jadwal');
 
-        // Daftar semua ujian
-        Route::get('/guru/ujian', [GuruUjianController::class, 'index'])
-            ->name('guru.ujian.index');
 
-        // Halaman tambah ujian
-        Route::get('/guru/ujian/create', [GuruUjianController::class, 'create'])
-            ->name('guru.ujian.create');
+        // Kelola Ujian Guru
+        Route::get('/guru/ujian', [GuruUjianController::class, 'index'])->name('guru.ujian.index');
+        Route::get('/guru/ujian/create', [GuruUjianController::class, 'create'])->name('guru.ujian.create');
+        Route::post('/guru/ujian', [GuruUjianController::class, 'store'])->name('guru.ujian.store');
+        Route::get('/guru/ujian/status-realtime', [GuruUjianController::class, 'statusRealtime'])->name('guru.ujian.status-realtime');
+        Route::get('/guru/ujian/{ujian}', [GuruUjianController::class, 'show'])->name('guru.ujian.show');
+        Route::get('/guru/ujian/{ujian}/edit', [GuruUjianController::class, 'edit'])->name('guru.ujian.edit');
+        Route::put('/guru/ujian/{ujian}', [GuruUjianController::class, 'update'])->name('guru.ujian.update');
+        Route::delete('/guru/ujian/{ujian}', [GuruUjianController::class, 'destroy'])->name('guru.ujian.destroy');
 
-        // Simpan ujian baru
-        Route::post('/guru/ujian', [GuruUjianController::class, 'store'])
-            ->name('guru.ujian.store');
+        // Aksi Status Ujian
+        Route::post('/guru/ujian/{ujian}/publish', [GuruUjianController::class, 'publish'])->name('guru.ujian.publish');
+        Route::post('/guru/ujian/{ujian}/schedule', [GuruUjianController::class, 'schedule'])->name('guru.ujian.schedule');
+        Route::post('/guru/ujian/{ujian}/unpublish', [GuruUjianController::class, 'unpublish'])->name('guru.ujian.unpublish');
+        Route::post('/guru/ujian/{ujian}/duplicate', [GuruUjianController::class, 'duplicate'])->name('guru.ujian.duplicate');
 
-        Route::get('/guru/ujian/status-realtime', [GuruUjianController::class, 'statusRealtime'])
-            ->name('guru.ujian.status-realtime');
+        // Monitoring Live & Sesi Token Ujian
+        Route::get('/guru/ujian/{ujian}/monitoring', [GuruUjianController::class, 'monitoring'])->name('guru.ujian.monitoring');
+        Route::get('/guru/ujian/{ujian}/monitoring/data', [GuruUjianController::class, 'monitoringData'])->name('guru.ujian.monitoring-data');
+        Route::post('/guru/ujian/{ujian}/peserta/{seleksi}/unlock', [GuruUjianController::class, 'unlockPeserta'])->name('guru.ujian.monitoring.unlock');
+        Route::post('/guru/ujian/{ujian}/peserta/{seleksi}/force-submit', [GuruUjianController::class, 'forceSubmit'])->name('guru.ujian.monitoring.force-submit');
+        Route::post('/guru/ujian/{ujian}/reset-token', [GuruUjianController::class, 'resetToken'])->name('guru.ujian.reset-token');
+        Route::post('/guru/ujian/{ujian}/atur-sesi', [GuruUjianController::class, 'aturSesiKelas'])->name('guru.ujian.atur-sesi');
+        Route::post('/guru/ujian/{ujian}/peserta/{seleksi}/reopen', [GuruUjianController::class, 'reopenPeserta'])
+            ->name('guru.ujian.monitoring.reopen');
 
-        // Detail ujian
-        Route::get('/guru/ujian/{ujian}', [GuruUjianController::class, 'show'])
-            ->name('guru.ujian.show');
+        Route::post('/guru/ujian/{ujian}/refresh-unlock-code', [GuruUjianController::class, 'refreshUnlockCode'])
+            ->name('guru.ujian.refresh-unlock-code');
 
-        // Halaman edit ujian
-        Route::get('/guru/ujian/{ujian}/edit', [GuruUjianController::class, 'edit'])
-            ->name('guru.ujian.edit');
+        // Rekap Nilai, Koreksi Essay & Remidi/Susulan
+        Route::get('/guru/ujian/{ujian}/rekap', [GuruUjianController::class, 'rekap'])
+            ->name('guru.ujian.rekap');
 
-        // Update ujian
-        Route::put('/guru/ujian/{ujian}', [GuruUjianController::class, 'update'])
-            ->name('guru.ujian.update');
+        Route::get('/guru/ujian/{ujian}/koreksi-essay', [GuruUjianController::class, 'koreksiEssay'])
+            ->name('guru.ujian.koreksi-essay');
 
-        // Hapus ujian
-        Route::delete('/guru/ujian/{ujian}', [GuruUjianController::class, 'destroy'])
-            ->name('guru.ujian.destroy');
+        Route::post('/guru/ujian/{ujian}/simpan-nilai-essay', [GuruUjianController::class, 'simpanNilaiEssay'])
+            ->name('guru.ujian.simpan-nilai-essay');
 
-        // Publikasi ujian sekarang
-        Route::post('/guru/ujian/{ujian}/publish', [GuruUjianController::class, 'publish'])
-            ->name('guru.ujian.publish');
+        Route::get('/guru/ujian/{ujian}/peserta/{siswa}/jawaban', [GuruUjianController::class, 'detailJawabanSiswa'])
+            ->name('guru.ujian.peserta.jawaban');
 
-        // Jadwalkan ujian
-        Route::post('/guru/ujian/{ujian}/schedule', [GuruUjianController::class, 'schedule'])
-            ->name('guru.ujian.schedule');
-
+        Route::post('/guru/ujian/{ujian}/buat-remidi-susulan', [GuruUjianController::class, 'buatRemidiSusulan'])
+            ->name('guru.ujian.buat-remidi-susulan');
 
         // Kuis Guru
         Route::get('/guru/kuis', [GuruQuizController::class, 'index'])
@@ -175,12 +181,19 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/siswa/kuis/{quiz}/selesaikan', [SiswaQuizController::class, 'submit'])->name('siswa.kuis.submit');
         Route::get('/siswa/kuis/{quiz}/hasil', [SiswaQuizController::class, 'hasil'])->name('siswa.kuis.hasil');
 
+        // Fitur Ujian Siswa
+        Route::get('/siswa/ujian', [SiswaUjianController::class, 'index'])->name('siswa.ujian.index');
+        Route::get('/siswa/ujian/{ujian}', [SiswaUjianController::class, 'show'])->name('siswa.ujian.show');
+        Route::get('/siswa/ujian/{ujian}/konfirmasi', [SiswaUjianController::class, 'konfirmasi'])->name('siswa.ujian.konfirmasi');
+        Route::post('/siswa/ujian/{ujian}/validasi-token', [SiswaUjianController::class, 'validasiToken'])->name('siswa.ujian.validasi-token');
         Route::get('/siswa/ujian/{ujian}/kerjakan', [SiswaUjianController::class, 'kerjakan'])->name('siswa.ujian.kerjakan');
         Route::post('/siswa/ujian/{ujian}/simpan-jawaban', [SiswaUjianController::class, 'simpanJawaban'])->name('siswa.ujian.simpan-jawaban');
-
-        // TAMBAHKAN 2 BARIS INI:
         Route::post('/siswa/ujian/{ujian}/submit', [SiswaUjianController::class, 'submit'])->name('siswa.ujian.submit');
         Route::get('/siswa/ujian/{ujian}/hasil', [SiswaUjianController::class, 'hasil'])->name('siswa.ujian.hasil');
+        Route::post('/siswa/ujian/{ujian}/pelanggaran', [SiswaUjianController::class, 'catatPelanggaran'])->name('siswa.ujian.pelanggaran');
+        Route::get('/siswa/ujian/{ujian}/status-sesi', [SiswaUjianController::class, 'cekStatusSesi'])->name('siswa.ujian.status-sesi');
+        Route::post('/siswa/ujian/{ujian}/buka-kunci-kode', [SiswaUjianController::class, 'bukaKunciDenganKode'])
+    ->name('siswa.ujian.buka-kunci-kode');
     });
 
     // ==========================================

@@ -119,7 +119,9 @@ class MateriController extends Controller
                 ->get();
         }
 
-        // Ambil ujian untuk mapel ini beserta nilai siswa
+        // Ambil ujian untuk mapel ini beserta nilai siswa (Hanya status scheduled, published, completed)
+        $statusTampil = ['scheduled', 'published', 'completed'];
+
         if ($kelasId) {
             $ujians = Ujian::with([
                 'pengampuKelas.guruMapel.guru',
@@ -128,6 +130,7 @@ class MateriController extends Controller
                 },
                 'seleksiUjians.nilais'
             ])
+                ->whereIn('status', $statusTampil) // <-- Tambahkan filter ini
                 ->whereHas('pengampuKelas', function ($query) use ($kelasId, $id) {
                     $query->where('kelas_id', $kelasId)
                         ->whereHas('guruMapel', function ($query) use ($id) {
@@ -148,6 +151,7 @@ class MateriController extends Controller
                 },
                 'seleksiUjians.nilais'
             ])
+                ->whereIn('status', $statusTampil) // <-- Tambahkan filter ini
                 ->whereHas('pengampuKelas.guruMapel', function ($query) use ($id) {
                     $query->where('mapel_id', $id);
                 })

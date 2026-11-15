@@ -16,6 +16,8 @@ class Menjawab extends Model
         'siswa_id',
         'jawaban_dipilih',
         'benar',
+        'skor_essay',
+        'catatan_guru',
     ];
 
     protected function casts(): array
