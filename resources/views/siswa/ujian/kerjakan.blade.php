@@ -66,10 +66,16 @@
                     <div>
                         <!-- Baris Info Nomor & Bobot -->
                         <div class="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
-                            <span
-                                class="text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-3.5 py-1.5 rounded-xl">
-                                Soal Nomor <span x-text="currentIndex + 1"></span> dari <span x-text="soals.length"></span>
-                            </span>
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-3.5 py-1.5 rounded-xl">
+                                    Soal Nomor <span x-text="currentIndex + 1"></span> dari <span x-text="soals.length"></span>
+                                </span>
+                                <span
+                                    class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600"
+                                    x-text="currentSoal.tipe_soal === 'essay' ? 'Essay' : (currentSoal.tipe_soal === 'multiple_choice' ? 'Pilihan Ganda Kompleks' : 'Pilihan Ganda')">
+                                </span>
+                            </div>
                             <span class="text-xs font-medium text-slate-400">
                                 Bobot: <strong class="text-slate-700" x-text="currentSoal.bobot"></strong> Poin
                             </span>
@@ -85,39 +91,68 @@
                         </template>
 
                         <!-- Pertanyaan -->
-                        <div class="text-slate-800 text-lg font-medium leading-relaxed mb-8"
+                        <div class="text-slate-800 text-lg font-medium leading-relaxed mb-8 whitespace-pre-line"
                             x-html="currentSoal.pertanyaan"></div>
 
-                        <!-- Pilihan Ganda -->
-                        <div class="space-y-3">
-                            <template x-for="opsi in currentSoal.pilihan" :key="opsi.kode">
-                                <label
-                                    class="flex items-center p-4 rounded-2xl border cursor-pointer transition-all select-none"
-                                    :class="isOpsiDipilih(currentSoal.id, opsi.kode) ?
-                                        'border-indigo-600 bg-indigo-50/70 ring-2 ring-indigo-600/20 shadow-xs' :
-                                        'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'">
-
-                                    <template x-if="currentSoal.tipe_soal !== 'multiple_choice'">
-                                        <input type="radio" class="hidden" :name="'soal_' + currentSoal.id"
-                                            :value="opsi.kode" @change="pilihOpsiSingle(currentSoal.id, opsi.kode)">
-                                    </template>
-
-                                    <template x-if="currentSoal.tipe_soal === 'multiple_choice'">
-                                        <input type="checkbox" class="hidden" :value="opsi.kode"
-                                            @change="toggleOpsiMultiple(currentSoal.id, opsi.kode)">
-                                    </template>
-
-                                    <span
-                                        class="w-9 h-9 rounded-xl font-bold flex items-center justify-center text-sm mr-3.5 transition-colors"
+                        <!-- 1. JAWABAN PILIHAN GANDA (SINGLE & MULTIPLE CHOICE) -->
+                        <template x-if="currentSoal.tipe_soal !== 'essay'">
+                            <div class="space-y-3">
+                                <template x-for="opsi in currentSoal.pilihan" :key="opsi.kode">
+                                    <label
+                                        class="flex items-center p-4 rounded-2xl border cursor-pointer transition-all select-none"
                                         :class="isOpsiDipilih(currentSoal.id, opsi.kode) ?
-                                            'bg-indigo-600 text-white shadow-xs' :
-                                            'bg-slate-100 text-slate-600'"
-                                        x-text="opsi.label"></span>
+                                            'border-indigo-600 bg-indigo-50/70 ring-2 ring-indigo-600/20 shadow-xs' :
+                                            'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'">
 
-                                    <span class="text-slate-800 font-medium text-base" x-text="opsi.teks"></span>
-                                </label>
-                            </template>
-                        </div>
+                                        <template x-if="currentSoal.tipe_soal !== 'multiple_choice'">
+                                            <input type="radio" class="hidden" :name="'soal_' + currentSoal.id"
+                                                :value="opsi.kode" @change="pilihOpsiSingle(currentSoal.id, opsi.kode)">
+                                        </template>
+
+                                        <template x-if="currentSoal.tipe_soal === 'multiple_choice'">
+                                            <input type="checkbox" class="hidden" :value="opsi.kode"
+                                                @change="toggleOpsiMultiple(currentSoal.id, opsi.kode)">
+                                        </template>
+
+                                        <span
+                                            class="w-9 h-9 rounded-xl font-bold flex items-center justify-center text-sm mr-3.5 transition-colors shrink-0"
+                                            :class="isOpsiDipilih(currentSoal.id, opsi.kode) ?
+                                                'bg-indigo-600 text-white shadow-xs' :
+                                                'bg-slate-100 text-slate-600'"
+                                            x-text="opsi.label"></span>
+
+                                        <span class="text-slate-800 font-medium text-base" x-text="opsi.teks"></span>
+                                    </label>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- 2. FORM JAWABAN ESSAY -->
+                        <template x-if="currentSoal.tipe_soal === 'essay'">
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <label :for="'essay_' + currentSoal.id"
+                                        class="block text-sm font-bold text-slate-700">
+                                        Ketik Jawaban Essay Anda:
+                                    </label>
+                                    <span class="text-xs font-medium text-slate-400"
+                                        x-text="(answers[currentSoal.id] ? String(answers[currentSoal.id]).length : 0) + ' karakter'">
+                                    </span>
+                                </div>
+
+                                <textarea :id="'essay_' + currentSoal.id" rows="7"
+                                    :value="answers[currentSoal.id] || ''"
+                                    @input="ubahJawabanEssay(currentSoal.id, $event.target.value)"
+                                    @blur="simpanEssaySekarang(currentSoal.id)"
+                                    placeholder="Tuliskan jawaban essay Anda secara jelas dan lengkap di sini..."
+                                    class="w-full rounded-2xl border-2 border-slate-200 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 p-4 text-slate-800 text-base leading-relaxed outline-none transition resize-y bg-slate-50/40 focus:bg-white"></textarea>
+
+                                <p class="text-xs text-slate-400 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    Jawaban essay tersimpan otomatis saat Anda mengetik atau berpindah soal.
+                                </p>
+                            </div>
+                        </template>
 
                         <!-- Form Submit Ujian -->
                         <form x-ref="formSubmitUjian" action="{{ route('siswa.ujian.submit', $ujian->id) }}" method="POST"
@@ -130,12 +165,13 @@
 
                 <!-- Navigasi Bawah -->
                 <div class="flex items-center justify-between pt-6 mt-8 border-t border-slate-100">
-                    <button type="button" @click="currentIndex--" :disabled="currentIndex === 0"
+                    <button type="button" @click="gantiNomorSoal(currentIndex - 1)" :disabled="currentIndex === 0"
                         class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-xs hover:bg-slate-50 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
                         &larr; Soal Sebelumnya
                     </button>
 
-                    <button type="button" x-show="currentIndex < soals.length - 1" @click="currentIndex++"
+                    <button type="button" x-show="currentIndex < soals.length - 1"
+                        @click="gantiNomorSoal(currentIndex + 1)"
                         class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition shadow-xs cursor-pointer">
                         Soal Selanjutnya &rarr;
                     </button>
@@ -156,12 +192,12 @@
 
                 <div class="grid grid-cols-4 sm:grid-cols-5 gap-2">
                     <template x-for="(s, idx) in soals" :key="s.id">
-                        <button type="button" @click="currentIndex = idx"
+                        <button type="button" @click="gantiNomorSoal(idx)"
                             class="h-10 rounded-xl font-bold text-xs border transition-all flex items-center justify-center cursor-pointer"
                             :class="{
                                 'ring-2 ring-indigo-600 border-indigo-600': currentIndex === idx,
-                                'bg-emerald-500 text-white border-emerald-500 shadow-2xs': answers[s.id],
-                                'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100': !answers[s.id]
+                                'bg-emerald-500 text-white border-emerald-500 shadow-2xs': isSoalTerjawab(s.id),
+                                'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100': !isSoalTerjawab(s.id)
                             }"
                             x-text="idx + 1">
                         </button>
@@ -356,6 +392,10 @@
                 timerInterval: null,
                 heartbeatInterval: null,
 
+                // Timer & Buffer Auto-save Khusus Essay
+                essaySaveTimers: {},
+                pendingEssayValues: {},
+
                 // Variabel Layar Penuh (Fullscreen)
                 isFullscreen: false,
                 hasStartedFullscreen: false,
@@ -370,7 +410,7 @@
                 isLocked: {{ ($sesi->status ?? '') === 'terkunci' ? 'true' : 'false' }},
                 cooldownPelanggaran: false,
 
-                // === [BARU] Variabel Unlock Code ===
+                // Variabel Unlock Code
                 inputUnlockCode: '',
                 unlockError: '',
                 isUnlocking: false,
@@ -380,20 +420,29 @@
                 },
 
                 init() {
-                    // 1. Periksa status awal Fullscreen
                     this.isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
-
-                    // 2. Pasang event listener untuk memantau perubahan Fullscreen
                     this.pasangListenerFullscreen();
-
-                    // 3. Pasang deteksi anti-curang tab browser
                     this.pasangDeteksiKecurangan();
-
-                    // 4. Jalankan heartbeat komunikasi berkala ke server
                     this.mulaiHeartbeatSesi();
-
-                    // 5. Mulai hitung mundur waktu
                     this.initTimer();
+                },
+
+                // ==========================================
+                // NAVIGASI SOAL & CEK STATUS TERJAWAB
+                // ==========================================
+                async gantiNomorSoal(targetIdx) {
+                    if (targetIdx < 0 || targetIdx >= this.soals.length) return;
+                    if (this.currentSoal && this.currentSoal.tipe_soal === 'essay') {
+                        await this.simpanEssaySekarang(this.currentSoal.id);
+                    }
+                    this.currentIndex = targetIdx;
+                },
+
+                isSoalTerjawab(soalId) {
+                    const val = this.answers[soalId];
+                    if (val === undefined || val === null) return false;
+                    if (Array.isArray(val)) return val.length > 0;
+                    return String(val).trim() !== '';
                 },
 
                 // ==========================================
@@ -428,7 +477,6 @@
                         if (fs) {
                             this.hasStartedFullscreen = true;
                         } else {
-                            // Jika keluar dari fullscreen di tengah pengerjaan
                             if (this.hasStartedFullscreen && !this.isSubmitting && !this.isLocked) {
                                 this.kirimPelanggaran('Keluar dari mode layar penuh (Fullscreen)');
                             }
@@ -449,7 +497,6 @@
                 eksekusiKeluarDanSubmit() {
                     this.showExitModal = false;
 
-                    // Beri tahu backend agar mengarahkan siswa ke dashboard setelah submit
                     if (this.$refs.inputRedirectTo) {
                         this.$refs.inputRedirectTo.value = 'dashboard';
                     }
@@ -457,14 +504,16 @@
                     this.eksekusiSubmitOtomatis('Menyimpan jawaban dan mengumpulkan ujian...');
                 },
 
-                eksekusiSubmitOtomatis(pesan) {
+                async eksekusiSubmitOtomatis(pesan) {
                     if (this.isSubmitting) return;
                     this.isSubmitting = true;
 
                     if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
                     if (this.timerInterval) clearInterval(this.timerInterval);
 
-                    // Matikan mode fullscreen saat ujian selesai
+                    // Pastikan jawaban essay yang baru diketik terkirim sebelum form di-submit
+                    await this.flushSemuaEssay();
+
                     this.keluarFullscreen();
 
                     if (pesan) alert(pesan);
@@ -505,7 +554,6 @@
 
                             const data = await res.json();
 
-                            // Jika ditarik oleh guru saat di-unpublish
                             if (data.status === 'ditarik') {
                                 clearInterval(this.heartbeatInterval);
                                 clearInterval(this.timerInterval);
@@ -515,7 +563,6 @@
                                 return;
                             }
 
-                            // Di dalam mulaiHeartbeatSesi() pada kerjakan.blade.php:
                             if (data.status === 'selesai') {
                                 clearInterval(this.heartbeatInterval);
                                 clearInterval(this.timerInterval);
@@ -531,13 +578,11 @@
                                 return;
                             }
 
-                            // Jika status terkunci karena pelanggaran
                             if (data.status === 'terkunci' && !this.isLocked) {
                                 this.isLocked = true;
                                 this.showWarningModal = false;
                             }
 
-                            // Jika guru membuka kunci dari monitoring
                             if (data.status === 'sedang_mengerjakan' && this.isLocked) {
                                 this.isLocked = false;
                                 this.pelanggaranCount = data.pelanggaran_count || 0;
@@ -557,7 +602,7 @@
                 },
 
                 // ==========================================
-                // AUTO-SAVE & JAWABAN
+                // AUTO-SAVE & JAWABAN (PG & ESSAY)
                 // ==========================================
                 isOpsiDipilih(soalId, kodeOpsi) {
                     const val = this.answers[soalId];
@@ -589,6 +634,39 @@
 
                     this.answers[soalId] = current;
                     this.kirimAutoSave(soalId, current.join(','));
+                },
+
+                ubahJawabanEssay(soalId, nilaiTeks) {
+                    this.answers[soalId] = nilaiTeks;
+                    this.pendingEssayValues[soalId] = nilaiTeks;
+
+                    if (this.essaySaveTimers[soalId]) {
+                        clearTimeout(this.essaySaveTimers[soalId]);
+                    }
+
+                    this.essaySaveTimers[soalId] = setTimeout(() => {
+                        this.simpanEssaySekarang(soalId);
+                    }, 700);
+                },
+
+                async simpanEssaySekarang(soalId) {
+                    if (this.essaySaveTimers[soalId]) {
+                        clearTimeout(this.essaySaveTimers[soalId]);
+                        delete this.essaySaveTimers[soalId];
+                    }
+
+                    if (Object.prototype.hasOwnProperty.call(this.pendingEssayValues, soalId)) {
+                        const teks = this.pendingEssayValues[soalId];
+                        delete this.pendingEssayValues[soalId];
+                        await this.kirimAutoSave(soalId, teks);
+                    }
+                },
+
+                async flushSemuaEssay() {
+                    const pendingIds = Object.keys(this.pendingEssayValues);
+                    for (const id of pendingIds) {
+                        await this.simpanEssaySekarang(id);
+                    }
                 },
 
                 async kirimAutoSave(soalId, nilaiJawaban) {
@@ -684,7 +762,7 @@
                 },
 
                 konfirmasiSelesai() {
-                    const totalDijawab = Object.keys(this.answers).length;
+                    const totalDijawab = this.soals.filter(s => this.isSoalTerjawab(s.id)).length;
                     const total = this.soals.length;
 
                     const konfirmasi = confirm(
@@ -699,7 +777,7 @@
                 },
 
                 // ==========================================
-                // [BARU] BUKA KUNCI DENGAN UNLOCK CODE
+                // BUKA KUNCI DENGAN UNLOCK CODE
                 // ==========================================
                 async submitUnlockCode() {
                     if (!this.inputUnlockCode.trim() || this.isUnlocking) return;

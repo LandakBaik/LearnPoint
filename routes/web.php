@@ -133,6 +133,16 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/guru/ujian/{ujian}/buat-remidi-susulan', [GuruUjianController::class, 'buatRemidiSusulan'])
             ->name('guru.ujian.buat-remidi-susulan');
 
+        // Laporan Leger Semester & Export PDF
+        Route::get('/guru/ujian-laporan', [GuruUjianController::class, 'laporan'])
+            ->name('guru.ujian.laporan');
+
+        Route::get('/guru/ujian-laporan/pdf', [GuruUjianController::class, 'exportLaporanPdf'])
+            ->name('guru.ujian.laporan.pdf');
+
+        Route::post('/guru/ujian/{ujian}/toggle-archive', [GuruUjianController::class, 'toggleArchive'])
+            ->name('guru.ujian.toggle-archive');
+
         // Kuis Guru
         Route::get('/guru/kuis', [GuruQuizController::class, 'index'])
             ->name('guru.kuis.index');

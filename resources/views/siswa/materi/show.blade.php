@@ -16,6 +16,29 @@
         $totalMateri = $materis->count();
         $completedMateri = $totalMateri > 0 ? min($totalMateri, 1) : 0;
         $persenSelesai = $totalMateri > 0 ? round(($completedMateri / $totalMateri) * 100) : 0;
+
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+        $siswaId = (int) ($user?->siswa?->id ?? $user?->siswa_id ?? 0);
+
+        // Filter daftar ujian agar selaras dengan halaman Index Ujian Siswa:
+        // 1. Abaikan status draft & unpublished
+        // 2. Ujian khusus (remidi / susulan / peserta_khusus diisi) hanya tampil bagi siswa yang terdaftar
+        $ujiansTampil = ($ujians ?? collect())->filter(function ($item) use ($siswaId) {
+            if (!in_array($item->status, ['published', 'scheduled', 'completed'], true)) {
+                return false;
+            }
+
+            $pesertaKhusus = is_array($item->peserta_khusus)
+                ? array_map('intval', $item->peserta_khusus)
+                : [];
+
+            if (in_array($item->jenis_ujian, ['remidi', 'susulan'], true) || !empty($pesertaKhusus)) {
+                return $siswaId > 0 && in_array($siswaId, $pesertaKhusus, true);
+            }
+
+            return true;
+        })->values();
     @endphp
 
     <div x-data="{ activeTab: '{{ $activeTab ?? 'materi' }}' }" class="space-y-6">
@@ -207,7 +230,7 @@
                     <span>Tugas ({{ $tugases->count() }})</span>
                 </button>
 
-                <!-- Tab: Ujian -->
+                <!-- Tab: Ujian (Selaras dengan jumlah ujian yang berhak diikuti siswa) -->
                 <button @click="activeTab = 'ujian'"
                     :class="activeTab === 'ujian' ?
                         'bg-[#eaf2ff] border border-blue-200 text-blue-600 font-bold shadow-sm' :
@@ -220,7 +243,7 @@
                             d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                             stroke-linecap="round" stroke-linejoin="round"></path>
                     </svg>
-                    <span>Ujian ({{ $ujians->count() }})</span>
+                    <span>Ujian ({{ $ujiansTampil->count() }})</span>
                 </button>
             </div>
         </nav>
@@ -479,7 +502,7 @@
         </section>
         <!-- END: AssignmentSection -->
 
-        <!-- BEGIN: ExamSection (Tab: Ujian) -->
+        <!-- BEGIN: ExamSection (Tab: Ujian - Selaras dengan Halaman Index Ujian) -->
         <section x-show="activeTab === 'ujian'" style="display: none;"
             class="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-sm" data-purpose="exam-list-card">
             <div class="flex items-start gap-4 mb-8">
@@ -498,12 +521,8 @@
             </div>
 
             <div class="space-y-4">
-                @forelse($ujians as $ujian)
+                @forelse($ujiansTampil as $ujian)
                     @php
-                        /** @var \App\Models\User $user */
-                        $user = auth()->user();
-                        $siswaId = $user?->siswa?->id ?? $user?->siswa_id;
-
                         $sesiUjian = $ujian->seleksiUjians->where('siswa_id', $siswaId)->first();
                         $nilaiUjian = $sesiUjian?->nilais?->first();
 
@@ -512,10 +531,10 @@
                     @endphp
 
                     <div
-                        class="group flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/10 transition-all">
-                        <div class="flex items-center gap-4 mb-4 sm:mb-0">
+                        class="group flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/10 transition-all gap-4">
+                        <div class="flex items-start sm:items-center gap-4">
                             <div
-                                class="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                                class="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 group-hover:scale-105 transition-transform">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
                                     viewBox="0 0 24 24">
                                     <path
@@ -524,26 +543,49 @@
                                 </svg>
                             </div>
                             <div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                        {{ $mapel->nama_mapel ?? 'Mata Pelajaran' }}
+                                    </span>
+                                    @if ($ujian->jenis_ujian === 'remidi')
+                                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">
+                                            Ujian Remidi
+                                        </span>
+                                    @elseif ($ujian->jenis_ujian === 'susulan')
+                                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200">
+                                            Ujian Susulan
+                                        </span>
+                                    @endif
+                                    <span class="text-xs text-slate-400 font-medium">
+                                        Guru: {{ $ujian->pengampuKelas?->guruMapel?->guru?->nama_guru ?? 'Guru Pengampu' }}
+                                    </span>
+                                </div>
+
                                 <h3
-                                    class="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                                    class="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors mt-1">
                                     {{ $loop->iteration }}. {{ $ujian->judul }}
                                 </h3>
-                                <div class="flex items-center gap-2 mt-1 text-xs sm:text-sm text-slate-400 font-medium">
-                                    <span>Durasi: {{ $ujian->durasi_menit ?? 60 }} menit</span>
-                                    <span>|</span>
-                                    <span>Batas:
-                                        {{ $ujian->deadline ? \Carbon\Carbon::parse($ujian->deadline)->isoFormat('D MMM Y, HH:mm') : 'Sesuai Jadwal' }}</span>
+
+                                <div class="flex items-center gap-3 mt-1 text-xs text-slate-400 font-medium flex-wrap">
+                                    <span class="flex items-center gap-1">
+                                        ⏱ {{ $ujian->durasi_menit ?? 60 }} Menit
+                                    </span>
+                                    <span>&bull;</span>
+                                    <span>
+                                        Batas: {{ $ujian->deadline ? \Carbon\Carbon::parse($ujian->deadline)->isoFormat('D MMM Y, HH:mm') : 'Sesuai Jadwal' }}
+                                    </span>
                                 </div>
                             </div>
                         </div>
 
-                       <div class="flex items-center justify-between sm:justify-end gap-3">
+                        <!-- Tombol Aksi Sesuai Status Ujian (Selaras dengan Index Ujian) -->
+                        <div class="flex items-center justify-between sm:justify-end gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                             @if ($sudahDikerjakan)
                                 @if ($ujian->tampilkan_nilai ?? true)
-                                    <span
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
-                                        ✓ Selesai (Nilai: {{ number_format((float) ($nilaiTampil ?? 0), 2) }})
-                                    </span>
+                                    <div class="text-right">
+                                        <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Nilai</span>
+                                        <span class="text-base font-black text-indigo-600">{{ number_format((float) ($nilaiTampil ?? 0), 2) }}</span>
+                                    </div>
                                 @else
                                     <span
                                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
@@ -557,21 +599,26 @@
                                 </a>
                             @elseif($ujian->status === 'scheduled')
                                 <span
-                                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                                    Terjadwal
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                    ⏱ Terjadwal
                                 </span>
                                 <a href="{{ route('siswa.ujian.show', $ujian->id) }}"
                                     class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl transition">
-                                    📋 Lihat Kisi-kisi
+                                    📋 Detail & Kisi-kisi
                                 </a>
+                            @elseif($ujian->status === 'completed')
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                    Waktu Berakhir
+                                </span>
                             @else
                                 <span
-                                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-200">
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-200">
                                     Tersedia
                                 </span>
-                                <a href="{{ route('siswa.ujian.konfirmasi', $ujian->id) }}"
-                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow-xs">
-                                    Kerjakan Ujian
+                                <a href="{{ route('siswa.ujian.kerjakan', $ujian->id) }}"
+                                    class="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow-xs">
+                                    Kerjakan &rarr;
                                 </a>
                             @endif
                         </div>
@@ -579,8 +626,8 @@
                 @empty
                     <div
                         class="py-12 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-slate-400">
-                        <p class="text-sm font-semibold text-slate-700">Belum ada ujian yang dijadwalkan</p>
-                        <p class="text-xs text-slate-400 mt-1">Ujian resmi akan diinformasikan oleh guru mata pelajaran.</p>
+                        <p class="text-sm font-semibold text-slate-700">Belum ada ujian untuk mata pelajaran ini</p>
+                        <p class="text-xs text-slate-400 mt-1">Ujian resmi yang diterbitkan guru pengampu akan muncul di halaman ini.</p>
                     </div>
                 @endforelse
             </div>

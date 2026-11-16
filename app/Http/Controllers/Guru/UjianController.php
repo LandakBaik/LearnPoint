@@ -116,13 +116,23 @@ class UjianController extends Controller
             ->sortByDesc('created_at')
             ->values();
 
-        // Pagination manual karena data sudah dikelompokkan.
+        // Pisahkan ujian yang diarsipkan ke folder khusus (ala WhatsApp)
+        $ujiansArsip = $daftarUjian->filter(function ($ujian) {
+            return (bool) $ujian->is_archived;
+        })->values();
+
+        // Daftar utama hanya menampilkan ujian yang TIDAK diarsipkan
+        $daftarUjianAktif = $daftarUjian->reject(function ($ujian) {
+            return (bool) $ujian->is_archived;
+        })->values();
+
+        // Pagination manual untuk daftar utama.
         $perPage = 10;
         $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
 
         $ujians = new \Illuminate\Pagination\LengthAwarePaginator(
-            $daftarUjian->forPage($currentPage, $perPage)->values(),
-            $daftarUjian->count(),
+            $daftarUjianAktif->forPage($currentPage, $perPage)->values(),
+            $daftarUjianAktif->count(),
             $perPage,
             $currentPage,
             [
@@ -131,8 +141,7 @@ class UjianController extends Controller
             ]
         );
 
-        // Statistik dihitung berdasarkan jumlah grup, bukan jumlah baris ujian.
-        // Statistik dihitung berdasarkan jumlah grup, bukan jumlah baris ujian.
+        // Statistik dihitung berdasarkan jumlah grup.
         $stats = [
             'total' => $grupUjians->count(),
 
@@ -155,12 +164,13 @@ class UjianController extends Controller
             'unpublished' => $grupUjians->filter(function ($anggotaGrup) {
                 return $anggotaGrup->first()->status === 'unpublished';
             })->count(),
-        ];
 
-        $modeJadwalkan = request()->query('aksi') === 'jadwalkan';
+            'archived' => $ujiansArsip->count(),
+        ];
 
         return view('guru.kelola_ujian.index', compact(
             'ujians',
+            'ujiansArsip',
             'stats',
             'daftarKelas'
         ));
@@ -365,7 +375,7 @@ class UjianController extends Controller
             'soals.*.pilihan' => ['nullable', 'array', 'max:6'],
             'soals.*.kunci_jawaban' => ['nullable'],
             'soals.*.bobot' => ['required', 'numeric', 'min:0', 'max:100'],
-            'soals.*.kesulitan' => ['nullable', 'in:1,2,3'],
+            'soals.*.kesulitan' => ['nullable', 'in:0,1,2,3'],
             'soals.*.urutan' => ['nullable', 'integer', 'min:1'],
             'soals.*.gambar' => [
                 'nullable',
@@ -421,6 +431,18 @@ class UjianController extends Controller
                 ->withInput()
                 ->withErrors([
                     'soals' => "Total bobot soal adalah {$totalBobot}. Maksimal 100 poin.",
+                ]);
+        }
+
+        // Pastikan minimal ada 1 soal valid (kesulitan > 0 dan bobot > 0)
+        $adaSoalValid = collect($validated['soals'])
+            ->contains(fn($soal) => (int) ($soal['kesulitan'] ?? 1) > 0 && (float) ($soal['bobot'] ?? 0) > 0);
+
+        if (!$adaSoalValid || round($totalBobot, 2) <= 0) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'soals' => 'Minimal harus ada 1 soal yang valid (memiliki bobot lebih dari 0).',
                 ]);
         }
 
@@ -553,7 +575,9 @@ class UjianController extends Controller
                     $kunci = [$kunci];
                 }
 
-                $kunci = $this->normalizeKunciPilihan($kunci);
+                if ($data['tipe_soal'] !== 'essay') {
+                    $kunci = $this->normalizeKunciPilihan($kunci);
+                }
 
                 $kunci = array_values(array_filter(
                     $kunci,
@@ -566,7 +590,8 @@ class UjianController extends Controller
                     'pilihan' => $pilihan,
                     'kunci_jawaban' => $kunci,
                     'gambar' => $gambar,
-                    'bobot' => $data['bobot'] ?? 1,
+                    'kesulitan' => isset($data['kesulitan']) ? (int) $data['kesulitan'] : 1,
+                    'bobot' => (float) ($data['bobot'] ?? 0),
                     'urutan' => $data['urutan'] ?? ($index + 1),
                 ];
             }
@@ -620,6 +645,7 @@ class UjianController extends Controller
                         'pilihan' => $dataSoal['pilihan'],
                         'kunci_jawaban' => $dataSoal['kunci_jawaban'],
                         'gambar' => $dataSoal['gambar'],
+                        'kesulitan' => $dataSoal['kesulitan'],
                         'bobot' => $dataSoal['bobot'],
                         'urutan' => $dataSoal['urutan'],
                         'ujian_id' => $ujian->id,
@@ -641,6 +667,8 @@ class UjianController extends Controller
     {
         $this->authorizeGuruUjian($ujian);
 
+        $ujian->sinkronisasiStatus();
+
         $ujian->load([
             'pengampuKelas.guruMapel.mapel',
             'pengampuKelas.kelas',
@@ -648,20 +676,40 @@ class UjianController extends Controller
             'seleksiUjians',
         ]);
 
-        return view('guru.kelola_ujian.show', compact('ujian'));
+        // Ambil seluruh anggota kelas dalam grup ujian yang sama
+        $grupUjians = $ujian->id_grup_ujian
+            ? Ujian::with([
+                'pengampuKelas.guruMapel.mapel',
+                'pengampuKelas.kelas',
+                'seleksiUjians',
+            ])
+                ->where('id_grup_ujian', $ujian->id_grup_ujian)
+                ->get()
+            : collect([$ujian]);
+
+        return view('guru.kelola_ujian.show', compact('ujian', 'grupUjians'));
     }
 
 
     /**
-     * Menampilkan halaman edit.
+     * Menampilkan halaman edit (Mode Penuh untuk draft/scheduled, Mode Edit Bobot untuk unpublished/completed).
      */
     public function edit(Ujian $ujian)
     {
         $this->authorizeGuruUjian($ujian);
 
-        $guruId = auth()->user()->guru_id;
+        $ujian->sinkronisasiStatus();
 
-        // Ambil seluruh ujian yang berada dalam grup yang sama.
+        if (!$ujian->bolehDiedit()) {
+            return redirect()->route('guru.ujian.index')->with(
+                'error',
+                'Ujian sedang berlangsung (Live). Silakan tarik publikasi terlebih dahulu jika ingin menyesuaikan bobot soal.'
+            );
+        }
+
+        $guruId = auth()->user()->guru_id;
+        $modeEditBobot = $ujian->hanyaBisaEditBobot();
+
         $queryGrup = Ujian::with([
             'pengampuKelas.guruMapel.mapel',
             'pengampuKelas.kelas',
@@ -669,8 +717,6 @@ class UjianController extends Controller
             $query->where('guru_id', $guruId);
         });
 
-        // Jika ID grup tersedia, ambil semua anggota grup.
-        // Jika tidak, gunakan ujian yang sedang dibuka saja.
         if ($ujian->id_grup_ujian) {
             $grupUjians = $queryGrup
                 ->where('id_grup_ujian', $ujian->id_grup_ujian)
@@ -681,7 +727,6 @@ class UjianController extends Controller
                 ->get();
         }
 
-        // Ambil seluruh kelas yang diampu guru untuk filter bertingkat
         $pengampuKelases = PengampuKelas::with(['guruMapel.mapel', 'kelas'])
             ->whereHas('guruMapel', function ($query) use ($guruId) {
                 $query->where('guru_id', $guruId);
@@ -721,35 +766,38 @@ class UjianController extends Controller
             ->values()
             ->all();
 
-        $ujian->load('soals');
+        $ujian->load(['soals' => fn($q) => $q->orderBy('urutan')->orderBy('id')]);
 
-        // Siapkan data soal untuk dikirim ke JavaScript.
+        // Pertahankan nilai kesulitan = 0 jika bobot soal adalah 0
         $soalData = $ujian->soals->map(function ($soal) {
+            $bobotSoal = (float) ($soal->bobot ?? 0);
+            $kesulitanSoal = !is_null($soal->kesulitan)
+                ? (int) $soal->kesulitan
+                : ($bobotSoal <= 0 ? 0 : 1);
+
+            if ($bobotSoal <= 0) {
+                $kesulitanSoal = 0;
+            }
+
             return [
                 'id' => $soal->id,
                 'localId' => 'existing-' . $soal->id,
-
                 'pertanyaan' => $soal->pertanyaan,
                 'tipe_soal' => $soal->tipe_soal,
-
                 'pilihan' => is_array($soal->pilihan)
                     ? array_values($soal->pilihan)
                     : [],
-
                 'kunci_jawaban' => is_array($soal->kunci_jawaban)
                     ? array_values($soal->kunci_jawaban)
                     : [],
-
                 'kunci_jawaban_text' => is_array($soal->kunci_jawaban)
                     ? implode("\n", $soal->kunci_jawaban)
                     : ($soal->kunci_jawaban ?? ''),
-
                 'gambar' => $soal->gambar
                     ? asset('storage/' . $soal->gambar)
                     : null,
-
-                'kesulitan' => (int) ($soal->kesulitan ?? 1),
-                'bobot' => (float) ($soal->bobot ?? 1),
+                'kesulitan' => $kesulitanSoal,
+                'bobot' => $bobotSoal,
             ];
         })->values()->all();
 
@@ -761,30 +809,115 @@ class UjianController extends Controller
             'grupUjians',
             'soalData',
             'modeJadwalkan',
-            'dataMapel'
+            'dataMapel',
+            'modeEditBobot'
         ));
     }
 
-
     /**
-     * Update ujian beserta soal.
-     */
-
-    /**
-     * Update ujian beserta butir soal dan sinkronisasi kelas target.
+     * Update ujian beserta butir soal:
+     * - Jika status `unpublished` atau `completed`: HANYA memperbarui kesulitan & bobot soal TANPA menghapus
+     *   baris soal (agar riwayat jawaban siswa Sesi 1 aman), mempertahankan status ujian, dan menghitung ulang nilai siswa.
+     * - Jika status `draft` atau `scheduled`: Memperbarui seluruh data ujian & soal.
      */
     public function update(Request $request, Ujian $ujian)
     {
         $this->authorizeGuruUjian($ujian);
 
-        // Jangan mengedit ujian yang sudah dipublikasi atau selesai tanpa ditarik terlebih dahulu
+        $ujian->sinkronisasiStatus();
+
         if (!$ujian->bolehDiedit()) {
-            return back()->with(
+            return redirect()->route('guru.ujian.index')->with(
                 'error',
-                'Ujian harus ditarik dari publikasi terlebih dahulu sebelum diedit.'
+                'Ujian sedang berlangsung (Live). Silakan tarik publikasi terlebih dahulu sebelum menyimpan perubahan.'
             );
         }
 
+        $grup = $ujian->id_grup_ujian
+            ? Ujian::where('id_grup_ujian', $ujian->id_grup_ujian)->get()
+            : collect([$ujian]);
+
+        if ($grup->isEmpty()) {
+            $grup = collect([$ujian]);
+        }
+
+        // =====================================================================
+        // CABANG 1: MODE EDIT KHUSUS BOBOT (STATUS UNPUBLISHED / COMPLETED)
+        // =====================================================================
+        if ($ujian->hanyaBisaEditBobot()) {
+            $validatedBobot = $request->validate([
+                'soals' => ['required', 'array', 'min:1'],
+                'soals.*.kesulitan' => ['required', 'in:0,1,2,3'],
+                'soals.*.bobot' => ['required', 'numeric', 'min:0', 'max:100'],
+                'soals.*.urutan' => ['nullable', 'integer', 'min:1'],
+            ]);
+
+            $adaSoalValid = collect($validatedBobot['soals'])
+                ->contains(fn($s) => (int) ($s['kesulitan'] ?? 0) > 0 && (float) ($s['bobot'] ?? 0) > 0);
+
+            if (!$adaSoalValid) {
+                return back()->withInput()->withErrors([
+                    'soals' => 'Minimal harus ada 1 soal yang valid (memiliki bobot lebih dari 0).',
+                ]);
+            }
+
+            $totalBobot = collect($validatedBobot['soals'])->sum(fn($s) => (float) ($s['bobot'] ?? 0));
+            if (round($totalBobot, 2) > 100.01 || round($totalBobot, 2) < 99.9) {
+                return back()->withInput()->withErrors([
+                    'soals' => "Total bobot soal harus genap 100 poin (saat ini: {$totalBobot}).",
+                ]);
+            }
+
+            DB::transaction(function () use ($validatedBobot, $grup) {
+                foreach ($grup as $anggota) {
+                    // Tambahkan ->get() sebelum ->values() agar menjadi Collection
+                    $soalsKelas = $anggota->soals()
+                        ->orderBy('urutan')
+                        ->orderBy('id')
+                        ->get()
+                        ->values();
+
+                    foreach (array_values($validatedBobot['soals']) as $idx => $inputSoal) {
+                        $urutanTarget = (int) ($inputSoal['urutan'] ?? ($idx + 1));
+
+                        $soalTarget = $soalsKelas->firstWhere('urutan', $urutanTarget)
+                            ?? $soalsKelas->get($idx);
+
+                        if ($soalTarget) {
+                            $kesulitanBaru = (int) $inputSoal['kesulitan'];
+                            $bobotBaru = $kesulitanBaru === 0 ? 0 : (float) $inputSoal['bobot'];
+
+                            $soalTarget->update([
+                                'kesulitan' => $kesulitanBaru,
+                                'bobot'     => $bobotBaru,
+                            ]);
+                        }
+                    }
+
+                    // Rekalkulasi otomatis seluruh siswa yang sudah menyelesaikan ujian di kelas ini
+                    $sesiSelesaiList = SeleksiUjian::where('ujian_id', $anggota->id)
+                        ->where(function ($q) {
+                            $q->where('status', 'selesai')->orWhereNotNull('waktu_selesai');
+                        })
+                        ->get();
+
+                    foreach ($sesiSelesaiList as $sesiSiswa) {
+                        $this->rekalkulasiNilaiSiswa($anggota->id, $sesiSiswa->siswa_id);
+                    }
+                }
+            });
+
+            return redirect()
+                ->route('guru.ujian.index')
+                ->with(
+                    'success',
+                    'Bobot soal berhasil diperbarui dan nilai siswa sesi sebelumnya telah dihitung ulang otomatis tanpa menghapus riwayat pengerjaan.'
+                );
+        }
+
+        // =====================================================================
+        // CABANG 2: MODE EDIT PENUH (STATUS DRAFT / SCHEDULED)
+        // =====================================================================
         $modeJadwalkan = $request->query('aksi') === 'jadwalkan';
 
         $validated = $request->validate([
@@ -813,20 +946,28 @@ class UjianController extends Controller
                 'before_or_equal:' . now()->addYear()->toDateString(),
             ],
 
-            'soals' => ['required', 'array', 'min:1', 'max:100'],
+            'soals' => ['required', 'array', 'min:2', 'max:100'],
             'soals.*.id' => ['nullable', 'integer'],
             'soals.*.pertanyaan' => ['required', 'string', 'max:500'],
             'soals.*.tipe_soal' => ['required', 'in:single_choice,multiple_choice,essay,matching'],
             'soals.*.pilihan' => ['nullable', 'array', 'max:6'],
             'soals.*.kunci_jawaban' => ['nullable'],
             'soals.*.kunci_jawaban_text' => ['nullable', 'string'],
-            'soals.*.kesulitan' => ['nullable', 'in:1,2,3'],
+            'soals.*.kesulitan' => ['nullable', 'in:0,1,2,3'],
             'soals.*.bobot' => ['required', 'numeric', 'min:0', 'max:100'],
             'soals.*.urutan' => ['nullable', 'integer', 'min:1'],
             'soals.*.gambar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:2048'],
         ]);
 
-        // Validasi total akumulasi bobot soal
+        $adaSoalValid = collect($validated['soals'])
+            ->contains(fn($s) => (int) ($s['kesulitan'] ?? 1) > 0 && (float) ($s['bobot'] ?? 0) > 0);
+
+        if (!$adaSoalValid) {
+            return back()->withInput()->withErrors([
+                'soals' => 'Minimal harus ada 1 soal yang valid (bukan Tidak Valid).',
+            ]);
+        }
+
         $totalBobot = collect($validated['soals'])->sum(fn($s) => (float) ($s['bobot'] ?? 0));
         if (round($totalBobot, 2) > 100.01) {
             return back()->withInput()->withErrors([
@@ -834,7 +975,6 @@ class UjianController extends Controller
             ]);
         }
 
-        // Validasi rentang jam pelaksanaan
         foreach (['waktu_mulai', 'deadline'] as $field) {
             if ($request->filled($field)) {
                 $jam = Carbon::parse($request->input($field));
@@ -846,7 +986,6 @@ class UjianController extends Controller
             }
         }
 
-        // Tentukan status ujian berdasarkan jadwal
         $status = 'draft';
         if (!empty($validated['waktu_mulai']) && !empty($validated['deadline'])) {
             $mulai = Carbon::parse($validated['waktu_mulai']);
@@ -861,23 +1000,12 @@ class UjianController extends Controller
             }
         }
 
-        // 1. Inisialisasi variabel $kelasIds & $grup sebelum transaksi database
         $kelasIds = is_array($request->pengampu_kelas_id)
             ? array_map('intval', $request->pengampu_kelas_id)
             : [(int) $request->pengampu_kelas_id];
 
-        $grup = Ujian::where('id_grup_ujian', $ujian->id_grup_ujian)
-            ->whereNotNull('id_grup_ujian')
-            ->get();
-
-        if ($grup->isEmpty()) {
-            $grup = collect([$ujian]);
-        }
-
         DB::transaction(function () use ($request, $validated, $grup, $kelasIds, $status, $ujian) {
-            // 2. Inisialisasi variabel $grupUjianId di dalam closure
             $grupUjianId = $ujian->id_grup_ujian ?: (string) Str::uuid();
-
             $soalSumber = $ujian->soals()->get()->keyBy('urutan');
             $dataSoals = [];
 
@@ -885,6 +1013,10 @@ class UjianController extends Controller
                 $urutan = (int) ($data['urutan'] ?? ($index + 1));
                 $soalLama = $soalSumber->get($urutan);
                 $gambar = $soalLama?->gambar;
+
+                if (($data['hapus_gambar'] ?? '0') === '1') {
+                    $gambar = null;
+                }
 
                 if ($request->hasFile("soals.$index.gambar")) {
                     $gambar = $request->file("soals.$index.gambar")->store('soal-images', 'public');
@@ -905,9 +1037,12 @@ class UjianController extends Controller
                 }
 
                 if ($data['tipe_soal'] === 'essay') {
-                    $jawabanEssay = trim((string) ($data['kunci_jawaban_text'] ?? ''));
+                    $jawabanEssay = trim((string) ($data['kunci_jawaban_text'] ?? ($data['kunci_jawaban'][0] ?? $data['kunci_jawaban'] ?? '')));
                     $kunciJawaban = $jawabanEssay !== '' ? [$jawabanEssay] : [];
                 }
+
+                $kesulitan = isset($data['kesulitan']) ? (int) $data['kesulitan'] : 1;
+                $bobot = $kesulitan === 0 ? 0 : (float) ($data['bobot'] ?? 0);
 
                 $dataSoals[] = [
                     'pertanyaan' => $data['pertanyaan'],
@@ -915,15 +1050,14 @@ class UjianController extends Controller
                     'pilihan' => $pilihan,
                     'kunci_jawaban' => $kunciJawaban,
                     'gambar' => $gambar,
-                    'kesulitan' => (int) ($data['kesulitan'] ?? 1),
-                    'bobot' => (float) ($data['bobot'] ?? 1),
+                    'kesulitan' => $kesulitan,
+                    'bobot' => $bobot,
                     'urutan' => $urutan,
                     'quiz_id' => null,
                     'tugas_id' => null,
                 ];
             }
 
-            // 3. Sinkronisasi kelas target berdasarkan checklist
             $existingKelasIds = $grup->pluck('pengampu_kelas_id')->toArray();
 
             foreach ($grup as $anggota) {
@@ -944,10 +1078,23 @@ class UjianController extends Controller
                             : ($status === 'completed' ? $anggota->dipublikasi_at : null),
                     ]);
 
-                    $anggota->soals()->delete();
-                    foreach ($dataSoals as $soalItem) {
-                        $anggota->soals()->create($soalItem);
+                    // Update in-place berdasarkan urutan agar ID soal tetap stabil
+                    $existingSoals = $anggota->soals()->orderBy('urutan')->orderBy('id')->get()->values();
+                    $usedSoalIds = [];
+
+                    foreach ($dataSoals as $idx => $soalItem) {
+                        $existing = $existingSoals->get($idx);
+                        if ($existing) {
+                            $existing->update($soalItem);
+                            $usedSoalIds[] = $existing->id;
+                        } else {
+                            $created = $anggota->soals()->create($soalItem);
+                            $usedSoalIds[] = $created->id;
+                        }
                     }
+
+                    // Hapus soal berlebih jika jumlah soal dikurangi saat masih draft/scheduled
+                    $anggota->soals()->whereNotIn('id', $usedSoalIds)->delete();
                 } else {
                     $anggota->soals()->delete();
                     $anggota->delete();
@@ -1161,7 +1308,33 @@ class UjianController extends Controller
         });
     }
 
+    /**
+     * Memindahkan ujian selesai ke dalam Folder Arsip atau mengeluarkannya kembali (ala WhatsApp).
+     */
+    public function toggleArchive(Ujian $ujian)
+    {
+        $this->authorizeGuruUjian($ujian);
 
+        $grupUjians = $ujian->id_grup_ujian
+            ? Ujian::where('id_grup_ujian', $ujian->id_grup_ujian)->get()
+            : collect([$ujian]);
+
+        $statusArsipBaru = !$ujian->is_archived;
+
+        DB::transaction(function () use ($grupUjians, $statusArsipBaru) {
+            foreach ($grupUjians as $anggota) {
+                $anggota->update([
+                    'is_archived' => $statusArsipBaru,
+                ]);
+            }
+        });
+
+        $pesan = $statusArsipBaru
+            ? 'Ujian berhasil dipindahkan ke folder Diarsipkan.'
+            : 'Ujian berhasil dikeluarkan dari folder Diarsipkan.';
+
+        return back()->with('success', $pesan);
+    }
 
     /**
      * Menjadwalkan ujian.
@@ -1585,7 +1758,7 @@ class UjianController extends Controller
 
         if ($sisaDetik <= 0) {
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => 'Waktu sesi untuk kelas siswa ini sudah habis. Silakan atur ulang jam sesi terlebih dahulu jika ingin memberi waktu tambahan.',
             ], 422);
         }
@@ -1597,16 +1770,16 @@ class UjianController extends Controller
             // 2. Kembalikan status seleksi_ujians ke sedang_mengerjakan
             // CATATAN: Data di tabel `menjawabs` TIDAK dihapus sehingga seluruh progres jawaban tetap utuh.
             $seleksi->update([
-                'status'            => 'sedang_mengerjakan',
-                'waktu_selesai'     => null,
-                'nilai_awal'        => 0,
-                'nilai_akhir'       => 0,
+                'status' => 'sedang_mengerjakan',
+                'waktu_selesai' => null,
+                'nilai_awal' => 0,
+                'nilai_akhir' => 0,
                 'pelanggaran_count' => 0,
             ]);
         });
 
         return response()->json([
-            'status'  => 'success',
+            'status' => 'success',
             'message' => 'Ujian siswa berhasil dibuka kembali. Seluruh jawaban sebelumnya tetap tersimpan.',
         ]);
     }
@@ -1627,9 +1800,9 @@ class UjianController extends Controller
         }
 
         return response()->json([
-            'status'      => 'success',
+            'status' => 'success',
             'unlock_code' => $kodeBaru,
-            'message'     => "Kode buka blokir berhasil diperbarui menjadi {$kodeBaru}.",
+            'message' => "Kode buka blokir berhasil diperbarui menjadi {$kodeBaru}.",
         ]);
     }
 
@@ -1770,8 +1943,10 @@ class UjianController extends Controller
                 : $grupUjians->first();
 
             $soals = $ujianSiswa ? $ujianSiswa->soals : collect();
-            $soalPG = $soals->whereIn('tipe_soal', ['single_choice', 'multiple_choice']);
-            $soalEssay = $soals->where('tipe_soal', 'essay');
+            // Hanya hitung soal yang valid (bobot > 0)
+            $soalValid = $soals->filter(fn($s) => (float) ($s->bobot ?? 0) > 0);
+            $soalPG = $soalValid->whereIn('tipe_soal', ['single_choice', 'multiple_choice']);
+            $soalEssay = $soalValid->where('tipe_soal', 'essay');
 
             $jawabanSiswa = ($jawabanAll->get($siswa->id) ?? collect())->keyBy('soal_id');
 
@@ -1814,7 +1989,8 @@ class UjianController extends Controller
             // Tentukan Nilai Akhir & Status KKM
             $totalBobot = ($bobotMaksPG + $bobotMaksEssay) ?: 100;
             $nilaiKalkulasi = round((($skorPG + $skorEssay) / $totalBobot) * 100, 2);
-            if ($nilaiKalkulasi > 100) $nilaiKalkulasi = 100;
+            if ($nilaiKalkulasi > 100)
+                $nilaiKalkulasi = 100;
 
             // Jika sudah ada nilai remidi tersimpan di seleksi_ujians, gunakan nilai_akhir tersebut
             $nilaiAkhir = ($sesi && $sesi->jumlah_remidi > 0)
@@ -1841,42 +2017,441 @@ class UjianController extends Controller
                 ?? '-';
 
             return [
-                'siswa_id'               => $siswa->id,
-                'ujian_id'               => $ujianSiswa?->id ?? $ujian->id,
-                'seleksi_id'             => $sesi?->id,
-                'nama'                   => $siswa->user->name ?? $siswa->nama_lengkap ?? $siswa->nama ?? ('Siswa #' . $siswa->id),
-                'nisn'                   => $siswa->nisn ?? '-',
-                'kelas'                  => $namaKelasSiswa, // [UBAHAN 3] Pakai variabel $namaKelasSiswa
-                'sudah_selesai'          => $sudahSelesai,
-                'pg_benar'               => $pgBenar,
-                'pg_salah'               => $pgSalah,
-                'total_pg'               => $soalPG->count(),
-                'nilai_pg'               => round($skorPG, 2),
-                'bobot_pg'               => round($bobotMaksPG, 2),
-                'total_essay'            => $totalSoalEssay,
-                'essay_dinilai'          => $essaySudahDinilai,
-                'nilai_essay'            => round($skorEssay, 2),
-                'bobot_essay'            => round($bobotMaksEssay, 2),
+                'siswa_id' => $siswa->id,
+                'ujian_id' => $ujianSiswa?->id ?? $ujian->id,
+                'seleksi_id' => $sesi?->id,
+                'nama' => $siswa->user->name ?? $siswa->nama_lengkap ?? $siswa->nama ?? ('Siswa #' . $siswa->id),
+                'nisn' => $siswa->nisn ?? '-',
+                'kelas' => $namaKelasSiswa, // [UBAHAN 3] Pakai variabel $namaKelasSiswa
+                'sudah_selesai' => $sudahSelesai,
+                'pg_benar' => $pgBenar,
+                'pg_salah' => $pgSalah,
+                'total_pg' => $soalPG->count(),
+                'nilai_pg' => round($skorPG, 2),
+                'bobot_pg' => round($bobotMaksPG, 2),
+                'total_essay' => $totalSoalEssay,
+                'essay_dinilai' => $essaySudahDinilai,
+                'nilai_essay' => round($skorEssay, 2),
+                'bobot_essay' => round($bobotMaksEssay, 2),
                 'menunggu_koreksi_essay' => $menungguKoreksiEssay,
-                'nilai_awal'             => $sesi ? (float) $sesi->nilai_awal : 0,
-                'nilai_akhir'            => $nilaiAkhir,
-                'jumlah_remidi'          => $sesi ? (int) $sesi->jumlah_remidi : 0,
-                'status_kategori'        => $statusKategori,
-                'status_label'           => $statusLabel,
+                'nilai_awal' => $sesi ? (float) $sesi->nilai_awal : 0,
+                'nilai_akhir' => $nilaiAkhir,
+                'jumlah_remidi' => $sesi ? (int) $sesi->jumlah_remidi : 0,
+                'status_kategori' => $statusKategori,
+                'status_label' => $statusLabel,
             ];
         })->sortBy('nama')->values();
 
         // Statistik Ringkas untuk Header Filter
         $ringkasan = [
-            'total'          => $rekapSiswa->count(),
+            'total' => $rekapSiswa->count(),
             'menunggu_essay' => $rekapSiswa->where('status_kategori', 'menunggu_essay')->count(),
-            'remidi'         => $rekapSiswa->where('status_kategori', 'remidi')->count(),
-            'tuntas'         => $rekapSiswa->where('status_kategori', 'tuntas')->count(),
-            'belum_ujian'    => $rekapSiswa->where('status_kategori', 'belum_ujian')->count(),
+            'remidi' => $rekapSiswa->where('status_kategori', 'remidi')->count(),
+            'tuntas' => $rekapSiswa->where('status_kategori', 'tuntas')->count(),
+            'belum_ujian' => $rekapSiswa->where('status_kategori', 'belum_ujian')->count(),
             'ada_soal_essay' => $ujian->soals->where('tipe_soal', 'essay')->count() > 0,
         ];
 
         return view('guru.kelola_ujian.rekap', compact('ujian', 'rekapSiswa', 'ringkasan', 'kkm'));
+    }
+
+    /**
+     * Halaman Menu Laporan & Rekap Nilai (Preview Leger Semester & Detail Satu Ujian).
+     */
+    public function laporan(Request $request)
+    {
+        $data = $this->bangunDataLaporan($request);
+
+        return view('guru.kelola_ujian.laporan', $data);
+    }
+
+    /**
+     * Generate & Download File PDF untuk Leger Mapel (Multi-Ujian) atau Berita Acara (Satu Ujian).
+     */
+    public function exportLaporanPdf(Request $request)
+    {
+        $data = $this->bangunDataLaporan($request);
+
+        if (!$data['selectedPengampu']) {
+            return redirect()->route('guru.ujian.laporan')
+                ->with('error', 'Silakan pilih Mata Pelajaran dan Kelas terlebih dahulu sebelum mencetak PDF.');
+        }
+
+        // Tentukan orientasi kertas otomatis:
+        // - Mode Leger: Landscape jika jumlah ujian > 4 (atau default landscape agar leluasa)
+        // - Mode Detail Satu Ujian: Portrait
+        $orientasi = 'portrait';
+        if ($data['mode'] === 'leger' && $data['ujianRegulers']->count() > 4) {
+            $orientasi = 'landscape';
+        } elseif ($data['mode'] === 'leger') {
+            $orientasi = 'landscape';
+        }
+
+        $namaKelas = Str::slug($data['selectedPengampu']->kelas->nama_kelas ?? 'kelas');
+        $namaMapel = Str::slug($data['selectedPengampu']->guruMapel->mapel->nama_mapel ?? 'mapel');
+        $thn = str_replace(['/', '\\'], '-', $data['selectedTahunAjaran']);
+
+        $namaFile = $data['mode'] === 'leger'
+            ? "Leger-Nilai-{$namaMapel}-{$namaKelas}-{$thn}-" . ucfirst($data['selectedSemester']) . ".pdf"
+            : "Berita-Acara-Ujian-{$namaMapel}-{$namaKelas}-{$thn}.pdf";
+
+        if (class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('guru.kelola_ujian.laporan_pdf', $data)
+                ->setPaper('a4', $orientasi);
+
+            return $pdf->download($namaFile);
+        }
+
+        // Fallback jika paket dompdf belum terinstal: buka tampilan siap cetak browser
+        return view('guru.kelola_ujian.laporan_pdf', array_merge($data, ['autoPrint' => true]));
+    }
+
+    /**
+     * Helper Internal: Menyusun data Leger Multi-Ujian & Detail Satu Ujian
+     * dengan filter anggota_kelases dan pemetaan rentang bulan semester otomatis.
+     */
+    private function bangunDataLaporan(Request $request): array
+    {
+        $guruId = auth()->user()->guru_id;
+
+        // 1. Ambil seluruh kelas & mapel yang diampu oleh guru
+        $pengampuList = PengampuKelas::with(['guruMapel.mapel', 'guruMapel.guru.user', 'kelas'])
+            ->whereHas('guruMapel', function ($q) use ($guruId) {
+                $q->where('guru_id', $guruId);
+            })
+            ->get()
+            ->filter(fn($item) => $item->guruMapel?->mapel && $item->kelas)
+            ->values();
+
+        $kelasIdsGuru = $pengampuList->pluck('kelas_id')->unique();
+
+        // 2. Ambil daftar Tahun Ajaran unik dari tabel anggota_kelases
+        $daftarTahunAjaran = DB::table('anggota_kelases')
+            ->whereIn('kelas_id', $kelasIdsGuru)
+            ->whereNotNull('tahun_ajaran')
+            ->distinct()
+            ->orderByDesc('tahun_ajaran')
+            ->pluck('tahun_ajaran')
+            ->values();
+
+        if ($daftarTahunAjaran->isEmpty()) {
+            $bulanSekarang = (int) now()->format('n');
+            $thnSekarang = (int) now()->format('Y');
+            $defaultTa = $bulanSekarang >= 7
+                ? "{$thnSekarang}/" . ($thnSekarang + 1)
+                : ($thnSekarang - 1) . "/{$thnSekarang}";
+            $daftarTahunAjaran = collect([$defaultTa]);
+        }
+
+        // 3. Tentukan parameter filter yang sedang aktif
+        $selectedTahunAjaran = $request->input('tahun_ajaran', $daftarTahunAjaran->first());
+        $selectedSemester = strtolower($request->input('semester', (int) now()->format('n') >= 7 ? 'ganjil' : 'genap'));
+        if (!in_array($selectedSemester, ['ganjil', 'genap'])) {
+            $selectedSemester = 'ganjil';
+        }
+
+        $selectedPengampuId = $request->input('pengampu_kelas_id', $pengampuList->first()?->id);
+        $selectedPengampu = $pengampuList->firstWhere('id', (int) $selectedPengampuId) ?? $pengampuList->first();
+
+        $mode = $request->input('mode', 'leger'); // 'leger' atau 'detail'
+        if (!in_array($mode, ['leger', 'detail'])) {
+            $mode = 'leger';
+        }
+
+        // 4. Mapping Otomatis Rentang Bulan Berdasarkan Tahun Ajaran & Semester
+        // Format tahun_ajaran: "2026/2027" -> Ganjil: Jul-Des 2026 | Genap: Jan-Jun 2027
+        $partsTa = preg_split('/[\/\-]/', (string) $selectedTahunAjaran);
+        $tahunAwal = isset($partsTa[0]) && is_numeric($partsTa[0]) ? (int) $partsTa[0] : (int) now()->format('Y');
+        $tahunAkhir = isset($partsTa[1]) && is_numeric($partsTa[1]) ? (int) $partsTa[1] : ($tahunAwal + 1);
+
+        if ($selectedSemester === 'ganjil') {
+            $rentangMulai = Carbon::create($tahunAwal, 7, 1, 0, 0, 0);
+            $rentangSelesai = Carbon::create($tahunAwal, 12, 31, 23, 59, 59);
+        } else {
+            $rentangMulai = Carbon::create($tahunAkhir, 1, 1, 0, 0, 0);
+            $rentangSelesai = Carbon::create($tahunAkhir, 6, 30, 23, 59, 59);
+        }
+
+        $ujianRegulers = collect();
+        $selectedUjian = null;
+        $barisLeger = collect();
+        $barisDetail = collect();
+        $qualityGate = [
+            'menunggu_essay' => 0,
+            'belum_ujian' => 0,
+        ];
+
+        if ($selectedPengampu) {
+            // 5. Ambil seluruh Ujian Reguler pada PengampuKelas & rentang semester tersebut
+            $ujianRegulers = Ujian::with('soals')
+                ->where('pengampu_kelas_id', $selectedPengampu->id)
+                ->where(function ($q) {
+                    $q->where('jenis_ujian', 'reguler')->orWhereNull('jenis_ujian');
+                })
+                ->whereIn('status', ['published', 'completed', 'unpublished'])
+                ->where(function ($q) use ($rentangMulai, $rentangSelesai) {
+                    $q->whereBetween('waktu_mulai', [$rentangMulai, $rentangSelesai])
+                        ->orWhere(function ($sub) use ($rentangMulai, $rentangSelesai) {
+                            $sub->whereNull('waktu_mulai')
+                                ->whereBetween('created_at', [$rentangMulai, $rentangSelesai]);
+                        });
+                })
+                ->orderBy('waktu_mulai', 'asc')
+                ->orderBy('id', 'asc')
+                ->get();
+
+            $selectedUjianId = $request->input('ujian_id', $ujianRegulers->first()?->id);
+            $selectedUjian = $ujianRegulers->firstWhere('id', (int) $selectedUjianId) ?? $ujianRegulers->first();
+
+            // 6. Ambil daftar siswa murni dari anggota_kelases sesuai Kelas, Tahun Ajaran, dan Semester
+            $daftarSiswa = Siswa::with(['user'])
+                ->whereHas('anggotaKelases', function ($q) use ($selectedPengampu, $selectedTahunAjaran, $selectedSemester) {
+                    $q->where('kelas_id', $selectedPengampu->kelas_id)
+                        ->where('tahun_ajaran', $selectedTahunAjaran)
+                        ->whereRaw('LOWER(semester) = ?', [$selectedSemester]);
+                })
+                ->get()
+                ->unique('id')
+                ->sortBy(fn($s) => strtolower($s->user->name ?? $s->nama_lengkap ?? $s->nama ?? ''))
+                ->values();
+
+            // Fallback: jika di anggota_kelases belum ada yang cocok dengan semester tsb, tarik berdasarkan kelas_id saja
+            if ($daftarSiswa->isEmpty()) {
+                $daftarSiswa = Siswa::with(['user'])
+                    ->whereHas('anggotaKelases', function ($q) use ($selectedPengampu) {
+                        $q->where('kelas_id', $selectedPengampu->kelas_id);
+                    })
+                    ->get()
+                    ->unique('id')
+                    ->sortBy(fn($s) => strtolower($s->user->name ?? $s->nama_lengkap ?? $s->nama ?? ''))
+                    ->values();
+            }
+
+            $regulerIds = $ujianRegulers->pluck('id');
+
+            // Ambil sesi pengerjaan ujian reguler
+            $sesiRegulerAll = SeleksiUjian::whereIn('ujian_id', $regulerIds)->get();
+
+            // Ambil ujian anak (remidi / susulan) untuk menandai kode (R) dan (S)
+            $ujianAnakList = Ujian::whereIn('parent_ujian_id', $regulerIds)
+                ->whereIn('jenis_ujian', ['remidi', 'susulan'])
+                ->get();
+
+            $sesiAnakSelesai = SeleksiUjian::whereIn('ujian_id', $ujianAnakList->pluck('id'))
+                ->where(function ($q) {
+                    $q->where('status', 'selesai')->orWhereNotNull('waktu_selesai');
+                })
+                ->get();
+
+            // Ambil seluruh jawaban siswa untuk pengecekan koreksi essay & kalkulasi detail
+            $semuaSoalIds = Soal::whereIn('ujian_id', $regulerIds)->pluck('id');
+            $jawabanAll = Menjawab::whereIn('soal_id', $semuaSoalIds)->get()->groupBy('siswa_id');
+
+            // =========================================================
+            // A. SUSUN DATA MODE LEGER SEMESTER (MULTI-UJIAN)
+            // =========================================================
+            $barisLeger = $daftarSiswa->map(function ($siswa) use ($ujianRegulers, $sesiRegulerAll, $ujianAnakList, $sesiAnakSelesai, $jawabanAll, &$qualityGate) {
+                $jawabanSiswa = ($jawabanAll->get($siswa->id) ?? collect())->keyBy('soal_id');
+                $nilaiPerUjian = [];
+                $kumpulanNilaiValid = [];
+
+                foreach ($ujianRegulers as $ujianItem) {
+                    $sesi = $sesiRegulerAll
+                        ->where('ujian_id', $ujianItem->id)
+                        ->where('siswa_id', $siswa->id)
+                        ->first();
+
+                    $sudahSelesai = $sesi && ($sesi->status === 'selesai' || !is_null($sesi->waktu_selesai));
+
+                    // Cek apakah ada soal essay yang belum dikoreksi
+                    $soalEssays = $ujianItem->soals->where('tipe_soal', 'essay');
+                    $essayBelumDinilai = false;
+                    if ($sudahSelesai && $soalEssays->isNotEmpty()) {
+                        foreach ($soalEssays as $se) {
+                            $j = $jawabanSiswa->get($se->id);
+                            if (!$j || is_null($j->skor_essay)) {
+                                $essayBelumDinilai = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Deteksi apakah nilai berasal dari Remidi (R) atau Susulan (S)
+                    $anakIdsRemidi = $ujianAnakList
+                        ->where('parent_ujian_id', $ujianItem->id)
+                        ->where('jenis_ujian', 'remidi')
+                        ->pluck('id');
+
+                    $anakIdsSusulan = $ujianAnakList
+                        ->where('parent_ujian_id', $ujianItem->id)
+                        ->where('jenis_ujian', 'susulan')
+                        ->pluck('id');
+
+                    $ikutRemidi = ($sesi && (int) $sesi->jumlah_remidi > 0)
+                        || $sesiAnakSelesai->whereIn('ujian_id', $anakIdsRemidi)->where('siswa_id', $siswa->id)->isNotEmpty();
+
+                    $ikutSusulan = $sesiAnakSelesai->whereIn('ujian_id', $anakIdsSusulan)->where('siswa_id', $siswa->id)->isNotEmpty();
+
+                    $kodeAsal = null;
+                    if ($ikutRemidi) {
+                        $kodeAsal = 'R';
+                    } elseif ($ikutSusulan) {
+                        $kodeAsal = 'S';
+                    }
+
+                    if (!$sudahSelesai) {
+                        $qualityGate['belum_ujian']++;
+                        $nilaiPerUjian[$ujianItem->id] = [
+                            'status' => 'belum_ujian',
+                            'nilai' => null,
+                            'nilai_awal' => null,
+                            'kode' => null,
+                            'tuntas' => false,
+                        ];
+                    } elseif ($essayBelumDinilai) {
+                        $qualityGate['menunggu_essay']++;
+                        $nilaiPerUjian[$ujianItem->id] = [
+                            'status' => 'menunggu_essay',
+                            'nilai' => null,
+                            'nilai_awal' => (float) $sesi->nilai_awal,
+                            'kode' => $kodeAsal,
+                            'tuntas' => false,
+                        ];
+                    } else {
+                        $skorFinal = round((float) $sesi->nilai_akhir, 2);
+                        $kkmUjian = (float) ($ujianItem->kkm ?? 75);
+                        $kumpulanNilaiValid[] = $skorFinal;
+
+                        $nilaiPerUjian[$ujianItem->id] = [
+                            'status' => 'selesai',
+                            'nilai' => $skorFinal,
+                            'nilai_awal' => round((float) $sesi->nilai_awal, 2),
+                            'kode' => $kodeAsal,
+                            'tuntas' => $skorFinal >= $kkmUjian,
+                        ];
+                    }
+                }
+
+                $rataRata = count($kumpulanNilaiValid) > 0
+                    ? round(array_sum($kumpulanNilaiValid) / count($kumpulanNilaiValid), 2)
+                    : null;
+
+                return [
+                    'siswa_id' => $siswa->id,
+                    'nama' => $siswa->user->name ?? $siswa->nama_lengkap ?? $siswa->nama ?? ('Siswa #' . $siswa->id),
+                    'nisn' => $siswa->nisn ?? '-',
+                    'nilai_per_ujian' => $nilaiPerUjian,
+                    'rata_rata' => $rataRata,
+                ];
+            });
+
+            // =========================================================
+            // B. SUSUN DATA MODE DETAIL SATU UJIAN (BERITA ACARA)
+            // =========================================================
+            if ($selectedUjian) {
+                $kkmDetail = (float) ($selectedUjian->kkm ?? 75);
+                $soalsDetail = $selectedUjian->soals;
+                $soalPG = $soalsDetail->whereIn('tipe_soal', ['single_choice', 'multiple_choice']);
+                $soalEssay = $soalsDetail->where('tipe_soal', 'essay');
+
+                $anakRemidiIds = $ujianAnakList->where('parent_ujian_id', $selectedUjian->id)->where('jenis_ujian', 'remidi')->pluck('id');
+                $anakSusulanIds = $ujianAnakList->where('parent_ujian_id', $selectedUjian->id)->where('jenis_ujian', 'susulan')->pluck('id');
+
+                $barisDetail = $daftarSiswa->map(function ($siswa) use ($selectedUjian, $sesiRegulerAll, $sesiAnakSelesai, $anakRemidiIds, $anakSusulanIds, $soalPG, $soalEssay, $jawabanAll, $kkmDetail) {
+                    $sesi = $sesiRegulerAll
+                        ->where('ujian_id', $selectedUjian->id)
+                        ->where('siswa_id', $siswa->id)
+                        ->first();
+
+                    $jawabanSiswa = ($jawabanAll->get($siswa->id) ?? collect())->keyBy('soal_id');
+                    $sudahSelesai = $sesi && ($sesi->status === 'selesai' || !is_null($sesi->waktu_selesai));
+
+                    $pgBenar = 0;
+                    $pgSalah = 0;
+                    $skorPG = 0;
+                    foreach ($soalPG as $s) {
+                        $hasil = $this->hitungSkorSatuSoal($s, $jawabanSiswa->get($s->id));
+                        $skorPG += $hasil['skor'];
+                        if ($hasil['is_benar']) {
+                            $pgBenar++;
+                        } else {
+                            $pgSalah++;
+                        }
+                    }
+
+                    $essayDinilai = 0;
+                    $skorEssay = 0;
+                    foreach ($soalEssay as $se) {
+                        $j = $jawabanSiswa->get($se->id);
+                        if ($j && !is_null($j->skor_essay)) {
+                            $essayDinilai++;
+                            $skorEssay += (float) $j->skor_essay;
+                        }
+                    }
+
+                    $menungguEssay = $sudahSelesai && ($soalEssay->count() > 0) && ($essayDinilai < $soalEssay->count());
+
+                    $ikutRemidi = ($sesi && (int) $sesi->jumlah_remidi > 0)
+                        || $sesiAnakSelesai->whereIn('ujian_id', $anakRemidiIds)->where('siswa_id', $siswa->id)->isNotEmpty();
+
+                    $ikutSusulan = $sesiAnakSelesai->whereIn('ujian_id', $anakSusulanIds)->where('siswa_id', $siswa->id)->isNotEmpty();
+
+                    $kodeAsal = $ikutRemidi ? 'R' : ($ikutSusulan ? 'S' : null);
+
+                    $nilaiAwal = $sesi ? round((float) $sesi->nilai_awal, 2) : null;
+                    $nilaiAkhir = $sesi ? round((float) $sesi->nilai_akhir, 2) : null;
+
+                    if (!$sudahSelesai) {
+                        $statusKategori = 'belum_ujian';
+                        $statusLabel = 'Belum Ujian';
+                    } elseif ($menungguEssay) {
+                        $statusKategori = 'menunggu_essay';
+                        $statusLabel = 'Menunggu Koreksi Essay';
+                    } elseif ($nilaiAkhir >= $kkmDetail) {
+                        $statusKategori = 'tuntas';
+                        $statusLabel = 'Tuntas';
+                    } else {
+                        $statusKategori = 'remidi';
+                        $statusLabel = 'Belum Tuntas';
+                    }
+
+                    return [
+                        'siswa_id' => $siswa->id,
+                        'nama' => $siswa->user->name ?? $siswa->nama_lengkap ?? $siswa->nama ?? ('Siswa #' . $siswa->id),
+                        'nisn' => $siswa->nisn ?? '-',
+                        'sudah_selesai' => $sudahSelesai,
+                        'pg_benar' => $pgBenar,
+                        'pg_salah' => $pgSalah,
+                        'total_pg' => $soalPG->count(),
+                        'skor_pg' => round($skorPG, 2),
+                        'total_essay' => $soalEssay->count(),
+                        'skor_essay' => round($skorEssay, 2),
+                        'menunggu_essay' => $menungguEssay,
+                        'nilai_awal' => $nilaiAwal,
+                        'nilai_akhir' => $nilaiAkhir,
+                        'kode' => $kodeAsal,
+                        'status_kategori' => $statusKategori,
+                        'status_label' => $statusLabel,
+                    ];
+                });
+            }
+        }
+
+        return [
+            'pengampuList' => $pengampuList,
+            'daftarTahunAjaran' => $daftarTahunAjaran,
+            'selectedTahunAjaran' => $selectedTahunAjaran,
+            'selectedSemester' => $selectedSemester,
+            'selectedPengampu' => $selectedPengampu,
+            'mode' => $mode,
+            'ujianRegulers' => $ujianRegulers,
+            'selectedUjian' => $selectedUjian,
+            'barisLeger' => $barisLeger,
+            'barisDetail' => $barisDetail,
+            'qualityGate' => $qualityGate,
+            'rentangMulai' => $rentangMulai,
+            'rentangSelesai' => $rentangSelesai,
+        ];
     }
 
     /**
@@ -1936,15 +2511,15 @@ class UjianController extends Controller
                     ->first();
 
                 return [
-                    'siswa_id'      => $sesi->siswa_id,
-                    'ujian_id'      => $sesi->ujian_id,
-                    'soal_id'       => $soalKelasIni->id,
-                    'nama'          => $siswa?->user?->name ?? $siswa?->nama_lengkap ?? ('Siswa #' . $sesi->siswa_id),
+                    'siswa_id' => $sesi->siswa_id,
+                    'ujian_id' => $sesi->ujian_id,
+                    'soal_id' => $soalKelasIni->id,
+                    'nama' => $siswa?->user?->name ?? $siswa?->nama_lengkap ?? ('Siswa #' . $sesi->siswa_id),
                     'kelas' => $siswa?->anggotaKelases?->last()?->kelas?->nama_kelas ?? '-',
-                    'jawaban_teks'  => $jawab?->jawaban_dipilih ?? '',
-                    'skor'          => $jawab && !is_null($jawab->skor_essay) ? (float) $jawab->skor_essay : '',
+                    'jawaban_teks' => $jawab?->jawaban_dipilih ?? '',
+                    'skor' => $jawab && !is_null($jawab->skor_essay) ? (float) $jawab->skor_essay : '',
                     'sudah_dinilai' => $jawab && !is_null($jawab->skor_essay),
-                    'catatan_guru'  => $jawab?->catatan_guru ?? '',
+                    'catatan_guru' => $jawab?->catatan_guru ?? '',
                 ];
             })->sortBy('nama')->values();
 
@@ -1953,13 +2528,13 @@ class UjianController extends Controller
                 : ($soalUtama->kunci_jawaban ?? '');
 
             return [
-                'nomor_essay'   => $idx + 1,
-                'nomor_asli'    => $urutan,
-                'pertanyaan'    => $soalUtama->pertanyaan,
-                'gambar'        => $soalUtama->gambar ? asset('storage/' . $soalUtama->gambar) : null,
-                'bobot_maks'    => (float) ($soalUtama->bobot ?? 10),
+                'nomor_essay' => $idx + 1,
+                'nomor_asli' => $urutan,
+                'pertanyaan' => $soalUtama->pertanyaan,
+                'gambar' => $soalUtama->gambar ? asset('storage/' . $soalUtama->gambar) : null,
+                'bobot_maks' => (float) ($soalUtama->bobot ?? 10),
                 'kunci_jawaban' => $kunciTeks,
-                'pesertas'      => $pesertaItems,
+                'pesertas' => $pesertaItems,
             ];
         });
 
@@ -1974,10 +2549,10 @@ class UjianController extends Controller
         $this->authorizeGuruUjian($ujian);
 
         $validated = $request->validate([
-            'ujian_id'     => 'required|integer|exists:ujians,id',
-            'siswa_id'     => 'required|integer|exists:siswas,id',
-            'soal_id'      => 'required|integer|exists:soals,id',
-            'skor'         => 'required|numeric|min:0',
+            'ujian_id' => 'required|integer|exists:ujians,id',
+            'siswa_id' => 'required|integer|exists:siswas,id',
+            'soal_id' => 'required|integer|exists:soals,id',
+            'skor' => 'required|numeric|min:0',
             'catatan_guru' => 'nullable|string|max:500',
         ]);
 
@@ -1988,13 +2563,13 @@ class UjianController extends Controller
         // 1. Simpan atau perbarui skor essay pada tabel menjawabs
         Menjawab::updateOrCreate(
             [
-                'soal_id'  => $soal->id,
+                'soal_id' => $soal->id,
                 'siswa_id' => $validated['siswa_id'],
             ],
             [
-                'skor_essay'   => $skorValid,
+                'skor_essay' => $skorValid,
                 'catatan_guru' => $validated['catatan_guru'] ?? null,
-                'benar'        => $skorValid >= ($bobotMaks * 0.5),
+                'benar' => $skorValid >= ($bobotMaks * 0.5),
             ]
         );
 
@@ -2002,11 +2577,11 @@ class UjianController extends Controller
         $hasilRekalkulasi = $this->rekalkulasiNilaiSiswa($validated['ujian_id'], $validated['siswa_id']);
 
         return response()->json([
-            'status'       => 'success',
-            'skor_disimpan'=> $skorValid,
-            'nilai_akhir'  => $hasilRekalkulasi['nilai_akhir'],
-            'status_kkm'   => $hasilRekalkulasi['status_kkm'],
-            'message'      => 'Nilai essay berhasil disimpan.',
+            'status' => 'success',
+            'skor_disimpan' => $skorValid,
+            'nilai_akhir' => $hasilRekalkulasi['nilai_akhir'],
+            'status_kkm' => $hasilRekalkulasi['status_kkm'],
+            'message' => 'Nilai essay berhasil disimpan.',
         ]);
     }
 
@@ -2038,13 +2613,13 @@ class UjianController extends Controller
             $hasil = $this->hitungSkorSatuSoal($soal, $jawab);
 
             return [
-                'soal'          => $soal,
-                'nomor'         => $idx + 1,
-                'jawaban_teks'  => $jawab?->jawaban_dipilih ?? '',
-                'skor_diperoleh'=> $hasil['skor'],
-                'is_benar'      => $hasil['is_benar'],
+                'soal' => $soal,
+                'nomor' => $idx + 1,
+                'jawaban_teks' => $jawab?->jawaban_dipilih ?? '',
+                'skor_diperoleh' => $hasil['skor'],
+                'is_benar' => $hasil['is_benar'],
                 'sudah_dinilai' => $soal->tipe_soal !== 'essay' || ($jawab && !is_null($jawab->skor_essay)),
-                'catatan_guru'  => $jawab?->catatan_guru ?? '',
+                'catatan_guru' => $jawab?->catatan_guru ?? '',
             ];
         });
 
@@ -2059,15 +2634,15 @@ class UjianController extends Controller
         $this->authorizeGuruUjian($ujian);
 
         $validated = $request->validate([
-            'jenis'            => 'required|in:remidi,susulan',
-            'judul'            => 'required|string|max:120',
-            'siswa_ids'        => 'required|array|min:1',
-            'siswa_ids.*'      => 'integer|exists:siswas,id',
-            'durasi_menit'     => 'required|integer|min:1|max:999',
-            'waktu_mulai'      => 'required|date',
-            'deadline'         => 'required|date|after:waktu_mulai',
+            'jenis' => 'required|in:remidi,susulan',
+            'judul' => 'required|string|max:120',
+            'siswa_ids' => 'required|array|min:1',
+            'siswa_ids.*' => 'integer|exists:siswas,id',
+            'durasi_menit' => 'required|integer|min:1|max:999',
+            'waktu_mulai' => 'required|date',
+            'deadline' => 'required|date|after:waktu_mulai',
             'kebijakan_remidi' => 'nullable|required_if:jenis,remidi|in:kkm,terbaik,rata_rata',
-            'sumber_soal'      => 'required|in:salin_induk,buat_baru',
+            'sumber_soal' => 'required|in:salin_induk,buat_baru',
         ], [
             'siswa_ids.required' => 'Pilih minimal satu siswa peserta remidi/susulan.',
         ]);
@@ -2092,7 +2667,7 @@ class UjianController extends Controller
                 $targetUjianInduk = $grupUjians->firstWhere('id', $sesiInduk->ujian_id);
             } else {
                 $kelasSiswaId = $siswa->anggotaKelases->last()?->kelas_id;
-$targetUjianInduk = $grupUjians->firstWhere('pengampuKelas.kelas_id', $kelasSiswaId) ?? $grupUjians->first();
+                $targetUjianInduk = $grupUjians->firstWhere('pengampuKelas.kelas_id', $kelasSiswaId) ?? $grupUjians->first();
             }
 
             if ($targetUjianInduk) {
@@ -2123,25 +2698,25 @@ $targetUjianInduk = $grupUjians->firstWhere('pengampuKelas.kelas_id', $kelasSisw
                 $daftarSiswaKelas = array_values(array_unique($dataKelompok['siswa_ids']));
 
                 $ujianBaru = Ujian::create([
-                    'id_grup_ujian'     => $grupBaruId,
-                    'judul'             => $validated['judul'],
-                    'deskripsi'         => $induk->deskripsi,
-                    'kisi_kisi'         => $induk->kisi_kisi,
+                    'id_grup_ujian' => $grupBaruId,
+                    'judul' => $validated['judul'],
+                    'deskripsi' => $induk->deskripsi,
+                    'kisi_kisi' => $induk->kisi_kisi,
                     'pengampu_kelas_id' => $induk->pengampu_kelas_id,
-                    'sesi'              => 1,
-                    'durasi_menit'      => (int) $validated['durasi_menit'],
-                    'kkm'               => $induk->kkm,
-                    'waktu_mulai'       => $waktuMulai,
-                    'waktu_mulai_sesi'  => $waktuMulai,
-                    'deadline'          => $deadline,
-                    'status'            => $statusBaru,
-                    'jenis_ujian'       => $validated['jenis'],
-                    'parent_ujian_id'   => $induk->id,
-                    'kebijakan_remidi'  => $validated['jenis'] === 'remidi' ? $validated['kebijakan_remidi'] : null,
-                    'peserta_khusus'    => $daftarSiswaKelas,
-                    'token'             => $tokenSesi1,
-                    'unlock_code'       => $unlockCode,
-                    'dipublikasi_at'    => $statusBaru === 'published' ? now() : null,
+                    'sesi' => 1,
+                    'durasi_menit' => (int) $validated['durasi_menit'],
+                    'kkm' => $induk->kkm,
+                    'waktu_mulai' => $waktuMulai,
+                    'waktu_mulai_sesi' => $waktuMulai,
+                    'deadline' => $deadline,
+                    'status' => $statusBaru,
+                    'jenis_ujian' => $validated['jenis'],
+                    'parent_ujian_id' => $induk->id,
+                    'kebijakan_remidi' => $validated['jenis'] === 'remidi' ? $validated['kebijakan_remidi'] : null,
+                    'peserta_khusus' => $daftarSiswaKelas,
+                    'token' => $tokenSesi1,
+                    'unlock_code' => $unlockCode,
+                    'dipublikasi_at' => $statusBaru === 'published' ? now() : null,
                 ]);
 
                 if (!$ujianBaruPertama) {
@@ -2174,12 +2749,21 @@ $targetUjianInduk = $grupUjians->firstWhere('pengampuKelas.kelas_id', $kelasSisw
      */
     private function hitungSkorSatuSoal(Soal $soal, ?Menjawab $jawab): array
     {
-        $bobotSoal = (float) ($soal->bobot ?? 1);
+        $bobotSoal = (float) ($soal->bobot ?? 0);
+
+        // Jika soal berstatus "Tidak Valid" (bobot 0), soal dianulir dan tidak mempengaruhi nilai
+        if ($bobotSoal <= 0 || (!is_null($soal->kesulitan) && (int) $soal->kesulitan === 0)) {
+            return [
+                'skor' => 0,
+                'is_benar' => false,
+                'dianulir' => true,
+            ];
+        }
 
         if ($soal->tipe_soal === 'essay') {
             $skor = ($jawab && !is_null($jawab->skor_essay)) ? (float) $jawab->skor_essay : 0;
             return [
-                'skor'     => $skor,
+                'skor' => $skor,
                 'is_benar' => $skor >= ($bobotSoal * 0.5),
             ];
         }
@@ -2204,7 +2788,7 @@ $targetUjianInduk = $grupUjians->firstWhere('pengampuKelas.kelas_id', $kelasSisw
                 $net = max(0, $benar - $salah);
                 $skor = $bobotSoal * ($net / $totalKunci);
                 return [
-                    'skor'     => $skor,
+                    'skor' => $skor,
                     'is_benar' => ($benar === $totalKunci && $salah === 0),
                 ];
             }
@@ -2216,7 +2800,7 @@ $targetUjianInduk = $grupUjians->firstWhere('pengampuKelas.kelas_id', $kelasSisw
         $isBenar = strtolower(trim((string) $jawab->jawaban_dipilih)) === strtolower(trim((string) $kunciTunggal));
 
         return [
-            'skor'     => $isBenar ? $bobotSoal : 0,
+            'skor' => $isBenar ? $bobotSoal : 0,
             'is_benar' => $isBenar,
         ];
     }
@@ -2243,10 +2827,11 @@ $targetUjianInduk = $grupUjians->firstWhere('pengampuKelas.kelas_id', $kelasSisw
         }
 
         $nilaiUjianIni = round(($totalSkor / $totalBobot) * 100, 2);
-        if ($nilaiUjianIni > 100) $nilaiUjianIni = 100;
+        if ($nilaiUjianIni > 100)
+            $nilaiUjianIni = 100;
 
         $sesi->update([
-            'nilai_awal'  => $nilaiUjianIni,
+            'nilai_awal' => $nilaiUjianIni,
             'nilai_akhir' => $nilaiUjianIni,
         ]);
 
@@ -2270,9 +2855,9 @@ $targetUjianInduk = $grupUjians->firstWhere('pengampuKelas.kelas_id', $kelasSisw
                 if ($ujian->jenis_ujian === 'susulan') {
                     $nilaiFinalInduk = $nilaiUjianIni;
                     $sesiInduk->update([
-                        'nilai_awal'    => $nilaiFinalInduk,
-                        'nilai_akhir'   => $nilaiFinalInduk,
-                        'status'        => 'selesai',
+                        'nilai_awal' => $nilaiFinalInduk,
+                        'nilai_akhir' => $nilaiFinalInduk,
+                        'status' => 'selesai',
                         'waktu_selesai' => $sesiInduk->waktu_selesai ?? now(),
                     ]);
                 } else {
@@ -2288,7 +2873,7 @@ $targetUjianInduk = $grupUjians->firstWhere('pengampuKelas.kelas_id', $kelasSisw
                     }
 
                     $sesiInduk->update([
-                        'nilai_akhir'   => $nilaiFinalInduk,
+                        'nilai_akhir' => $nilaiFinalInduk,
                         'jumlah_remidi' => max(1, (int) $sesiInduk->jumlah_remidi),
                     ]);
                 }
@@ -2303,7 +2888,7 @@ $targetUjianInduk = $grupUjians->firstWhere('pengampuKelas.kelas_id', $kelasSisw
         $kkm = (float) ($ujian->kkm ?? 75);
         return [
             'nilai_akhir' => $nilaiUjianIni,
-            'status_kkm'  => $nilaiUjianIni >= $kkm ? 'Tuntas' : 'Remidi',
+            'status_kkm' => $nilaiUjianIni >= $kkm ? 'Tuntas' : 'Remidi',
         ];
     }
 

@@ -302,7 +302,8 @@
                     </div>
 
                     {{-- Pengaturan Visibilitas Nilai Siswa --}}
-                    <div class="md:col-span-2 p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">
+                    <div
+                        class="md:col-span-2 p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">
                         <div>
                             <label for="tampilkan_nilai" class="text-sm font-bold text-gray-900 cursor-pointer block">
                                 Tampilkan Nilai ke Siswa Setelah Ujian
@@ -405,12 +406,14 @@
 
                             <h2 class="text-lg font-bold text-gray-800">
                                 Soal Ujian
-                                <span class="text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-lg ml-2"
+                                <span
+                                    class="text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-lg ml-2"
                                     x-text="questions.length + ' Soal (Minimal 2 Soal)'"></span>
                             </h2>
 
                             <p class="text-sm text-gray-500 mt-1">
-                                Tambahkan minimal 2 soal. Bobot otomatis disesuaikan menjadi total 100 poin setiap kali soal ditambah atau dihapus.
+                                Tambahkan minimal 2 soal. Bobot otomatis disesuaikan menjadi total 100 poin setiap kali soal
+                                ditambah atau dihapus.
                             </p>
 
                         </div>
@@ -458,7 +461,8 @@
                                                 'bg-teal-700 text-white border-teal-700 shadow-xs' :
                                                 (isQuestionComplete(question) ?
                                                     'bg-white text-gray-700 border-gray-200 hover:border-teal-400' :
-                                                    'bg-amber-50/70 text-gray-800 border-amber-300 hover:border-amber-400')">
+                                                    'bg-amber-50/70 text-gray-800 border-amber-300 hover:border-amber-400'
+                                                    )">
 
                                             <div class="flex items-center justify-between gap-2">
 
@@ -469,11 +473,13 @@
 
                                                     {{-- Badge Indikator Belum Lengkap / Lengkap --}}
                                                     <template x-if="!isQuestionComplete(question)">
-                                                        <span class="w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-black inline-flex items-center justify-center"
+                                                        <span
+                                                            class="w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-black inline-flex items-center justify-center"
                                                             title="Soal ini belum lengkap">!</span>
                                                     </template>
                                                     <template x-if="isQuestionComplete(question)">
-                                                        <span class="w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-black inline-flex items-center justify-center"
+                                                        <span
+                                                            class="w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-black inline-flex items-center justify-center"
                                                             title="Soal sudah lengkap">✓</span>
                                                     </template>
                                                 </div>
@@ -527,9 +533,11 @@
 
                                         </div>
 
-                                        <div class="text-sm text-gray-500 bg-teal-50 border border-teal-200 px-3.5 py-1.5 rounded-xl">
+                                        <div
+                                            class="text-sm text-gray-500 bg-teal-50 border border-teal-200 px-3.5 py-1.5 rounded-xl">
                                             Bobot soal:
-                                            <span class="font-bold text-teal-800" x-text="question.bobot + ' Poin'"></span>
+                                            <span class="font-bold text-teal-800"
+                                                x-text="question.bobot + ' Poin'"></span>
                                         </div>
 
                                     </div>
@@ -585,10 +593,8 @@
                                             Pertanyaan <span class="text-red-500">*</span>
                                         </label>
 
-                                        <textarea :name="`soals[${index}][pertanyaan]`"
-                                            :id="`textarea-pertanyaan-${index}`"
-                                            x-model="question.pertanyaan" rows="5" maxlength="500"
-                                            placeholder="Tulis pertanyaan soal..."
+                                        <textarea :name="`soals[${index}][pertanyaan]`" :id="`textarea-pertanyaan-${index}`" x-model="question.pertanyaan"
+                                            rows="5" maxlength="500" placeholder="Tulis pertanyaan soal..."
                                             class="w-full border border-gray-300 rounded-xl px-4 py-3
                                                focus:ring-2 focus:ring-teal-500
                                                focus:border-teal-500"></textarea>
@@ -747,26 +753,27 @@
 
                                         <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
                                             <p class="text-sm text-blue-700">
-                                                Soal essay tidak menggunakan pilihan jawaban. Jawaban siswa akan dikoreksi oleh guru menggunakan pedoman/rubrik di bawah ini.
+                                                Soal essay tidak menggunakan pilihan jawaban. Jawaban siswa akan dikoreksi
+                                                oleh guru menggunakan pedoman/rubrik di bawah ini.
                                             </p>
                                         </div>
 
                                         <div>
                                             <label class="block text-sm font-semibold text-gray-700 mb-2">
                                                 Rubrik / Kunci Jawaban Essay
-                                                <span class="text-gray-400 font-normal">(opsional — boleh dikosongkan)</span>
+                                                <span class="text-gray-400 font-normal">(opsional — boleh
+                                                    dikosongkan)</span>
                                             </label>
 
                                             <textarea :name="question.tipe_soal === 'essay' ? `soals[${index}][kunci_jawaban]` : null"
-                                                x-model="question.rubrik_essay"
-                                                rows="4"
-                                                maxlength="1000"
+                                                x-model="question.rubrik_essay" rows="4" maxlength="1000"
                                                 placeholder="Tuliskan kata kunci jawaban, langkah penyelesaian, atau pedoman penskoran untuk memudahkan saat mengoreksi essay..."
                                                 class="w-full border border-gray-300 rounded-xl px-4 py-3
                                                        focus:ring-2 focus:ring-teal-500 focus:border-teal-500"></textarea>
 
                                             <p class="text-xs text-gray-400 mt-1">
-                                                Rubrik ini hanya tampil di halaman koreksi guru sebagai acuan pemberian skor dan tidak terlihat oleh siswa saat ujian.
+                                                Rubrik ini hanya tampil di halaman koreksi guru sebagai acuan pemberian skor
+                                                dan tidak terlihat oleh siswa saat ujian.
                                             </p>
                                         </div>
 
@@ -805,6 +812,7 @@
                                                 @change="hitungBobotOtomatis()"
                                                 class="w-full border border-gray-300 rounded-xl px-4 py-3
                                                        focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                                                <option value="0">Tidak Valid / Dianulir (Poin: 0)</option>
                                                 <option value="1">Mudah (Poin: 1)</option>
                                                 <option value="2">Menengah (Poin: 2)</option>
                                                 <option value="3">Susah (Poin: 3)</option>
@@ -971,7 +979,9 @@
                         }
                         const kunci = Array.isArray(q.kunci_jawaban) ?
                             q.kunci_jawaban :
-                            (q.kunci_jawaban !== '' && q.kunci_jawaban !== null && q.kunci_jawaban !== undefined ? [q.kunci_jawaban] : []);
+                            (q.kunci_jawaban !== '' && q.kunci_jawaban !== null && q.kunci_jawaban !== undefined ? [q
+                                .kunci_jawaban
+                            ] : []);
                         if (kunci.length === 0) return false;
                     }
 
@@ -998,8 +1008,12 @@
                     const checkedKelas = document.querySelectorAll('input[name="pengampu_kelas_id[]"]:checked');
                     if (checkedKelas.length === 0) {
                         event.preventDefault();
-                        alert('Target Kelas belum dipilih!\nSilakan pilih Mata Pelajaran, Tingkatan, dan centang minimal 1 Kelas terlebih dahulu.');
-                        document.getElementById('section-target-kelas')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        alert(
+                            'Target Kelas belum dipilih!\nSilakan pilih Mata Pelajaran, Tingkatan, dan centang minimal 1 Kelas terlebih dahulu.');
+                        document.getElementById('section-target-kelas')?.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
                         return;
                     }
 
@@ -1051,10 +1065,21 @@
                     // 5. Validasi Minimal 2 Soal
                     if (this.questions.length < 2) {
                         event.preventDefault();
-                        alert(`Ujian minimal harus memiliki 2 soal!\nSaat ini baru terdapat ${this.questions.length} soal. Silakan klik tombol "+ Tambah Soal".`);
-                        document.getElementById('section-editor-soal')?.scrollIntoView({ behavior: 'smooth' });
+                        alert(
+                            `Ujian minimal harus memiliki 2 soal!\nSaat ini baru terdapat ${this.questions.length} soal. Silakan klik tombol "+ Tambah Soal".`);
+                        document.getElementById('section-editor-soal')?.scrollIntoView({
+                            behavior: 'smooth'
+                        });
                         return;
                     }
+
+                    const adaSoalValid = this.questions.some(q => Number(q.kesulitan) > 0 && Number(q.bobot) > 0);
+                    if (!adaSoalValid || this.totalBobot <= 0) {
+                        event.preventDefault();
+                        alert('Minimal harus ada 1 soal yang valid (bukan berstatus "Tidak Valid")!');
+                        return;
+                    }
+
 
                     // 6. Validasi Total Bobot Soal
                     if (this.totalBobot > 100.5) {
@@ -1074,7 +1099,8 @@
                         if (!q.pertanyaan || q.pertanyaan.trim() === '') {
                             event.preventDefault();
                             this.selectedQuestion = i;
-                            alert(`Pertanyaan pada Soal nomor ${nomor} belum diisi!\nLayar telah diarahkan ke Soal nomor ${nomor}.`);
+                            alert(
+                                `Pertanyaan pada Soal nomor ${nomor} belum diisi!\nLayar telah diarahkan ke Soal nomor ${nomor}.`);
                             this.$nextTick(() => {
                                 document.getElementById(`textarea-pertanyaan-${i}`)?.focus();
                             });
@@ -1094,19 +1120,23 @@
                                     event.preventDefault();
                                     this.selectedQuestion = i;
                                     const huruf = String.fromCharCode(65 + p);
-                                    alert(`Pilihan ${huruf} pada Soal nomor ${nomor} belum diisi!\nLayar telah diarahkan ke Soal nomor ${nomor}.`);
+                                    alert(
+                                        `Pilihan ${huruf} pada Soal nomor ${nomor} belum diisi!\nLayar telah diarahkan ke Soal nomor ${nomor}.`);
                                     return;
                                 }
                             }
 
                             const kunci = Array.isArray(q.kunci_jawaban) ?
                                 q.kunci_jawaban :
-                                (q.kunci_jawaban !== '' && q.kunci_jawaban !== null && q.kunci_jawaban !== undefined ? [q.kunci_jawaban] : []);
+                                (q.kunci_jawaban !== '' && q.kunci_jawaban !== null && q.kunci_jawaban !== undefined ? [q
+                                    .kunci_jawaban
+                                ] : []);
 
                             if (kunci.length === 0) {
                                 event.preventDefault();
                                 this.selectedQuestion = i;
-                                alert(`Kunci jawaban pada Soal nomor ${nomor} belum dipilih!\nSilakan centang/pilih jawaban yang benar pada Soal nomor ${nomor}.`);
+                                alert(
+                                    `Kunci jawaban pada Soal nomor ${nomor} belum dipilih!\nSilakan centang/pilih jawaban yang benar pada Soal nomor ${nomor}.`);
                                 return;
                             }
                         }
@@ -1118,8 +1148,7 @@
                     const oldQuestions = @js(old('soals', []));
 
                     if (!Array.isArray(oldQuestions) || oldQuestions.length === 0) {
-                        return [
-                            {
+                        return [{
                                 id: Date.now() + 1,
                                 tipe_soal: 'single_choice',
                                 pertanyaan: '',
@@ -1155,9 +1184,10 @@
                         pilihan: Array.isArray(question.pilihan) ?
                             question.pilihan : ['', '', '', ''],
                         kunci_jawaban: question.kunci_jawaban ?? '',
-                        rubrik_essay: question.tipe_soal === 'essay'
-                            ? (Array.isArray(question.kunci_jawaban) ? (question.kunci_jawaban[0] || '') : (question.kunci_jawaban || ''))
-                            : '',
+                        rubrik_essay: question.tipe_soal === 'essay' ?
+                            (Array.isArray(question.kunci_jawaban) ? (question.kunci_jawaban[0] || '') :
+                                (question.kunci_jawaban || '')) :
+                            '',
                         kesulitan: Number(question.kesulitan) || 1,
                         bobot: Number(question.bobot) || 50,
                         preview_gambar: null,
@@ -1197,13 +1227,45 @@
                     this.hitungBobotOtomatis();
                 },
 
+                // Cek apakah soal sudah memiliki isian sebelum dihapus
+                isQuestionFilled(q) {
+                    if (q.pertanyaan && q.pertanyaan.trim() !== '') return true;
+                    if (q.preview_gambar) return true;
+                    if (q.rubrik_essay && q.rubrik_essay.trim() !== '') return true;
+
+                    if (q.tipe_soal === 'single_choice' || q.tipe_soal === 'multiple_choice') {
+                        if (Array.isArray(q.pilihan) && q.pilihan.some(p => String(p || '').trim() !== '')) {
+                            return true;
+                        }
+                        const hasKunci = Array.isArray(q.kunci_jawaban) ?
+                            q.kunci_jawaban.length > 0 :
+                            (q.kunci_jawaban !== '' && q.kunci_jawaban !== null && q.kunci_jawaban !== undefined);
+                        if (hasKunci) return true;
+                    }
+
+                    return false;
+                },
+
                 // =========================================================
-                // HAPUS SOAL (OTOMATIS REKALKULASI BOBOT SEPERTI DI EDIT)
+                // HAPUS SOAL (DENGAN KONFIRMASI JIKA SOAL SUDAH TERISI)
                 // =========================================================
                 removeQuestion(index) {
                     if (this.questions.length <= 2) {
                         alert('Minimal harus ada 2 soal dalam satu ujian.');
                         return;
+                    }
+
+                    const targetQuestion = this.questions[index];
+                    if (this.isQuestionFilled(targetQuestion)) {
+                        if (!confirm(
+                                `Soal nomor ${index + 1} sudah memiliki isian. Apakah Anda yakin ingin menghapus soal ini?`
+                                )) {
+                            return;
+                        }
+                    }
+
+                    if (targetQuestion?.preview_gambar) {
+                        URL.revokeObjectURL(targetQuestion.preview_gambar);
                     }
 
                     this.questions.splice(index, 1);
@@ -1223,17 +1285,38 @@
                     if (totalSoal === 0) return;
 
                     const totalPoinKesulitan = this.questions.reduce((sum, q) => {
-                        return sum + (Number(q.kesulitan) || 1);
+                        const k = q.kesulitan !== undefined && q.kesulitan !== null && q.kesulitan !== ''
+                            ? Number(q.kesulitan)
+                            : 1;
+                        return sum + Math.max(0, k);
                     }, 0);
 
-                    if (totalPoinKesulitan <= 0) return;
+                    if (totalPoinKesulitan <= 0) {
+                        this.questions.forEach(q => {
+                            q.bobot = 0;
+                        });
+                        return;
+                    }
+
+                    // Cari indeks soal VALID terakhir (kesulitan > 0) untuk menampung sisa pembulatan 100.00
+                    let lastValidIndex = -1;
+                    this.questions.forEach((q, idx) => {
+                        const k = q.kesulitan !== undefined && q.kesulitan !== null && q.kesulitan !== ''
+                            ? Number(q.kesulitan)
+                            : 1;
+                        if (k > 0) lastValidIndex = idx;
+                    });
 
                     let totalBobotTerbagi = 0;
 
                     this.questions.forEach((question, index) => {
-                        const kesulitan = Number(question.kesulitan) || 1;
+                        const kesulitan = question.kesulitan !== undefined && question.kesulitan !== null && question.kesulitan !== ''
+                            ? Number(question.kesulitan)
+                            : 1;
 
-                        if (index === totalSoal - 1) {
+                        if (kesulitan <= 0) {
+                            question.bobot = 0;
+                        } else if (index === lastValidIndex) {
                             question.bobot = Number((100 - totalBobotTerbagi).toFixed(2));
                         } else {
                             const porsi = Number(((kesulitan / totalPoinKesulitan) * 100).toFixed(2));
@@ -1242,7 +1325,6 @@
                         }
                     });
                 },
-
                 // =========================================================
                 // VALIDASI FILE GAMBAR (HANYA JPG, PNG, WEBP, GIF & MAKS 2MB)
                 // =========================================================
@@ -1273,7 +1355,8 @@
                     const maxSizeBytes = 2 * 1024 * 1024; // 2 MB
                     if (file.size > maxSizeBytes) {
                         const ukuranMb = (file.size / (1024 * 1024)).toFixed(2);
-                        const msg = `Ukuran gambar terlalu besar (${ukuranMb} MB)! Maksimal ukuran yang diperbolehkan adalah 2 MB.`;
+                        const msg =
+                            `Ukuran gambar terlalu besar (${ukuranMb} MB)! Maksimal ukuran yang diperbolehkan adalah 2 MB.`;
                         this.questions[index].error_gambar = msg;
                         alert(msg);
                         event.target.value = '';

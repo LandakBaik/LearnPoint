@@ -39,7 +39,11 @@
                         </span>
                     </div>
 
-                    @if($soal->tipe_soal !== 'essay')
+                    @if((float) $soal->bobot <= 0)
+                        <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-slate-100 text-slate-600 border border-slate-300">
+                            ⊘ Soal Tidak Valid / Dianulir (0 Poin)
+                        </span>
+                    @elseif($soal->tipe_soal !== 'essay')
                         <span class="px-3 py-1 rounded-full text-xs font-extrabold {{ $item['is_benar'] ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200' }}">
                             {{ $item['is_benar'] ? '✓ Benar' : '✕ Salah' }} ({{ round($item['skor_diperoleh'], 2) }} / {{ $soal->bobot }} Poin)
                         </span>

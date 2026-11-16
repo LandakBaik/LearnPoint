@@ -25,6 +25,7 @@ class Ujian extends Model
         'waktu_mulai_sesi', // <-- Tambahan
         'deadline',
         'status',
+        'is_archived',
         'jenis_ujian',
         'parent_ujian_id',
         'kebijakan_remidi',
@@ -43,6 +44,7 @@ class Ujian extends Model
             'dipublikasi_at' => 'datetime',
             'peserta_khusus' => 'array',
             'tampilkan_nilai'  => 'boolean',
+            'is_archived'      => 'boolean',
             'kkm' => 'decimal:2',
         ];
     }
@@ -93,15 +95,36 @@ class Ujian extends Model
     }
 
     /**
-     * Memeriksa apakah ujian boleh diedit.
+     * Ujian boleh masuk ke halaman edit jika berstatus:
+     * - draft
+     * - scheduled (selama belum ada siswa yang mengerjakan)
+     * - unpublished & completed (hanya boleh mengubah bobot soal)
      */
     public function bolehDiedit(): bool
     {
-        return in_array($this->status, [
-            'draft',
-            'unpublished',
-            'completed',
-        ], true);
+        $this->sinkronisasiStatus();
+
+        if (in_array($this->status, ['draft', 'unpublished', 'completed'], true)) {
+            return true;
+        }
+
+        if ($this->status === 'scheduled') {
+            $ujianIds = $this->id_grup_ujian
+                ? self::where('id_grup_ujian', $this->id_grup_ujian)->pluck('id')
+                : collect([$this->id]);
+
+            return !\App\Models\SeleksiUjian::whereIn('ujian_id', $ujianIds)->exists();
+        }
+
+        return false;
+    }
+
+    /**
+     * Menentukan apakah ujian hanya boleh diedit bobot/tingkat kesulitannya saja.
+     */
+    public function hanyaBisaEditBobot(): bool
+    {
+        return in_array($this->status, ['unpublished', 'completed'], true);
     }
 
     // =========================================================

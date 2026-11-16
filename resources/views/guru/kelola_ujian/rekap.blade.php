@@ -56,6 +56,11 @@
                 <span>📋 Buat Susulan</span>
                 <span class="px-1.5 py-0.5 rounded-md bg-slate-900/60 text-[10px]">{{ $ringkasan['belum_ujian'] }}</span>
             </button>
+
+            <a href="{{ route('guru.ujian.laporan.pdf', ['mode' => 'detail', 'pengampu_kelas_id' => $ujian->pengampu_kelas_id, 'ujian_id' => $ujian->id]) }}"
+                class="inline-flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold transition shadow-xs">
+                <span>🖨️ Cetak PDF Berita Acara</span>
+            </a>
         </div>
     </div>
 

@@ -4,6 +4,25 @@
 
 @section('content')
 
+@php
+    $anggotaGrup = isset($grupUjians) && $grupUjians->isNotEmpty()
+        ? $grupUjians
+        : collect([$ujian]);
+
+    $daftarKelas = $anggotaGrup
+        ->map(fn($item) => $item->pengampuKelas?->kelas?->nama_kelas ?? $item->kelas?->nama_kelas)
+        ->filter()
+        ->unique()
+        ->values();
+
+    $adaPengerjaan = $anggotaGrup->sum(fn($item) => $item->seleksiUjians->count()) > 0;
+
+    // Tombol Edit hanya muncul jika status BUKAN published dan BUKAN completed (serta belum ada pengerjaan)
+    // Tombol Edit tampil untuk draft, scheduled (0 peserta), unpublished (Edit Bobot), dan completed (Edit Bobot)
+    $bisaEdit = $ujian->bolehDiedit();
+    $labelTombolEdit = $ujian->hanyaBisaEditBobot() ? 'Edit Bobot Soal' : 'Edit Ujian';
+@endphp
+
 <div class="max-w-7xl mx-auto space-y-6">
 
     {{-- HEADER --}}
@@ -31,25 +50,29 @@
 
         <div class="flex flex-wrap gap-2">
 
-            <a
-                href="{{ route('guru.ujian.edit', $ujian) }}"
-                class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition shadow-sm"
-            >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                <span>Edit Ujian</span>
-            </a>
+            {{-- Hapus tombol Edit jika status adalah published (Publikasi) atau completed (Selesai) --}}
+            @if($bisaEdit)
+                <a
+                    href="{{ route('guru.ujian.edit', $ujian) }}"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition shadow-sm"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    <span>{{ $labelTombolEdit }}</span>
+                </a>
+            @endif
 
             @if($ujian->status === 'draft')
 
                 <form
                     action="{{ route('guru.ujian.publish', $ujian) }}"
                     method="POST"
+                    onsubmit="return confirm('Publikasikan ujian ini sekarang untuk semua kelas target?')"
                 >
                     @csrf
+                    <input type="hidden" name="tipe_publikasi" value="langsung">
 
                     <button
                         type="submit"
-                        data-confirm="Publikasikan ujian ini sekarang?"
                         class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition shadow-sm cursor-pointer"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -95,12 +118,25 @@
             </p>
         </div>
 
-        {{-- KELAS --}}
+        {{-- KELAS TARGET (MENAMPILKAN SEMUA KELAS DALAM GRUP UJIAN) --}}
         <div class="bg-white rounded-2xl shadow-xs border border-gray-100 p-5">
-            <p class="text-sm text-gray-500 mb-2">Kelas</p>
-            <p class="font-bold text-gray-800">
-                {{ $ujian->pengampuKelas?->kelas?->nama_kelas ?? $ujian->kelas?->nama_kelas ?? '-' }}
-            </p>
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-sm text-gray-500">Target Kelas</p>
+                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                    {{ $daftarKelas->count() }} Kelas
+                </span>
+            </div>
+            @if($daftarKelas->isNotEmpty())
+                <div class="flex flex-wrap gap-1.5">
+                    @foreach($daftarKelas as $namaKls)
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-gray-800 border border-slate-200">
+                            {{ $namaKls }}
+                        </span>
+                    @endforeach
+                </div>
+            @else
+                <p class="font-bold text-gray-800">-</p>
+            @endif
         </div>
 
         {{-- JUMLAH SOAL --}}
@@ -241,7 +277,6 @@
 
             @forelse($ujian->soals as $index => $soal)
                 @php
-                    // 1. Ekstraksi dan normalisasi kunci jawaban ke format array huruf kecil
                     $rawKunci = $soal->kunci_jawaban;
                     if (is_string($rawKunci)) {
                         $decoded = json_decode($rawKunci, true);
@@ -258,7 +293,6 @@
                         return strtolower(trim((string)$k));
                     }, $kunciArr);
 
-                    // Susun teks kunci jawaban untuk ringkasan di bawah soal
                     $labelKunci = [];
                     if (is_array($soal->pilihan)) {
                         foreach ($soal->pilihan as $keyOpt => $textOpt) {
@@ -321,11 +355,10 @@
                         <div class="space-y-2 pt-1">
                             @foreach($soal->pilihan as $key => $pilihan)
                                 @php
-                                    $hurufKecil = chr(97 + (int)$key); // 'a', 'b', ...
-                                    $hurufBesar = chr(65 + (int)$key); // 'A', 'B', ...
-                                    $indexStr   = (string)$key;        // '0', '1', ...
+                                    $hurufKecil = chr(97 + (int)$key);
+                                    $hurufBesar = chr(65 + (int)$key);
+                                    $indexStr   = (string)$key;
 
-                                    // Cek apakah opsi ini adalah kunci jawaban
                                     $isBenar = in_array($hurufKecil, $kunciNormalized)
                                             || in_array($indexStr, $kunciNormalized);
                                 @endphp
@@ -416,4 +449,3 @@
 </div>
 
 @endsection
-
