@@ -108,6 +108,13 @@ class PowerController extends Controller
             $soal = $quizSoals->get($m->soal_id);
             if ($soal && $m->power) {
                 $eff = $this->generatePowerEffectForSoal($soal, $m->power, false);
+                if ($m->power->kode === 'second_chance') {
+                    $blockedOpt = session("second_chance_blocked_{$siswa->id}_{$soal->id}");
+                    if ($blockedOpt) {
+                        $eff['second_chance_armed'] = false;
+                        $eff['second_chance_blocked'] = $blockedOpt;
+                    }
+                }
                 $questionStates[$soal->id] = array_merge($eff, [
                     'power_code' => $m->power->kode,
                     'effect' => $eff,
@@ -265,7 +272,7 @@ class PowerController extends Controller
 
                 // 2. Lock inventori SiswaPower milik siswa
                 $siswaPower = SiswaPower::where('siswa_id', $siswa->id)
-                    ->where('power_id', $power->id)
+                    ->where('item_id', $power->id)
                     ->lockForUpdate()
                     ->first();
 
@@ -435,9 +442,20 @@ class PowerController extends Controller
             ], 422);
         }
 
+        $sessionKey = "second_chance_blocked_{$siswa->id}_{$soal->id}";
+        if (session()->has($sessionKey)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Perisai Second Chance pada soal ini sudah terpakai.',
+                'blocked_option' => session($sessionKey),
+            ], 422);
+        }
+
         $isCorrect = $this->checkIsAnswerCorrect($soal, $pilihanSiswa);
 
         if (!$isCorrect) {
+            session([$sessionKey => $pilihanSiswa]);
+
             return response()->json([
                 'success' => true,
                 'triggered' => true,

@@ -186,6 +186,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Kuis Petualangan Siswa
         Route::get('/siswa/kuis', [SiswaQuizController::class, 'index'])->name('siswa.kuis');
+        Route::get('/siswa/kuis/panduan', [SiswaQuizController::class, 'panduan'])->name('siswa.kuis.panduan');
         Route::get('/siswa/kuis/{quiz}', [SiswaQuizController::class, 'show'])->name('siswa.kuis.show');
         Route::get('/siswa/kuis/{quiz}/kerjakan', [SiswaQuizController::class, 'kerjakan'])->name('siswa.kuis.kerjakan');
         Route::post('/siswa/kuis/{quiz}/simpan-draft', [SiswaQuizController::class, 'simpanDraft'])->name('siswa.kuis.simpan-draft');
@@ -200,6 +201,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Sistem Gacha Power & Kustomisasi Banner Siswa
         Route::get('/siswa/gacha', [SiswaGachaBannerController::class, 'index'])->name('siswa.gacha');
+        Route::get('/siswa/gacha/panduan', [SiswaGachaBannerController::class, 'panduan'])->name('siswa.gacha.panduan');
         Route::post('/siswa/gacha/pull', [SiswaGachaBannerController::class, 'pull'])->name('siswa.gacha.pull');
         Route::post('/siswa/banner/equip', [SiswaGachaBannerController::class, 'equipBanner'])->name('siswa.banner.equip');
 

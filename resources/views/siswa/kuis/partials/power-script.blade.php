@@ -177,14 +177,14 @@ window.createLearnPointPowerSystem = function(config) {
                 };
             }
 
-            // Validasi khusus Remove Wrong Answer: pastikan masih ada opsi salah yang bisa dieliminasi
+            // Validasi khusus Remove Wrong Answer: pastikan masih ada lebih dari 1 opsi tersisa
             if (pCode === 'remove_wrong_answer') {
                 const meta = questionsMeta[soalId];
                 if (meta && Array.isArray(meta.optionKeys)) {
-                    const remainingWrong = meta.optionKeys.filter(
-                        k => k !== meta.correctKey && !qState.eliminatedOptions.includes(k)
+                    const remainingOptions = meta.optionKeys.filter(
+                        k => !qState.eliminatedOptions.includes(k)
                     );
-                    if (remainingWrong.length === 0) {
+                    if (remainingOptions.length <= 1) {
                         return { allowed: false, reason: 'Tidak ada lagi pilihan salah yang dapat dieliminasi.' };
                     }
                 }
@@ -237,15 +237,23 @@ window.createLearnPointPowerSystem = function(config) {
                     if (radioEl) radioEl.checked = false;
                 }
             } else if (powerCode === 'second_chance' || effect.type === 'second_chance') {
-                if (!qState.secondChanceUsed) {
+                if (effect.second_chance_blocked) {
+                    const blockedOpt = String(effect.second_chance_blocked).toLowerCase();
+                    qState.secondChanceArmed = false;
+                    qState.secondChanceUsed = true;
+                    qState.secondChanceBlockedOption = blockedOpt;
+                    if (!qState.eliminatedOptions.includes(blockedOpt)) {
+                        qState.eliminatedOptions.push(blockedOpt);
+                    }
+                } else if (!qState.secondChanceUsed) {
                     qState.secondChanceArmed = true;
                 }
 
-                // Jika siswa sudah memilih jawaban yang salah sebelum mengaktifkan Second Chance, langsung aktifkan penyelamatan
-                if (triggerImmediateSecondChance) {
+                // Jika siswa sudah memilih jawaban sebelum mengaktifkan Second Chance, verifikasi ke backend
+                if (triggerImmediateSecondChance && qState.secondChanceArmed) {
                     const currentAns = this.answers[soalId];
-                    if (currentAns && meta.correctKey && String(currentAns).toLowerCase() !== String(meta.correctKey).toLowerCase()) {
-                        this.triggerSecondChanceProtection(soalId, String(currentAns).toLowerCase());
+                    if (currentAns) {
+                        this.verifyAndTriggerSecondChance(soalId, String(currentAns).toLowerCase());
                     }
                 }
             }
@@ -373,11 +381,43 @@ window.createLearnPointPowerSystem = function(config) {
         },
 
         /**
+         * Memverifikasi pilihan jawaban ke backend saat Second Chance aktif.
+         * Jika jawaban salah, perisai menahan opsi tersebut dan mengizinkan siswa memilih ulang.
+         */
+        async verifyAndTriggerSecondChance(soalId, optionKey) {
+            const cleanOpt = String(optionKey).toLowerCase();
+            try {
+                const res = await fetch(endpoints.secondChance, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        soal_id: soalId,
+                        jawaban_dipilih: cleanOpt
+                    })
+                });
+                const data = await res.json();
+                if (res.ok && data.success && data.triggered) {
+                    this.triggerSecondChanceProtection(soalId, data.blocked_option || cleanOpt, data.message);
+                    this.persistSessionPowerSummary();
+                    return true;
+                }
+            } catch (e) {
+                console.error('Gagal memverifikasi Second Chance:', e);
+            }
+            return false;
+        },
+
+        /**
          * Mekanisme Efek Second Chance saat siswa memilih opsi jawaban:
          * Jika Second Chance sedang siaga pada soal tersebut dan siswa memilih jawaban yang salah,
          * tahan jawaban salah tersebut, beri tahu siswa, dan izinkan memilih ulang.
          */
-        triggerSecondChanceProtection(soalId, wrongOptionKey) {
+        triggerSecondChanceProtection(soalId, wrongOptionKey, customMessage = null) {
             const qState = this.ensureQuestionState(soalId);
             qState.secondChanceArmed = false;
             qState.secondChanceUsed = true;
@@ -394,25 +434,10 @@ window.createLearnPointPowerSystem = function(config) {
                 radioEl.checked = false;
             }
 
-            // Sinkronkan verifikasi Second Chance ke backend secara asinkron
-            fetch(endpoints.secondChance, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({
-                    soal_id: soalId,
-                    jawaban_dipilih: wrongOptionKey
-                })
-            }).catch(() => {});
-
             this.showPowerToast(
                 'saved',
                 'Second Chance Melindungimu!',
-                `Pilihan ${String(wrongOptionKey).toUpperCase()} kurang tepat! Perisai Second Chance menahan kesalahanmu—silakan pilih jawaban lain!`,
+                customMessage || `Pilihan ${String(wrongOptionKey).toUpperCase()} kurang tepat! Perisai Second Chance menahan kesalahanmu—silakan pilih jawaban lain!`,
                 'Kesempatan ke-2',
                 'fa-solid fa-shield-heart'
             );
@@ -451,60 +476,27 @@ window.createLearnPointPowerSystem = function(config) {
         },
 
         /**
-         * Menghitung estimasi poin kuis beserta efek Power sesuai Rumus Pasti Spesifikasi:
-         * - Tanpa Power / Second Chance / Lucky Clover / Remove Wrong Answer: Benar = bobot, Salah = 0
-         * - 2X Score: Benar = bobot * 2, Salah = 0
-         * - Double Side Knife: Benar = bobot * 2, Salah = -(bobot * 0.5)
+         * Menghitung ringkasan status penggunaan Power di client (tanpa mengevaluasi kunci jawaban).
+         * Perhitungan skor final dilakukan sepenuhnya di server saat level dikumpulkan.
          */
         calculatePowerScoreSummary() {
             let baseTotalBobot = 0;
-            let baseEarnedBobot = 0;
-            let bonusPoints = 0;
-            let penaltyPoints = 0;
+            let activeMultiplierCount = 0;
 
             Object.keys(questionsMeta).forEach(sId => {
                 const meta = questionsMeta[sId];
                 const bobot = Number(meta.bobot || 10);
                 baseTotalBobot += bobot;
 
-                const chosen = this.answers[sId];
-                const isAnswered = chosen !== undefined && chosen !== null && chosen !== '';
-                const isCorrect = isAnswered && String(chosen).toLowerCase() === String(meta.correctKey).toLowerCase();
-
-                if (isCorrect) {
-                    baseEarnedBobot += bobot;
-                }
-
                 const qState = this.questionPowerState[sId];
-                if (qState && qState.multiplierType && isAnswered) {
-                    if (qState.multiplierType === 'two_x_score') {
-                        if (isCorrect) {
-                            bonusPoints += bobot; // 2x lipat (+100% bobot soal)
-                        }
-                    } else if (qState.multiplierType === 'double_side_knife') {
-                        if (isCorrect) {
-                            bonusPoints += bobot; // 2x lipat (+100% bobot soal)
-                        } else {
-                            penaltyPoints += Number((bobot * 0.5).toFixed(2)); // Penalti -50% bobot soal jika salah
-                        }
-                    }
+                if (qState && qState.multiplierType) {
+                    activeMultiplierCount++;
                 }
             });
 
-            const netBonus = Number((bonusPoints - penaltyPoints).toFixed(2));
-            const totalWithPower = Math.max(0, Number((baseEarnedBobot + netBonus).toFixed(2)));
-            const normalizedScoreWithPower = baseTotalBobot > 0
-                ? Math.min(100, Math.max(0, Math.round((totalWithPower / baseTotalBobot) * 100)))
-                : 0;
-
             return {
                 baseTotalBobot,
-                baseEarnedBobot,
-                bonusPoints,
-                penaltyPoints,
-                netBonus,
-                totalWithPower,
-                normalizedScoreWithPower,
+                activeMultiplierCount,
                 usedCount: this.powerUsageLog.length
             };
         },

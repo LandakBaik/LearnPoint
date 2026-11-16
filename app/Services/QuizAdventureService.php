@@ -386,20 +386,30 @@ class QuizAdventureService
     {
         $planets = collect();
 
-        foreach (self::PLANET_PRESETS as $key => $preset) {
-            $mapelModel = $dbMapels->first(function ($m) use ($preset, $key) {
-                $name = strtolower($m->nama_mapel ?? '');
-                return str_contains($name, strtolower($preset['nama']))
-                    || str_contains($name, $key)
-                    || ($key === 'ipa' && $name === 'ipa')
-                    || ($key === 'ips' && $name === 'ips')
-                    || ($key === 'matematika' && str_contains($name, 'matematika'));
-            });
+        foreach ($dbMapels as $m) {
+            $rawName = strtolower(trim((string) ($m->nama_mapel ?? '')));
+            $matchedKey = null;
+            $matchedPreset = null;
 
-            $mapelId = $mapelModel?->id ?? ($key === 'matematika' ? 1 : ($key === 'ipa' ? 2 : 3));
+            foreach (self::PLANET_PRESETS as $key => $preset) {
+                $presetName = strtolower($preset['nama']);
+                if (
+                    str_contains($rawName, $presetName)
+                    || str_contains($rawName, $key)
+                    || ($key === 'ipa' && ($rawName === 'ipa' || str_contains($rawName, 'alam')))
+                    || ($key === 'ips' && ($rawName === 'ips' || str_contains($rawName, 'sosial')))
+                    || ($key === 'matematika' && (str_contains($rawName, 'matematika') || $rawName === 'mtk'))
+                ) {
+                    $matchedKey = $key;
+                    $matchedPreset = $preset;
+                    break;
+                }
+            }
+
+            $planetKey = $matchedKey ?? ('mapel-' . $m->id);
 
             $quizzesInMapel = $allQuizzes->filter(
-                fn (Quiz $q) => $this->isQuizMatchingPlanet($q, $mapelId, $key, $preset['nama'])
+                fn (Quiz $q) => $this->isQuizMatchingPlanet($q, $m->id, $planetKey, (string) $m->nama_mapel)
             );
 
             $uncompletedCount = $quizzesInMapel->filter(
@@ -407,52 +417,19 @@ class QuizAdventureService
             )->count();
 
             $planets->push((object) [
-                'id' => $mapelId,
-                'key' => $key,
-                'mapel' => $mapelModel,
-                'nama' => $mapelModel?->nama_mapel ?? $preset['nama'],
-                'deskripsi' => $preset['deskripsi'],
-                'simbol' => $preset['simbol'],
-                'bg_color' => $preset['bg_color'],
-                'text_color' => $preset['text_color'],
-                'border_color' => $preset['border_color'],
+                'id'                 => $m->id,
+                'key'                => $planetKey,
+                'mapel'              => $m,
+                'nama'               => $m->nama_mapel,
+                'deskripsi'          => $matchedPreset['deskripsi'] ?? ('Planet petualangan ' . $m->nama_mapel),
+                'simbol'             => $matchedPreset['simbol'] ?? strtoupper(substr((string) $m->nama_mapel, 0, 2)),
+                'bg_color'           => $matchedPreset['bg_color'] ?? 'bg-sky-50',
+                'text_color'         => $matchedPreset['text_color'] ?? 'text-sky-600',
+                'border_color'       => $matchedPreset['border_color'] ?? 'border-sky-100',
                 'masalah_terdeteksi' => $uncompletedCount,
-                'tips' => $preset['tips'],
-                'lore' => $preset['lore'],
+                'tips'               => $matchedPreset['tips'] ?? 'Pelajari materi dengan teliti untuk menyelesaikan pos misi.',
+                'lore'               => $matchedPreset['lore'] ?? ('Eksplorasi sektor ' . $m->nama_mapel . ' dan selesaikan setiap pos tantangan.'),
             ]);
-        }
-
-        // Tambahkan mata pelajaran lain dari database apabila memiliki kuis yang diterbitkan
-        foreach ($dbMapels as $m) {
-            $alreadyIncluded = $planets->contains(fn ($p) => $p->id == $m->id);
-            if ($alreadyIncluded) {
-                continue;
-            }
-
-            $quizzesInMapel = $allQuizzes->filter(
-                fn (Quiz $q) => $q->pengampuKelas?->guruMapel?->mapel_id == $m->id
-            );
-
-            if ($quizzesInMapel->isNotEmpty()) {
-                $uncompletedCount = $quizzesInMapel->filter(
-                    fn (Quiz $q) => $q->nilais->where('status', 'selesai')->isEmpty()
-                )->count();
-
-                $planets->push((object) [
-                    'id' => $m->id,
-                    'key' => 'mapel-' . $m->id,
-                    'mapel' => $m,
-                    'nama' => $m->nama_mapel,
-                    'deskripsi' => 'Planet petualangan ' . $m->nama_mapel,
-                    'simbol' => strtoupper(substr($m->nama_mapel, 0, 2)),
-                    'bg_color' => 'bg-sky-50',
-                    'text_color' => 'text-sky-600',
-                    'border_color' => 'border-sky-100',
-                    'masalah_terdeteksi' => $uncompletedCount,
-                    'tips' => 'Pelajari materi dengan teliti untuk menyelesaikan pos misi.',
-                    'lore' => 'Eksplorasi sektor ' . $m->nama_mapel . ' dan selesaikan setiap pos tantangan.',
-                ]);
-            }
         }
 
         return $planets;
