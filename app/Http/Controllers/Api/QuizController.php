@@ -349,7 +349,7 @@ class QuizController extends Controller
         $levelFormatted = 'Level ' . $levelNum;
 
         if (!$quiz->canAddSoalFor($validated['kesulitan'], $levelFormatted)) {
-            return $this->errorResponse("Tingkat {$validated['kesulitan']} {$levelFormatted} sudah mencapai batas maksimal 10 soal.", 422);
+            return $this->errorResponse("Tingkat {$validated['kesulitan']} {$levelFormatted} sudah mencapai batas maksimal " . Quiz::MAX_SOAL . " soal.", 422);
         }
 
         $gambarPath = $this->quizService->handleSoalImageUpload($request);
@@ -620,11 +620,9 @@ class QuizController extends Controller
             return $this->forbiddenResponse('Kuis belum dipublikasikan.');
         }
 
-        // Cek apakah siswa sudah pernah menyelesaikan seluruh kuis ini
+        // Cek apakah siswa sudah pernah menyelesaikan kuis ini
         $existing = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
-        $totalSoalQuiz = $quiz->soals()->count();
-        $answeredCount = Menjawab::where('siswa_id', $siswa->id)->whereIn('soal_id', $quiz->soals()->pluck('id'))->count();
-        if ($existing && $totalSoalQuiz > 0 && $answeredCount >= $totalSoalQuiz) {
+        if ($existing && $existing->status === 'selesai') {
             return $this->errorResponse('Anda telah menyelesaikan kuis ini sebelumnya.', 400, [
                 'nilai'        => $existing->nilai,
                 'completed_at' => $existing->created_at,
@@ -710,11 +708,9 @@ class QuizController extends Controller
             return $this->forbiddenResponse('Kuis belum dipublikasikan.');
         }
 
-        // Cegah duplikasi submit jika seluruh kuis sudah tuntas
+        // Cegah duplikasi submit jika kuis sudah selesai
         $existing = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
-        $totalSoalQuiz = $quiz->soals()->count();
-        $answeredCount = Menjawab::where('siswa_id', $siswa->id)->whereIn('soal_id', $quiz->soals()->pluck('id'))->count();
-        if ($existing && $totalSoalQuiz > 0 && $answeredCount >= $totalSoalQuiz) {
+        if ($existing && $existing->status === 'selesai') {
             return $this->errorResponse('Jawaban kuis Anda sebelumnya sudah tersimpan.', 400, [
                 'nilai'  => $existing->nilai,
                 'durasi' => $existing->durasi,

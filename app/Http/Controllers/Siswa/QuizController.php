@@ -269,6 +269,11 @@ class QuizController extends Controller
         $journey = $this->adventureService->buildQuizAdventureJourney($quiz, $siswa);
         $levelsData = collect($journey['levels']);
 
+        if ($journey['is_all_completed'] || ($journey['nilai'] && $journey['nilai']->status === 'selesai')) {
+            return redirect()->route('siswa.kuis.hasil-petualangan', $quiz->id)
+                ->with('info', 'Kuis ini hanya dapat dikerjakan satu kali dan kamu sudah menyelesaikannya.');
+        }
+
         if ($levelsData->isEmpty()) {
             return redirect()->route('siswa.kuis.show', $quiz->id)
                 ->with('warning', 'Guru belum menambahkan soal pada kuis ini.');
@@ -285,6 +290,14 @@ class QuizController extends Controller
         if ($targetLevel['status'] === 'terkunci') {
             return redirect()->route('siswa.kuis.show', $quiz->id)
                 ->with('warning', "Selesaikan level sebelumnya terlebih dahulu untuk membuka {$targetLevel['full_nama']}.");
+        }
+
+        if ($targetLevel['status'] === 'selesai') {
+            return redirect()->route('siswa.kuis.hasil', [
+                'quiz'  => $quiz->id,
+                'arc'   => $targetLevel['arc'],
+                'level' => $targetLevel['level_num'],
+            ])->with('info', "{$targetLevel['full_nama']} sudah selesai dikerjakan dan tidak dapat dikerjakan ulang.");
         }
 
         $soals = $targetLevel['soals'];
@@ -330,6 +343,22 @@ class QuizController extends Controller
     {
         $siswa = $this->resolveAuthorizedSiswa($quiz, 'Akses ditolak.');
         abort_unless($quiz->isPublished(), 403, 'Kuis belum dipublikasikan.');
+
+        $alreadyCompleted = Nilai::where('siswa_id', $siswa->id)
+            ->where('quiz_id', $quiz->id)
+            ->where('status', 'selesai')
+            ->exists();
+
+        if ($alreadyCompleted) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kuis ini sudah selesai dikerjakan dan tidak dapat diubah lagi.',
+                ], 403);
+            }
+            return redirect()->route('siswa.kuis.hasil-petualangan', $quiz->id)
+                ->with('info', 'Kuis ini sudah selesai dikerjakan dan tidak dapat diubah lagi.');
+        }
 
         if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai->copy()->addMinutes(2))) {
             if ($request->wantsJson() || $request->ajax()) {
@@ -401,6 +430,11 @@ class QuizController extends Controller
         $journeyBefore = $this->adventureService->buildQuizAdventureJourney($quiz, $siswa);
         $levelsBefore = collect($journeyBefore['levels']);
 
+        if ($journeyBefore['is_all_completed'] || ($journeyBefore['nilai'] && $journeyBefore['nilai']->status === 'selesai')) {
+            return redirect()->route('siswa.kuis.hasil-petualangan', $quiz->id)
+                ->with('info', 'Kuis ini hanya dapat dikerjakan satu kali dan kamu sudah menyelesaikannya.');
+        }
+
         $targetLevel = $this->adventureService->resolveTargetLevel(
             $levelsBefore,
             $request->input('arc'),
@@ -411,6 +445,19 @@ class QuizController extends Controller
 
         if (!$targetLevel) {
             return redirect()->route('siswa.kuis.show', $quiz->id);
+        }
+
+        if ($targetLevel['status'] === 'terkunci') {
+            return redirect()->route('siswa.kuis.show', $quiz->id)
+                ->with('warning', "Selesaikan level sebelumnya terlebih dahulu untuk membuka {$targetLevel['full_nama']}.");
+        }
+
+        if ($targetLevel['status'] === 'selesai') {
+            return redirect()->route('siswa.kuis.hasil', [
+                'quiz'  => $quiz->id,
+                'arc'   => $targetLevel['arc'],
+                'level' => $targetLevel['level_num'],
+            ])->with('info', "{$targetLevel['full_nama']} sudah selesai dikerjakan dan tidak dapat dikerjakan ulang.");
         }
 
         $soalsSession = $targetLevel['soals'];

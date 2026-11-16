@@ -4,7 +4,7 @@
 
 @section('content')
     @php
-        $maxSoal = \App\Models\Quiz::MAX_SOAL; // 10
+        $maxSoal = \App\Models\Quiz::MAX_SOAL; // 5
         $currentSoalCount = $soalsInLevel->count();
         $isLevelFull = $currentSoalCount >= $maxSoal;
         $sisaSlot = max(0, $maxSoal - $currentSoalCount);
@@ -58,6 +58,7 @@
             kesulitan_aktif: {{ json_encode($quiz->kesulitan_aktif_array) }},
             status: '{{ $quiz->status ?? 'draft' }}',
             waktu_mulai: '{{ $quiz->waktu_mulai ? $quiz->waktu_mulai->format('Y-m-d\TH:i') : '' }}',
+            original_waktu_mulai: '{{ $quiz->waktu_mulai ? $quiz->waktu_mulai->format('Y-m-d\TH:i') : '' }}',
             waktu_selesai: '{{ $quiz->waktu_selesai ? $quiz->waktu_selesai->format('Y-m-d\TH:i') : '' }}',
             acak_jawaban: {{ $quiz->acak_jawaban ? 'true' : 'false' }}
         },
@@ -78,13 +79,15 @@
             tipe_soal: 'single_choice',
             bobot: 10,
             kunci_jawaban: 'a',
+            gambar_url: '',
+            hapus_gambar: false,
             options: []
         },
 
         todayStartDate: '{{ now()->format('Y-m-d\T00:00') }}',
 
-        validateSchedule(start, end) {
-            if (start) {
+        validateSchedule(start, end, originalStart = '') {
+            if (start && start !== originalStart) {
                 const startDate = new Date(start);
                 const now = new Date();
                 const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
@@ -122,7 +125,7 @@
 
         openAddModal() {
             if (this.isLevelFull) {
-                Swal.fire({icon: 'warning', title: 'Level Penuh', text: 'Level ini sudah mencapai batas maksimal 10 butir soal.'});
+                Swal.fire({icon: 'warning', title: 'Level Penuh', text: 'Level ini sudah mencapai batas maksimal {{ $maxSoal }} butir soal.'});
                 return;
             }
             this.addSoalData = {
@@ -156,6 +159,8 @@
                 tipe_soal: soal.tipe_soal || 'single_choice',
                 bobot: soal.bobot || 10,
                 kunci_jawaban: validKunci,
+                gambar_url: soal.gambar ? ('/storage/' + soal.gambar) : '',
+                hapus_gambar: false,
                 options: options
             };
             this.showEditSoalModal = true;
@@ -303,6 +308,40 @@
         </div>
 
         {{-- =========================================================
+            VALIDATION ERRORS & MULTI-CLASS SYNC INFO
+        ========================================================== --}}
+        @if ($errors->any())
+            <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-sm shadow-xs">
+                <div class="font-bold flex items-center gap-2">
+                    <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>Terjadi kesalahan validasi:</span>
+                </div>
+                <ul class="mt-1.5 list-disc list-inside text-xs text-rose-800 space-y-0.5">
+                    @foreach ($errors->all() as $err)
+                        <li>{{ $err }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        @if(isset($groupQuizzes) && $groupQuizzes->count() > 1)
+            <div class="p-4 rounded-2xl bg-indigo-50/80 border border-indigo-200 text-indigo-900 text-xs flex items-start gap-3 shadow-xs">
+                <svg class="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                </svg>
+                <div>
+                    <span class="font-bold block text-sm">Kuis Tersinkronisasi Multi-Kelas ({{ $groupQuizzes->count() }} Kelas)</span>
+                    <p class="text-indigo-800 mt-0.5 leading-relaxed">
+                        Setiap butir soal yang Anda tambah, ubah, atau hapus pada halaman ini akan otomatis disinkronkan ke seluruh kelas dalam grup:
+                        <strong>{{ $groupQuizzes->map(fn($gq) => ($gq->pengampuKelas?->kelas?->tingkatan ?? '') . ' ' . ($gq->pengampuKelas?->kelas?->nama_kelas ?? ''))->filter()->implode(', ') }}</strong>.
+                    </p>
+                </div>
+            </div>
+        @endif
+
+        {{-- =========================================================
             STATUS & READINESS ALERT
         ========================================================== --}}
         @php
@@ -402,7 +441,7 @@
                         Peta Level Tantangan: {{ $currentArcConfig['name'] ?? $activeArc }}
                     </h3>
                     <p class="text-xs text-slate-500 mt-0.5">
-                        Pilih level di bawah untuk melihat dan menambah butir soal (maksimal 10 butir soal per level).
+                        Pilih level di bawah untuk melihat dan menambah butir soal (maksimal {{ $maxSoal }} butir soal per level).
                     </p>
                 </div>
                 <div class="text-xs font-semibold px-3 py-1.5 rounded-xl border {{ $currentArcConfig['badge'] ?? 'bg-slate-100 text-slate-800' }}">
@@ -417,8 +456,8 @@
                         $lvlKey = "Level {$i}";
                         $isLvlActive = $activeLevel === $lvlKey;
                         $soalCountLvl = $levelCounts[$activeArc][$lvlKey] ?? 0;
-                        $isLvlFull = $soalCountLvl >= 10;
-                        $percentLvl = min(100, ($soalCountLvl / 10) * 100);
+                        $isLvlFull = $soalCountLvl >= $maxSoal;
+                        $percentLvl = min(100, ($soalCountLvl / $maxSoal) * 100);
                     @endphp
                     <a href="{{ route('guru.kuis.show', ['quiz' => $quiz, 'arc' => $activeArc, 'level' => $lvlKey]) }}"
                         class="p-4 rounded-2xl border text-center transition-all duration-200 flex flex-col justify-between group relative cursor-pointer {{ $isLvlActive ? 'border-blue-600 bg-blue-50/60 shadow-xs ring-2 ring-blue-100' : 'border-slate-200/80 bg-slate-50/40 hover:bg-slate-100/70 hover:border-slate-300' }}">
@@ -432,7 +471,7 @@
                                 @if ($isLvlFull)
                                     <span
                                         class="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]"
-                                        title="10/10 Soal Penuh">✓</span>
+                                        title="{{ $maxSoal }}/{{ $maxSoal }} Soal Penuh">✓</span>
                                 @endif
                             </div>
 
@@ -444,7 +483,7 @@
                             {{-- Soal Count --}}
                             <div
                                 class="mt-2 text-xs font-bold {{ $isLvlFull ? 'text-emerald-600' : ($soalCountLvl > 0 ? 'text-blue-700' : 'text-slate-400') }}">
-                                {{ $soalCountLvl }} / 10 Soal
+                                {{ $soalCountLvl }} / {{ $maxSoal }} Soal
                             </div>
                         </div>
 
@@ -482,7 +521,7 @@
                     <p class="text-xs text-slate-500 mt-1">
                         Kapasitas: <strong class="text-slate-800">{{ $currentSoalCount }} / {{ $maxSoal }} Butir Soal</strong>
                         @if ($isLevelFull)
-                            • <span class="text-emerald-600 font-bold">✓ Kuota level ini telah terpenuhi (10 soal)</span>
+                            • <span class="text-emerald-600 font-bold">✓ Kuota level ini telah terpenuhi ({{ $maxSoal }} soal)</span>
                         @else
                             • <span class="text-blue-600 font-bold">Tersedia {{ $sisaSlot }} slot soal lagi</span>
                         @endif
@@ -496,7 +535,7 @@
                         <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                         </svg>
-                        Maksimal 10 Soal Tercapai
+                        Maksimal {{ $maxSoal }} Soal Tercapai
                     </button>
                 @else
                     <button @click="openAddModal()" type="button"
@@ -561,7 +600,7 @@
                                     {{-- Delete Soal --}}
                                     <form method="POST"
                                         action="{{ route('guru.kuis.soal.destroy', ['quiz' => $quiz, 'soal' => $soal]) }}"
-                                        data-confirm="Apakah Anda yakin ingin menghapus butir soal nomor {{ $index + 1 }} ini? Tindakan ini tidak dapat dibatalkan dan slot soal akan kembali terbuka.">
+                                        data-confirm="{{ !empty($hasStudentActivity) ? 'PERHATIAN: Sudah ada siswa yang mengerjakan kuis ini! Menghapus butir soal nomor ' . ($index + 1) . ' akan mengubah bobot soal lainnya. Tetap lanjutkan?' : 'Apakah Anda yakin ingin menghapus butir soal nomor ' . ($index + 1) . ' ini? Tindakan ini tidak dapat dibatalkan dan slot soal akan kembali terbuka.' }}">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit"
@@ -622,7 +661,7 @@
                     </div>
                     <p class="text-sm font-bold text-slate-800">Belum ada butir soal di {{ $activeArc }} - {{ $activeLevel }}</p>
                     <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                        Setiap level dapat diisi hingga 10 butir soal pilihan ganda. Klik tombol di bawah untuk menambahkan
+                        Setiap level dapat diisi hingga {{ $maxSoal }} butir soal pilihan ganda. Klik tombol di bawah untuk menambahkan
                         soal pertama.
                     </p>
                     <button @click="openAddModal()" type="button"
@@ -814,8 +853,26 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
-                                Ganti Gambar (Opsional)
+                                Gambar Soal (Opsional)
                             </label>
+                            <template x-if="editSoalData.gambar_url && !editSoalData.hapus_gambar">
+                                <div class="mb-2 p-2 rounded-xl border border-slate-200 bg-slate-50 flex items-center gap-3">
+                                    <img :src="editSoalData.gambar_url" alt="Preview Gambar Soal" class="w-14 h-14 rounded-lg object-cover border border-slate-200 shrink-0">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-[11px] font-semibold text-slate-700 truncate">Gambar terpasang saat ini</p>
+                                        <label class="inline-flex items-center gap-1.5 mt-1 cursor-pointer text-[11px] font-bold text-rose-600 hover:text-rose-700">
+                                            <input type="checkbox" name="hapus_gambar" value="1" x-model="editSoalData.hapus_gambar" class="w-3.5 h-3.5 text-rose-600 rounded focus:ring-rose-500">
+                                            <span>Hapus gambar saat ini</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="editSoalData.gambar_url && editSoalData.hapus_gambar">
+                                <div class="mb-2 p-2.5 rounded-xl border border-rose-200 bg-rose-50 text-[11px] text-rose-700 flex items-center justify-between">
+                                    <span class="font-semibold">Gambar akan dihapus saat disimpan.</span>
+                                    <button type="button" @click="editSoalData.hapus_gambar = false" class="font-bold underline cursor-pointer">Batalkan</button>
+                                </div>
+                            </template>
                             <input type="file" name="gambar" accept="image/*"
                                 class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
                         </div>
@@ -906,7 +963,7 @@
                             Swal.fire({icon: 'warning', title: 'Peringatan', text: 'Pilih minimal satu tingkat kesulitan (Arc) yang aktif!'}); 
                             return;
                         }
-                        if (!validateSchedule(editQuizData.waktu_mulai, editQuizData.waktu_selesai)) {
+                        if (!validateSchedule(editQuizData.waktu_mulai, editQuizData.waktu_selesai, editQuizData.original_waktu_mulai)) {
                             $event.preventDefault();
                         }
                     "
@@ -989,10 +1046,9 @@
                                     type="datetime-local"
                                     name="waktu_mulai"
                                     x-model="editQuizData.waktu_mulai"
-                                    :min="todayStartDate"
                                     class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
                                 >
-                                <p class="text-[10px] text-slate-400 mt-1">Tidak boleh sebelum hari ini</p>
+                                <p class="text-[10px] text-slate-400 mt-1">Jika diubah, tidak boleh sebelum hari ini</p>
                             </div>
                             <div>
                                 <label class="block text-[11px] font-semibold text-slate-600 mb-1">Waktu Berakhir</label>
@@ -1000,7 +1056,6 @@
                                     type="datetime-local"
                                     name="waktu_selesai"
                                     x-model="editQuizData.waktu_selesai"
-                                    :min="todayStartDate"
                                     class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
                                 >
                                 <p class="text-[10px] text-slate-400 mt-1">Harus lebih lambat dari waktu mulai</p>
@@ -1105,70 +1160,83 @@
                 {{-- Modal Body --}}
                 <div class="p-6 overflow-y-auto flex-1 space-y-5">
                     @php
-                        $nilais = $quiz->nilais;
-                        $totalSubmissions = $nilais->count();
-                        $avgScore = $totalSubmissions > 0 ? $nilais->avg('nilai') : 0;
-                        $maxScore = $totalSubmissions > 0 ? $nilais->max('nilai') : 0;
-                        $minScore = $totalSubmissions > 0 ? $nilais->min('nilai') : 0;
+                        $daftarSiswaList = $daftarSiswa ?? collect();
+                        $selesaiList = $daftarSiswaList->where('status', 'selesai');
+                        $sedangList = $daftarSiswaList->where('status', 'sedang_mengerjakan');
+                        $belumList = $daftarSiswaList->where('status', 'belum_mulai');
+                        $avgScore = $selesaiList->count() > 0 ? $selesaiList->avg('nilai') : 0;
                     @endphp
 
                     {{-- Metrics Pills --}}
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div class="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-100 text-center">
-                            <span class="text-[11px] font-semibold text-indigo-700 uppercase tracking-wider block">Selesai</span>
-                            <span class="text-xl font-black text-indigo-900 mt-0.5 block">{{ $totalSubmissions }} Siswa</span>
-                        </div>
-                        <div class="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-100 text-center">
-                            <span class="text-[11px] font-semibold text-blue-700 uppercase tracking-wider block">Rata-rata</span>
-                            <span class="text-xl font-black text-blue-900 mt-0.5 block">{{ number_format($avgScore, 1) }}</span>
-                        </div>
                         <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-center">
-                            <span class="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider block">Tertinggi</span>
-                            <span class="text-xl font-black text-emerald-900 mt-0.5 block">{{ number_format($maxScore, 0) }}</span>
+                            <span class="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider block">Selesai</span>
+                            <span class="text-xl font-black text-emerald-900 mt-0.5 block">{{ $selesaiList->count() }} Siswa</span>
                         </div>
                         <div class="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-100 text-center">
-                            <span class="text-[11px] font-semibold text-amber-700 uppercase tracking-wider block">Terendah</span>
-                            <span class="text-xl font-black text-amber-900 mt-0.5 block">{{ number_format($minScore, 0) }}</span>
+                            <span class="text-[11px] font-semibold text-amber-700 uppercase tracking-wider block">Mengerjakan</span>
+                            <span class="text-xl font-black text-amber-900 mt-0.5 block">{{ $sedangList->count() }} Siswa</span>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-slate-100/80 border border-slate-200 text-center">
+                            <span class="text-[11px] font-semibold text-slate-600 uppercase tracking-wider block">Belum Mulai</span>
+                            <span class="text-xl font-black text-slate-800 mt-0.5 block">{{ $belumList->count() }} Siswa</span>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-100 text-center">
+                            <span class="text-[11px] font-semibold text-blue-700 uppercase tracking-wider block">Rata-rata Nilai</span>
+                            <span class="text-xl font-black text-blue-900 mt-0.5 block">{{ number_format($avgScore, 1) }}</span>
                         </div>
                     </div>
 
-                    {{-- Table Nilai --}}
-                    @if($totalSubmissions > 0)
-                        <div class="border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs">
+                    {{-- Table Progres & Nilai Seluruh Siswa --}}
+                    @if($daftarSiswaList->count() > 0)
+                        <div class="border border-slate-200/80 rounded-2xl overflow-x-auto shadow-xs">
                             <table class="w-full text-left border-collapse">
                                 <thead class="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                                     <tr>
                                         <th class="py-3 px-4 w-12 text-center">No</th>
                                         <th class="py-3 px-4">Nama Siswa</th>
-                                        <th class="py-3 px-4">NIS</th>
+                                        <th class="py-3 px-4">Status</th>
+                                        <th class="py-3 px-4 text-center">Progres</th>
                                         <th class="py-3 px-4 text-center">Nilai</th>
                                         <th class="py-3 px-4 text-center">Durasi</th>
                                         <th class="py-3 px-4 text-right">Waktu Selesai</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100 text-xs">
-                                    @foreach($nilais as $idx => $n)
-                                        @php
-                                            $skorSiswa = (float)$n->nilai;
-                                        @endphp
+                                    @foreach($daftarSiswaList as $idx => $item)
                                         <tr class="hover:bg-slate-50/70 transition">
                                             <td class="py-3 px-4 text-center font-bold text-slate-400">{{ $idx + 1 }}</td>
-                                            <td class="py-3 px-4 font-bold text-slate-800">
-                                                {{ $n->siswa?->nama_siswa ?? 'Siswa' }}
+                                            <td class="py-3 px-4">
+                                                <div class="font-bold text-slate-800">{{ $item['nama'] }}</div>
+                                                <div class="text-[11px] text-slate-400 font-mono">{{ $item['nis'] }}</div>
                                             </td>
-                                            <td class="py-3 px-4 text-slate-500 font-mono">{{ $n->siswa?->nis ?? '-' }}</td>
+                                            <td class="py-3 px-4">
+                                                @if($item['status'] === 'selesai')
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Selesai</span>
+                                                @elseif($item['status'] === 'sedang_mengerjakan')
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Mengerjakan</span>
+                                                @else
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">Belum Mulai</span>
+                                                @endif
+                                            </td>
+                                            <td class="py-3 px-4 text-center font-semibold text-slate-600">
+                                                {{ $item['answered_count'] }}/{{ $item['total_soal'] }} Soal
+                                            </td>
                                             <td class="py-3 px-4 text-center">
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg font-extrabold text-xs
-                                                    {{ $skorSiswa >= 85 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                                                       ($skorSiswa >= 70 ? 'bg-blue-50 text-blue-700 border border-blue-200' :
-                                                       'bg-rose-50 text-rose-700 border border-rose-200') }}">
-                                                    {{ number_format($skorSiswa, 0) }}
-                                                </span>
+                                                @if($item['nilai'] !== null)
+                                                    @php $skorSiswa = (float) $item['nilai']; @endphp
+                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg font-extrabold text-xs
+                                                        {{ $skorSiswa >= 85 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                                                           ($skorSiswa >= 70 ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                                                           'bg-rose-50 text-rose-700 border border-rose-200') }}">
+                                                        {{ number_format($skorSiswa, 0) }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-slate-400">-</span>
+                                                @endif
                                             </td>
-                                            <td class="py-3 px-4 text-center font-mono text-slate-600">{{ $n->durasi_formatted ?? '-' }}</td>
-                                            <td class="py-3 px-4 text-right text-slate-400">
-                                                {{ $n->created_at ? $n->created_at->format('d/m/Y H:i') : '-' }}
-                                            </td>
+                                            <td class="py-3 px-4 text-center font-mono text-slate-600">{{ $item['durasi'] }}</td>
+                                            <td class="py-3 px-4 text-right text-slate-400">{{ $item['waktu_selesai'] }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -1181,7 +1249,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                 </svg>
                             </div>
-                            <h4 class="text-sm font-bold text-slate-700">Belum Ada Siswa Mengerjakan</h4>
+                            <h4 class="text-sm font-bold text-slate-700">Belum Ada Siswa Terdaftar di Kelas Ini</h4>
                             <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
                                 Nilai dan statistik pengerjaan akan otomatis tercatat di sini setelah siswa di kelas mengerjakan kuis ini.
                             </p>

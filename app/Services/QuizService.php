@@ -11,6 +11,7 @@ use App\Models\Quiz;
 use App\Models\Siswa;
 use App\Models\Soal;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -148,9 +149,11 @@ class QuizService
      * Memvalidasi apakah kuis memenuhi syarat untuk diterbitkan (published).
      * Mengembalikan pesan error jika belum valid, atau null jika siap diterbitkan.
      */
-    public function validateQuizBeforePublish(Quiz $quiz, string $emptyQuestionLabel = 'soal'): ?string
+    public function validateQuizBeforePublish(Quiz $quiz, string $emptyQuestionLabel = 'soal', ?array $difficultiesOverride = null): ?string
     {
-        $activeDifficulties = $quiz->kesulitan_aktif_array;
+        $activeDifficulties = $difficultiesOverride !== null
+            ? $this->normalizeActiveDifficulties($difficultiesOverride)
+            : $quiz->kesulitan_aktif_array;
 
         if (empty($activeDifficulties)) {
             return 'Aktifkan minimal satu tingkat kesulitan sebelum menerbitkan kuis.';
@@ -167,37 +170,59 @@ class QuizService
     }
 
     /**
-     * Menghapus berkas gambar soal dari storage publik jika ada.
+     * Mengambil seluruh kuis dalam grup multi-kelas yang sama (jika memiliki id_grup_kuis).
      */
-    public function deleteSoalImage(?string $gambarPath): void
+    public function getGroupQuizzes(Quiz $quiz): EloquentCollection
     {
-        if ($gambarPath && Storage::disk('public')->exists($gambarPath)) {
+        if (!$quiz->id_grup_kuis) {
+            return new EloquentCollection([$quiz]);
+        }
+
+        $group = Quiz::where('id_grup_kuis', $quiz->id_grup_kuis)->get();
+
+        return $group->isNotEmpty() ? $group : new EloquentCollection([$quiz]);
+    }
+
+    /**
+     * Menghapus berkas gambar soal dari storage publik jika tidak digunakan oleh soal lain.
+     */
+    public function deleteSoalImage(?string $gambarPath, ?int $excludeSoalId = null): void
+    {
+        if (!$gambarPath) {
+            return;
+        }
+
+        $stillUsed = Soal::where('gambar', $gambarPath)
+            ->when($excludeSoalId, fn (Builder $q) => $q->where('id', '!=', $excludeSoalId))
+            ->exists();
+
+        if (!$stillUsed && Storage::disk('public')->exists($gambarPath)) {
             Storage::disk('public')->delete($gambarPath);
         }
     }
 
     /**
-     * Menyimpan berkas gambar soal baru dan menghapus gambar lama jika ada.
+     * Menyimpan berkas gambar soal baru dan menghapus gambar lama jika tidak dipakai soal lain.
      */
-    public function handleSoalImageUpload(Request $request, ?string $existingPath = null): ?string
+    public function handleSoalImageUpload(Request $request, ?string $existingPath = null, ?int $excludeSoalId = null): ?string
     {
         if (!$request->hasFile('gambar')) {
             return $existingPath;
         }
 
-        $this->deleteSoalImage($existingPath);
+        $this->deleteSoalImage($existingPath, $excludeSoalId);
 
         return $request->file('gambar')->store('soals', 'public');
     }
 
     /**
-     * Menghapus satu kuis beserta seluruh berkas gambar soalnya.
+     * Menghapus satu kuis beserta seluruh berkas gambar soalnya (jika tidak dipakai kelas lain).
      */
     public function deleteQuizWithAssets(Quiz $quiz): void
     {
         $soals = $quiz->relationLoaded('soals') ? $quiz->soals : $quiz->soals()->get();
         foreach ($soals as $soal) {
-            $this->deleteSoalImage($soal->gambar);
+            $this->deleteSoalImage($soal->gambar, $soal->id);
         }
 
         $quiz->delete();
@@ -350,6 +375,101 @@ class QuizService
         }
 
         return 0;
+    }
+
+    /**
+     * Mengirim notifikasi ke seluruh siswa di kelas saat kuis diterbitkan.
+     */
+    public function notifyKelasQuizPublished(Quiz $quiz): void
+    {
+        $quiz->loadMissing(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.kelas']);
+        $kelasId = $quiz->pengampuKelas?->kelas_id;
+        if (!$kelasId) {
+            return;
+        }
+
+        $mapelNama = $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+        $jadwalInfo = $quiz->waktu_selesai
+            ? ' Batas pengerjaan: ' . $quiz->waktu_selesai->locale('id')->translatedFormat('d M Y, H:i') . ' WIB.'
+            : ' Kuis ini dapat dikerjakan sesuai petualangan yang tersedia.';
+
+        Notifikasi::kirimKeKelas(
+            $kelasId,
+            "Kuis Petualangan Baru: {$quiz->judul}",
+            "Guru telah menerbitkan kuis petualangan untuk mata pelajaran {$mapelNama}.{$jadwalInfo}",
+            'kuis_baru',
+            route('siswa.kuis.show', $quiz->id),
+            $quiz->id
+        );
+    }
+
+    /**
+     * Mengambil progres seluruh siswa di kelas pada kuis ini (Selesai, Sedang Mengerjakan, Belum Mulai).
+     */
+    public function getClassStudentProgress(Quiz $quiz): Collection
+    {
+        $quiz->loadMissing(['pengampuKelas.kelas', 'soals', 'nilais.siswa']);
+        $kelas = $quiz->pengampuKelas?->kelas;
+        $totalSoal = $quiz->soals->count();
+        $soalIds = $quiz->soals->pluck('id');
+
+        if (!$kelas) {
+            return $quiz->nilais->map(function (Nilai $n) use ($totalSoal) {
+                return [
+                    'siswa_id'       => $n->siswa_id,
+                    'nama'           => $n->siswa?->nama_siswa ?? 'Siswa',
+                    'nis'            => $n->siswa?->nis ?? '-',
+                    'status'         => 'selesai',
+                    'answered_count' => $totalSoal,
+                    'total_soal'     => $totalSoal,
+                    'nilai'          => (float) $n->nilai,
+                    'durasi'         => $n->durasi_formatted ?? '-',
+                    'waktu_selesai'  => $n->created_at?->format('d/m/Y H:i') ?? '-',
+                ];
+            });
+        }
+
+        $siswas = $kelas->siswas()
+            ->orderBy('siswas.nama_siswa')
+            ->get()
+            ->unique('id');
+
+        $nilaiBySiswa = $quiz->nilais->keyBy('siswa_id');
+
+        $answeredBySiswa = collect();
+        if ($soalIds->isNotEmpty()) {
+            $answeredBySiswa = Menjawab::whereIn('soal_id', $soalIds)
+                ->whereNotNull('jawaban_dipilih')
+                ->where('jawaban_dipilih', '!=', '')
+                ->select('siswa_id', DB::raw('COUNT(DISTINCT soal_id) as total_terjawab'))
+                ->groupBy('siswa_id')
+                ->pluck('total_terjawab', 'siswa_id');
+        }
+
+        return $siswas->map(function (Siswa $siswa) use ($nilaiBySiswa, $answeredBySiswa, $totalSoal) {
+            $nilai = $nilaiBySiswa->get($siswa->id);
+            $answeredCount = (int) ($answeredBySiswa->get($siswa->id) ?? 0);
+
+            if ($nilai && ($nilai->status === 'selesai' || $nilai->nilai !== null)) {
+                $status = 'selesai';
+            } elseif ($answeredCount > 0) {
+                $status = 'sedang_mengerjakan';
+            } else {
+                $status = 'belum_mulai';
+            }
+
+            return [
+                'siswa_id'       => $siswa->id,
+                'nama'           => $siswa->nama_siswa,
+                'nis'            => $siswa->nis ?? '-',
+                'status'         => $status,
+                'answered_count' => $status === 'selesai' ? max($answeredCount, $totalSoal) : $answeredCount,
+                'total_soal'     => $totalSoal,
+                'nilai'          => $nilai ? (float) $nilai->nilai : null,
+                'durasi'         => $nilai?->durasi_formatted ?? '-',
+                'waktu_selesai'  => $nilai?->created_at?->format('d/m/Y H:i') ?? '-',
+            ];
+        })->values();
     }
 
     /**

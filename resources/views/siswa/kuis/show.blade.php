@@ -565,13 +565,6 @@
                                     <span>Lihat Hasil Level Ini</span>
                                 </a>
                             @endif
-                            <a 
-                                :href="'{{ route('siswa.kuis.kerjakan', $quiz->id) }}?arc=' + encodeURIComponent(currentLevel.arc) + '&level=' + currentLevel.level_num"
-                                class="w-full py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-[#2563EB] border border-blue-200 font-bold text-xs flex items-center justify-center gap-2 transition-all"
-                            >
-                                <i class="fa-solid fa-rotate-right text-xs"></i>
-                                <span>Kerjakan Ulang Level</span>
-                            </a>
                         </div>
                     </template>
 
