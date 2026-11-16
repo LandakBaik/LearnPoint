@@ -146,7 +146,6 @@
                         </option>
                     @endforeach
                 </select>
-                    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100">
             </div>
 
             <!-- DESKRIPSI -->
@@ -161,76 +160,6 @@
                     x-model="editData.deskripsi"
                     placeholder="Tambahkan instruksi pengerjaan tugas..."
                     class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"></textarea>
-            </div>
-
-            <div class="border-t border-slate-100"></div>
-
-            <!-- KELAS -->
-            <div class="space-y-3">
-                <div>
-                    <label class="text-sm font-semibold text-slate-800">
-                        Kelas Tujuan <span class="text-red-500">*</span>
-                    </label>
-                    <p class="mt-1 text-xs text-slate-400">
-                        Pilih satu atau beberapa kelas untuk tugas ini.
-                    </p>
-                </div>
-
-                <div class="space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3">
-
-                    <!-- FILTER TINGKAT -->
-                    <select
-                        id="filterTingkatEdit"
-                        class="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-
-                        <option value="">Semua Tingkat</option>
-
-                        @foreach($pengampuKelases->pluck('kelas.nama_kelas')->filter()->map(fn($nama) => preg_replace('/\D/', '', $nama))->filter()->unique()->sort() as $tingkat)
-                        <option value="{{ $tingkat }}">Tingkat {{ $tingkat }}</option>
-                        @endforeach
-                    </select>
-
-                    <!-- PILIH SEMUA -->
-                    <label class="flex cursor-pointer items-center gap-3 rounded-lg bg-blue-50 p-3">
-                        <input
-                            type="checkbox"
-                            id="pilihSemuaEdit"
-                            class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-
-                        <span class="text-sm font-semibold text-blue-700">
-                            Pilih Semua
-                        </span>
-                    </label>
-
-                    <!-- DAFTAR KELAS -->
-                    <div
-                        id="daftarPengampuEdit"
-                        class="grid max-h-48 grid-cols-2 gap-2.5 overflow-y-auto sm:grid-cols-3">
-
-                        @foreach($pengampuKelases as $pk)
-                        <label
-                            class="itemPengampuEdit flex cursor-pointer items-center rounded-xl border border-slate-200 bg-white p-3 transition hover:border-blue-300 hover:bg-blue-50"
-                            data-tingkat="{{ preg_replace('/\D/', '', $pk->kelas?->nama_kelas ?? '') }}">
-
-                            <input
-                                type="checkbox"
-                                name="pengampu_kelas_id[]"
-                                value="{{ $pk->id }}"
-                                class="checkboxPengampuEdit h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-
-                            <span class="ml-2 text-xs font-semibold text-slate-800">
-                                {{ $pk->kelas?->nama_kelas ?? 'Kelas' }}
-                            </span>
-                        </label>
-                        @endforeach
-                    </div>
-
-                    <p
-                        id="jumlahTerpilihEdit"
-                        class="border-t border-slate-100 pt-3 text-xs font-medium text-slate-500">
-                        0 kelas dipilih
-                    </p>
-                </div>
             </div>
 
             <div class="border-t border-slate-100"></div>
