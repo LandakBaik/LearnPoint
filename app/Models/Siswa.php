@@ -102,6 +102,51 @@ class Siswa extends Model
             'rarity' => 'epic',
             'badge' => 'Epic Sakura',
         ],
+        'cyber_city' => [
+            'kode' => 'cyber_city',
+            'nama' => 'Cyber City Metropolis',
+            'deskripsi' => 'Pemandangan megacity futuristik berlumur cahaya neon sci-fi dengan gedung pencakar langit berteknologi tinggi.',
+            'gif_url' => 'images/Banner/cyber-city.gif',
+            'theme' => 'dark',
+            'rarity' => 'rare',
+            'badge' => 'Rare Cyber',
+        ],
+        'enchanted_forest' => [
+            'kode' => 'enchanted_forest',
+            'nama' => 'Enchanted Forest Realm',
+            'deskripsi' => 'Hutan magis kuno yang memesona dengan jamur bersinar, kunang-kunang peri, dan kabut hijau mistis.',
+            'gif_url' => 'images/Banner/enchanted-forest.gif',
+            'theme' => 'dark',
+            'rarity' => 'epic',
+            'badge' => 'Epic Fantasy',
+        ],
+        'sakura_dusk' => [
+            'kode' => 'sakura_dusk',
+            'nama' => 'Sakura Dusk Petals',
+            'deskripsi' => 'Pemandangan lembayung senja dengan hembusan angin membawa guguran kelopak bunga sakura merah muda.',
+            'gif_url' => 'images/Banner/sakura-dusk.gif',
+            'theme' => 'dark',
+            'rarity' => 'rare',
+            'badge' => 'Rare Sakura',
+        ],
+        'snowy_village' => [
+            'kode' => 'snowy_village',
+            'nama' => 'Cozy Snowy Village',
+            'deskripsi' => 'Desa musim dingin damai yang diselimuti salju lembut dengan cahaya lentera hangat di malam berbintang.',
+            'gif_url' => 'images/Banner/snowy-village.gif',
+            'theme' => 'dark',
+            'rarity' => 'epic',
+            'badge' => 'Epic Winter',
+        ],
+        'space_nebula' => [
+            'kode' => 'space_nebula',
+            'nama' => 'Cosmic Nebula Void',
+            'deskripsi' => 'Awan kosmik nebula ultraviolet raksasa berputar memancarkan debu antariksa dan gugusan bintang terang.',
+            'gif_url' => 'images/Banner/space-nebula.gif',
+            'theme' => 'dark',
+            'rarity' => 'legendary',
+            'badge' => 'Legendary Nebula',
+        ],
     ];
 
     /**
@@ -152,6 +197,7 @@ class Siswa extends Model
      */
     public function getBannersListAttribute(): array
     {
+        Item::ensureDefaultCatalog();
         $allBanners = Item::banners()->where('is_active', true)->orderBy('id')->get();
 
         // Ambil daftar kode banner yang dimiliki dari inventories

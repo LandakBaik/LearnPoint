@@ -23,25 +23,20 @@ class TugasController extends Controller
             abort(403, 'Data siswa tidak ditemukan.');
         }
 
-        $daftarTugas = Tugas::with([
-            'pengampuKelas.guruMapel.guru',
-            'pengampuKelas.guruMapel.mapel',
-            'pengampuKelas.kelas',
-        ])
-            ->whereHas('pengampuKelas', function ($query) use ($siswa) {
-                $query->where('kelas_id', $siswa->kelas_id);
-            })
-            ->latest()
-            ->get();
+        $kelasId = $siswa->kelas()->value('kelases.id');
 
-        // Ambil semua tugas jika tidak ditemukan berdasarkan kelas
-        if ($daftarTugas->isEmpty()) {
-            $daftarTugas = Tugas::with([
+        $daftarTugas = $kelasId
+            ? Tugas::with([
                 'pengampuKelas.guruMapel.guru',
                 'pengampuKelas.guruMapel.mapel',
                 'pengampuKelas.kelas',
-            ])->latest()->get();
-        }
+            ])
+                ->whereHas('pengampuKelas', function ($query) use ($kelasId) {
+                    $query->where('kelas_id', $kelasId);
+                })
+                ->latest()
+                ->get()
+            : collect();
 
         // Ambil pengumpulan masing-masing siswa
         foreach ($daftarTugas as $tugas) {
@@ -63,7 +58,7 @@ class TugasController extends Controller
                 return false;
             }
 
-            return $pengumpulan->nilai == 0;
+            return $pengumpulan->nilai === null;
         });
 
         // Statistik tugas
@@ -86,7 +81,7 @@ class TugasController extends Controller
 
             return $pengumpulan
                 && $tugas->tipe === 'upload'
-                && $pengumpulan->nilai == 0;
+                && $pengumpulan->nilai === null;
         })->count();
 
         // Tugas dengan tenggat terdekat
@@ -126,6 +121,9 @@ class TugasController extends Controller
             'pengampuKelas.kelas',
             'soals',
         ])->findOrFail($id);
+
+        $kelasId = $siswa->kelas()->value('kelases.id');
+        abort_unless($kelasId && $tugas->pengampuKelas?->kelas_id == $kelasId, 403, 'Anda tidak memiliki akses ke tugas ini.');
 
         // Ambil pengumpulan siswa
         $pengumpulan = Nilai::where('siswa_id', $siswa->id)
@@ -179,6 +177,9 @@ class TugasController extends Controller
             'pengampuKelas.guruMapel.guru',
             'pengampuKelas.kelas',
         ])->findOrFail($id);
+
+        $kelasId = $siswa->kelas()->value('kelases.id');
+        abort_unless($kelasId && $tugas->pengampuKelas?->kelas_id == $kelasId, 403, 'Anda tidak memiliki akses ke tugas ini.');
 
         // Tentukan status pengumpulan
         $status = (
@@ -349,6 +350,10 @@ class TugasController extends Controller
             ->where('tugas_id', $tugas->id)
             ->first();
 
+        if ($pengumpulanLama && $pengumpulanLama->nilai !== null) {
+            return back()->with('error', 'Tugas sudah dinilai dan tidak dapat diubah lagi.');
+        }
+
         // Simpan file baru ke storage/app/public/jawaban_tugas
         $file = $request->file('file_jawaban')
             ->store('jawaban_tugas', 'public');
@@ -361,7 +366,7 @@ class TugasController extends Controller
             ],
             [
                 'file_jawaban' => $file,
-                'nilai' => 0,
+                'nilai' => null,
                 'status' => $status,
             ]
         );

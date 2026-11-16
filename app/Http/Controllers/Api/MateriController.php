@@ -62,10 +62,18 @@ class MateriController extends Controller
 
         $matchingGroupIds = (clone $query)->distinct()->pluck('id_grub_materi');
 
-        $materis = Materi::whereIn('id_grub_materi', $matchingGroupIds)
-            ->with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.kelas'])
-            ->latest()
-            ->get();
+        $materisQuery = Materi::whereIn('id_grub_materi', $matchingGroupIds)
+            ->with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.kelas']);
+
+        $sort = $request->input('sort', 'terbaru');
+        match ($sort) {
+            'terlama' => $materisQuery->oldest(),
+            'judul_asc' => $materisQuery->orderBy('judul', 'asc'),
+            'judul_desc' => $materisQuery->orderBy('judul', 'desc'),
+            default => $materisQuery->latest(),
+        };
+
+        $materis = $materisQuery->get();
 
         $grouped = $materis->groupBy('id_grub_materi')->map(function ($items, $groupId) {
             $first = $items->first();
@@ -184,14 +192,19 @@ class MateriController extends Controller
         $guruId = $request->user()?->guru?->id;
 
         $validator = Validator::make($request->all(), [
-            'judul' => ['required', 'string', 'max:255'],
+            'judul' => ['required', 'string', 'max:200'],
             'mapel_id' => ['required', 'integer', 'exists:mapels,id'],
             'tingkatan' => ['required', 'in:7,8,9'],
             'pengampu_kelas_ids' => ['required', 'array', 'min:1'],
             'pengampu_kelas_ids.*' => ['required', 'integer', 'exists:pengampu_kelas,id'],
             'deskripsi' => ['nullable', 'string', 'max:1000'],
             'file_materi' => ['required', 'file', 'mimes:pdf,ppt,pptx', 'max:10240'],
-            'url_youtube' => ['nullable', 'url', 'max:255'],
+            'url_youtube' => ['nullable', 'url', 'max:2048'],
+        ], [
+            'file_materi.required' => 'File materi wajib diunggah (PDF/PPT/PPTX).',
+            'file_materi.mimes' => 'Format file harus PDF, PPT, atau PPTX.',
+            'file_materi.max' => 'Ukuran file maksimal 10 MB.',
+            'pengampu_kelas_ids.required' => 'Pilih minimal satu kelas sasaran.',
         ]);
 
         if ($validator->fails()) {
@@ -215,34 +228,62 @@ class MateriController extends Controller
             return $this->errorResponse('Terdapat kelas sasaran yang tidak valid atau bukan wewenang Anda.', 422);
         }
 
+        $judul = trim($validated['judul']);
+
+        $duplicateMateris = Materi::with('pengampuKelas.kelas')
+            ->whereIn('pengampu_kelas_id', $validPengampu)
+            ->whereRaw('LOWER(judul) = ?', [Str::lower($judul)])
+            ->get();
+
+        if ($duplicateMateris->isNotEmpty()) {
+            $namaKelasBentrok = $duplicateMateris
+                ->map(fn ($m) => $m->pengampuKelas?->kelas?->nama_kelas)
+                ->filter()
+                ->unique()
+                ->implode(', ');
+
+            return $this->validationErrorResponse([
+                'judul' => ["Materi dengan judul \"{$judul}\" sudah ada pada kelas: {$namaKelasBentrok}."],
+            ]);
+        }
+
         $path = $request->file('file_materi')->store('materi_files', 'public');
         $idGrubMateri = (string) Str::uuid();
 
-        DB::transaction(function () use ($validated, $validPengampu, $path, $idGrubMateri) {
-            foreach ($validPengampu as $pkId) {
-                Materi::create([
-                    'judul' => $validated['judul'],
-                    'deskripsi' => $validated['deskripsi'] ?? null,
-                    'file_materi' => $path,
-                    'url_youtube' => $validated['url_youtube'] ?? null,
-                    'pengampu_kelas_id' => $pkId,
-                    'id_grub_materi' => $idGrubMateri,
-                ]);
+        try {
+            DB::transaction(function () use ($validated, $judul, $validPengampu, $path, $idGrubMateri) {
+                foreach ($validPengampu as $pkId) {
+                    Materi::create([
+                        'judul' => $judul,
+                        'deskripsi' => $validated['deskripsi'] ?? null,
+                        'file_materi' => $path,
+                        'url_youtube' => $validated['url_youtube'] ?? null,
+                        'pengampu_kelas_id' => $pkId,
+                        'id_grub_materi' => $idGrubMateri,
+                    ]);
+                }
+            });
+        } catch (\Throwable $e) {
+            if ($path && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
             }
-        });
+            throw $e;
+        }
 
         // Kirim notifikasi interaktif ke seluruh siswa pada kelas sasaran
         foreach ($validPengampu as $pkId) {
             $pk = PengampuKelas::with('guruMapel.mapel')->find($pkId);
             if ($pk) {
+                $mapelId = $pk->guruMapel?->mapel_id;
                 $mapelNama = $pk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+                $targetUrl = $mapelId ? route('siswa.materi.show', $mapelId) : route('siswa.materi');
                 Notifikasi::kirimKeKelas(
                     $pk->kelas_id,
-                    "Materi Baru: {$validated['judul']}",
+                    "Materi Baru: {$judul}",
                     "Guru telah membagikan materi pembelajaran baru untuk mata pelajaran {$mapelNama}.",
                     'materi_baru',
-                    route('siswa.materi'),
-                    null
+                    $targetUrl,
+                    $mapelId
                 );
             }
         }
@@ -274,14 +315,14 @@ class MateriController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'judul' => ['required', 'string', 'max:255'],
-            'mapel_id' => ['required', 'integer', 'exists:mapels,id'],
-            'tingkatan' => ['required', 'in:7,8,9'],
-            'pengampu_kelas_ids' => ['required', 'array', 'min:1'],
+            'judul' => ['required', 'string', 'max:200'],
+            'mapel_id' => ['nullable', 'integer', 'exists:mapels,id'],
+            'tingkatan' => ['nullable', 'in:7,8,9'],
+            'pengampu_kelas_ids' => ['nullable', 'array'],
             'pengampu_kelas_ids.*' => ['required', 'integer', 'exists:pengampu_kelas,id'],
             'deskripsi' => ['nullable', 'string', 'max:1000'],
             'file_materi' => ['nullable', 'file', 'mimes:pdf,ppt,pptx', 'max:10240'],
-            'url_youtube' => ['nullable', 'url', 'max:255'],
+            'url_youtube' => ['nullable', 'url', 'max:2048'],
         ]);
 
         if ($validator->fails()) {
@@ -289,44 +330,127 @@ class MateriController extends Controller
         }
 
         $validated = $validator->validated();
+        $submittedPengampuIds = $validated['pengampu_kelas_ids'] ?? [];
 
-        $validPengampu = PengampuKelas::whereIn('id', $validated['pengampu_kelas_ids'])
-            ->whereHas('guruMapel', function ($q) use ($guruId, $validated) {
+        if (empty($submittedPengampuIds)) {
+            $filePath = $firstMateri->file_materi;
+            if ($filePath && Storage::disk('public')->exists($filePath)) {
+                Storage::disk('public')->delete($filePath);
+            }
+            Materi::where('id_grub_materi', $id_grub_materi)->delete();
+
+            return $this->successResponse(null, 'Materi berhasil dihapus dari seluruh kelas.');
+        }
+
+        $targetMapelId = $validated['mapel_id'] ?? $firstMateri->pengampuKelas?->guruMapel?->mapel_id;
+        $targetTingkatan = $validated['tingkatan'] ?? $firstMateri->pengampuKelas?->kelas?->tingkatan;
+
+        $validPengampu = PengampuKelas::whereIn('id', $submittedPengampuIds)
+            ->whereHas('guruMapel', function ($q) use ($guruId, $targetMapelId) {
                 $q->where('guru_id', $guruId)
-                  ->where('mapel_id', $validated['mapel_id']);
+                  ->when($targetMapelId, fn ($sq) => $sq->where('mapel_id', $targetMapelId));
             })
-            ->whereHas('kelas', function ($q) use ($validated) {
-                $q->where('tingkatan', $validated['tingkatan']);
+            ->whereHas('kelas', function ($q) use ($targetTingkatan) {
+                $q->when($targetTingkatan, fn ($sq) => $sq->where('tingkatan', $targetTingkatan));
             })
             ->pluck('id')
             ->toArray();
 
-        if (count($validPengampu) !== count($validated['pengampu_kelas_ids'])) {
+        if (count($validPengampu) !== count($submittedPengampuIds)) {
             return $this->errorResponse('Terdapat kelas sasaran yang tidak valid atau bukan wewenang Anda.', 422);
         }
 
-        $filePath = $firstMateri->file_materi;
-        if ($request->hasFile('file_materi')) {
-            if ($filePath && Storage::disk('public')->exists($filePath)) {
-                Storage::disk('public')->delete($filePath);
-            }
-            $filePath = $request->file('file_materi')->store('materi_files', 'public');
+        $judul = trim($validated['judul']);
+
+        $duplicateMateris = Materi::with('pengampuKelas.kelas')
+            ->whereIn('pengampu_kelas_id', $validPengampu)
+            ->where('id_grub_materi', '!=', $id_grub_materi)
+            ->whereRaw('LOWER(judul) = ?', [Str::lower($judul)])
+            ->get();
+
+        if ($duplicateMateris->isNotEmpty()) {
+            $namaKelasBentrok = $duplicateMateris
+                ->map(fn ($m) => $m->pengampuKelas?->kelas?->nama_kelas)
+                ->filter()
+                ->unique()
+                ->implode(', ');
+
+            return $this->validationErrorResponse([
+                'judul' => ["Materi dengan judul \"{$judul}\" sudah ada pada kelas: {$namaKelasBentrok}."],
+            ]);
         }
 
-        DB::transaction(function () use ($id_grub_materi, $validated, $validPengampu, $filePath) {
-            Materi::where('id_grub_materi', $id_grub_materi)->delete();
+        $oldFilePath = $firstMateri->file_materi;
+        $newFilePath = null;
+        $filePath = $oldFilePath;
 
-            foreach ($validPengampu as $pkId) {
-                Materi::create([
-                    'judul' => $validated['judul'],
-                    'deskripsi' => $validated['deskripsi'] ?? null,
-                    'file_materi' => $filePath,
-                    'url_youtube' => $validated['url_youtube'] ?? null,
-                    'pengampu_kelas_id' => $pkId,
-                    'id_grub_materi' => $id_grub_materi,
-                ]);
+        if ($request->hasFile('file_materi')) {
+            $newFilePath = $request->file('file_materi')->store('materi_files', 'public');
+            $filePath = $newFilePath;
+        }
+
+        $existingKelasIds = $materis->pluck('pengampu_kelas_id')->toArray();
+        $addedIds = array_diff($validPengampu, $existingKelasIds);
+
+        try {
+            DB::transaction(function () use ($validated, $judul, $id_grub_materi, $existingKelasIds, $validPengampu, $addedIds, $filePath) {
+                $removedIds = array_diff($existingKelasIds, $validPengampu);
+                if (!empty($removedIds)) {
+                    Materi::where('id_grub_materi', $id_grub_materi)
+                        ->whereIn('pengampu_kelas_id', $removedIds)
+                        ->delete();
+                }
+
+                $keptIds = array_intersect($existingKelasIds, $validPengampu);
+                if (!empty($keptIds)) {
+                    Materi::where('id_grub_materi', $id_grub_materi)
+                        ->whereIn('pengampu_kelas_id', $keptIds)
+                        ->update([
+                            'judul' => $judul,
+                            'deskripsi' => $validated['deskripsi'] ?? null,
+                            'file_materi' => $filePath,
+                            'url_youtube' => $validated['url_youtube'] ?? null,
+                        ]);
+                }
+
+                foreach ($addedIds as $pkId) {
+                    Materi::create([
+                        'judul' => $judul,
+                        'deskripsi' => $validated['deskripsi'] ?? null,
+                        'file_materi' => $filePath,
+                        'url_youtube' => $validated['url_youtube'] ?? null,
+                        'pengampu_kelas_id' => $pkId,
+                        'id_grub_materi' => $id_grub_materi,
+                    ]);
+                }
+            });
+        } catch (\Throwable $e) {
+            if ($newFilePath && Storage::disk('public')->exists($newFilePath)) {
+                Storage::disk('public')->delete($newFilePath);
             }
-        });
+            throw $e;
+        }
+
+        if ($newFilePath && $oldFilePath && $oldFilePath !== $newFilePath && Storage::disk('public')->exists($oldFilePath)) {
+            Storage::disk('public')->delete($oldFilePath);
+        }
+
+        foreach ($addedIds as $pkId) {
+            $pk = PengampuKelas::with('guruMapel.mapel')->find($pkId);
+            if ($pk) {
+                $mapelId = $pk->guruMapel?->mapel_id;
+                $mapelNama = $pk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+                $targetUrl = $mapelId ? route('siswa.materi.show', $mapelId) : route('siswa.materi');
+                Notifikasi::kirimKeKelas(
+                    $pk->kelas_id,
+                    "Materi Baru: {$judul}",
+                    "Guru telah membagikan materi pembelajaran baru untuk mata pelajaran {$mapelNama}.",
+                    'materi_baru',
+                    $targetUrl,
+                    $mapelId
+                );
+            }
+        }
 
         return $this->successResponse([
             'id_grub_materi' => $id_grub_materi,

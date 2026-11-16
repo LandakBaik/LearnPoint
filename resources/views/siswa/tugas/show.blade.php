@@ -8,8 +8,7 @@
 use Illuminate\Support\Facades\Storage;
 
 $sudahDinilai = $pengumpulan
-&& $pengumpulan->nilai !== null
-&& $pengumpulan->nilai > 0;
+&& $pengumpulan->nilai !== null;
 
 $fileTerkirim = $pengumpulan?->file_jawaban;
 

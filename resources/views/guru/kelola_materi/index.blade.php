@@ -35,13 +35,13 @@
             </div>
         </div>
 
-        <!-- Card 2: Format PDF -->
+        <!-- Card 2: File Materi -->
         <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-red-50 text-red-500 flex items-center justify-center shrink-0">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V7.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 1H7a2 2 0 00-2 2v16a2 2 0 002 2z"/></svg>
             </div>
             <div>
-                <p class="text-xs font-semibold text-gray-500">Berkas Format PDF</p>
+                <p class="text-xs font-semibold text-gray-500">File Materi</p>
                 <h3 class="text-2xl font-extrabold text-gray-900 mt-0.5">{{ $materiGroups->count() }} Berkas</h3>
             </div>
         </div>
@@ -119,9 +119,9 @@
         </div>
     </div>
 
-    <!-- Filter Bar Tambahan (Search, Tingkatan, Kelas) -->
+    <!-- Filter Bar Tambahan (Search, Tingkatan, Kelas, Sort) -->
     <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
-        <form id="materiFilterForm" method="GET" action="{{ route('guru.materi') }}" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        <form id="materiFilterForm" method="GET" action="{{ route('guru.materi') }}" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
             <input type="hidden" name="mapel_id" id="filter_mapel_id" value="{{ $filters['mapel_id'] ?? '' }}">
 
             <div class="relative sm:col-span-2">
@@ -137,21 +137,28 @@
                 >
             </div>
 
-            <select name="tingkatan" onchange="document.getElementById('materiFilterForm').submit()" class="rounded-full border border-gray-200 px-4 py-2 text-xs font-medium bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+            <select name="tingkatan" id="filter_tingkatan" onchange="onTingkatanChange()" class="rounded-full border border-gray-200 px-4 py-2 text-xs font-medium bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
                 <option value="">Semua Tingkatan</option>
                 @foreach($tingkatanOptions as $tingkatan)
                     <option value="{{ $tingkatan }}" @selected(($filters['tingkatan'] ?? '') == $tingkatan)>Tingkat {{ $tingkatan }}</option>
                 @endforeach
             </select>
 
-            <select name="kelas_id" onchange="document.getElementById('materiFilterForm').submit()" class="rounded-full border border-gray-200 px-4 py-2 text-xs font-medium bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+            <select name="kelas_id" id="filter_kelas_id" onchange="document.getElementById('materiFilterForm').submit()" class="rounded-full border border-gray-200 px-4 py-2 text-xs font-medium bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
                 <option value="">Semua Kelas</option>
                 @foreach($kelasOptions as $kelas)
                     <option value="{{ $kelas->id }}" @selected(($filters['kelas_id'] ?? '') == $kelas->id)>{{ $kelas->nama_kelas }} (Tingkat {{ $kelas->tingkatan }})</option>
                 @endforeach
             </select>
 
-            <div class="sm:col-span-2 xl:col-span-4 flex items-center justify-end gap-2 pt-1 border-t border-gray-100">
+            <select name="sort" id="filter_sort" onchange="document.getElementById('materiFilterForm').submit()" class="rounded-full border border-gray-200 px-4 py-2 text-xs font-medium bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                <option value="terbaru" @selected(($filters['sort'] ?? 'terbaru') === 'terbaru')>Terbaru Diunggah</option>
+                <option value="terlama" @selected(($filters['sort'] ?? '') === 'terlama')>Terlama Diunggah</option>
+                <option value="judul_asc" @selected(($filters['sort'] ?? '') === 'judul_asc')>Judul (A - Z)</option>
+                <option value="judul_desc" @selected(($filters['sort'] ?? '') === 'judul_desc')>Judul (Z - A)</option>
+            </select>
+
+            <div class="sm:col-span-2 xl:col-span-5 flex items-center justify-end gap-2 pt-1 border-t border-gray-100">
                 <a href="{{ route('guru.materi') }}" class="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-full transition-colors">Reset Filter</a>
                 <button type="submit" class="px-5 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-full text-xs font-semibold transition-colors">Cari Materi</button>
             </div>
@@ -161,6 +168,13 @@
     <script>
         function setMapelFilter(mapelId) {
             document.getElementById('filter_mapel_id').value = mapelId;
+            document.getElementById('filter_tingkatan').value = '';
+            document.getElementById('filter_kelas_id').value = '';
+            document.getElementById('materiFilterForm').submit();
+        }
+
+        function onTingkatanChange() {
+            document.getElementById('filter_kelas_id').value = '';
             document.getElementById('materiFilterForm').submit();
         }
     </script>
