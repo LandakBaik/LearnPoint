@@ -41,8 +41,7 @@ class TugasController extends Controller
             ->withCount([
                 'nilais as pengumpulans_count',
                 'nilais as pengumpulans_dinilai_count' => function ($query) {
-                    $query->whereNotNull('nilai')
-                        ->where('status', 'selesai');
+                    $query->whereNotNull('nilai');
                 },
             ])
             ->latest()
@@ -111,14 +110,16 @@ class TugasController extends Controller
     | 2. VALIDASI DATA TUGAS DAN SOAL
     |--------------------------------------------------------------------------
     */
-    private function validasiTugas(Request $request)
+    private function validasiTugas(Request $request, bool $isUpdate = false)
     {
-        return $request->validate([
+        $rules = [
             'judul' => 'required|string|max:200',
             'deskripsi' => 'nullable|string',
-            'deadline' => 'required|date|after:now',
+            'deadline' => $isUpdate ? 'required|date' : 'required|date|after:now',
             'tipe' => 'required|in:upload,pilihan_ganda',
-            'pengampu_kelas_id' => 'required|exists:pengampu_kelas,id',
+            'pengampu_kelas_id' => $isUpdate
+                ? 'required|exists:pengampu_kelas,id'
+                : 'required|array|min:1',
 
             // Validasi file lampiran tugas.
             'file_tugas_input' => [
@@ -130,6 +131,7 @@ class TugasController extends Controller
 
             // Validasi soal pilihan ganda.
             'soal' => 'required_if:tipe,pilihan_ganda|array|min:1',
+            'soal.*.id' => 'nullable|integer',
             'soal.*.pertanyaan' => 'required_if:tipe,pilihan_ganda|string',
 
             // Setiap soal harus memiliki lima pilihan jawaban.
@@ -145,14 +147,19 @@ class TugasController extends Controller
                 'required_if:tipe,pilihan_ganda',
                 'in:a,b,c,d,e'
             ],
+        ];
 
-            // Bobot tidak divalidasi karena dihitung otomatis.
-        ], [
+        if (!$isUpdate) {
+            $rules['pengampu_kelas_id.*'] = 'required|exists:pengampu_kelas,id';
+        }
+
+        return $request->validate($rules, [
             'judul.required' => 'Judul tugas wajib diisi.',
             'deadline.required' => 'Deadline tugas wajib diisi.',
             'deadline.after' => 'Deadline harus setelah waktu sekarang.',
             'tipe.required' => 'Jenis tugas wajib dipilih.',
             'pengampu_kelas_id.required' => 'Mata pelajaran dan kelas wajib dipilih.',
+            'pengampu_kelas_id.min' => 'Minimal pilih satu mata pelajaran dan kelas.',
             'soal.required_if' => 'Minimal harus ada satu soal pilihan ganda.',
             'soal.*.pertanyaan.required_if' => 'Pertanyaan wajib diisi.',
             'soal.*.pilihan.a.required_if' => 'Pilihan A wajib diisi.',
@@ -172,11 +179,9 @@ class TugasController extends Controller
     */
     private function simpanSoal(Tugas $tugas, Request $request)
     {
-        // Hapus soal sebelumnya ketika tugas diperbarui.
-        Soal::where('tugas_id', $tugas->id)->delete();
-
         // Tugas upload tidak membutuhkan soal pilihan ganda.
         if ($tugas->tipe !== 'pilihan_ganda') {
+            Soal::where('tugas_id', $tugas->id)->delete();
             return;
         }
 
@@ -191,13 +196,13 @@ class TugasController extends Controller
 
         // Total nilai maksimal seluruh soal adalah 100.
         $bobotPerSoal = 100 / $totalSoal;
+        $soalIdsDipertahankan = [];
 
-        // Simpan setiap pertanyaan beserta pilihan dan kunci jawabannya.
-        foreach ($daftarSoal as $index => $item) {
-            Soal::create([
+        // Simpan atau perbarui setiap pertanyaan tanpa menghapus jawaban siswa yang sudah ada.
+        foreach (array_values($daftarSoal) as $index => $item) {
+            $payload = [
                 'pertanyaan' => $item['pertanyaan'],
                 'tipe_soal' => 'single_choice',
-
                 'pilihan' => [
                     'a' => $item['pilihan']['a'],
                     'b' => $item['pilihan']['b'],
@@ -205,15 +210,31 @@ class TugasController extends Controller
                     'd' => $item['pilihan']['d'],
                     'e' => $item['pilihan']['e'],
                 ],
-
                 'kunci_jawaban' => strtolower($item['kunci_jawaban']),
                 'bobot' => $bobotPerSoal,
                 'urutan' => $index + 1,
                 'quiz_id' => null,
                 'tugas_id' => $tugas->id,
                 'ujian_id' => null,
-            ]);
+            ];
+
+            $soalId = !empty($item['id']) ? (int) $item['id'] : null;
+            $soal = $soalId
+                ? Soal::where('tugas_id', $tugas->id)->where('id', $soalId)->first()
+                : null;
+
+            if ($soal) {
+                $soal->update($payload);
+            } else {
+                $soal = Soal::create($payload);
+            }
+
+            $soalIdsDipertahankan[] = $soal->id;
         }
+
+        Soal::where('tugas_id', $tugas->id)
+            ->whereNotIn('id', $soalIdsDipertahankan)
+            ->delete();
     }
 
 
@@ -230,19 +251,20 @@ class TugasController extends Controller
         abort_unless($user?->role === 'guru' && $guru_id, 403);
 
         // Validasi seluruh data dari form.
-        $data = $this->validasiTugas($request);
+        $data = $this->validasiTugas($request, false);
 
-        // Pastikan kelas dan mapel merupakan wewenang guru.
-        $pengampu = PengampuKelas::with('guruMapel.mapel')
-            ->where('id', $data['pengampu_kelas_id'])
+        // Pastikan seluruh kelas dan mapel yang dipilih merupakan wewenang guru.
+        $pengampuIds = array_values(array_unique(array_map('intval', $data['pengampu_kelas_id'])));
+        $pengampuList = PengampuKelas::with('guruMapel.mapel')
+            ->whereIn('id', $pengampuIds)
             ->whereHas('guruMapel', function ($query) use ($guru_id) {
                 $query->where('guru_id', $guru_id);
             })
-            ->first();
+            ->get();
 
-        if (!$pengampu) {
+        if ($pengampuList->count() !== count($pengampuIds)) {
             return back()->withInput()->withErrors([
-                'pengampu_kelas_id' => 'Kelas atau mata pelajaran bukan wewenang Anda.'
+                'pengampu_kelas_id' => 'Sebagian kelas atau mata pelajaran bukan wewenang Anda.'
             ]);
         }
 
@@ -256,19 +278,24 @@ class TugasController extends Controller
 
         try {
             // Simpan tugas dan soal dalam satu transaksi database.
-            $tugas = DB::transaction(function () use ($data, $request, $filePath) {
-                $tugas = Tugas::create([
-                    'judul' => $data['judul'],
-                    'deskripsi' => $data['deskripsi'] ?? null,
-                    'deadline' => Carbon::parse($data['deadline']),
-                    'tipe' => $data['tipe'],
-                    'file_lampiran' => $filePath,
-                    'pengampu_kelas_id' => $data['pengampu_kelas_id'],
-                ]);
+            $tugasList = DB::transaction(function () use ($data, $request, $filePath, $pengampuList) {
+                $created = [];
 
-                $this->simpanSoal($tugas, $request);
+                foreach ($pengampuList as $pengampu) {
+                    $tugas = Tugas::create([
+                        'judul' => $data['judul'],
+                        'deskripsi' => $data['deskripsi'] ?? null,
+                        'deadline' => Carbon::parse($data['deadline']),
+                        'tipe' => $data['tipe'],
+                        'file_lampiran' => $filePath,
+                        'pengampu_kelas_id' => $pengampu->id,
+                    ]);
 
-                return $tugas;
+                    $this->simpanSoal($tugas, $request);
+                    $created[] = ['tugas' => $tugas, 'pengampu' => $pengampu];
+                }
+
+                return $created;
             });
         } catch (\Throwable $e) {
             // Hapus file jika penyimpanan database gagal.
@@ -279,22 +306,25 @@ class TugasController extends Controller
             throw $e;
         }
 
-        // Kirim notifikasi tugas baru kepada siswa di kelas tujuan.
-        $mapelNama = $pengampu->guruMapel?->mapel?->nama_mapel
-            ?? 'Mata Pelajaran';
-
+        // Kirim notifikasi tugas baru kepada siswa di setiap kelas tujuan.
         $deadlineFormatted = Carbon::parse($data['deadline'])
             ->locale('id')
             ->isoFormat('D MMMM Y, HH:mm');
 
-        Notifikasi::kirimKeKelas(
-            $pengampu->kelas_id,
-            "Tugas Baru: {$tugas->judul}",
-            "Guru telah menerbitkan tugas baru untuk mata pelajaran {$mapelNama}. Batas pengumpulan: {$deadlineFormatted} WIB.",
-            'tugas_baru',
-            route('siswa.tugas.show', $tugas->id),
-            $tugas->id
-        );
+        foreach ($tugasList as $item) {
+            $tugas = $item['tugas'];
+            $pengampu = $item['pengampu'];
+            $mapelNama = $pengampu->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+
+            Notifikasi::kirimKeKelas(
+                $pengampu->kelas_id,
+                "Tugas Baru: {$tugas->judul}",
+                "Guru telah menerbitkan tugas baru untuk mata pelajaran {$mapelNama}. Batas pengumpulan: {$deadlineFormatted} WIB.",
+                'tugas_baru',
+                route('siswa.tugas.show', $tugas->id),
+                $tugas->id
+            );
+        }
 
         return redirect()->back()
             ->with('success', 'Tugas berhasil dipublikasikan!');
@@ -462,6 +492,55 @@ class TugasController extends Controller
 
     /*
     |--------------------------------------------------------------------------
+    | MENAMPILKAN DETAIL JAWABAN PILIHAN GANDA SISWA
+    |--------------------------------------------------------------------------
+    */
+    public function detailJawabanSiswa(Request $request, string $id, string $pengumpulanId)
+    {
+        $user = $request->user();
+        $guru_id = $user?->guru?->id;
+
+        abort_unless($user?->role === 'guru' && $guru_id, 403);
+
+        $tugas = Tugas::with([
+            'pengampuKelas.guruMapel.mapel',
+            'pengampuKelas.kelas',
+            'soals',
+        ])->findOrFail($id);
+
+        if ($tugas->pengampuKelas?->guruMapel?->guru_id != $guru_id) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        abort_unless($tugas->tipe === 'pilihan_ganda', 404);
+
+        $pengumpulan = Nilai::with('siswa')
+            ->where('tugas_id', $tugas->id)
+            ->findOrFail($pengumpulanId);
+
+        $siswa = $pengumpulan->siswa;
+
+        $soals = $tugas->soals
+            ->sortBy('urutan')
+            ->values();
+
+        $jawabans = Menjawab::where('siswa_id', $pengumpulan->siswa_id)
+            ->whereIn('soal_id', $soals->pluck('id'))
+            ->get()
+            ->keyBy('soal_id');
+
+        return view('guru.kelola_tugas.detail-jawaban-siswa', compact(
+            'tugas',
+            'pengumpulan',
+            'siswa',
+            'soals',
+            'jawabans'
+        ));
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
     | 6. MEMPERBARUI TUGAS
     |--------------------------------------------------------------------------
     */
@@ -482,7 +561,7 @@ class TugasController extends Controller
         }
 
         // Validasi data terbaru.
-        $data = $this->validasiTugas($request);
+        $data = $this->validasiTugas($request, true);
 
         // Pastikan kelas/mapel tujuan juga diampu guru.
         $pengampu = PengampuKelas::where('id', $data['pengampu_kelas_id'])
@@ -578,9 +657,10 @@ class TugasController extends Controller
             $tugas->delete();
         });
 
-        // Hapus file lampiran jika ada.
+        // Hapus file lampiran jika ada dan tidak dipakai tugas lain.
         if (
             $fileLama &&
+            !Tugas::where('file_lampiran', $fileLama)->exists() &&
             Storage::disk('public')->exists($fileLama)
         ) {
             Storage::disk('public')->delete($fileLama);

@@ -27,6 +27,7 @@ class Tugas extends Model
         ];
     }
 
+
     public function pengampuKelas()
     {
         return $this->belongsTo(PengampuKelas::class, 'pengampu_kelas_id');
@@ -36,6 +37,7 @@ class Tugas extends Model
     {
         return $this->pengampuKelas?->guruMapel;
     }
+
 
     public function soals()
     {

@@ -32,7 +32,7 @@
                     <p class="text-sm text-slate-500">Nama Siswa</p>
 
                     <h2 class="mt-1 text-lg font-bold text-slate-800">
-                        {{ $siswa?->nama ?? 'Nama tidak tersedia' }}
+                        {{ $siswa?->nama_siswa ?? 'Nama tidak tersedia' }}
                     </h2>
 
                     <p class="mt-1 text-sm text-slate-500">

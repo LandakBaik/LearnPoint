@@ -80,7 +80,7 @@
     <div
         x-show="showEditModal"
         x-transition
-        class="relative z-10 my-auto w-full max-w-xl overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl">
+        class="relative z-10 my-auto w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-100 bg-white shadow-2xl">
 
         <!-- HEADER -->
         <div class="flex items-start justify-between gap-4 border-b border-indigo-100 bg-indigo-50/50 p-6 sm:p-7">
@@ -152,27 +152,23 @@
 
             <!-- Mata Pelajaran dan Kelas -->
             <div class="space-y-2">
-                <label class="block text-xs font-bold text-slate-700">
+                <label for="edit_pengampu_kelas_id" class="block text-xs font-bold text-slate-700">
                     Mata Pelajaran & Kelas <span class="text-red-500">*</span>
                 </label>
 
-                <div class="space-y-2 rounded-xl border border-slate-200 p-3">
+                <select
+                    name="pengampu_kelas_id"
+                    id="edit_pengampu_kelas_id"
+                    x-model="editData.pengampu_kelas_id"
+                    required
+                    class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Pilih Mata Pelajaran & Kelas</option>
                     @foreach($pengampuKelases as $pk)
-                    <label class="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition hover:bg-indigo-50">
-                        <input
-                            type="checkbox"
-                            name="pengampu_kelas_id[]"
-                            value="{{ $pk->id }}"
-                            class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-
-                        <span class="text-sm text-slate-700">
-                            {{ $pk->guruMapel?->mapel?->nama_mapel ?? 'Mapel' }}
-                            -
-                            {{ $pk->kelas?->nama_kelas ?? 'Kelas' }}
-                        </span>
-                    </label>
+                        <option value="{{ $pk->id }}">
+                            {{ $pk->guruMapel?->mapel?->nama_mapel ?? 'Mapel' }} - {{ $pk->kelas?->nama_kelas ?? 'Kelas' }}
+                        </option>
                     @endforeach
-                </div>
+                </select>
             </div>
 
             <!-- DESKRIPSI -->
@@ -419,9 +415,9 @@
         });
 
         form.addEventListener('submit', function(event) {
-            if (!deadlineInput.value || deadlineInput.value <= getWaktuSekarang()) {
+            if (!deadlineInput.value) {
                 event.preventDefault();
-                tampilkanError('Silakan pilih deadline setelah waktu sekarang.');
+                tampilkanError('Deadline tugas wajib diisi.');
                 deadlineInput.focus();
             } else {
                 sembunyikanError();
