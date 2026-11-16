@@ -94,6 +94,30 @@
         </div>
     </div>
 
+    {{-- NOTIFIKASI --}}
+    @if (session('success'))
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <p class="font-bold">Terjadi kesalahan validasi:</p>
+            <ul class="mt-1 list-disc pl-5 text-xs">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     {{-- RINGKASAN --}}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
@@ -223,7 +247,7 @@
                                     $el.textContent = jumlah;
                                 });
                             ">
-                            {{ $jumlahDeadlineTerdekat ?? 0 }}
+                            {{ $deadlineTerdekat ?? 0 }}
                         </h3>
 
                         <span class="text-xs text-slate-400">
@@ -630,11 +654,16 @@
                                             $pilihan = json_decode($pilihan, true) ?? [];
                                         }
 
+                                        $kunci = $soal->kunci_jawaban ?? 'a';
+                                        if (is_array($kunci)) {
+                                            $kunci = $kunci['jawaban'] ?? $kunci[0] ?? 'a';
+                                        }
+
                                         return [
                                             'id' => $soal->id,
                                             'pertanyaan' => $soal->pertanyaan,
                                             'pilihan' => $pilihan,
-                                            'kunci_jawaban' => strtolower($soal->kunci_jawaban ?? 'a'),
+                                            'kunci_jawaban' => strtolower((string) $kunci),
                                         ];
                                     })->values()) }}
                                 })"

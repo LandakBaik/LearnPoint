@@ -54,7 +54,7 @@
             @forelse($daftarTugas as $tugas)
 
             @php
-                $pengumpulan = $tugas->nilais->first();
+                $pengumpulan = $tugas->pengumpulanSiswa;
                 $sudahDikumpul = $pengumpulan !== null;
 
                 $deadline = $tugas->deadline
@@ -121,7 +121,7 @@
                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-600">
                                 <i class="fa-solid fa-file-circle-check"></i>
 
-                                {{ $tugas->tipe_tugas ?? 'Tugas' }}
+                                {{ $tugas->tipe === 'pilihan_ganda' ? 'Pilihan Ganda' : 'Upload File' }}
                             </span>
 
                         </div>
@@ -153,6 +153,13 @@
                                 <span class="font-semibold text-red-500">
                                     <i class="fa-solid fa-triangle-exclamation mr-1"></i>
                                     Tenggat telah lewat
+                                </span>
+
+                            @elseif($sudahDikumpul && $pengumpulan->nilai !== null)
+
+                                <span class="font-semibold text-emerald-600">
+                                    <i class="fa-solid fa-circle-check mr-1"></i>
+                                    Sudah Dinilai (Nilai: {{ number_format((float) $pengumpulan->nilai, 0) }})
                                 </span>
 
                             @elseif($sudahDikumpul)
