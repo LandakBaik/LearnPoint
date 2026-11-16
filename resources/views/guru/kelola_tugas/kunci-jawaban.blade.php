@@ -5,7 +5,7 @@
 @section('content')
 <div class="space-y-5 text-slate-800">
 
-    {{-- Header --}}
+    {{-- HEADER --}}
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <a href="{{ route('guru.tugas.show', $tugas->id) }}"
@@ -29,7 +29,7 @@
         </div>
     </div>
 
-    {{-- Informasi Tugas --}}
+    {{-- INFORMASI TUGAS --}}
     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -49,7 +49,7 @@
         </div>
     </div>
 
-    {{-- Keterangan --}}
+    {{-- KETERANGAN --}}
     <div class="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
         <div class="text-emerald-600">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -74,13 +74,17 @@
         </div>
     </div>
 
-    {{-- Daftar Soal --}}
+    {{-- DAFTAR SOAL --}}
     <div class="space-y-5">
 
         @forelse ($soals as $index => $soal)
 
         @php
         $pilihan = $soal->pilihan ?? [];
+
+        if (is_string($pilihan)) {
+        $pilihan = json_decode($pilihan, true) ?? [];
+        }
 
         $kunci = $soal->kunci_jawaban ?? '';
 
@@ -101,8 +105,9 @@
 
         <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-            {{-- Nomor dan Pertanyaan --}}
+            {{-- NOMOR DAN PERTANYAAN --}}
             <div class="border-b border-slate-100 p-5">
+
                 <div class="mb-3 flex items-center justify-between gap-3">
                     <span class="rounded-lg bg-blue-100 px-3 py-1.5 text-sm font-bold text-blue-700">
                         Soal {{ $index + 1 }}
@@ -117,100 +122,103 @@
                     {{ $soal->pertanyaan }}
                 </p>
 
-                {{-- Gambar Soal --}}
+                {{-- GAMBAR SOAL --}}
                 @if ($soal->gambar)
-                <div class="mt-4">
+                <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <p class="mb-2 text-xs font-semibold text-slate-500">
+                        Gambar Soal
+                    </p>
+
                     <img
-                        src="{{ asset('storage/' . $soal->gambar) }}"
+                        src="{{ \Illuminate\Support\Facades\Storage::url($soal->gambar) }}"
                         alt="Gambar soal {{ $index + 1 }}"
-                        class="max-h-72 rounded-xl border border-slate-200 object-contain">
+                        class="block max-h-80 max-w-full rounded-lg object-contain"
+                        loading="lazy">
                 </div>
                 @endif
-            </div>
+                
+                {{-- PILIHAN JAWABAN --}}
+                <div class="space-y-3 p-5">
 
-            {{-- Pilihan Jawaban --}}
-            <div class="space-y-3 p-5">
+                    <p class="mb-3 text-sm font-semibold text-slate-600">
+                        Pilihan Jawaban
+                    </p>
 
-                <p class="mb-3 text-sm font-semibold text-slate-600">
-                    Pilihan Jawaban
-                </p>
+                    @foreach ($daftarPilihan as $key => $label)
 
-                @foreach ($daftarPilihan as $key => $label)
+                    @php
+                    $teksPilihan = $pilihan[$key] ?? null;
+                    $isCorrect = $kunci === $key;
+                    @endphp
 
-                @php
-                $teksPilihan = $pilihan[$key] ?? null;
-                $isCorrect = $kunci === $key;
-                @endphp
+                    @if ($teksPilihan !== null && trim((string) $teksPilihan) !== '')
+                    <div class="flex items-start gap-3 rounded-xl border p-4
+                                {{ $isCorrect
+                                    ? 'border-emerald-300 bg-emerald-50'
+                                    : 'border-slate-200 bg-white' }}">
 
-                @if ($teksPilihan !== null && $teksPilihan !== '')
-                <div class="flex items-start gap-3 rounded-xl border p-4
+                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold
                                     {{ $isCorrect
-                                        ? 'border-emerald-300 bg-emerald-50'
-                                        : 'border-slate-200 bg-white' }}">
+                                        ? 'bg-emerald-600 text-white'
+                                        : 'bg-slate-100 text-slate-600' }}">
+                            {{ $label }}
+                        </span>
 
-                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold
+                        <div class="min-w-0 flex-1 pt-1">
+                            <p class="text-sm leading-relaxed
                                         {{ $isCorrect
-                                            ? 'bg-emerald-600 text-white'
-                                            : 'bg-slate-100 text-slate-600' }}">
-                        {{ strtoupper($label) }}
-                    </span>
+                                            ? 'font-semibold text-emerald-800'
+                                            : 'text-slate-700' }}">
+                                {{ $teksPilihan }}
+                            </p>
+                        </div>
 
-                    <div class="min-w-0 flex-1 pt-1">
-                        <p class="text-sm leading-relaxed
-                                            {{ $isCorrect
-                                                ? 'font-semibold text-emerald-800'
-                                                : 'text-slate-700' }}">
-                            {{ $teksPilihan }}
-                        </p>
+                        @if ($isCorrect)
+                        <span class="shrink-0 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">
+                            Benar
+                        </span>
+                        @endif
+
                     </div>
+                    @endif
 
-                    @if ($isCorrect)
-                    <span class="shrink-0 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">
-                        Benar
-                    </span>
+                    @endforeach
+
+                    {{-- KUNCI TIDAK DITEMUKAN --}}
+                    @if (!in_array($kunci, ['a', 'b', 'c', 'd', 'e']))
+                    <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
+                        Kunci jawaban belum tersedia atau formatnya belum sesuai.
+                    </p>
                     @endif
 
                 </div>
-                @endif
-
-                @endforeach
-
-                {{-- Jika Kunci Tidak Ditemukan --}}
-                @if (!in_array($kunci, ['a', 'b', 'c', 'd', 'e']))
-                <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
-                    Kunci jawaban belum tersedia atau formatnya belum sesuai.
-                </p>
-                @endif
-
             </div>
+
+            @empty
+
+            <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+                <div class="mb-3 text-4xl">📝</div>
+
+                <h3 class="font-semibold text-slate-700">
+                    Belum Ada Soal
+                </h3>
+
+                <p class="mt-1 text-sm text-slate-500">
+                    Belum ada soal pilihan ganda yang ditambahkan pada tugas ini.
+                </p>
+            </div>
+
+            @endforelse
+
         </div>
 
-        @empty
-
-        <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-            <div class="mb-3 text-4xl">📝</div>
-
-            <h3 class="font-semibold text-slate-700">
-                Belum Ada Soal
-            </h3>
-
-            <p class="mt-1 text-sm text-slate-500">
-                Belum ada soal pilihan ganda yang ditambahkan pada tugas ini.
-            </p>
+        {{-- TOMBOL KEMBALI --}}
+        <div class="flex justify-end pt-2">
+            <a href="{{ route('guru.tugas.show', $tugas->id) }}"
+                class="inline-flex items-center rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                Kembali ke Detail Tugas
+            </a>
         </div>
 
-        @endforelse
-
     </div>
-
-    {{-- Tombol Kembali --}}
-    <div class="flex justify-end pt-2">
-        <a href="{{ route('guru.tugas.show', $tugas->id) }}"
-            class="inline-flex items-center rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700">
-        Kembali ke Detail Tugas
-        </a>
-    </div>
-
-</div>
-</div>
-@endsection
+    @endsection

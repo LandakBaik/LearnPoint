@@ -116,6 +116,7 @@ class TugasController extends Controller
             'soal' => 'required_if:tipe,pilihan_ganda|array|min:1',
             'soal.*.id' => 'nullable|integer',
             'soal.*.pertanyaan' => 'required_if:tipe,pilihan_ganda|string',
+            'soal.*.gambar' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
 
             'soal.*.pilihan' => [
                 'required_if:tipe,pilihan_ganda',
@@ -195,7 +196,16 @@ class TugasController extends Controller
     private function simpanSoal(Tugas $tugas, Request $request)
     {
         if ($tugas->tipe !== 'pilihan_ganda') {
+            $soalsLama = Soal::where('tugas_id', $tugas->id)->get();
+
+            foreach ($soalsLama as $soalLama) {
+                if ($soalLama->gambar) {
+                    Storage::disk('public')->delete($soalLama->gambar);
+                }
+            }
+
             Soal::where('tugas_id', $tugas->id)->delete();
+
             return;
         }
 
@@ -209,7 +219,6 @@ class TugasController extends Controller
         $bobotPerSoal = 100 / $totalSoal;
         $soalIdsDipertahankan = [];
 
-        // Simpan atau perbarui setiap pertanyaan tanpa menghapus jawaban siswa yang sudah ada.
         foreach (array_values($daftarSoal) as $index => $item) {
             $pilihan = $item['pilihan'] ?? [];
             $dataPilihan = [];
@@ -223,11 +232,36 @@ class TugasController extends Controller
                     : null;
             }
 
+            // Cari soal lama jika sedang mengedit
+            $soalId = !empty($item['id'])
+                ? (int) $item['id']
+                : null;
+
+            $soal = $soalId
+                ? Soal::where('tugas_id', $tugas->id)
+                ->where('id', $soalId)
+                ->first()
+                : null;
+
+            // Pertahankan gambar lama jika tidak upload gambar baru
+            $gambarPath = $soal?->gambar;
+
+            // Ambil gambar berdasarkan index soal
+            $gambarBaru = $request->file("soal.$index.gambar");
+
+            if ($gambarBaru) {
+                $gambarPath = $gambarBaru->store(
+                    'gambar_soal',
+                    'public'
+                );
+            }
+
             $payload = [
                 'pertanyaan' => $item['pertanyaan'],
                 'tipe_soal' => 'single_choice',
                 'pilihan' => $dataPilihan,
                 'kunci_jawaban' => strtolower($item['kunci_jawaban']),
+                'gambar' => $gambarPath,
                 'bobot' => $bobotPerSoal,
                 'urutan' => $index + 1,
                 'quiz_id' => null,
@@ -235,13 +269,19 @@ class TugasController extends Controller
                 'ujian_id' => null,
             ];
 
-            $soalId = !empty($item['id']) ? (int) $item['id'] : null;
-            $soal = $soalId
-                ? Soal::where('tugas_id', $tugas->id)->where('id', $soalId)->first()
-                : null;
-
             if ($soal) {
+                $gambarLama = $soal->gambar;
+
                 $soal->update($payload);
+
+                // Hapus gambar lama jika diganti gambar baru
+                if (
+                    $gambarBaru &&
+                    $gambarLama &&
+                    $gambarLama !== $gambarPath
+                ) {
+                    Storage::disk('public')->delete($gambarLama);
+                }
             } else {
                 $soal = Soal::create($payload);
             }
@@ -249,9 +289,18 @@ class TugasController extends Controller
             $soalIdsDipertahankan[] = $soal->id;
         }
 
-        Soal::where('tugas_id', $tugas->id)
+        // Hapus soal yang tidak lagi ada dalam form
+        $soalYangDihapus = Soal::where('tugas_id', $tugas->id)
             ->whereNotIn('id', $soalIdsDipertahankan)
-            ->delete();
+            ->get();
+
+        foreach ($soalYangDihapus as $soal) {
+            if ($soal->gambar) {
+                Storage::disk('public')->delete($soal->gambar);
+            }
+
+            $soal->delete();
+        }
     }
 
     // 4. Membuat tugas baru

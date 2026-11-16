@@ -72,7 +72,7 @@
         <div>
             <div class="flex items-center gap-2.5">
                 <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
-                    Kelola Tugas
+                    Daftar Tugas
                 </h1>
 
                 <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
@@ -103,131 +103,143 @@
 
     {{-- NOTIFIKASI --}}
     @if (session('success'))
-        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-            {{ session('success') }}
-        </div>
+    <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+        {{ session('success') }}
+    </div>
     @endif
 
     @if (session('error'))
-        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
-            {{ session('error') }}
-        </div>
+    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
+        {{ session('error') }}
+    </div>
     @endif
 
     @if ($errors->any())
-        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-            <p class="font-bold">Terjadi kesalahan validasi:</p>
-            <ul class="mt-1 list-disc pl-5 text-xs">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
+    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+        <p class="font-bold">Terjadi kesalahan validasi:</p>
+        <ul class="mt-1 list-disc pl-5 text-xs">
+            @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
     @endif
 
+
     {{-- RINGKASAN --}}
-    <div class="grid grid-cols-2 gap-3.5 xl:grid-cols-4">
+    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
 
         {{-- TOTAL TUGAS --}}
-        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300">
-            <div class="flex items-center justify-between">
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                </div>
-                <span class="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">Total</span>
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-slate-300">
+            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
             </div>
-            <div class="mt-3">
-                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Tugas</p>
-                <p class="mt-1 text-2xl font-extrabold text-slate-900">{{ $totalTugas ?? 0 }}</p>
-                <p class="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
-                    <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span> Seluruh penugasan
+
+            <div class="mt-2.5">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Total Tugas
+                </p>
+                <p class="mt-0.5 text-xl font-extrabold text-slate-900">
+                    {{ $totalTugas ?? 0 }}
+                </p>
+                <p class="mt-1 flex items-center gap-1.5 text-[10px] text-slate-500">
+                    <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+                    Seluruh penugasan
                 </p>
             </div>
         </div>
 
         {{-- TUGAS AKTIF --}}
-        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300">
-            <div class="flex items-center justify-between">
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <span class="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">Berjalan</span>
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-slate-300">
+            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
             </div>
-            <div class="mt-3">
-                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tugas Aktif</p>
-                <p class="mt-1 text-2xl font-extrabold text-slate-900">{{ $totalAktif ?? 0 }}</p>
-                <p class="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
-                    <span class="h-1.5 w-1.5 rounded-full bg-indigo-500"></span> Belum melewati deadline
+
+            <div class="mt-2.5">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Tugas Aktif
+                </p>
+                <p class="mt-0.5 text-xl font-extrabold text-slate-900">
+                    {{ $totalAktif ?? 0 }}
+                </p>
+                <p class="mt-1 flex items-center gap-1.5 text-[10px] text-slate-500">
+                    <span class="h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
+                    Belum melewati deadline
                 </p>
             </div>
         </div>
 
         {{-- PERLU DINILAI --}}
-        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300">
-            <div class="flex items-center justify-between">
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                </div>
-                <span class="rounded-md bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-600">Tindakan</span>
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-slate-300">
+            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
             </div>
-            <div class="mt-3">
-                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Perlu Dinilai</p>
-                <p class="mt-1 text-2xl font-extrabold text-slate-900">{{ $perluDinilai ?? 0 }}</p>
-                <p class="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
-                    <span class="h-1.5 w-1.5 rounded-full bg-rose-500"></span> Pengumpulan menunggu nilai
+
+            <div class="mt-2.5">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Perlu Dinilai
+                </p>
+                <p class="mt-0.5 text-xl font-extrabold text-slate-900">
+                    {{ $perluDinilai ?? 0 }}
+                </p>
+                <p class="mt-1 flex items-center gap-1.5 text-[10px] text-slate-500">
+                    <span class="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
+                    Pengumpulan menunggu nilai
                 </p>
             </div>
         </div>
 
         {{-- DEADLINE TERDEKAT --}}
-        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300">
-            <div class="flex items-center justify-between">
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                </div>
-                <span class="rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-600">&le; 24 Jam</span>
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-slate-300">
+            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
             </div>
-            <div class="mt-3">
-                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Deadline Terdekat</p>
+
+            <div class="mt-2.5">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Deadline Terdekat
+                </p>
                 <p
-                    class="mt-1 text-2xl font-extrabold text-slate-900"
+                    class="mt-0.5 text-xl font-extrabold text-slate-900"
                     x-effect="
-                        searchQuery;
-                        selectedStatus;
-                        selectedKelas;
-                        selectedMapel;
+                    searchQuery;
+                    selectedStatus;
+                    selectedKelas;
+                    selectedMapel;
 
-                        $nextTick(() => {
-                            const sekarang = Math.floor(Date.now() / 1000);
-                            const batasDeadline = sekarang + 86400;
+                    $nextTick(() => {
+                        const sekarang = Math.floor(Date.now() / 1000);
+                        const batasDeadline = sekarang + 86400;
 
-                            const jumlah = [...$refs.daftarTugas.querySelectorAll('article')]
-                                .filter(card => {
-                                    const deadline = Number(card.dataset.deadline);
+                        const jumlah = [...$refs.daftarTugas.querySelectorAll('article')]
+                            .filter(card => {
+                                const deadline = Number(card.dataset.deadline);
 
-                                    return card.getClientRects().length > 0 &&
-                                        deadline >= sekarang &&
-                                        deadline <= batasDeadline;
-                                }).length;
+                                return card.getClientRects().length > 0 &&
+                                    deadline >= sekarang &&
+                                    deadline <= batasDeadline;
+                            }).length;
 
-                            $el.textContent = jumlah;
-                        });
-                    ">
+                        $el.textContent = jumlah;
+                    });
+                ">
                     {{ $deadlineTerdekat ?? 0 }}
                 </p>
-                <p class="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
-                    <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Segera berakhir
+                <p class="mt-1 flex items-center gap-1.5 text-[10px] text-slate-500">
+                    <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                    Segera berakhir
                 </p>
             </div>
         </div>
+
     </div>
 
     {{-- FILTER DAN PENCARIAN --}}
@@ -619,13 +631,13 @@
                         </div>
                     </div>
 
-                        {{-- TOMBOL AKSI --}}
-                        <div class="flex flex-col justify-end gap-2 pt-1 sm:flex-row sm:items-center">
+                    {{-- TOMBOL AKSI --}}
+                    <div class="flex flex-col justify-end gap-2 pt-1 sm:flex-row sm:items-center">
 
-                            {{-- EDIT TUGAS --}}
-                            <button
-                                type="button"
-                                @click="$dispatch('open-edit-modal', {
+                        {{-- EDIT TUGAS --}}
+                        <button
+                            type="button"
+                            @click="$dispatch('open-edit-modal', {
                                     id: {{ $tugas->id }},
                                     judul: {{ Js::from($tugas->judul) }},
                                     deskripsi: {{ Js::from($tugas->deskripsi ?? '') }},
@@ -647,46 +659,47 @@
                                         return [
                                             'id' => $soal->id,
                                             'pertanyaan' => $soal->pertanyaan,
+                                            'gambar' => $soal->gambar,
                                             'pilihan' => $pilihan,
                                             'kunci_jawaban' => strtolower((string) $kunci),
                                         ];
                                     })->values()) }}
                                 })"
-                                class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-200">
+                            class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-200">
 
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16.862 4.487l1.687-1.688a2.121 2.121 0 113 3l-9.5 9.5a4 4 0 01-1.897 1.13l-3.152.9.9-3.152a4 4 0 011.13-1.897l7.832-7.793z" />
-                                </svg>
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16.862 4.487l1.687-1.688a2.121 2.121 0 113 3l-9.5 9.5a4 4 0 01-1.897 1.13l-3.152.9.9-3.152a4 4 0 011.13-1.897l7.832-7.793z" />
+                            </svg>
 
-                                Edit Tugas
-                            </button>
+                            Edit Tugas
+                        </button>
 
-                            {{-- LIHAT PENGUMPULAN --}}
-                            <a
-                                href="{{ route('guru.tugas.show', $tugas->id) }}"
-                                class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700">
+                        {{-- LIHAT PENGUMPULAN --}}
+                        <a
+                            href="{{ route('guru.tugas.show', $tugas->id) }}"
+                            class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700">
 
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.065 7-9.542 7s-8.268-2.943-9.542-7z" />
-                                </svg>
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.065 7-9.542 7s-8.268-2.943-9.542-7z" />
+                            </svg>
 
-                                Lihat Pengumpulan Siswa
-                            </a>
+                            Lihat Pengumpulan Siswa
+                        </a>
 
-                            {{-- FORM HAPUS --}}
-                            <form
-                                id="delete-form-{{ $tugas->id }}"
-                                action="{{ route('guru.tugas.destroy', $tugas->id) }}"
-                                method="POST"
-                                class="hidden">
+                        {{-- FORM HAPUS --}}
+                        <form
+                            id="delete-form-{{ $tugas->id }}"
+                            action="{{ route('guru.tugas.destroy', $tugas->id) }}"
+                            method="POST"
+                            class="hidden">
 
-                                @csrf
-                                @method('DELETE')
-                            </form>
-                        </div>
+                            @csrf
+                            @method('DELETE')
+                        </form>
                     </div>
-                </article>
+                </div>
+            </article>
 
             @empty
 
