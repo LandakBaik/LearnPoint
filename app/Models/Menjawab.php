@@ -19,6 +19,8 @@ class Menjawab extends Model
         'benar',
         'poin_diperoleh',
         'koin_diklaim',
+        'skor_essay',
+        'catatan_guru',
     ];
 
     protected function casts(): array

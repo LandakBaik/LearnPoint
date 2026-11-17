@@ -119,7 +119,26 @@ class MateriController extends Controller
                 ->get();
         }
 
-        // Ambil ujian untuk mapel ini beserta nilai siswa
+        $siswaId = $siswa?->id;
+
+        // Ambil ujian untuk mapel ini beserta nilai siswa (Hanya status scheduled, published, completed)
+        $statusTampil = ['scheduled', 'published', 'completed'];
+
+        // Filter agar ujian remidi/susulan hanya tampil untuk siswa yang terdaftar di peserta_khusus
+        $filterPesertaKhusus = function ($query) use ($siswaId) {
+            $query->where(function ($q) {
+                $q->where('jenis_ujian', 'reguler')
+                  ->orWhereNull('jenis_ujian');
+            });
+
+            if ($siswaId) {
+                $query->orWhere(function ($q) use ($siswaId) {
+                    $q->whereIn('jenis_ujian', ['remidi', 'susulan'])
+                      ->whereJsonContains('peserta_khusus', (int) $siswaId);
+                });
+            }
+        };
+
         if ($kelasId) {
             $ujians = Ujian::with([
                 'pengampuKelas.guruMapel.guru',
@@ -128,6 +147,8 @@ class MateriController extends Controller
                 },
                 'seleksiUjians.nilais'
             ])
+                ->whereIn('status', $statusTampil)
+                ->where($filterPesertaKhusus)
                 ->whereHas('pengampuKelas', function ($query) use ($kelasId, $id) {
                     $query->where('kelas_id', $kelasId)
                         ->whereHas('guruMapel', function ($query) use ($id) {
@@ -148,6 +169,8 @@ class MateriController extends Controller
                 },
                 'seleksiUjians.nilais'
             ])
+                ->whereIn('status', $statusTampil)
+                ->where($filterPesertaKhusus)
                 ->whereHas('pengampuKelas.guruMapel', function ($query) use ($id) {
                     $query->where('mapel_id', $id);
                 })

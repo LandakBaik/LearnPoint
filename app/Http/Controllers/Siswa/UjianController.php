@@ -16,9 +16,71 @@ use Illuminate\Support\Facades\DB;
 class UjianController extends Controller
 {
     /**
-     * Menampilkan ruang ujian interaktif untuk siswa.
+     * Menampilkan daftar semua ujian untuk siswa.
      */
-    public function kerjakan(Ujian $ujian)
+    public function index(Request $request)
+    {
+        $user = Auth::user();
+        $siswa = $user->siswa;
+        $anggotaKelas = $siswa?->anggotaKelases()?->latest()?->first();
+        $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;
+        $kelasId = $kelas?->id;
+
+        // Ambil ujian yang ditujukan untuk kelas siswa
+        $query = Ujian::with([
+            'pengampuKelas.guruMapel.guru',
+            'pengampuKelas.guruMapel.mapel',
+            'pengampuKelas.kelas',
+            'seleksiUjians' => function ($q) use ($siswa) {
+                if ($siswa) {
+                    $q->where('siswa_id', $siswa->id);
+                }
+            },
+            'seleksiUjians.nilais'
+        ])
+            ->whereIn('status', ['scheduled', 'published', 'completed']);
+
+        if ($kelasId) {
+            $query->whereHas('pengampuKelas', function ($q) use ($kelasId) {
+                $q->where('kelas_id', $kelasId);
+            });
+        }
+
+        $ujians = $query->latest('waktu_mulai')->get()
+         ->filter(function ($ujian) use ($siswa) {
+             if (in_array($ujian->jenis_ujian, ['remidi', 'susulan']) && !empty($ujian->peserta_khusus)) {
+                 return $siswa && in_array((int) $siswa->id, array_map('intval', $ujian->peserta_khusus));
+             }
+             return true;
+         })
+         ->values()
+         ->map(function ($ujian) {
+             $sesi = $ujian->seleksiUjians->first();
+             $nilai = $sesi?->nilais?->first();
+
+             $ujian->sudah_dikerjakan = $nilai !== null;
+             $ujian->nilai_siswa = $nilai?->nilai;
+             return $ujian;
+         });
+
+        // Hitung statistik ringkas untuk header tab
+        $totalUjian = $ujians->count();
+        $totalSelesai = $ujians->where('sudah_dikerjakan', true)->count();
+        $totalBelum = $totalUjian - $totalSelesai;
+
+        return view('siswa.ujian.index', compact(
+            'ujians',
+            'kelas',
+            'totalUjian',
+            'totalSelesai',
+            'totalBelum'
+        ));
+    }
+
+    /**
+     * Menampilkan detail informasi dan kisi-kisi ujian untuk siswa.
+     */
+    public function show(Ujian $ujian)
     {
         $user = Auth::user();
         $siswa = $user->siswa;
@@ -26,72 +88,242 @@ class UjianController extends Controller
 
         abort_unless($siswaId, 403, 'Profil siswa tidak ditemukan.');
 
-        // Jika siswa sudah pernah mengumpulkan ujian ini, arahkan langsung ke halaman hasil
-        $sesiSelesai = SeleksiUjian::where('ujian_id', $ujian->id)
-            ->where('siswa_id', $siswaId)
-            ->whereHas('nilais')
-            ->first();
-
-        if ($sesiSelesai) {
-            return redirect()->route('siswa.ujian.hasil', $ujian->id);
+        // Sinkronisasi status jadwal jika method tersedia di Model Ujian
+        if (method_exists($ujian, 'sinkronisasiStatus')) {
+            $ujian->sinkronisasiStatus();
         }
 
-        // Buat atau ambil sesi di tabel seleksi_ujians
+        abort_unless(
+            in_array($ujian->status, ['scheduled', 'published', 'completed']),
+            403,
+            'Ujian ini belum tersedia untuk siswa.'
+        );
+
+        $ujian->load([
+            'pengampuKelas.guruMapel.guru',
+            'pengampuKelas.guruMapel.mapel',
+            'pengampuKelas.kelas',
+            'soals',
+            'seleksiUjians' => function ($q) use ($siswaId) {
+                $q->where('siswa_id', $siswaId);
+            },
+            'seleksiUjians.nilais'
+        ]);
+
+        $sesi = $ujian->seleksiUjians->first();
+        $nilai = $sesi?->nilais?->first();
+        $sudahDikerjakan = $nilai !== null;
+
+        // Hitung ringkasan tipe soal
+        $ringkasanTipe = [
+            'single_choice' => $ujian->soals->where('tipe_soal', 'single_choice')->count(),
+            'multiple_choice' => $ujian->soals->where('tipe_soal', 'multiple_choice')->count(),
+            'essay' => $ujian->soals->where('tipe_soal', 'essay')->count(),
+            'matching' => $ujian->soals->where('tipe_soal', 'matching')->count(),
+            'total_poin' => $ujian->soals->sum('bobot') ?: 100,
+        ];
+
+        return view('siswa.ujian.show', compact('ujian', 'sudahDikerjakan', 'nilai', 'ringkasanTipe'));
+    }
+
+    /**
+     * Menampilkan halaman konfirmasi & input token sebelum masuk ke lembar soal.
+     */
+    public function konfirmasi(Ujian $ujian)
+    {
+        $user = auth()->user();
+        $siswa = $user->siswa;
+        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
+        abort_unless($siswaId, 403, 'Profil siswa tidak ditemukan.');
+
+        if ($ujian->status !== 'published') {
+            return redirect()->route('siswa.dashboard')
+                ->with('error', 'Ujian ini belum aktif atau sedang ditarik oleh pengawas.');
+        }
+
+        // Cek apakah siswa sudah menyelesaikan ujian ini
+        $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
+            ->where('siswa_id', $siswaId)
+            ->first();
+
+        if ($sesi && ($sesi->status === 'selesai' || !is_null($sesi->waktu_selesai))) {
+            return redirect()->route('siswa.ujian.hasil', $ujian->id)
+                ->with('info', 'Anda telah menyelesaikan ujian ini.');
+        }
+
+        // Jika siswa sedang mengerjakan dan token di session browser sudah valid, langsung lanjutkan
+        if ($sesi && session('token_ujian_verified_' . $ujian->id) === $ujian->token) {
+            return redirect()->route('siswa.ujian.kerjakan', $ujian->id);
+        }
+
+        $waktuMulaiSesi = Carbon::parse($ujian->waktu_mulai_sesi ?? $ujian->waktu_mulai ?? now());
+        $batasAkhirSesi = $waktuMulaiSesi->copy()->addMinutes((int) $ujian->durasi_menit);
+
+        return view('siswa.ujian.konfirmasi', compact('ujian', 'siswa', 'waktuMulaiSesi', 'batasAkhirSesi'));
+    }
+
+    /**
+     * Memvalidasi Token Sesi & Jadwal Sesi (Double Lock) sebelum membuka lembar soal.
+     */
+    public function validasiToken(Request $request, Ujian $ujian)
+    {
+        $request->validate([
+            'token' => 'required|string',
+        ], [
+            'token.required' => 'Token ujian wajib diisi.',
+        ]);
+
+        $user = auth()->user();
+        $siswa = $user->siswa;
+        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
+        abort_unless($siswaId, 403, 'Profil siswa tidak ditemukan.');
+
+        if ($ujian->status !== 'published') {
+            return redirect()->route('siswa.dashboard')
+                ->with('error', 'Ujian ini sedang tidak aktif.');
+        }
+
+        $inputToken = strtoupper(trim($request->token));
+        $tokenKelas = strtoupper(trim((string) $ujian->token));
+        $nomorSesiKelas = $ujian->sesi ?? 1;
+
+        // =========================================================================
+        // PENGAMAN 1: VALIDASI TOKEN & DETEKSI JIKA MEMASUKKAN TOKEN SESI LAIN
+        // =========================================================================
+        if (empty($tokenKelas) || $inputToken !== $tokenKelas) {
+            if ($ujian->id_grup_ujian) {
+                $ujianSesiLain = Ujian::where('id_grup_ujian', $ujian->id_grup_ujian)
+                    ->whereRaw('UPPER(token) = ?', [$inputToken])
+                    ->first();
+
+                if ($ujianSesiLain) {
+                    return back()->withInput()->with(
+                        'error',
+                        "Token tersebut milik Sesi {$ujianSesiLain->sesi}. Kelas Anda terdaftar pada Sesi {$nomorSesiKelas}."
+                    );
+                }
+            }
+
+            return back()->withInput()->with(
+                'error',
+                'Token ujian tidak valid atau belum dirilis oleh guru pengawas.'
+            );
+        }
+
+        // =========================================================================
+        // PENGAMAN 2: VALIDASI JADWAL WAKTU MULAI & BATAS AKHIR SESI
+        // =========================================================================
+        $waktuMulaiSesi = Carbon::parse($ujian->waktu_mulai_sesi ?? $ujian->waktu_mulai ?? now());
+        $batasAkhirSesi = $waktuMulaiSesi->copy()->addMinutes((int) $ujian->durasi_menit);
+
+        if (now()->lt($waktuMulaiSesi)) {
+            return back()->withInput()->with(
+                'error',
+                "Sesi {$nomorSesiKelas} belum dimulai. Jadwal sesi Anda dibuka pada pukul " . $waktuMulaiSesi->format('H:i') . " WIB."
+            );
+        }
+
+        if (now()->greaterThanOrEqualTo($batasAkhirSesi)) {
+            return back()->withInput()->with(
+                'error',
+                "Waktu pengerjaan untuk Sesi {$nomorSesiKelas} telah berakhir pada pukul " . $batasAkhirSesi->format('H:i') . " WIB."
+            );
+        }
+
+        // Simpan tanda kelolosan token di session
+        session(['token_ujian_verified_' . $ujian->id => $ujian->token]);
+
+        // Buat atau ambil sesi pengerjaan siswa
         $sesi = SeleksiUjian::firstOrCreate(
             [
                 'ujian_id' => $ujian->id,
                 'siswa_id' => $siswaId,
             ],
             [
-                'nilai_awal'    => 0,
-                'nilai_akhir'   => 0,
-                'jumlah_remidi' => 0,
+                'nilai_awal'        => 0,
+                'nilai_akhir'       => 0,
+                'jumlah_remidi'     => 0,
+                'waktu_mulai'       => now(),
+                'status'            => 'sedang_mengerjakan',
+                'pelanggaran_count' => 0,
             ]
         );
 
-        // Hitung sisa waktu pengerjaan
-        $durasiMenit = $ujian->durasi_menit ?? 60;
-        $waktuMulai = Carbon::parse($sesi->created_at);
-        $batasSelesai = $waktuMulai->copy()->addMinutes($durasiMenit);
-
-        if ($ujian->deadline) {
-            $deadline = Carbon::parse($ujian->deadline);
-            if ($deadline->lt($batasSelesai)) {
-                $batasSelesai = $deadline;
-            }
+        if (!$sesi->waktu_mulai) {
+            $sesi->update(['waktu_mulai' => now(), 'status' => 'sedang_mengerjakan']);
         }
 
-        $sisaDetik = max(0, Carbon::now()->diffInSeconds($batasSelesai, false));
+        return redirect()->route('siswa.ujian.kerjakan', $ujian->id);
+    }
 
-        $ujian->load([
-            'pengampuKelas.guruMapel.mapel',
-            'soals' => function ($query) {
-                $query->orderBy('urutan')->orderBy('id');
-            },
-        ]);
+    /**
+     * Menampilkan ruang ujian interaktif dengan Timer Sesi Terpusat.
+     */
+    public function kerjakan(Ujian $ujian)
+    {
+        $user = auth()->user();
+        $siswa = $user->siswa;
+        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
+        abort_unless($siswaId, 403, 'Profil siswa tidak ditemukan.');
 
-        $savedAnswers = Menjawab::where('siswa_id', $siswaId)
-            ->whereIn('soal_id', $ujian->soals->pluck('id'))
-            ->pluck('jawaban_dipilih', 'soal_id');
+        if ($ujian->status !== 'published') {
+            return redirect()->route('siswa.dashboard')
+                ->with('error', 'Ujian ini sedang ditarik dari publikasi oleh guru pengawas.');
+        }
 
-        $soalsData = $ujian->soals->map(function ($soal, $index) {
-            $pilihan = $soal->pilihan;
-            if (is_string($pilihan)) {
-                $pilihan = json_decode($pilihan, true) ?? [];
+        $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
+            ->where('siswa_id', $siswaId)
+            ->first();
+
+        // Jika sudah selesai, langsung arahkan ke hasil
+        if ($sesi && ($sesi->status === 'selesai' || !is_null($sesi->waktu_selesai))) {
+            return redirect()->route('siswa.ujian.hasil', $ujian->id)
+                ->with('info', 'Ujian Anda telah selesai.');
+        }
+
+        // Wajib melewati halaman input token terlebih dahulu
+        if (!$sesi || session('token_ujian_verified_' . $ujian->id) !== $ujian->token) {
+            return redirect()->route('siswa.ujian.konfirmasi', $ujian->id)
+                ->with('error', 'Silakan masukkan token sesi ujian terlebih dahulu.');
+        }
+
+        // =========================================================================
+        // TIMER SESI TERPUSAT:
+        // Dihitung dari (waktu_mulai_sesi + durasi_menit) dikurangi waktu sekarang.
+        // =========================================================================
+        $waktuMulaiSesi = Carbon::parse($ujian->waktu_mulai_sesi ?? $ujian->waktu_mulai ?? $sesi->waktu_mulai ?? now());
+        $batasAkhirSesi = $waktuMulaiSesi->copy()->addMinutes((int) $ujian->durasi_menit);
+        $sisaDetik = max(0, (int) now()->diffInSeconds($batasAkhirSesi, false));
+
+        if ($sisaDetik <= 0) {
+            return $this->submit(request(), $ujian);
+        }
+
+        // Urutkan soal sesuai instrumen guru
+        $soals = $ujian->soals()->orderBy('urutan', 'asc')->orderBy('id', 'asc')->get();
+
+        $soalsData = $soals->map(function ($soal, $index) {
+            $pilihan = is_array($soal->pilihan) ? $soal->pilihan : json_decode($soal->pilihan, true) ?? [];
+            $opsiFormatted = [];
+            foreach ($pilihan as $k => $v) {
+                $kode = is_numeric($k) ? chr(97 + (int)$k) : strtolower($k);
+                $opsiFormatted[] = [
+                    'kode'  => $kode,
+                    'label' => strtoupper($kode),
+                    'teks'  => $v,
+                ];
             }
 
-            $formattedPilihan = [];
-            if (is_array($pilihan)) {
-                $huruf = ['A', 'B', 'C', 'D', 'E', 'F'];
-                $i = 0;
-                foreach ($pilihan as $key => $teks) {
-                    $label = is_numeric($key) ? ($huruf[$i] ?? (string)$key) : strtoupper($key);
-                    $formattedPilihan[] = [
-                        'kode'  => strtolower($label),
-                        'label' => $label,
-                        'teks'  => $teks,
-                    ];
-                    $i++;
+            // Normalisasi path gambar agar tidak terjadi double 'storage/' atau URL rusak
+            $gambarUrl = null;
+            if (!empty($soal->gambar)) {
+                $pathBersih = ltrim((string) $soal->gambar, '/');
+                if (str_starts_with($pathBersih, 'http://') || str_starts_with($pathBersih, 'https://')) {
+                    $gambarUrl = $pathBersih;
+                } elseif (str_starts_with($pathBersih, 'storage/')) {
+                    $gambarUrl = asset($pathBersih);
+                } else {
+                    $gambarUrl = asset('storage/' . $pathBersih);
                 }
             }
 
@@ -100,15 +332,61 @@ class UjianController extends Controller
                 'nomor'      => $index + 1,
                 'pertanyaan' => $soal->pertanyaan,
                 'tipe_soal'  => $soal->tipe_soal,
-                'bobot'      => $soal->bobot ?? 1,
-                'gambar'     => $soal->gambar ? asset('storage/' . $soal->gambar) : null,
-                'pilihan'    => $formattedPilihan,
+                'gambar'     => $gambarUrl,
+                'bobot'      => (float) ($soal->bobot ?? 1),
+                'pilihan'    => $opsiFormatted,
             ];
         });
 
-        return view('siswa.ujian.kerjakan', compact('ujian', 'soalsData', 'sisaDetik', 'savedAnswers'));
+        $savedAnswers = Menjawab::where('siswa_id', $siswaId)
+            ->whereIn('soal_id', $soals->pluck('id'))
+            ->pluck('jawaban_dipilih', 'soal_id')
+            ->toArray();
+
+        return view('siswa.ujian.kerjakan', compact(
+            'ujian',
+            'sesi',
+            'soalsData',
+            'savedAnswers',
+            'sisaDetik'
+        ));
     }
 
+    /**
+     * Endpoint Heartbeat Sesi (Dipanggil berkala tiap 3 detik oleh browser siswa).
+     */
+    public function cekStatusSesi(Ujian $ujian)
+    {
+        if ($ujian->status === 'unpublished' || $ujian->status === 'draft') {
+            return response()->json([
+                'status'       => 'ditarik',
+                'message'      => 'Ujian telah ditarik dari publikasi oleh guru pengawas.',
+                'redirect_url' => route('siswa.dashboard'),
+            ]);
+        }
+
+        $siswaId = auth()->user()->siswa?->id ?? auth()->user()->siswa_id;
+
+        $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
+            ->where('siswa_id', $siswaId)
+            ->first();
+
+        if (!$sesi) {
+            return response()->json(['status' => 'belum_mulai']);
+        }
+
+        $waktuMulaiSesi = Carbon::parse($ujian->waktu_mulai_sesi ?? $ujian->waktu_mulai ?? $sesi->waktu_mulai ?? now());
+        $batasAkhirSesi = $waktuMulaiSesi->copy()->addMinutes((int) $ujian->durasi_menit);
+        $sisaDetik = max(0, (int) now()->diffInSeconds($batasAkhirSesi, false));
+
+        return response()->json([
+            'status'            => $sesi->status,
+            'pelanggaran_count' => (int) ($sesi->pelanggaran_count ?? 0),
+            'sisa_detik'        => $sisaDetik,
+            'is_timeout'        => ($sisaDetik <= 0 && $sesi->status !== 'selesai'),
+            'redirect_url'      => route('siswa.ujian.hasil', $ujian->id),
+        ]);
+    }
     /**
      * Auto-save jawaban siswa ke tabel menjawabs.
      */
@@ -116,7 +394,7 @@ class UjianController extends Controller
     {
         $request->validate([
             'soal_id' => 'required|exists:soals,id',
-            'jawaban' => 'required|string',
+            'jawaban' => 'nullable',
         ]);
 
         $user = Auth::user();
@@ -125,36 +403,139 @@ class UjianController extends Controller
 
         $soal = Soal::where('ujian_id', $ujian->id)->findOrFail($request->soal_id);
 
-        $jawabanUser = strtolower(trim((string)$request->jawaban));
+        $rawJawaban = $request->jawaban;
+        $jawabanString = is_array($rawJawaban) ? implode(',', $rawJawaban) : (string) $rawJawaban;
+
+        // Cek status benar untuk keperluan indikator
         $kunci = $soal->kunci_jawaban;
         $isBenar = false;
 
-        if (is_array($kunci)) {
-            $cleanKunci = array_map(fn($k) => strtolower(trim((string)$k)), $kunci);
-            $isBenar = in_array($jawabanUser, $cleanKunci);
+        if ($soal->tipe_soal === 'multiple_choice') {
+            $cleanKunci = is_array($kunci)
+                ? array_map('strtolower', $kunci)
+                : array_filter(explode(',', strtolower((string) $kunci)));
+            $cleanJawaban = is_array($rawJawaban)
+                ? array_map('strtolower', $rawJawaban)
+                : array_filter(explode(',', strtolower((string) $rawJawaban)));
+
+            sort($cleanKunci);
+            sort($cleanJawaban);
+            $isBenar = ($cleanKunci === $cleanJawaban);
         } else {
-            $isBenar = ($jawabanUser === strtolower(trim((string)$kunci)));
+            $isBenar = (strtolower(trim($jawabanString)) === strtolower(trim(is_array($kunci) ? ($kunci[0] ?? '') : (string) $kunci)));
         }
 
         Menjawab::updateOrCreate(
             [
-                'soal_id'  => $soal->id,
+                'soal_id' => $soal->id,
                 'siswa_id' => $siswaId,
             ],
             [
-                'jawaban_dipilih' => $request->jawaban,
-                'benar'           => $isBenar,
+                'jawaban_dipilih' => $jawabanString,
+                'benar' => $isBenar,
             ]
         );
 
         return response()->json([
-            'status'  => 'success',
+            'status' => 'success',
             'message' => 'Jawaban berhasil disimpan otomatis',
+        ]);
+    }
+    /**
+     * Mencatat log pelanggaran layar (anti-cheat) dan mengunci ujian jika melewati batas toleransi.
+     */
+    public function catatPelanggaran(Request $request, Ujian $ujian)
+    {
+        $siswaId = auth()->user()->siswa?->id ?? auth()->user()->siswa_id;
+
+        $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
+            ->where('siswa_id', $siswaId)
+            ->first();
+
+        if (!$sesi || $sesi->status === 'selesai') {
+            return response()->json(['status' => 'ignored']);
+        }
+
+        // Naikkan counter pelanggaran
+        $sesi->increment('pelanggaran_count');
+        $sesi->refresh();
+
+        $maxToleransi = 3; // Batas maksimal pindah tab/jendela
+        $isLocked = false;
+
+        // Kunci sesi pengerjaan otomatis jika melewati batas
+        if ($sesi->pelanggaran_count >= $maxToleransi) {
+            $sesi->update(['status' => 'terkunci']);
+            $isLocked = true;
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'pelanggaran_count' => $sesi->pelanggaran_count,
+            'max_toleransi' => $maxToleransi,
+            'is_locked' => $isLocked,
         ]);
     }
 
     /**
-     * Submit ujian, kalkulasi skor akhir, dan simpan nilai.
+     * Membuka blokir sesi ujian siswa menggunakan Kode Buka Blokir dari pengawas/admin.
+     */
+    public function bukaKunciDenganKode(Request $request, Ujian $ujian)
+    {
+        $request->validate([
+            'kode' => 'required|string',
+        ], [
+            'kode.required' => 'Silakan masukkan kode buka blokir.',
+        ]);
+
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+        $siswaId = $user?->siswa?->id ?? $user?->siswa_id;
+
+        $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
+            ->where('siswa_id', $siswaId)
+            ->first();
+
+        if (!$sesi) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Sesi ujian tidak ditemukan.',
+            ], 404);
+        }
+
+        if ($sesi->status !== 'terkunci') {
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Sesi ujian sudah aktif.',
+            ]);
+        }
+
+        $inputKode = strtoupper(trim($request->kode));
+        $kodeAktif = strtoupper(trim((string) $ujian->unlock_code));
+
+        if (empty($kodeAktif) || $inputKode !== $kodeAktif) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Kode buka blokir tidak valid atau sudah diperbarui oleh pengawas.',
+            ], 422);
+        }
+
+        // Buka kunci dan reset hitungan pelanggaran
+        $sesi->update([
+            'status'            => 'sedang_mengerjakan',
+            'pelanggaran_count' => 0,
+        ]);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Blokir berhasil dibuka. Silakan lanjutkan pengerjaan ujian.',
+        ]);
+    }
+
+
+
+    /**
+     * Submit ujian, kalkulasi skor proporsional, dan simpan nilai.
      */
     public function submit(Request $request, Ujian $ujian)
     {
@@ -172,7 +553,6 @@ class UjianController extends Controller
             $soals = $ujian->soals;
             $soalIds = $soals->pluck('id');
 
-            // Ambil semua jawaban siswa untuk soal ujian ini
             $jawabanSiswa = Menjawab::where('siswa_id', $siswaId)
                 ->whereIn('soal_id', $soalIds)
                 ->get()
@@ -183,75 +563,182 @@ class UjianController extends Controller
 
             foreach ($soals as $soal) {
                 $jawab = $jawabanSiswa->get($soal->id);
-                if ($jawab && $jawab->benar) {
-                    $skorDiperoleh += ($soal->bobot ?? 1);
+                $bobotSoal = (float) ($soal->bobot ?? 1);
+
+                if (!$jawab || empty($jawab->jawaban_dipilih)) {
+                    continue;
                 }
+
+                $kunci = $soal->kunci_jawaban;
+
+                // 1. PENILAIAN PILIHAN GANDA KOMPLEKS (PROPORSIONAL)
+                if ($soal->tipe_soal === 'multiple_choice') {
+                    $cleanKunci = is_array($kunci)
+                        ? array_map('strtolower', array_map('trim', $kunci))
+                        : array_filter(array_map('strtolower', array_map('trim', explode(',', (string) $kunci))));
+
+                    $jawabanSiswaArr = array_filter(array_map('strtolower', array_map('trim', explode(',', (string) $jawab->jawaban_dipilih))));
+
+                    $totalKunci = count($cleanKunci);
+                    if ($totalKunci > 0) {
+                        // Jumlah pilihan siswa yang cocok dengan kunci
+                        $benarPilihan = count(array_intersect($jawabanSiswaArr, $cleanKunci));
+
+                        // Penalti jika mencentang pilihan yang salah
+                        $salahPilihan = count(array_diff($jawabanSiswaArr, $cleanKunci));
+
+                        // Hitung skor bersih (tidak minus)
+                        $netBenar = max(0, $benarPilihan - $salahPilihan);
+                        $rasio = $netBenar / $totalKunci;
+
+                        $skorDiperoleh += ($bobotSoal * $rasio);
+                    }
+                }
+                // 2. PENILAIAN PILIHAN GANDA BIASA (SINGLE CHOICE)
+                elseif ($soal->tipe_soal === 'single_choice') {
+                    $kunciTunggal = is_array($kunci) ? ($kunci[0] ?? '') : (string) $kunci;
+                    if (strtolower(trim((string) $jawab->jawaban_dipilih)) === strtolower(trim((string) $kunciTunggal))) {
+                        $skorDiperoleh += $bobotSoal;
+                    }
+                }
+                // 3. ESSAY (Dinilai manual guru, skor otomatis dilewati)
             }
 
             // Normalisasi nilai akhir (skala 0 - 100)
             $nilaiAkhir = $totalBobot > 0 ? round(($skorDiperoleh / $totalBobot) * 100, 2) : 0;
-            if ($nilaiAkhir > 100) $nilaiAkhir = 100;
+            if ($nilaiAkhir > 100) {
+                $nilaiAkhir = 100;
+            }
 
-            // Hitung durasi pengerjaan dalam detik
-            $durasiDetik = (int) Carbon::parse($sesi->created_at)->diffInSeconds(now());
+            $waktuAwal = $sesi->waktu_mulai ?? $sesi->created_at;
+            $durasiDetik = (int) Carbon::parse($waktuAwal)->diffInSeconds(now());
 
-            // 1. Simpan nilai ke tabel seleksi_ujians
+            // 1. Simpan ke tabel seleksi_ujians DENGAN STATUS SELESAI
             $sesi->update([
-                'nilai_awal'  => $nilaiAkhir,
+                'status' => 'selesai',
+                'waktu_selesai' => now(),
+                'nilai_awal' => $nilaiAkhir,
                 'nilai_akhir' => $nilaiAkhir,
             ]);
 
-            // 2. Simpan nilai ke tabel nilais
+            // 2. Simpan ke tabel nilais
             Nilai::updateOrCreate(
                 [
                     'seleksi_ujian_id' => $sesi->id,
-                    'siswa_id'         => $siswaId,
+                    'siswa_id' => $siswaId,
                 ],
                 [
-                    'nilai'        => $nilaiAkhir,
-                    'status'       => 'selesai',
-                    'durasi'       => $durasiDetik,
-                    'tugas_id'     => null,
-                    'quiz_id'      => null,
+                    'nilai' => $nilaiAkhir,
+                    'status' => 'selesai',
+                    'durasi' => $durasiDetik,
+                    'tugas_id' => null,
+                    'quiz_id' => null,
                     'file_jawaban' => null,
                 ]
             );
 
+            // Pastikan semua soal essay memiliki record di menjawabs (skor_essay = null agar status Kuning)
+         foreach ($soals->where('tipe_soal', 'essay') as $soalEssay) {
+             Menjawab::firstOrCreate(
+                 ['soal_id' => $soalEssay->id, 'siswa_id' => $siswaId],
+                 ['jawaban_dipilih' => '', 'benar' => false, 'skor_essay' => null]
+             );
+         }
+
+         // Jika ujian ini REMIDI / SUSULAN dan TIDAK ADA ESSAY, langsung update nilai di Ujian Induk
+         $adaEssay = $soals->where('tipe_soal', 'essay')->isNotEmpty();
+         if (!$adaEssay && $ujian->parent_ujian_id && in_array($ujian->jenis_ujian, ['remidi', 'susulan'])) {
+             $ujianInduk = Ujian::find($ujian->parent_ujian_id);
+             if ($ujianInduk) {
+                 $sesiInduk = SeleksiUjian::firstOrCreate(
+                     ['ujian_id' => $ujianInduk->id, 'siswa_id' => $siswaId],
+                     ['nilai_awal' => $nilaiAkhir, 'nilai_akhir' => $nilaiAkhir, 'jumlah_remidi' => 0, 'status' => 'selesai', 'waktu_selesai' => now()]
+                 );
+
+                 $kkmInduk = (float) ($ujianInduk->kkm ?? 75);
+                 $nilaiAwalInduk = (float) $sesiInduk->nilai_awal;
+
+                 if ($ujian->jenis_ujian === 'susulan') {
+                     $nilaiFinalInduk = $nilaiAkhir;
+                     $sesiInduk->update([
+                         'nilai_awal'    => $nilaiFinalInduk,
+                         'nilai_akhir'   => $nilaiFinalInduk,
+                         'status'        => 'selesai',
+                         'waktu_selesai' => $sesiInduk->waktu_selesai ?? now(),
+                     ]);
+                 } else {
+                     $kebijakan = $ujian->kebijakan_remidi ?? 'kkm';
+                     if ($kebijakan === 'terbaik') {
+                         $nilaiFinalInduk = max($nilaiAwalInduk, $nilaiAkhir);
+                     } elseif ($kebijakan === 'rata_rata') {
+                         $nilaiFinalInduk = round(($nilaiAwalInduk + $nilaiAkhir) / 2, 2);
+                     } else {
+                         $nilaiFinalInduk = min($kkmInduk, max($nilaiAwalInduk, $nilaiAkhir));
+                     }
+
+                     $sesiInduk->update([
+                         'nilai_akhir'   => $nilaiFinalInduk,
+                         'jumlah_remidi' => (int) $sesiInduk->jumlah_remidi + 1,
+                     ]);
+                 }
+
+                 Nilai::updateOrCreate(
+                     ['seleksi_ujian_id' => $sesiInduk->id, 'siswa_id' => $siswaId],
+                     ['nilai' => $nilaiFinalInduk, 'status' => 'selesai']
+                 );
+             }
+         }
+
+            // JIKA KELUAR DARI TOMBOL KELUAR -> ARAHKAN KE DASHBOARD
+            // Ganti baris pengecekan tersebut menjadi:
+            if (request('redirect_to') === 'dashboard') {
+                return redirect()->route('siswa.dashboard')
+                    ->with('success', 'Ujian telah dikumpulkan otomatis dan sesi Anda telah selesai.');
+            }
+            // DEFAULT: ARAHKAN KE HALAMAN HASIL
             return redirect()->route('siswa.ujian.hasil', $ujian->id)
                 ->with('success', 'Ujian berhasil dikumpulkan!');
         });
     }
-
     /**
      * Menampilkan halaman rekapitulasi hasil ujian siswa.
      */
+    /**
+     * Menampilkan halaman ringkasan skor dan hasil pengerjaan ujian.
+     */
     public function hasil(Ujian $ujian)
     {
-        $user = Auth::user();
-        $siswa = $user->siswa;
-        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
+        $siswaId = auth()->user()->siswa?->id ?? auth()->user()->siswa_id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
             ->firstOrFail();
 
+        // 1. Ambil data nilai dari tabel nilais, atau fallback dari data seleksi_ujians
         $nilai = Nilai::where('seleksi_ujian_id', $sesi->id)
             ->where('siswa_id', $siswaId)
             ->first();
 
-        abort_unless($nilai, 404, 'Hasil ujian belum tersedia.');
+        // Fallback jika baris tabel nilais belum sempat terbuat
+        if (!$nilai) {
+            $nilai = (object) [
+                'nilai' => $sesi->nilai_akhir ?? $sesi->nilai_awal ?? 0,
+                'status' => $sesi->status ?? 'selesai',
+            ];
+        }
 
-        $soals = $ujian->soals;
-        $jawabanSiswa = Menjawab::where('siswa_id', $siswaId)
-            ->whereIn('soal_id', $soals->pluck('id'))
+        // 2. Rekap butir soal dan jawaban
+        $soalIds = $ujian->soals()->pluck('id');
+        $totalSoal = $soalIds->count();
+
+        $jawaban = Menjawab::where('siswa_id', $siswaId)
+            ->whereIn('soal_id', $soalIds)
             ->get();
 
-        $totalSoal = $soals->count();
-        $totalBenar = $jawabanSiswa->where('benar', true)->count();
+        $totalBenar = $jawaban->where('benar', 1)->count();
         $totalSalah = max(0, $totalSoal - $totalBenar);
 
-        $ujian->load(['pengampuKelas.guruMapel.mapel']);
-
+        // 3. Sertakan $nilai ke dalam compact
         return view('siswa.ujian.hasil', compact(
             'ujian',
             'sesi',

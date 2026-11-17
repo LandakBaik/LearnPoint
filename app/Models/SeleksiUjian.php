@@ -12,13 +12,16 @@ class SeleksiUjian extends Model
     protected $table = 'seleksi_ujians';
 
     protected $fillable = [
-        'nilai_awal',
-        'jumlah_remidi',
-        'nilai_akhir',
-        'siswa_id',
-        'ujian_id',
-    ];
-
+    'ujian_id',
+    'siswa_id',
+    'nilai_awal',
+    'nilai_akhir',
+    'jumlah_remidi',
+    'waktu_mulai',
+    'waktu_selesai',
+    'status',
+    'pelanggaran_count',
+];
     public function siswa()
     {
         return $this->belongsTo(Siswa::class, 'siswa_id');
