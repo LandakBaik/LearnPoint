@@ -2120,13 +2120,13 @@ class UjianController extends Controller
 
         $kelasIdsGuru = $pengampuList->pluck('kelas_id')->unique();
 
-        // 2. Ambil daftar Tahun Ajaran unik dari tabel anggota_kelases
+        // 2. Ambil daftar Tahun Ajaran unik dari tabel academic_periods yang dipakai oleh anggota_kelases
         $daftarTahunAjaran = DB::table('anggota_kelases')
-            ->whereIn('kelas_id', $kelasIdsGuru)
-            ->whereNotNull('tahun_ajaran')
+            ->join('academic_periods', 'anggota_kelases.academic_period_id', '=', 'academic_periods.id')
+            ->whereIn('anggota_kelases.kelas_id', $kelasIdsGuru)
             ->distinct()
-            ->orderByDesc('tahun_ajaran')
-            ->pluck('tahun_ajaran')
+            ->orderByDesc('academic_periods.tahun_ajaran')
+            ->pluck('academic_periods.tahun_ajaran')
             ->values();
 
         if ($daftarTahunAjaran->isEmpty()) {
@@ -2202,8 +2202,10 @@ class UjianController extends Controller
             $daftarSiswa = Siswa::with(['user'])
                 ->whereHas('anggotaKelases', function ($q) use ($selectedPengampu, $selectedTahunAjaran, $selectedSemester) {
                     $q->where('kelas_id', $selectedPengampu->kelas_id)
-                        ->where('tahun_ajaran', $selectedTahunAjaran)
-                        ->whereRaw('LOWER(semester) = ?', [$selectedSemester]);
+                        ->whereHas('academicPeriod', function ($ap) use ($selectedTahunAjaran, $selectedSemester) {
+                            $ap->where('tahun_ajaran', $selectedTahunAjaran)
+                                ->whereRaw('LOWER(semester) = ?', [$selectedSemester]);
+                        });
                 })
                 ->get()
                 ->unique('id')

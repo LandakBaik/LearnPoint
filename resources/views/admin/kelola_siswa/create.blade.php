@@ -63,10 +63,10 @@
                 </div>
             </div>
 
-            <!-- Kelas & Jenis Kelamin & Tanggal Lahir (Grid 3 Kolom) -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- Kelas & Angkatan (Grid 2 Kolom) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label for="kelas_id" class="block text-sm font-bold text-gray-700 mb-1">Kelas</label>
+                    <label for="kelas_id" class="block text-sm font-bold text-gray-700 mb-1">Kelas ({{ \App\Models\AcademicPeriod::activeTahunAjaran() }})</label>
                     <select id="kelas_id" name="kelas_id" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-gray-800">
                         <option value="">-- Pilih Kelas --</option>
                         @foreach($kelases as $k)
@@ -80,6 +80,27 @@
                     @enderror
                 </div>
 
+                <div>
+                    <label for="angkatan" class="block text-sm font-bold text-gray-700 mb-1">Angkatan (Tahun Masuk)</label>
+                    <input
+                        type="number"
+                        id="angkatan"
+                        name="angkatan"
+                        min="2000"
+                        max="2100"
+                        value="{{ old('angkatan', \App\Models\AcademicPeriod::defaultAngkatan()) }}"
+                        placeholder="Contoh: 2026"
+                        class="w-full px-4 py-2.5 rounded-xl border @error('angkatan') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    >
+                    <p class="text-xs text-gray-500 mt-1">Tahun siswa pertama kali masuk sekolah.</p>
+                    @error('angkatan')
+                        <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+
+            <!-- Jenis Kelamin & Tanggal Lahir (Grid 2 Kolom) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label for="jenis_kelamin" class="block text-sm font-bold text-gray-700 mb-1">Jenis Kelamin <span class="text-rose-500">*</span></label>
                     <select id="jenis_kelamin" name="jenis_kelamin" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-gray-800">

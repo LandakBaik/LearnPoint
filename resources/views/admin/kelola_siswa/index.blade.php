@@ -175,7 +175,12 @@
                                     </div>
                                     <div>
                                         <p class="font-bold text-slate-800">{{ $data->nama_siswa }}</p>
-                                        <p class="text-xs text-slate-500 mt-0.5">NIS: {{ $data->nis }}</p>
+                                        <p class="text-xs text-slate-500 mt-0.5">
+                                            NIS: {{ $data->nis }}
+                                            @if($data->angkatan)
+                                                &bull; Angkatan {{ $data->angkatan }}
+                                            @endif
+                                        </p>
                                     </div>
                                 </div>
                             </td>
@@ -331,7 +336,7 @@
                         Format Kolom Wajib CSV Siswa:
                     </p>
                     <div class="bg-white p-2.5 rounded-xl border border-blue-200 text-blue-800 text-[11px] overflow-x-auto font-semibold">
-                        nama_siswa,nis,alamat,tanggal_lahir,jenis_kelamin,wali_murid,nohp_wali,kelas
+                        nama_siswa,nis,angkatan,alamat,tanggal_lahir,jenis_kelamin,wali_murid,nohp_wali,kelas
                     </div>
                     <p class="text-blue-700 text-[11px]">
                         * Setiap siswa akan otomatis dibuatkan akun pengguna (Username: NIS, Password: NIS, Role: Siswa, Status: Aktif).

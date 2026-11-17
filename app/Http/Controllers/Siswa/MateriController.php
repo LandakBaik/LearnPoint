@@ -58,11 +58,14 @@ class MateriController extends Controller
     {
         $user = $request->user();
         $siswa = $user?->siswa;
-        $anggotaKelas = $siswa?->anggotaKelases()?->latest()?->first();
+        $activePeriod = \App\Models\AcademicPeriod::current();
+        $anggotaKelas = $siswa?->anggotaKelases()?->with('academicPeriod')
+            ?->where('academic_period_id', $activePeriod->id)
+            ->first() ?? $siswa?->anggotaKelases()?->with('academicPeriod')->latest()->first();
         $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;
         $kelasId = $kelas?->id;
-        $tahunAjaran = $anggotaKelas?->tahun_ajaran ?? '2026/2027';
-        $semester = $anggotaKelas?->semester ? ucfirst($anggotaKelas->semester) : 'Ganjil';
+        $tahunAjaran = $anggotaKelas?->academicPeriod?->tahun_ajaran ?? $activePeriod->tahun_ajaran;
+        $semester = ucfirst($anggotaKelas?->academicPeriod?->semester ?? $activePeriod->semester);
 
         $mapel = Mapel::with(['guruMapels.guru', 'pengampuKelases.guruMapel.guru'])->findOrFail($id);
 

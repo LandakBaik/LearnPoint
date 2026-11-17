@@ -89,14 +89,14 @@ class DatabaseSeeder extends Seeder
         // 5. Seeder Materi & Kelas Guru Amba
         $this->call(MateriGuruSeeder::class);
 
-        // 6. Daftarkan Siswa ke Kelas 7-A
+        // 6. Daftarkan Siswa ke Kelas 7-A pada periode aktif
         $kelas7A = Kelas::where('nama_kelas', '7-A')->first() ?? $kelas;
+        $activePeriodId = \App\Models\AcademicPeriod::currentId();
         \App\Models\AnggotaKelas::firstOrCreate([
-            'siswa_id' => $siswa->id,
-            'kelas_id' => $kelas7A->id,
+            'siswa_id'           => $siswa->id,
+            'academic_period_id' => $activePeriodId,
         ], [
-            'tahun_ajaran' => '2026/2027',
-            'semester' => 'ganjil',
+            'kelas_id'           => $kelas7A->id,
         ]);
 
         // 7. Seeder Tugas & Kuis Petualangan

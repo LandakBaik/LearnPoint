@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Helpers\DateHelper;
 use App\Http\Controllers\Controller;
+use App\Models\AcademicPeriod;
 use App\Models\AnggotaKelas;
 use App\Models\Kelas;
 use App\Models\Siswa;
@@ -22,10 +23,12 @@ class SiswaController extends Controller
     {
         $query = Siswa::with(['kelas.guru', 'user', 'anggotaKelases']);
 
-        // Filter kelas
+        // Filter kelas pada periode aktif
+        $activePeriod = AcademicPeriod::current();
         if ($request->filled('kelas_id')) {
-            $query->whereHas('anggotaKelases', function ($q) use ($request) {
-                $q->where('kelas_id', $request->kelas_id);
+            $query->whereHas('anggotaKelases', function ($q) use ($request, $activePeriod) {
+                $q->where('kelas_id', $request->kelas_id)
+                  ->where('academic_period_id', $activePeriod->id);
             });
         }
 
@@ -34,6 +37,16 @@ class SiswaController extends Controller
             $query->whereHas('kelas', function ($q) use ($request) {
                 $q->where('tingkatan', $request->tingkatan);
             });
+        }
+
+        // Filter angkatan
+        if ($request->filled('angkatan')) {
+            $query->where('angkatan', (int) $request->angkatan);
+        }
+
+        // Filter status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
         }
 
         // Search
@@ -53,8 +66,9 @@ class SiswaController extends Controller
 
         $siswa = $query->latest()->paginate(10)->withQueryString();
         $kelases = Kelas::all();
+        $angkatanList = Siswa::whereNotNull('angkatan')->distinct()->orderByDesc('angkatan')->pluck('angkatan');
 
-        return view('admin.kelola_siswa.index', compact('siswa', 'kelases', 'totalSiswa', 'countLakiLaki', 'countPerempuan', 'countHasClass'));
+        return view('admin.kelola_siswa.index', compact('siswa', 'kelases', 'totalSiswa', 'countLakiLaki', 'countPerempuan', 'countHasClass', 'angkatanList', 'activePeriod'));
     }
 
     /**
@@ -78,6 +92,7 @@ class SiswaController extends Controller
         $validated = $request->validate([
             'nama_siswa'    => ['required', 'string', 'max:100','regex:/^[a-zA-Z\s\.,]+$/u'],
             'nis'           => 'required|numeric|digits_between:4,10|unique:siswas,nis',
+            'angkatan'      => 'nullable|integer|min:2000|max:2100',
             'alamat'        => 'required|string',
             'tanggal_lahir' => ['required', 'date', 'before_or_equal:' . $maxDate, 'after_or_equal:' . $minDate],
             'jenis_kelamin' => 'required|in:L,P',
@@ -96,9 +111,11 @@ class SiswaController extends Controller
             'nohp_wali.digits_between'      => 'Nomor telepon wali murid harus terdiri dari 8 hingga 20 digit angka.',
         ]);
 
+        $activePeriod = AcademicPeriod::current();
         $siswa = Siswa::create([
             'nama_siswa'    => $validated['nama_siswa'],
             'nis'           => $validated['nis'],
+            'angkatan'      => $validated['angkatan'] ?? AcademicPeriod::defaultAngkatan(),
             'alamat'        => $validated['alamat'],
             'tanggal_lahir' => $validated['tanggal_lahir'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
@@ -107,13 +124,12 @@ class SiswaController extends Controller
             'status'        => 'aktif',
         ]);
 
-        // Jika kelas dipilih, daftarkan otomatis ke anggota_kelases
+        // Jika kelas dipilih, daftarkan otomatis ke anggota_kelases pada periode aktif
         if (!empty($validated['kelas_id'])) {
             AnggotaKelas::firstOrCreate([
-                'kelas_id'     => $validated['kelas_id'],
-                'siswa_id'     => $siswa->id,
-                'tahun_ajaran' => '2026/2027',
-                'semester'     => 'ganjil',
+                'kelas_id'           => $validated['kelas_id'],
+                'siswa_id'           => $siswa->id,
+                'academic_period_id' => $activePeriod->id,
             ]);
         }
 
@@ -165,6 +181,8 @@ class SiswaController extends Controller
         $validated = $request->validate([
             'nama_siswa'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
             'nis'           => ['required', 'numeric', 'digits_between:4,10', Rule::unique('siswas')->ignore($siswa->id)],
+            'angkatan'      => 'nullable|integer|min:2000|max:2100',
+            'status'        => 'nullable|in:aktif,nonaktif,lulus,pindah',
             'alamat'        => 'required|string',
             'tanggal_lahir' => ['required', 'date', 'before_or_equal:' . $maxDate, 'after_or_equal:' . $minDate],
             'jenis_kelamin' => 'required|in:L,P',
@@ -183,24 +201,30 @@ class SiswaController extends Controller
             'nohp_wali.digits_between'      => 'Nomor telepon wali murid harus terdiri dari 8 hingga 20 digit angka.',
         ]);
 
-        $siswa->update(array_diff_key($validated, ['kelas_id' => true]));
+        $updatePayload = array_diff_key($validated, ['kelas_id' => true]);
+        if (empty($updatePayload['angkatan'])) {
+            unset($updatePayload['angkatan']);
+        }
+        if (empty($updatePayload['status'])) {
+            unset($updatePayload['status']);
+        }
+        $siswa->update($updatePayload);
 
-        // Sinkronisasi ke anggota_kelases
+        // Sinkronisasi ke anggota_kelases pada periode aktif
+        $activePeriod = AcademicPeriod::current();
         if (!empty($validated['kelas_id'])) {
             AnggotaKelas::updateOrCreate(
                 [
-                    'siswa_id'     => $siswa->id,
-                    'tahun_ajaran' => '2026/2027',
-                    'semester'     => 'ganjil',
+                    'siswa_id'           => $siswa->id,
+                    'academic_period_id' => $activePeriod->id,
                 ],
                 [
-                    'kelas_id'     => $validated['kelas_id'],
+                    'kelas_id'           => $validated['kelas_id'],
                 ]
             );
         } else {
             AnggotaKelas::where('siswa_id', $siswa->id)
-                ->where('tahun_ajaran', '2026/2027')
-                ->where('semester', 'ganjil')
+                ->where('academic_period_id', $activePeriod->id)
                 ->delete();
         }
 
@@ -269,6 +293,7 @@ class SiswaController extends Controller
         $waliIdx = array_search('wali_murid', $header) !== false ? array_search('wali_murid', $header) : array_search('wali', $header);
         $nohpIdx = array_search('nohp_wali', $header) !== false ? array_search('nohp_wali', $header) : array_search('telepon', $header);
         $kelasIdx = array_search('kelas', $header) !== false ? array_search('kelas', $header) : array_search('kelas_id', $header);
+        $angkatanIdx = array_search('angkatan', $header);
 
         if ($nameIdx === false || $nisIdx === false) {
             fclose($handle);
@@ -364,12 +389,18 @@ class SiswaController extends Controller
                 }
             }
 
+            $rawAngkatan = $angkatanIdx !== false ? preg_replace('/[^0-9]/', '', trim($row[$angkatanIdx] ?? '')) : '';
+            $angkatan = (!empty($rawAngkatan) && (int) $rawAngkatan >= 2000 && (int) $rawAngkatan <= 2100)
+                ? (int) $rawAngkatan
+                : AcademicPeriod::defaultAngkatan();
+
             if (!empty($rowErrors)) {
                 $validationErrors[] = "Baris {$rowNumber}: " . implode(' ', $rowErrors);
             } else {
                 $rowsToImport[] = [
                     'nama_siswa'    => $nama,
                     'nis'           => $nis,
+                    'angkatan'      => $angkatan,
                     'alamat'        => $alamat,
                     'tanggal_lahir' => $normalizedTgl,
                     'jenis_kelamin' => $jk,
@@ -393,17 +424,17 @@ class SiswaController extends Controller
         }
 
         // Eksekusi penyimpan data dalam transaksi
-        DB::transaction(function () use ($rowsToImport) {
+        $activePeriod = AcademicPeriod::current();
+        DB::transaction(function () use ($rowsToImport, $activePeriod) {
             foreach ($rowsToImport as $data) {
                 $siswa = Siswa::create(array_diff_key($data, ['kelas_id' => true]));
 
                 if ($data['kelas_id']) {
                     AnggotaKelas::firstOrCreate(
                         [
-                            'kelas_id'     => $data['kelas_id'],
-                            'siswa_id'     => $siswa->id,
-                            'tahun_ajaran' => '2026/2027',
-                            'semester'     => 'ganjil',
+                            'kelas_id'           => $data['kelas_id'],
+                            'siswa_id'           => $siswa->id,
+                            'academic_period_id' => $activePeriod->id,
                         ]
                     );
                 }
@@ -436,11 +467,12 @@ class SiswaController extends Controller
             'Content-Disposition' => 'attachment; filename="template_import_siswa_learnpoint.csv"',
         ];
 
-        $columns = ['nama_siswa', 'nis', 'alamat', 'tanggal_lahir', 'jenis_kelamin', 'wali_murid', 'nohp_wali', 'kelas'];
+        $defaultAngkatan = (string) AcademicPeriod::defaultAngkatan();
+        $columns = ['nama_siswa', 'nis', 'angkatan', 'alamat', 'tanggal_lahir', 'jenis_kelamin', 'wali_murid', 'nohp_wali', 'kelas'];
         $sampleData = [
-            ['Muhammad Rizky', '20241001', 'Jl. Merpati Putih No. 12', '2012-05-14', 'L', 'Hendra Kusuma', '081234567891', ''],
-            ['Siti Aisyah', '20241002', 'Jl. Kenanga Indah No. 5', '2012-08-20', 'P', 'Rahmat Hidayat', '081234567892', ''],
-            ['Budi Santoso', '20241003', 'Jl. Dahlia No. 44', '2012-03-10', 'L', 'Sutrisno', '081234567893', ''],
+            ['Muhammad Rizky', '20241001', $defaultAngkatan, 'Jl. Merpati Putih No. 12', '2012-05-14', 'L', 'Hendra Kusuma', '081234567891', ''],
+            ['Siti Aisyah', '20241002', $defaultAngkatan, 'Jl. Kenanga Indah No. 5', '2012-08-20', 'P', 'Rahmat Hidayat', '081234567892', ''],
+            ['Budi Santoso', '20241003', $defaultAngkatan, 'Jl. Dahlia No. 44', '2012-03-10', 'L', 'Sutrisno', '081234567893', ''],
         ];
 
         $callback = function () use ($columns, $sampleData) {

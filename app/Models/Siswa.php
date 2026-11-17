@@ -14,6 +14,7 @@ class Siswa extends Model
     protected $fillable = [
         'nama_siswa',
         'nis',
+        'angkatan',
         'alamat',
         'tanggal_lahir',
         'jenis_kelamin',
@@ -29,6 +30,7 @@ class Siswa extends Model
     protected function casts(): array
     {
         return [
+            'angkatan'         => 'integer',
             'koin'             => 'integer',
             'pity_gacha'       => 'integer',
             'unlocked_banners' => 'array',
@@ -259,8 +261,7 @@ class Siswa extends Model
             'id',
             'kelas_id'
         )
-            ->where('anggota_kelases.tahun_ajaran', '2026/2027')
-            ->where('anggota_kelases.semester', 'ganjil');
+            ->where('anggota_kelases.academic_period_id', AcademicPeriod::currentId());
     }
 
     public function anggotaKelases()

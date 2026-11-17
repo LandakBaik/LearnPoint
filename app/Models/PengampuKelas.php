@@ -14,16 +14,22 @@ class PengampuKelas extends Model
     protected $fillable = [
         'guru_mapel_id',
         'kelas_id',
+        'academic_period_id',
     ];
 
     protected static function booted()
     {
         static::saving(function ($pengampuKelas) {
+            if (empty($pengampuKelas->academic_period_id)) {
+                $pengampuKelas->academic_period_id = AcademicPeriod::currentId();
+            }
+
             $mapelId = $pengampuKelas->guruMapel?->mapel_id 
                 ?? GuruMapel::where('id', $pengampuKelas->guru_mapel_id)->value('mapel_id');
 
             if ($mapelId && $pengampuKelas->kelas_id) {
                 $query = static::where('kelas_id', $pengampuKelas->kelas_id)
+                    ->where('academic_period_id', $pengampuKelas->academic_period_id)
                     ->whereHas('guruMapel', function ($q) use ($mapelId) {
                         $q->where('mapel_id', $mapelId);
                     });
@@ -33,10 +39,15 @@ class PengampuKelas extends Model
                 }
 
                 if ($query->exists()) {
-                    throw new \InvalidArgumentException("Mata pelajaran ini sudah memiliki guru pengampu di kelas tersebut. Hanya diperbolehkan 1 guru untuk setiap mata pelajaran dalam satu kelas.");
+                    throw new \InvalidArgumentException("Mata pelajaran ini sudah memiliki guru pengampu di kelas tersebut pada periode ini. Hanya diperbolehkan 1 guru untuk setiap mata pelajaran dalam satu kelas.");
                 }
             }
         });
+    }
+
+    public function academicPeriod()
+    {
+        return $this->belongsTo(AcademicPeriod::class, 'academic_period_id');
     }
 
     public function guruMapel()

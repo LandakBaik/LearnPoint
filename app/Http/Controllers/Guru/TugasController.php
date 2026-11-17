@@ -434,10 +434,10 @@ class TugasController extends Controller
 
         abort_unless($kelas, 404, 'Kelas tugas tidak ditemukan.');
 
-        // Mengambil siswa dari kelas yang menerima tugas.
+        // Mengambil siswa dari kelas yang menerima tugas pada periode tugas/aktif.
+        $periodId = $tugas->pengampuKelas?->academic_period_id ?? \App\Models\AcademicPeriod::currentId();
         $siswas = $kelas->siswas()
-            ->wherePivot('tahun_ajaran', '2026/2027')
-            ->wherePivot('semester', 'ganjil')
+            ->wherePivot('academic_period_id', $periodId)
             ->orderBy('siswas.nama_siswa')
             ->get();
 

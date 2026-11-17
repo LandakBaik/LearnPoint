@@ -552,8 +552,9 @@ class MateriController extends Controller
             return $this->notFoundResponse('Data kelas siswa tidak ditemukan.');
         }
 
-        $tahunAjaran = $anggotaKelas?->tahun_ajaran ?? '2026/2027';
-        $semester = $anggotaKelas?->semester ? ucfirst($anggotaKelas->semester) : 'Ganjil';
+        $activePeriod = \App\Models\AcademicPeriod::current();
+        $tahunAjaran = $anggotaKelas?->academicPeriod?->tahun_ajaran ?? $activePeriod->tahun_ajaran;
+        $semester = ucfirst($anggotaKelas?->academicPeriod?->semester ?? $activePeriod->semester);
 
         $mapel = Mapel::whereHas('pengampuKelases', function ($q) use ($kelasId) {
             $q->where('kelas_id', $kelasId);
