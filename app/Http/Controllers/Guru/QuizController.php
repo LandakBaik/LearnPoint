@@ -7,7 +7,10 @@ use App\Models\PengampuKelas;
 use App\Models\Quiz;
 use App\Models\Soal;
 use App\Services\QuizService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class QuizController extends Controller
 {
@@ -122,11 +125,13 @@ class QuizController extends Controller
         }
 
         $orderedDifficulties = $this->quizService->normalizeActiveDifficulties($validated['kesulitan_aktif']);
+        $grupId = count($validPengampu) > 1 ? (string) Str::uuid() : null;
 
         $firstQuiz = null;
         $createdCount = 0;
         foreach ($validPengampu as $pkId) {
             $quiz = Quiz::create([
+                'id_grup_kuis'      => $grupId,
                 'judul'             => $validated['judul'],
                 'deskripsi'         => $validated['deskripsi'] ?? null,
                 'pengampu_kelas_id' => $pkId,
@@ -146,7 +151,7 @@ class QuizController extends Controller
         }
 
         $msg = $createdCount > 1
-            ? "Draf kuis '{$firstQuiz->judul}' berhasil dibuat untuk {$createdCount} kelas!"
+            ? "Draf kuis '{$firstQuiz->judul}' berhasil dibuat untuk {$createdCount} kelas! Soal yang Anda tambahkan akan otomatis tersinkron ke seluruh kelas dalam grup ini."
             : "Draf kuis '{$firstQuiz->judul}' berhasil dibuat! Silakan kelola arc, level tantangan, dan butir soal di bawah.";
 
         return redirect()->route('guru.kuis.show', $firstQuiz)->with('success', $msg);
@@ -188,13 +193,21 @@ class QuizController extends Controller
             ->orderBy('urutan')
             ->get();
 
+        $groupQuizzes = $this->quizService->getGroupQuizzes($quiz)
+            ->loadMissing('pengampuKelas.kelas');
+        $daftarSiswa = $this->quizService->getClassStudentProgress($quiz);
+        $hasStudentActivity = $quiz->hasStudentActivity();
+
         return view('guru.kelola_kuis.show', compact(
             'quiz',
             'activeDifficulties',
             'activeArc',
             'activeLevel',
             'levelCounts',
-            'soalsInLevel'
+            'soalsInLevel',
+            'groupQuizzes',
+            'daftarSiswa',
+            'hasStudentActivity'
         ));
     }
 
@@ -204,13 +217,29 @@ class QuizController extends Controller
         $guruId = $this->resolveGuruId();
         $this->authorizeGuru($quiz, $guruId);
 
+        // Izinkan waktu_mulai yang sudah berlalu jika tidak diubah oleh guru saat edit
+        $isWaktuMulaiUnchanged = false;
+        if ($request->filled('waktu_mulai') && $quiz->waktu_mulai) {
+            try {
+                $isWaktuMulaiUnchanged = Carbon::parse($request->input('waktu_mulai'))
+                    ->format('Y-m-d H:i') === $quiz->waktu_mulai->format('Y-m-d H:i');
+            } catch (\Throwable $e) {
+                $isWaktuMulaiUnchanged = false;
+            }
+        }
+
+        $waktuMulaiRules = ['nullable', 'date'];
+        if (!$isWaktuMulaiUnchanged) {
+            $waktuMulaiRules[] = 'after_or_equal:today';
+        }
+
         $validated = $request->validate([
             'judul'             => ['required', 'string', 'max:200'],
             'deskripsi'         => ['nullable', 'string', 'max:1000'],
             'pengampu_kelas_id' => ['required', 'exists:pengampu_kelas,id'],
             'kesulitan_aktif'   => ['required', 'array', 'min:1', 'max:3'],
             'kesulitan_aktif.*' => ['string', 'in:Mudah,Sedang,Sulit'],
-            'waktu_mulai'       => ['nullable', 'date', 'after_or_equal:today'],
+            'waktu_mulai'       => $waktuMulaiRules,
             'waktu_selesai'     => ['nullable', 'date', 'after:waktu_mulai'],
             'acak_jawaban'      => ['nullable', 'boolean'],
             'status'            => ['nullable', 'string', 'in:draft,published'],
@@ -228,6 +257,16 @@ class QuizController extends Controller
         }
 
         $orderedDifficulties = $this->quizService->normalizeActiveDifficulties($validated['kesulitan_aktif']);
+        $targetStatus = $validated['status'] ?? $quiz->status;
+
+        if ($targetStatus === 'published') {
+            $publishError = $this->quizService->validateQuizBeforePublish($quiz, 'soal', $orderedDifficulties);
+            if ($publishError !== null) {
+                return back()->withInput()->with('error', $publishError);
+            }
+        }
+
+        $wasDraft = ($quiz->status ?? 'draft') !== 'published';
 
         $quiz->update([
             'judul'             => $validated['judul'],
@@ -237,8 +276,12 @@ class QuizController extends Controller
             'waktu_mulai'       => $validated['waktu_mulai'] ?? null,
             'waktu_selesai'     => $validated['waktu_selesai'] ?? null,
             'acak_jawaban'      => $request->boolean('acak_jawaban'),
-            'status'            => $validated['status'] ?? $quiz->status,
+            'status'            => $targetStatus,
         ]);
+
+        if ($wasDraft && $targetStatus === 'published') {
+            $this->quizService->notifyKelasQuizPublished($quiz);
+        }
 
         return redirect()->back()->with('success', 'Pengaturan kuis petualangan berhasil diperbarui!');
     }
@@ -262,9 +305,10 @@ class QuizController extends Controller
         }
 
         $quiz->update(['status' => 'published']);
+        $this->quizService->notifyKelasQuizPublished($quiz);
 
         return redirect()->back()
-            ->with('success', 'Kuis berhasil diterbitkan untuk siswa.');
+            ->with('success', 'Kuis berhasil diterbitkan dan notifikasi telah dikirim ke siswa.');
     }
 
     /**
@@ -304,7 +348,7 @@ class QuizController extends Controller
             ->with('success', "{$count} kuis petualangan terpilih berhasil dihapus!");
     }
 
-    // Menambahkan butir soal ke dalam level tertentu pada Arc kuis. Sistem: Maksimal 10 butir soal per level.
+    // Menambahkan butir soal ke dalam level tertentu pada Arc kuis. Sistem: Maksimal 5 butir soal per level.
     public function storeSoal(Request $request, Quiz $quiz)
     {
         $guruId = $this->resolveGuruId();
@@ -352,8 +396,6 @@ class QuizController extends Controller
 
         $gambarPath = $this->quizService->handleSoalImageUpload($request);
 
-        $nextUrutan = ($quiz->soalsFor($kesulitan, $levelFormatted)->max('urutan') ?? 0) + 1;
-
         $validKeys = ['a', 'b', 'c', 'd'];
         $pilihanFormatted = [];
         foreach ($validKeys as $k) {
@@ -369,29 +411,55 @@ class QuizController extends Controller
             return back()->withInput()->with('error', 'Kunci jawaban yang dipilih harus salah satu dari opsi A, B, C, atau D.');
         }
 
-        Soal::create([
-            'pertanyaan'    => $validated['pertanyaan'],
-            'tipe_soal'     => $validated['tipe_soal'],
-            'kesulitan'     => $kesulitan,
-            'level'         => $levelFormatted,
-            'pilihan'       => $pilihanFormatted,
-            'kunci_jawaban' => $kunci,
-            'bobot'         => $validated['bobot'] ?? 10,
-            'urutan'        => $nextUrutan,
-            'gambar'        => $gambarPath,
-            'quiz_id'       => $quiz->id,
-            'tugas_id'      => null,
-            'ujian_id'      => null,
-        ]);
+        $groupQuizzes = $this->quizService->getGroupQuizzes($quiz);
+        $syncedCount = 0;
 
-        // Rekalkulasi bobot semua soal oleh sistem sesuai jumlah soal & tingkat kesulitan
-        $quiz->sinkronisasiBobotSoal();
+        DB::transaction(function () use (
+            $groupQuizzes,
+            $quiz,
+            $validated,
+            $kesulitan,
+            $levelFormatted,
+            $pilihanFormatted,
+            $kunci,
+            $gambarPath,
+            &$syncedCount
+        ) {
+            foreach ($groupQuizzes as $targetQuiz) {
+                if ($targetQuiz->id !== $quiz->id && !$targetQuiz->canAddSoalFor($kesulitan, $levelFormatted)) {
+                    continue;
+                }
+
+                $nextUrutan = ($targetQuiz->soalsFor($kesulitan, $levelFormatted)->max('urutan') ?? 0) + 1;
+
+                Soal::create([
+                    'pertanyaan'    => $validated['pertanyaan'],
+                    'tipe_soal'     => $validated['tipe_soal'],
+                    'kesulitan'     => $kesulitan,
+                    'level'         => $levelFormatted,
+                    'pilihan'       => $pilihanFormatted,
+                    'kunci_jawaban' => $kunci,
+                    'bobot'         => $validated['bobot'] ?? 10,
+                    'urutan'        => $nextUrutan,
+                    'gambar'        => $gambarPath,
+                    'quiz_id'       => $targetQuiz->id,
+                    'tugas_id'      => null,
+                    'ujian_id'      => null,
+                ]);
+
+                // Rekalkulasi bobot semua soal oleh sistem sesuai jumlah soal & tingkat kesulitan
+                $targetQuiz->sinkronisasiBobotSoal();
+                $syncedCount++;
+            }
+        });
+
+        $syncNote = $syncedCount > 1 ? " (Tersinkron ke {$syncedCount} kelas dalam grup)" : '';
 
         return redirect()->route('guru.kuis.show', [
             'quiz'  => $quiz,
             'arc'   => $kesulitan,
             'level' => $levelFormatted,
-        ])->with('success', "Soal berhasil ditambahkan ke {$kesulitan} - {$levelFormatted}! (" . ($currentCount + 1) . "/" . Quiz::MAX_SOAL . " soal)");
+        ])->with('success', "Soal berhasil ditambahkan ke {$kesulitan} - {$levelFormatted}! (" . ($currentCount + 1) . "/" . Quiz::MAX_SOAL . " soal){$syncNote}");
     }
 
     /**
@@ -414,6 +482,7 @@ class QuizController extends Controller
             'kunci_jawaban' => ['required', 'string', 'in:a,b,c,d,A,B,C,D'],
             'bobot'         => ['nullable', 'numeric', 'min:1'],
             'gambar'        => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'hapus_gambar'  => ['nullable', 'boolean'],
         ], [
             'pilihan.required'       => 'Pilihan jawaban wajib diisi lengkap 4 opsi (A, B, C, dan D).',
             'pilihan.a.required'     => 'Pilihan jawaban A wajib diisi.',
@@ -423,8 +492,6 @@ class QuizController extends Controller
             'kunci_jawaban.required' => 'Pilih kunci jawaban yang benar.',
             'kunci_jawaban.in'       => 'Kunci jawaban harus merupakan salah satu dari opsi A, B, C, atau D.',
         ]);
-
-        $gambarPath = $this->quizService->handleSoalImageUpload($request, $soal->gambar);
 
         $validKeys = ['a', 'b', 'c', 'd'];
         $pilihanFormatted = [];
@@ -441,17 +508,79 @@ class QuizController extends Controller
             return back()->withInput()->with('error', 'Kunci jawaban yang dipilih harus salah satu dari opsi A, B, C, atau D.');
         }
 
-        $soal->update([
-            'pertanyaan'    => $validated['pertanyaan'],
-            'tipe_soal'     => $validated['tipe_soal'],
-            'pilihan'       => $pilihanFormatted,
-            'kunci_jawaban' => $kunci,
-            'bobot'         => $validated['bobot'] ?? $soal->bobot,
-            'gambar'        => $gambarPath,
-        ]);
+        $oldImage = $soal->gambar;
+        $oldKesulitan = $soal->kesulitan;
+        $oldLevel = $soal->level;
+        $oldUrutan = $soal->urutan;
+        $oldPertanyaan = $soal->pertanyaan;
 
-        // Rekalkulasi bobot semua soal oleh sistem sesuai jumlah soal & tingkat kesulitan
-        $quiz->sinkronisasiBobotSoal();
+        if ($request->hasFile('gambar')) {
+            $gambarPath = $request->file('gambar')->store('soals', 'public');
+        } elseif ($request->boolean('hapus_gambar')) {
+            $gambarPath = null;
+        } else {
+            $gambarPath = $oldImage;
+        }
+
+        $groupQuizzes = $this->quizService->getGroupQuizzes($quiz);
+        $updatedSoalIds = [$soal->id];
+
+        DB::transaction(function () use (
+            $groupQuizzes,
+            $quiz,
+            $soal,
+            $validated,
+            $pilihanFormatted,
+            $kunci,
+            $gambarPath,
+            $oldKesulitan,
+            $oldLevel,
+            $oldUrutan,
+            $oldPertanyaan,
+            &$updatedSoalIds
+        ) {
+            $soal->update([
+                'pertanyaan'    => $validated['pertanyaan'],
+                'tipe_soal'     => $validated['tipe_soal'],
+                'pilihan'       => $pilihanFormatted,
+                'kunci_jawaban' => $kunci,
+                'bobot'         => $validated['bobot'] ?? $soal->bobot,
+                'gambar'        => $gambarPath,
+            ]);
+            $quiz->sinkronisasiBobotSoal();
+
+            foreach ($groupQuizzes as $otherQuiz) {
+                if ($otherQuiz->id === $quiz->id) {
+                    continue;
+                }
+
+                $matchingSoal = $otherQuiz->soals()
+                    ->where('kesulitan', $oldKesulitan)
+                    ->where('level', $oldLevel)
+                    ->where(function ($q) use ($oldUrutan, $oldPertanyaan) {
+                        $q->where('urutan', $oldUrutan)
+                          ->orWhere('pertanyaan', $oldPertanyaan);
+                    })
+                    ->first();
+
+                if ($matchingSoal) {
+                    $matchingSoal->update([
+                        'pertanyaan'    => $validated['pertanyaan'],
+                        'tipe_soal'     => $validated['tipe_soal'],
+                        'pilihan'       => $pilihanFormatted,
+                        'kunci_jawaban' => $kunci,
+                        'bobot'         => $validated['bobot'] ?? $matchingSoal->bobot,
+                        'gambar'        => $gambarPath,
+                    ]);
+                    $updatedSoalIds[] = $matchingSoal->id;
+                    $otherQuiz->sinkronisasiBobotSoal();
+                }
+            }
+        });
+
+        if ($oldImage && $oldImage !== $gambarPath) {
+            $this->quizService->deleteSoalImage($oldImage);
+        }
 
         return redirect()->route('guru.kuis.show', [
             'quiz'  => $quiz,
@@ -471,12 +600,38 @@ class QuizController extends Controller
 
         $arc = $soal->kesulitan ?? 'Mudah';
         $level = $soal->level ?? 'Level 1';
+        $urutan = $soal->urutan;
+        $pertanyaan = $soal->pertanyaan;
+        $gambar = $soal->gambar;
 
-        $this->quizService->deleteSoalImage($soal->gambar);
-        $soal->delete();
+        $groupQuizzes = $this->quizService->getGroupQuizzes($quiz);
 
-        // Rekalkulasi bobot semua soal oleh sistem setelah soal dihapus
-        $quiz->sinkronisasiBobotSoal();
+        DB::transaction(function () use ($groupQuizzes, $quiz, $soal, $arc, $level, $urutan, $pertanyaan) {
+            $soal->delete();
+            $quiz->sinkronisasiBobotSoal();
+
+            foreach ($groupQuizzes as $otherQuiz) {
+                if ($otherQuiz->id === $quiz->id) {
+                    continue;
+                }
+
+                $matchingSoal = $otherQuiz->soals()
+                    ->where('kesulitan', $arc)
+                    ->where('level', $level)
+                    ->where(function ($q) use ($urutan, $pertanyaan) {
+                        $q->where('urutan', $urutan)
+                          ->orWhere('pertanyaan', $pertanyaan);
+                    })
+                    ->first();
+
+                if ($matchingSoal) {
+                    $matchingSoal->delete();
+                    $otherQuiz->sinkronisasiBobotSoal();
+                }
+            }
+        });
+
+        $this->quizService->deleteSoalImage($gambar);
 
         return redirect()->route('guru.kuis.show', [
             'quiz'  => $quiz,

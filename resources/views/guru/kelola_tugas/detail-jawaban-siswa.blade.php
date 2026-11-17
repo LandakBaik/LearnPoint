@@ -4,37 +4,37 @@
 
 @section('content')
 @php
-    $namaSiswa = $siswa?->nama_siswa ?? 'Nama tidak tersedia';
-    $inisialSiswa = collect(explode(' ', trim($namaSiswa)))
-        ->filter()
-        ->take(2)
-        ->map(fn($part) => strtoupper(mb_substr($part, 0, 1)))
-        ->implode('') ?: 'S';
+$namaSiswa = $siswa?->nama_siswa ?? 'Nama tidak tersedia';
+$inisialSiswa = collect(explode(' ', trim($namaSiswa)))
+->filter()
+->take(2)
+->map(fn($part) => strtoupper(mb_substr($part, 0, 1)))
+->implode('') ?: 'S';
 
-    $deadline = $tugas->deadline ? \Carbon\Carbon::parse($tugas->deadline) : null;
-    $waktuKumpul = $pengumpulan?->created_at ? \Carbon\Carbon::parse($pengumpulan->created_at) : null;
-    $terlambat = $waktuKumpul && $deadline ? $waktuKumpul->greaterThan($deadline) : false;
+$deadline = $tugas->deadline ? \Carbon\Carbon::parse($tugas->deadline) : null;
+$waktuKumpul = $pengumpulan?->created_at ? \Carbon\Carbon::parse($pengumpulan->created_at) : null;
+$terlambat = $waktuKumpul && $deadline ? $waktuKumpul->greaterThan($deadline) : false;
 
-    $totalSoal = $soals->count();
-    $jumlahTerjawab = 0;
-    $jumlahBenar = 0;
-    $jumlahSalah = 0;
+$totalSoal = $soals->count();
+$jumlahTerjawab = 0;
+$jumlahBenar = 0;
+$jumlahSalah = 0;
 
-    foreach ($soals as $soal) {
-        $jawabanSiswa = $jawabans->get($soal->id);
+foreach ($soals as $soal) {
+$jawabanSiswa = $jawabans->get($soal->id);
 
-        if ($jawabanSiswa && $jawabanSiswa->jawaban_dipilih) {
-            $jumlahTerjawab++;
+if ($jawabanSiswa && $jawabanSiswa->jawaban_dipilih) {
+$jumlahTerjawab++;
 
-            if ($jawabanSiswa->benar) {
-                $jumlahBenar++;
-            } else {
-                $jumlahSalah++;
-            }
-        }
-    }
+if ($jawabanSiswa->benar) {
+$jumlahBenar++;
+} else {
+$jumlahSalah++;
+}
+}
+}
 
-    $belumDijawab = $totalSoal - $jumlahTerjawab;
+$belumDijawab = $totalSoal - $jumlahTerjawab;
 @endphp
 
 <div class="space-y-5 text-slate-800">
@@ -138,9 +138,9 @@
                     </span>
 
                     @if ($waktuKumpul)
-                        <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold {{ $terlambat ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700' }}">
-                            {{ $terlambat ? 'Terlambat' : 'Tepat Waktu' }}
-                        </span>
+                    <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold {{ $terlambat ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700' }}">
+                        {{ $terlambat ? 'Terlambat' : 'Tepat Waktu' }}
+                    </span>
                     @endif
                 </div>
             </div>
@@ -162,7 +162,7 @@
                 {{ $jumlahTerjawab }}
             </p>
             @if ($belumDijawab > 0)
-                <p class="mt-1 text-xs text-amber-600">{{ $belumDijawab }} belum dijawab</p>
+            <p class="mt-1 text-xs text-amber-600">{{ $belumDijawab }} belum dijawab</p>
             @endif
         </div>
 
@@ -193,88 +193,93 @@
         </div>
 
         @forelse ($soals as $index => $soal)
-            @php
-                $pilihan = $soal->pilihan ?? [];
-                if (is_string($pilihan)) {
-                    $pilihan = json_decode($pilihan, true) ?? [];
-                }
+        @php
+        $pilihan = $soal->pilihan ?? [];
+        if (is_string($pilihan)) {
+        $pilihan = json_decode($pilihan, true) ?? [];
+        }
 
-                $jawabanSiswa = $jawabans->get($soal->id);
-                $dipilih = strtolower(trim((string) ($jawabanSiswa?->jawaban_dipilih ?? '')));
+        $jawabanSiswa = $jawabans->get($soal->id);
+        $dipilih = strtolower(trim((string) ($jawabanSiswa?->jawaban_dipilih ?? '')));
 
-                $kunci = $soal->kunci_jawaban ?? '';
-                if (is_array($kunci)) {
-                    $kunci = $kunci['jawaban'] ?? $kunci[0] ?? '';
-                }
-                $kunci = strtolower(trim((string) $kunci));
+        $kunci = $soal->kunci_jawaban ?? '';
+        if (is_array($kunci)) {
+        $kunci = $kunci['jawaban'] ?? $kunci[0] ?? '';
+        }
+        $kunci = strtolower(trim((string) $kunci));
 
-                $sudahMenjawab = $dipilih !== '';
-                $benar = $sudahMenjawab && $jawabanSiswa->benar;
+        $sudahMenjawab = $dipilih !== '';
+        $benar = $sudahMenjawab && $jawabanSiswa->benar;
 
-                $daftarPilihan = [
-                    'a' => 'A',
-                    'b' => 'B',
-                    'c' => 'C',
-                    'd' => 'D',
-                    'e' => 'E',
-                ];
-            @endphp
+        $daftarPilihan = [
+        'a' => 'A',
+        'b' => 'B',
+        'c' => 'C',
+        'd' => 'D',
+        'e' => 'E',
+        ];
+        @endphp
 
-            <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
 
-                {{-- Pertanyaan --}}
-                <div class="border-b border-slate-100 p-5">
-                    <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-                        <div class="flex items-center gap-2">
-                            <span class="rounded-lg bg-blue-100 px-3 py-1.5 text-sm font-bold text-blue-700">
-                                Soal {{ $index + 1 }}
-                            </span>
+            {{-- Pertanyaan --}}
+            <div class="border-b border-slate-100 p-5">
+                <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        <span class="rounded-lg bg-blue-100 px-3 py-1.5 text-sm font-bold text-blue-700">
+                            Soal {{ $index + 1 }}
+                        </span>
 
-                            <span class="text-xs font-medium text-slate-500">
-                                Bobot: {{ number_format((float) ($soal->bobot ?? 0), 2, ',', '.') }} poin
-                            </span>
-                        </div>
-
-                        @if (!$sudahMenjawab)
-                            <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
-                                Belum Dijawab
-                            </span>
-                        @elseif ($benar)
-                            <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                                Jawaban Benar
-                            </span>
-                        @else
-                            <span class="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-                                Jawaban Salah
-                            </span>
-                        @endif
+                        <span class="text-xs font-medium text-slate-500">
+                            Bobot: {{ number_format((float) ($soal->bobot ?? 0), 2, ',', '.') }} poin
+                        </span>
                     </div>
 
-                    <p class="whitespace-pre-line text-base font-semibold leading-relaxed text-slate-800">
-                        {{ $soal->pertanyaan }}
-                    </p>
-
-                    @if ($soal->gambar)
-                        <div class="mt-4">
-                            <img
-                                src="{{ asset('storage/' . $soal->gambar) }}"
-                                alt="Gambar soal {{ $index + 1 }}"
-                                class="max-h-72 rounded-xl border border-slate-200 object-contain">
-                        </div>
+                    @if (!$sudahMenjawab)
+                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                        Belum Dijawab
+                    </span>
+                    @elseif ($benar)
+                    <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                        Jawaban Benar
+                    </span>
+                    @else
+                    <span class="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                        Jawaban Salah
+                    </span>
                     @endif
                 </div>
+
+                <p class="whitespace-pre-line text-base font-semibold leading-relaxed text-slate-800">
+                    {{ $soal->pertanyaan }}
+                </p>
+
+                {{-- Gambar Soal --}}
+                @if ($soal->gambar)
+                <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <p class="mb-2 text-xs font-semibold text-slate-500">
+                        Gambar Soal
+                    </p>
+
+                    <img
+                        src="{{ \Illuminate\Support\Facades\Storage::url($soal->gambar) }}"
+                        alt="Gambar soal {{ $index + 1 }}"
+                        class="block max-h-80 max-w-full rounded-lg object-contain"
+                        loading="lazy">
+                </div>
+                @endif
 
                 {{-- Pilihan Jawaban --}}
                 <div class="space-y-3 p-5">
                     @foreach ($daftarPilihan as $key => $label)
-                        @php
-                            $teksPilihan = $pilihan[$key] ?? null;
-                            $isKunci = $kunci === $key;
-                            $isDipilih = $dipilih === $key;
-                        @endphp
+                    @php
+                    $teksPilihan = $pilihan[$key] ?? null;
+                    $isKunci = $kunci === $key;
+                    $isDipilih = $dipilih === $key;
+                    @endphp
 
-                        @if ($teksPilihan !== null && $teksPilihan !== '')
-                            <div class="flex items-start gap-3 rounded-xl border p-4
+                    @if ($teksPilihan !== null && $teksPilihan !== '')
+                    <div class="flex items-start gap-3 rounded-xl border p-4
                                 @if ($isKunci)
                                     border-emerald-300 bg-emerald-50
                                 @elseif ($isDipilih)
@@ -283,7 +288,7 @@
                                     border-slate-200 bg-white
                                 @endif">
 
-                                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold
+                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold
                                     @if ($isKunci)
                                         bg-emerald-600 text-white
                                     @elseif ($isDipilih)
@@ -291,11 +296,11 @@
                                     @else
                                         bg-slate-100 text-slate-600
                                     @endif">
-                                    {{ $label }}
-                                </span>
+                            {{ $label }}
+                        </span>
 
-                                <div class="min-w-0 flex-1 pt-1">
-                                    <p class="text-sm leading-relaxed
+                        <div class="min-w-0 flex-1 pt-1">
+                            <p class="text-sm leading-relaxed
                                         @if ($isKunci)
                                             font-semibold text-emerald-800
                                         @elseif ($isDipilih)
@@ -303,35 +308,35 @@
                                         @else
                                             text-slate-700
                                         @endif">
-                                        {{ $teksPilihan }}
-                                    </p>
-                                </div>
+                                {{ $teksPilihan }}
+                            </p>
+                        </div>
 
-                                <div class="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-                                    @if ($isKunci)
-                                        <span class="rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">
-                                            Kunci Jawaban
-                                        </span>
-                                    @endif
+                        <div class="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                            @if ($isKunci)
+                            <span class="rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">
+                                Kunci Jawaban
+                            </span>
+                            @endif
 
-                                    @if ($isDipilih)
-                                        <span class="rounded-full {{ $isKunci ? 'bg-blue-600' : 'bg-red-600' }} px-3 py-1 text-xs font-semibold text-white">
-                                            Dipilih Siswa
-                                        </span>
-                                    @endif
-                                </div>
-                            </div>
-                        @endif
+                            @if ($isDipilih)
+                            <span class="rounded-full {{ $isKunci ? 'bg-blue-600' : 'bg-red-600' }} px-3 py-1 text-xs font-semibold text-white">
+                                Dipilih Siswa
+                            </span>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
                     @endforeach
 
                     @if (!$sudahMenjawab)
-                        <div class="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
-                            Siswa belum memilih jawaban untuk soal ini.
-                        </div>
+                    <div class="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
+                        Siswa belum memilih jawaban untuk soal ini.
+                    </div>
                     @endif
                 </div>
             </div>
-        @empty
+            @empty
             <div class="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
                 <p class="font-semibold text-slate-700">
                     Belum Ada Soal
@@ -340,17 +345,17 @@
                     Belum ada soal pada tugas ini.
                 </p>
             </div>
-        @endforelse
-    </div>
+            @endforelse
+        </div>
 
-    {{-- Tombol Kembali --}}
-    <div class="flex justify-end pt-2">
-        <a href="{{ route('guru.tugas.show', $tugas->id) }}"
-            class="inline-flex items-center gap-2 rounded-xl bg-slate-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
-            <i class="fas fa-arrow-left text-xs"></i>
-            Kembali ke Detail Pengumpulan
-        </a>
-    </div>
+        {{-- Tombol Kembali --}}
+        <div class="flex justify-end pt-2">
+            <a href="{{ route('guru.tugas.show', $tugas->id) }}"
+                class="inline-flex items-center gap-2 rounded-xl bg-slate-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+                <i class="fas fa-arrow-left text-xs"></i>
+                Kembali ke Detail Pengumpulan
+            </a>
+        </div>
 
-</div>
-@endsection
+    </div>
+    @endsection

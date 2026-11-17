@@ -79,7 +79,7 @@ class QuizAdventureService
      *
      * Aturan Mekanisme Sistem Level LearnPoint:
      * 1. Terdapat 3 Arc berurutan: Mudah -> Sedang -> Sulit.
-     * 2. Setiap Arc maksimal 5 level (Level 1 s/d Level 5), maksimal 10 soal per level.
+     * 2. Setiap Arc maksimal 5 level (Level 1 s/d Level 5), maksimal 5 soal per level.
      * 3. Hanya level yang benar-benar dibuat oleh guru (memiliki minimal 1 soal) yang ditampilkan di peta siswa.
      * 4. Level terbuka secara berurutan mulai dari Arc Mudah Level 1 (tanpa syarat nilai minimum).
      * 5. Jika seluruh level pada suatu Arc selesai, otomatis membuka Arc berikutnya.

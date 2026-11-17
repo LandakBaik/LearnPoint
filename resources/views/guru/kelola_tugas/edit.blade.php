@@ -141,9 +141,9 @@
                     class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option value="">Pilih Mata Pelajaran & Kelas</option>
                     @foreach($pengampuKelases as $pk)
-                        <option value="{{ $pk->id }}">
-                            {{ $pk->guruMapel?->mapel?->nama_mapel ?? 'Mapel' }} - {{ $pk->kelas?->nama_kelas ?? 'Kelas' }}
-                        </option>
+                    <option value="{{ $pk->id }}">
+                        {{ $pk->guruMapel?->mapel?->nama_mapel ?? 'Mapel' }} - {{ $pk->kelas?->nama_kelas ?? 'Kelas' }}
+                    </option>
                     @endforeach
                 </select>
             </div>
@@ -280,6 +280,43 @@
                                 required
                                 placeholder="Tuliskan pertanyaan..."
                                 class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"></textarea>
+
+                            <!-- GAMBAR SOAL -->
+                            <div class="space-y-2">
+                                <label class="block text-xs font-semibold text-slate-700">
+                                    Gambar Soal
+                                    <span class="font-normal text-slate-400">(Opsional)</span>
+                                </label>
+
+                                <!-- PREVIEW GAMBAR LAMA -->
+                                <template x-if="soal.gambar">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                        <p class="mb-2 text-xs font-medium text-slate-500">
+                                            Gambar yang sudah tersimpan
+                                        </p>
+
+                                        <img
+                                            :src="'/storage/' + soal.gambar"
+                                            alt="Gambar soal"
+                                            class="max-h-48 rounded-lg object-contain">
+
+                                        <p class="mt-2 text-xs text-slate-400">
+                                            Upload gambar baru jika ingin mengganti gambar sebelumnya.
+                                        </p>
+                                    </div>
+                                </template>
+
+                                <!-- UPLOAD GAMBAR BARU -->
+                                <input
+                                    type="file"
+                                    :name="'soal['+index+'][gambar]'"
+                                    accept="image/png,image/jpeg"
+                                    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-xs file:font-bold file:text-blue-700">
+
+                                <p class="text-xs text-slate-400">
+                                    Format JPG, JPEG, atau PNG. Maksimal 2 MB.
+                                </p>
+                            </div>
 
                             <!-- PILIHAN -->
                             <div class="space-y-2">

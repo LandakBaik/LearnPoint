@@ -193,6 +193,7 @@
                 </div>
             </template>
 
+
             <!-- SOAL PILIHAN GANDA -->
             <template x-if="jenisTugas==='pilihan_ganda'">
                 <div class="space-y-3">
@@ -220,11 +221,31 @@
                                 <button type="button" x-show="daftarSoal.length>1" @click="hapusSoal(index)" class="rounded-lg px-3 py-1.5 text-xs font-semibold text-red-500 transition hover:bg-red-50">Hapus Soal</button>
                             </div>
 
+                            <!-- PERTANYAAN -->
                             <div class="space-y-2">
                                 <label class="block text-xs font-semibold text-slate-700">Pertanyaan</label>
                                 <textarea :name="'soal['+index+'][pertanyaan]'" x-model="soal.pertanyaan" required rows="3" placeholder="Tuliskan pertanyaan..." class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"></textarea>
                             </div>
 
+                            <!-- UPLOAD GAMBAR SOAL (OPSIONAL) -->
+                            <div class="space-y-2">
+                                <label class="block text-xs font-semibold text-slate-700">
+                                    Gambar Soal
+                                    <span class="font-normal text-slate-400">(Opsional)</span>
+                                </label>
+
+                                <input
+                                    type="file"
+                                    :name="'soal['+index+'][gambar]'"
+                                    accept="image/png,image/jpeg"
+                                    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-xs file:font-bold file:text-blue-700">
+
+                                <p class="text-xs text-slate-400">
+                                    Format JPG, JPEG, atau PNG. Maksimal 2 MB.
+                                </p>
+                            </div>
+
+                            <!-- PILIHAN JAWABAN -->
                             <div class="space-y-2">
                                 <label class="block text-xs font-semibold text-slate-700">Pilihan Jawaban <span class="font-normal text-slate-400">(Minimal 2 pilihan)</span></label>
                                 <template x-for="huruf in ['a','b','c','d','e']" :key="huruf">
@@ -235,6 +256,7 @@
                                 </template>
                             </div>
 
+                            <!-- KUNCI JAWABAN -->
                             <div class="space-y-2">
                                 <label class="block text-xs font-semibold text-slate-700">Kunci Jawaban</label>
                                 <select :name="'soal['+index+'][kunci_jawaban]'" x-model="soal.kunci_jawaban" required class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100">
@@ -245,6 +267,7 @@
                                 </select>
                             </div>
 
+                            <!-- TAMBAH PERTANYAAN -->
                             <button type="button" @click="tambahSoal()" class="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-blue-200 py-2.5 text-sm font-bold text-blue-600 transition hover:border-blue-400 hover:bg-blue-50">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m-7-7h14" />
@@ -255,6 +278,7 @@
                     </template>
                 </div>
             </template>
+
 
             <!-- DEADLINE -->
             <div class="space-y-3">

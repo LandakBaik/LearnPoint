@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('nilais', function (Blueprint $table) {
             $table->id();
-            $table->decimal('nilai', 5, 2);
+            $table->decimal('nilai', 5, 2)->nullable();
             $table->enum('status', ['telat', 'selesai']);
             $table->integer('durasi')->nullable();
             $table->string('file_jawaban', 255)->nullable();

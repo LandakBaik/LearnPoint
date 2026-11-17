@@ -12,6 +12,7 @@ class Quiz extends Model
     protected $table = 'quizzes';
 
     protected $fillable = [
+        'id_grup_kuis',
         'judul',
         'deskripsi',
         'status',
@@ -37,7 +38,7 @@ class Quiz extends Model
     public const KESULITAN_LIST = ['Mudah', 'Sedang', 'Sulit'];
     public const LEVEL_LIST = ['Level 1', 'Level 2', 'Level 3', 'Level 4', 'Level 5'];
     public const MAX_LEVEL = 5;
-    public const MAX_SOAL = 10;
+    public const MAX_SOAL = 5;
 
     public function pengampuKelas()
     {
@@ -93,7 +94,7 @@ class Quiz extends Model
     }
 
     /**
-     * Apakah masih bisa menambah soal di arc & level ini (Maksimal 10 soal).
+     * Apakah masih bisa menambah soal di arc & level ini (Maksimal 5 soal).
      */
     public function canAddSoalFor(string $kesulitan, string $level): bool
     {
@@ -119,6 +120,23 @@ class Quiz extends Model
     public function isPublished(): bool
     {
         return ($this->status ?? 'draft') === 'published';
+    }
+
+    /**
+     * Cek apakah sudah ada siswa yang mengerjakan atau menyelesaikan kuis ini.
+     */
+    public function hasStudentActivity(): bool
+    {
+        if ($this->nilais()->exists()) {
+            return true;
+        }
+
+        $soalIds = $this->soals()->pluck('id');
+        if ($soalIds->isEmpty()) {
+            return false;
+        }
+
+        return Menjawab::whereIn('soal_id', $soalIds)->exists();
     }
 
     /**

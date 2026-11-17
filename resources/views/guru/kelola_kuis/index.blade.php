@@ -76,6 +76,7 @@
         kesulitan_aktif: ['Mudah', 'Sedang', 'Sulit'],
         status: 'draft',
         waktu_mulai: '',
+        original_waktu_mulai: '',
         waktu_selesai: '',
         acak_jawaban: false
     },
@@ -93,8 +94,8 @@
         }
     },
 
-    validateSchedule(start, end) {
-        if (start) {
+    validateSchedule(start, end, originalStart = '') {
+        if (start && start !== originalStart) {
             const startDate = new Date(start);
             const now = new Date();
             const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
@@ -131,6 +132,7 @@
     },
 
     openEditModal(quiz) {
+        const formattedStart = this.formatDateInput(quiz.waktu_mulai);
         this.editData = {
             id: quiz.id,
             judul: quiz.judul || '',
@@ -140,7 +142,8 @@
                 ? quiz.kesulitan_aktif
                 : ['Mudah', 'Sedang', 'Sulit'],
             status: quiz.status || 'draft',
-            waktu_mulai: this.formatDateInput(quiz.waktu_mulai),
+            waktu_mulai: formattedStart,
+            original_waktu_mulai: formattedStart,
             waktu_selesai: this.formatDateInput(quiz.waktu_selesai),
             acak_jawaban: !!quiz.acak_jawaban
         };
@@ -180,6 +183,22 @@
         </button>
     </div>
 
+    @if ($errors->any())
+        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-sm shadow-xs">
+            <div class="font-bold flex items-center gap-2">
+                <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span>Terjadi kesalahan validasi:</span>
+            </div>
+            <ul class="mt-1.5 list-disc list-inside text-xs text-rose-800 space-y-0.5">
+                @foreach ($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
 
 
     {{-- =========================================================
@@ -210,7 +229,7 @@
                     </div>
                     <div class="flex items-start gap-2 bg-white/70 backdrop-blur-xs p-2.5 rounded-xl border border-blue-100/70">
                         <span class="font-bold text-blue-600 shrink-0">3.</span>
-                        <span>Tiap level dapat berisi <strong>maksimal 10 butir soal</strong> pilihan ganda.</span>
+                        <span>Tiap level dapat berisi <strong>maksimal 5 butir soal</strong> pilihan ganda.</span>
                     </div>
                 </div>
             </div>
@@ -284,7 +303,7 @@
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Total Soal</p>
                 <h3 class="text-3xl font-extrabold text-blue-600">{{ $totalSoal }}</h3>
-                <p class="text-[11px] text-slate-400 mt-1">Maks 10 soal per level</p>
+                <p class="text-[11px] text-slate-400 mt-1">Maks 5 soal per level</p>
             </div>
             <div class="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center shrink-0">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -650,7 +669,7 @@
             @else
                 <h3 class="text-base font-bold text-slate-900">Belum Ada Kuis Petualangan</h3>
                 <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
-                    Mulai buat draf kuis dengan sistem petualangan (hingga 3 Arc Kesulitan, 5 level tiap arc, dan 10 soal per level).
+                    Mulai buat draf kuis dengan sistem petualangan (hingga 3 Arc Kesulitan, 5 level tiap arc, dan 5 soal per level).
                 </p>
                 <button
                     @click="showModal = true"
@@ -994,7 +1013,7 @@
                         Swal.fire({icon: 'warning', title: 'Peringatan', text: 'Pilih minimal satu tingkat kesulitan (Arc) untuk petualangan kuis ini!'}); 
                         return;
                     }
-                    if (!validateSchedule(editData.waktu_mulai, editData.waktu_selesai)) {
+                    if (!validateSchedule(editData.waktu_mulai, editData.waktu_selesai, editData.original_waktu_mulai)) {
                         $event.preventDefault();
                     }
                 "
@@ -1114,10 +1133,9 @@
                                 type="datetime-local"
                                 name="waktu_mulai"
                                 x-model="editData.waktu_mulai"
-                                :min="todayStartDate"
                                 class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
                             >
-                            <p class="text-[10px] text-slate-400 mt-1">Tidak boleh sebelum hari ini</p>
+                            <p class="text-[10px] text-slate-400 mt-1">Jika diubah, tidak boleh sebelum hari ini</p>
                         </div>
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-600 mb-1">Waktu Berakhir</label>
@@ -1125,7 +1143,6 @@
                                 type="datetime-local"
                                 name="waktu_selesai"
                                 x-model="editData.waktu_selesai"
-                                :min="todayStartDate"
                                 class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
                             >
                             <p class="text-[10px] text-slate-400 mt-1">Harus lebih lambat dari waktu mulai</p>
