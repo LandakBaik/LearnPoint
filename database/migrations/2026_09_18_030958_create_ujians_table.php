@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->uuid('id_grup_ujian')->nullable()->index(); // Untuk mengelompokkan ujian yang dibagikan ke banyak kelas
             $table->string('judul', 200);
-            $table->text('deskripsi')->nullable();
             $table->text('kisi_kisi')->nullable();
 
             $table->dateTime('waktu_mulai')->nullable();

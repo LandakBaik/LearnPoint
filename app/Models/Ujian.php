@@ -14,7 +14,6 @@ class Ujian extends Model
     protected $fillable = [
         'id_grup_ujian',
         'judul',
-        'deskripsi',
         'kisi_kisi',
         'pengampu_kelas_id',
         'sesi',             // <-- Tambahan

@@ -3,8 +3,39 @@
 @section('title', 'Mengerjakan Ujian - ' . ($ujian->judul ?? 'LearnPoint'))
 
 @section('content')
+    @php
+        $userSiswa = auth()->user();
+        $idSiswaAcak = (int) ($sesi->siswa_id ?? $userSiswa?->siswa?->id ?? $userSiswa?->siswa_id ?? $userSiswa?->id ?? 1);
+        $idUjianAcak = (int) ($ujian->id ?? 1);
+
+        $koleksiSoal = collect($soalsData)->values();
+        $totalSoalAcak = $koleksiSoal->count();
+
+        if ($totalSoalAcak > 1) {
+            // 1. Urutkan dasar secara konsisten per ujian
+            $urutanDasar = $koleksiSoal->sortBy(function ($item) use ($idUjianAcak) {
+                $soalId = is_array($item) ? ($item['id'] ?? 0) : ($item->id ?? 0);
+                return md5("base-ujian-{$idUjianAcak}-soal-{$soalId}");
+            })->values();
+
+            // 2. Pilih soal pertama berdasarkan rotasi ID siswa agar antar-siswa tidak mendapat Nomor 1 yang sama
+            $indexPertama = ($idSiswaAcak + $idUjianAcak) % $totalSoalAcak;
+            $soalPertama = $urutanDasar->get($indexPertama);
+
+            // 3. Acak sisa soal lainnya secara unik untuk masing-masing siswa
+            $sisaSoal = $urutanDasar->forget($indexPertama)->sortBy(function ($item) use ($idUjianAcak, $idSiswaAcak) {
+                $soalId = is_array($item) ? ($item['id'] ?? 0) : ($item->id ?? 0);
+                return md5("acak-ujian-{$idUjianAcak}-siswa-{$idSiswaAcak}-soal-{$soalId}");
+            })->values();
+
+            $soalsDataAcak = collect([$soalPertama])->concat($sisaSoal)->values();
+        } else {
+            $soalsDataAcak = $koleksiSoal;
+        }
+    @endphp
+
     <div class="max-w-7xl mx-auto py-6 px-4 space-y-6" x-data="ruangUjian({
-        soals: {{ Js::from($soalsData) }},
+        soals: {{ Js::from($soalsDataAcak) }},
         savedAnswers: {{ Js::from($savedAnswers) }},
         sisaDetikAwal: {{ $sisaDetik }},
         saveUrl: '{{ route('siswa.ujian.simpan-jawaban', $ujian->id) }}',

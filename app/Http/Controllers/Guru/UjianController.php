@@ -328,7 +328,6 @@ class UjianController extends Controller
                 'max:100',
                 'regex:/^[\pL\pN ]+$/u',
             ],
-            'deskripsi' => ['nullable', 'string'],
             'kisi_kisi' => ['nullable', 'string', 'max:500'],
 
             'mapel_id' => [
@@ -621,7 +620,6 @@ class UjianController extends Controller
                 $ujian = Ujian::create([
                     'id_grup_ujian' => $grupUjianId,
                     'judul' => $validated['judul'],
-                    'deskripsi' => $validated['deskripsi'] ?? null,
                     'kisi_kisi' => $validated['kisi_kisi'] ?? null,
                     'pengampu_kelas_id' => $pengampuKelas->id,
                     'sesi' => $nomorSesi,
@@ -926,7 +924,6 @@ class UjianController extends Controller
             'pengampu_kelas_id.*' => ['nullable', 'integer'],
 
             'judul' => ['required', 'string', 'max:100', 'regex:/^[\pL\pN ]+$/u'],
-            'deskripsi' => ['nullable', 'string'],
             'kisi_kisi' => ['nullable', 'string', 'max:500'],
             'durasi_menit' => ['required', 'integer', 'min:1', 'max:999'],
             'kkm' => ['required', 'numeric', 'min:0', 'max:100'],
@@ -1065,7 +1062,6 @@ class UjianController extends Controller
                     $anggota->update([
                         'id_grup_ujian' => $grupUjianId,
                         'judul' => $validated['judul'],
-                        'deskripsi' => $validated['deskripsi'] ?? null,
                         'kisi_kisi' => $validated['kisi_kisi'] ?? null,
                         'durasi_menit' => $validated['durasi_menit'],
                         'kkm' => (float) $validated['kkm'],
@@ -1106,7 +1102,6 @@ class UjianController extends Controller
                 $baru = Ujian::create([
                     'id_grup_ujian' => $grupUjianId,
                     'judul' => $validated['judul'],
-                    'deskripsi' => $validated['deskripsi'] ?? null,
                     'kisi_kisi' => $validated['kisi_kisi'] ?? null,
                     'pengampu_kelas_id' => $newPengampuId,
                     'durasi_menit' => $validated['durasi_menit'],
@@ -2700,7 +2695,6 @@ class UjianController extends Controller
                 $ujianBaru = Ujian::create([
                     'id_grup_ujian' => $grupBaruId,
                     'judul' => $validated['judul'],
-                    'deskripsi' => $induk->deskripsi,
                     'kisi_kisi' => $induk->kisi_kisi,
                     'pengampu_kelas_id' => $induk->pengampu_kelas_id,
                     'sesi' => 1,
