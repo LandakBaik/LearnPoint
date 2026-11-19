@@ -28,6 +28,10 @@ class MapelController extends Controller
             $query->where('nama_mapel', 'like', "%{$search}%");
         }
 
+        if ($request->filled('tipe_mapel')) {
+            $query->where('tipe_mapel', $request->tipe_mapel);
+        }
+
         $mapels = $query->latest()->paginate(10)->withQueryString();
 
         $totalMapel = Mapel::count();

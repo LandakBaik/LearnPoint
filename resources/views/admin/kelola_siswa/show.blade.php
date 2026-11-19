@@ -286,6 +286,22 @@
                         </p>
                     </div>
 
+                    <!-- Agama -->
+                    <div class="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/70">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Agama</span>
+                        <p class="text-sm font-bold text-slate-800 leading-snug">
+                            {{ $siswa->agama ?: 'Belum diatur' }}
+                        </p>
+                    </div>
+
+                    <!-- Angkatan -->
+                    <div class="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/70">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Angkatan (Tahun Masuk)</span>
+                        <p class="text-sm font-bold text-slate-800 leading-snug">
+                            {{ $siswa->angkatan ?: '-' }}
+                        </p>
+                    </div>
+
                     <!-- Alamat Lengkap -->
                     <div class="sm:col-span-2 p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/70">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Alamat Tempat Tinggal</span>

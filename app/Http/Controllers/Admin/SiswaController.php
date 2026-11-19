@@ -49,6 +49,11 @@ class SiswaController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Filter agama
+        if ($request->filled('agama')) {
+            $query->where('agama', $request->agama);
+        }
+
         // Search
         if ($request->filled('search')) {
             $search = $request->search;
@@ -297,6 +302,7 @@ class SiswaController extends Controller
         $nohpIdx = array_search('nohp_wali', $header) !== false ? array_search('nohp_wali', $header) : array_search('telepon', $header);
         $kelasIdx = array_search('kelas', $header) !== false ? array_search('kelas', $header) : array_search('kelas_id', $header);
         $angkatanIdx = array_search('angkatan', $header);
+        $agamaIdx = array_search('agama', $header);
 
         if ($nameIdx === false || $nisIdx === false) {
             fclose($handle);
@@ -397,6 +403,21 @@ class SiswaController extends Controller
                 ? (int) $rawAngkatan
                 : AcademicPeriod::defaultAngkatan();
 
+            // Agama (opsional, harus sesuai daftar Siswa::AGAMA_OPTIONS jika diisi)
+            $agama = null;
+            if ($agamaIdx !== false && !empty(trim($row[$agamaIdx] ?? ''))) {
+                $rawAgama = trim($row[$agamaIdx]);
+                foreach (Siswa::AGAMA_OPTIONS as $opt) {
+                    if (strcasecmp($opt, $rawAgama) === 0) {
+                        $agama = $opt;
+                        break;
+                    }
+                }
+                if (!$agama) {
+                    $rowErrors[] = "Agama '{$rawAgama}' tidak valid (pilihan: " . implode(', ', Siswa::AGAMA_OPTIONS) . ').';
+                }
+            }
+
             if (!empty($rowErrors)) {
                 $validationErrors[] = "Baris {$rowNumber}: " . implode(' ', $rowErrors);
             } else {
@@ -407,6 +428,7 @@ class SiswaController extends Controller
                     'alamat'        => $alamat,
                     'tanggal_lahir' => $normalizedTgl,
                     'jenis_kelamin' => $jk,
+                    'agama'         => $agama,
                     'wali_murid'    => $wali,
                     'nohp_wali'     => $nohp,
                     'kelas_id'      => $kelasId,
@@ -471,11 +493,11 @@ class SiswaController extends Controller
         ];
 
         $defaultAngkatan = (string) AcademicPeriod::defaultAngkatan();
-        $columns = ['nama_siswa', 'nis', 'angkatan', 'alamat', 'tanggal_lahir', 'jenis_kelamin', 'wali_murid', 'nohp_wali', 'kelas'];
+        $columns = ['nama_siswa', 'nis', 'angkatan', 'alamat', 'tanggal_lahir', 'jenis_kelamin', 'agama', 'wali_murid', 'nohp_wali', 'kelas'];
         $sampleData = [
-            ['Muhammad Rizky', '20241001', $defaultAngkatan, 'Jl. Merpati Putih No. 12', '2012-05-14', 'L', 'Hendra Kusuma', '081234567891', ''],
-            ['Siti Aisyah', '20241002', $defaultAngkatan, 'Jl. Kenanga Indah No. 5', '2012-08-20', 'P', 'Rahmat Hidayat', '081234567892', ''],
-            ['Budi Santoso', '20241003', $defaultAngkatan, 'Jl. Dahlia No. 44', '2012-03-10', 'L', 'Sutrisno', '081234567893', ''],
+            ['Muhammad Rizky', '20241001', $defaultAngkatan, 'Jl. Merpati Putih No. 12', '2012-05-14', 'L', 'Islam', 'Hendra Kusuma', '081234567891', ''],
+            ['Siti Aisyah', '20241002', $defaultAngkatan, 'Jl. Kenanga Indah No. 5', '2012-08-20', 'P', 'Islam', 'Rahmat Hidayat', '081234567892', ''],
+            ['Budi Santoso', '20241003', $defaultAngkatan, 'Jl. Dahlia No. 44', '2012-03-10', 'L', 'Kristen', 'Sutrisno', '081234567893', ''],
         ];
 
         $callback = function () use ($columns, $sampleData) {
