@@ -3,21 +3,29 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Item;
+use App\Models\Mapel;
 use App\Models\Menjawab;
 use App\Models\Nilai;
 use App\Models\Notifikasi;
 use App\Models\PengampuKelas;
 use App\Models\Quiz;
+use App\Models\Siswa;
+use App\Models\SiswaPower;
 use App\Models\Soal;
+use App\Services\QuizAdventureService;
 use App\Services\QuizService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class QuizController extends Controller
 {
     public function __construct(
-        protected QuizService $quizService
+        protected QuizService $quizService,
+        protected QuizAdventureService $adventureService
     ) {}
 
     /**
@@ -35,7 +43,7 @@ class QuizController extends Controller
      */
     public function guruIndex(Request $request)
     {
-        $guruId = $request->user()?->guru?->id;
+        $guruId = $request->user()?->guru?->id ?? $request->user()?->guru_id;
 
         if (!$guruId) {
             return $this->notFoundResponse('Profil guru tidak ditemukan.');
@@ -43,7 +51,7 @@ class QuizController extends Controller
 
         $perPage = (int) $request->query('per_page', 15);
         $quizzes = $this->quizService
-            ->buildGuruQuizzesQuery((int) $guruId, $request)
+            ->buildGuruQuizzesQuery((int) $guruId, $request, ['soals', 'nilais'])
             ->latest()
             ->paginate($perPage);
 
@@ -58,7 +66,7 @@ class QuizController extends Controller
      */
     public function guruOptions(Request $request)
     {
-        $guruId = $request->user()?->guru?->id;
+        $guruId = $request->user()?->guru?->id ?? $request->user()?->guru_id;
 
         $pengampuKelases = PengampuKelas::with(['guruMapel.mapel', 'kelas'])
             ->whereHas('guruMapel', fn ($q) => $q->where('guru_id', $guruId))
@@ -76,12 +84,14 @@ class QuizController extends Controller
     }
 
     /**
-     * GURU: Detail kuis dan daftar butir soal.
+     * GURU: Detail kuis, daftar butir soal, dan progres seluruh siswa kelas.
      */
     public function guruShow(Request $request, Quiz $quiz)
     {
-        $guruId = $request->user()?->guru?->id;
+        $guruId = $request->user()?->guru?->id ?? $request->user()?->guru_id;
         $this->authorizeGuru($quiz, $guruId);
+
+        $quiz->sinkronisasiBobotSoal();
 
         $quiz->load([
             'pengampuKelas.guruMapel.mapel',
@@ -120,41 +130,58 @@ class QuizController extends Controller
             'created_at' => $n->created_at,
         ]);
 
+        $groupQuizzes = $this->quizService->getGroupQuizzes($quiz)
+            ->loadMissing('pengampuKelas.kelas')
+            ->map(fn ($gq) => [
+                'id'                => $gq->id,
+                'judul'             => $gq->judul,
+                'pengampu_kelas_id' => $gq->pengampu_kelas_id,
+                'kelas'             => $gq->pengampuKelas?->kelas?->nama_kelas,
+            ]);
+
+        $daftarSiswa = $this->quizService->getClassStudentProgress($quiz);
+
         return $this->successResponse([
-            'id'                => $quiz->id,
-            'judul'             => $quiz->judul,
-            'deskripsi'         => $quiz->deskripsi,
-            'status'            => $quiz->status,
-            'kesulitan_aktif'   => $activeDifficulties,
-            'waktu_mulai'       => $quiz->waktu_mulai?->format('Y-m-d H:i:s'),
-            'waktu_selesai'     => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
-            'acak_jawaban'      => (bool) $quiz->acak_jawaban,
-            'mapel'             => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
-            'kelas'             => $quiz->pengampuKelas?->kelas?->nama_kelas,
-            'pengampu_kelas_id' => $quiz->pengampu_kelas_id,
-            'level_counts'      => $levelCounts,
-            'soals'             => $soals,
-            'nilais'            => $nilais,
+            'id'                   => $quiz->id,
+            'id_grup_kuis'         => $quiz->id_grup_kuis,
+            'judul'                => $quiz->judul,
+            'deskripsi'            => $quiz->deskripsi,
+            'status'               => $quiz->status,
+            'kesulitan_aktif'      => $activeDifficulties,
+            'waktu_mulai'          => $quiz->waktu_mulai?->format('Y-m-d H:i:s'),
+            'waktu_selesai'        => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
+            'acak_jawaban'         => (bool) $quiz->acak_jawaban,
+            'mapel'                => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+            'kelas'                => $quiz->pengampuKelas?->kelas?->nama_kelas,
+            'pengampu_kelas_id'    => $quiz->pengampu_kelas_id,
+            'level_counts'         => $levelCounts,
+            'soals'                => $soals,
+            'nilais'               => $nilais,
+            'group_quizzes'        => $groupQuizzes,
+            'daftar_siswa'         => $daftarSiswa,
+            'has_student_activity' => $quiz->hasStudentActivity(),
         ]);
     }
 
     /**
-     * GURU: Simpan draf kuis baru.
+     * GURU: Simpan draf kuis baru (mendukung multi-kelas).
      */
     public function guruStore(Request $request)
     {
-        $guruId = $request->user()?->guru?->id;
+        $guruId = $request->user()?->guru?->id ?? $request->user()?->guru_id;
 
         $validator = Validator::make($request->all(), [
-            'judul'             => ['required', 'string', 'max:200'],
-            'deskripsi'         => ['nullable', 'string', 'max:1000'],
-            'pengampu_kelas_id' => ['required', 'exists:pengampu_kelas,id'],
-            'kesulitan_aktif'   => ['required', 'array', 'min:1', 'max:3'],
-            'kesulitan_aktif.*' => ['string', 'in:Mudah,Sedang,Sulit'],
-            'waktu_mulai'       => ['nullable', 'date', 'after_or_equal:today'],
-            'waktu_selesai'     => ['nullable', 'date', 'after:waktu_mulai'],
-            'acak_jawaban'      => ['nullable', 'boolean'],
-            'status'            => ['nullable', 'string', 'in:draft,published'],
+            'judul'                => ['required', 'string', 'max:200'],
+            'deskripsi'            => ['nullable', 'string', 'max:1000'],
+            'pengampu_kelas_id'    => ['nullable'],
+            'pengampu_kelas_ids'   => ['nullable', 'array', 'min:1'],
+            'pengampu_kelas_ids.*' => ['exists:pengampu_kelas,id'],
+            'kesulitan_aktif'      => ['required', 'array', 'min:1', 'max:3'],
+            'kesulitan_aktif.*'    => ['string', 'in:Mudah,Sedang,Sulit'],
+            'waktu_mulai'          => ['nullable', 'date', 'after_or_equal:today'],
+            'waktu_selesai'        => ['nullable', 'date', 'after:waktu_mulai'],
+            'acak_jawaban'         => ['nullable', 'boolean'],
+            'status'               => ['nullable', 'string', 'in:draft,published'],
         ]);
 
         if ($validator->fails()) {
@@ -163,26 +190,51 @@ class QuizController extends Controller
 
         $validated = $validator->validated();
 
-        if (!$guruId || empty($this->quizService->getValidPengampuIdsForGuru($validated['pengampu_kelas_id'], (int) $guruId))) {
+        $targetIds = [];
+        if ($request->filled('pengampu_kelas_ids')) {
+            $targetIds = (array) $request->input('pengampu_kelas_ids');
+        } elseif ($request->filled('pengampu_kelas_id')) {
+            $targetIds = (array) $request->input('pengampu_kelas_id');
+        }
+
+        if (empty($targetIds)) {
+            return $this->validationErrorResponse([
+                'pengampu_kelas_id' => ['Silakan pilih minimal satu kelas sasaran untuk kuis ini.'],
+            ]);
+        }
+
+        $validPengampu = $guruId ? $this->quizService->getValidPengampuIdsForGuru($targetIds, (int) $guruId) : [];
+
+        if (empty($validPengampu)) {
             return $this->forbiddenResponse('Anda tidak memiliki hak akses pada kelas/mata pelajaran ini.');
         }
 
         $orderedDifficulties = $this->quizService->normalizeActiveDifficulties($validated['kesulitan_aktif']);
+        $grupId = count($validPengampu) > 1 ? (string) Str::uuid() : null;
 
-        $quiz = Quiz::create([
-            'judul'             => $validated['judul'],
-            'deskripsi'         => $validated['deskripsi'] ?? null,
-            'pengampu_kelas_id' => $validated['pengampu_kelas_id'],
-            'kesulitan_aktif'   => $orderedDifficulties,
-            'waktu_mulai'       => $validated['waktu_mulai'] ?? null,
-            'waktu_selesai'     => $validated['waktu_selesai'] ?? null,
-            'acak_jawaban'      => $request->boolean('acak_jawaban'),
-            'status'            => $validated['status'] ?? 'draft',
-            'level'             => 'Level 1',
-            'kesulitan'         => $orderedDifficulties[0] ?? 'Mudah',
-        ]);
+        $createdQuizzes = [];
+        foreach ($validPengampu as $pkId) {
+            $createdQuizzes[] = Quiz::create([
+                'id_grup_kuis'      => $grupId,
+                'judul'             => $validated['judul'],
+                'deskripsi'         => $validated['deskripsi'] ?? null,
+                'pengampu_kelas_id' => $pkId,
+                'kesulitan_aktif'   => $orderedDifficulties,
+                'waktu_mulai'       => $validated['waktu_mulai'] ?? null,
+                'waktu_selesai'     => $validated['waktu_selesai'] ?? null,
+                'acak_jawaban'      => $request->boolean('acak_jawaban'),
+                'status'            => $validated['status'] ?? 'draft',
+                'level'             => 'Level 1',
+                'kesulitan'         => $orderedDifficulties[0] ?? 'Mudah',
+            ]);
+        }
 
-        return $this->createdResponse($quiz, 'Draf kuis berhasil dibuat.');
+        $firstQuiz = $createdQuizzes[0];
+
+        return $this->createdResponse(
+            count($createdQuizzes) === 1 ? $firstQuiz : $createdQuizzes,
+            'Draf kuis berhasil dibuat.'
+        );
     }
 
     /**
@@ -190,8 +242,23 @@ class QuizController extends Controller
      */
     public function guruUpdate(Request $request, Quiz $quiz)
     {
-        $guruId = $request->user()?->guru?->id;
+        $guruId = $request->user()?->guru?->id ?? $request->user()?->guru_id;
         $this->authorizeGuru($quiz, $guruId);
+
+        $isWaktuMulaiUnchanged = false;
+        if ($request->filled('waktu_mulai') && $quiz->waktu_mulai) {
+            try {
+                $isWaktuMulaiUnchanged = Carbon::parse($request->input('waktu_mulai'))
+                    ->format('Y-m-d H:i') === $quiz->waktu_mulai->format('Y-m-d H:i');
+            } catch (\Throwable $e) {
+                $isWaktuMulaiUnchanged = false;
+            }
+        }
+
+        $waktuMulaiRules = ['nullable', 'date'];
+        if (!$isWaktuMulaiUnchanged) {
+            $waktuMulaiRules[] = 'after_or_equal:today';
+        }
 
         $validator = Validator::make($request->all(), [
             'judul'             => ['required', 'string', 'max:200'],
@@ -199,7 +266,7 @@ class QuizController extends Controller
             'pengampu_kelas_id' => ['required', 'exists:pengampu_kelas,id'],
             'kesulitan_aktif'   => ['required', 'array', 'min:1', 'max:3'],
             'kesulitan_aktif.*' => ['string', 'in:Mudah,Sedang,Sulit'],
-            'waktu_mulai'       => ['nullable', 'date', 'after_or_equal:today'],
+            'waktu_mulai'       => $waktuMulaiRules,
             'waktu_selesai'     => ['nullable', 'date', 'after:waktu_mulai'],
             'acak_jawaban'      => ['nullable', 'boolean'],
             'status'            => ['nullable', 'string', 'in:draft,published'],
@@ -216,6 +283,16 @@ class QuizController extends Controller
         }
 
         $orderedDifficulties = $this->quizService->normalizeActiveDifficulties($validated['kesulitan_aktif']);
+        $targetStatus = $validated['status'] ?? $quiz->status;
+
+        if ($targetStatus === 'published') {
+            $publishError = $this->quizService->validateQuizBeforePublish($quiz, 'butir soal', $orderedDifficulties);
+            if ($publishError !== null) {
+                return $this->errorResponse($publishError, 422);
+            }
+        }
+
+        $wasDraft = ($quiz->status ?? 'draft') !== 'published';
 
         $quiz->update([
             'judul'             => $validated['judul'],
@@ -225,8 +302,12 @@ class QuizController extends Controller
             'waktu_mulai'       => $validated['waktu_mulai'] ?? null,
             'waktu_selesai'     => $validated['waktu_selesai'] ?? null,
             'acak_jawaban'      => $request->boolean('acak_jawaban'),
-            'status'            => $validated['status'] ?? $quiz->status,
+            'status'            => $targetStatus,
         ]);
+
+        if ($wasDraft && $targetStatus === 'published') {
+            $this->quizService->notifyKelasQuizPublished($quiz);
+        }
 
         return $this->successResponse($quiz, 'Pengaturan kuis berhasil diperbarui.');
     }
@@ -236,7 +317,7 @@ class QuizController extends Controller
      */
     public function guruToggleStatus(Request $request, Quiz $quiz)
     {
-        $guruId = $request->user()?->guru?->id;
+        $guruId = $request->user()?->guru?->id ?? $request->user()?->guru_id;
         $this->authorizeGuru($quiz, $guruId);
 
         if ($quiz->status === 'published') {
@@ -253,20 +334,7 @@ class QuizController extends Controller
         }
 
         $quiz->update(['status' => 'published']);
-
-        // Kirim notifikasi interaktif ke kelas peserta kuis
-        $kelasId = $quiz->pengampuKelas?->kelas_id;
-        if ($kelasId) {
-            $mapelNama = $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
-            Notifikasi::kirimKeKelas(
-                $kelasId,
-                "Kuis Baru: {$quiz->judul}",
-                "Guru telah menerbitkan tantangan kuis petualangan baru untuk mata pelajaran {$mapelNama}.",
-                'kuis_baru',
-                route('siswa.kuis.show', $quiz->id),
-                $quiz->id
-            );
-        }
+        $this->quizService->notifyKelasQuizPublished($quiz);
 
         return $this->successResponse([
             'status' => 'published',
@@ -278,7 +346,7 @@ class QuizController extends Controller
      */
     public function guruDestroy(Request $request, Quiz $quiz)
     {
-        $guruId = $request->user()?->guru?->id;
+        $guruId = $request->user()?->guru?->id ?? $request->user()?->guru_id;
         $this->authorizeGuru($quiz, $guruId);
 
         $this->quizService->deleteQuizWithAssets($quiz);
@@ -291,7 +359,7 @@ class QuizController extends Controller
      */
     public function guruBulkDestroy(Request $request)
     {
-        $guruId = $request->user()?->guru?->id;
+        $guruId = $request->user()?->guru?->id ?? $request->user()?->guru_id;
         if (!$guruId) {
             return $this->forbiddenResponse('Akses ditolak.');
         }
@@ -318,11 +386,11 @@ class QuizController extends Controller
     }
 
     /**
-     * GURU: Tambahkan butir soal ke dalam level tertentu pada Arc kuis.
+     * GURU: Tambahkan butir soal ke dalam level tertentu pada Arc kuis (sinkron ke grup kuis).
      */
     public function guruStoreSoal(Request $request, Quiz $quiz)
     {
-        $guruId = $request->user()?->guru?->id;
+        $guruId = $request->user()?->guru?->id ?? $request->user()?->guru_id;
         $this->authorizeGuru($quiz, $guruId);
 
         $validator = Validator::make($request->all(), [
@@ -347,51 +415,85 @@ class QuizController extends Controller
             return $this->errorResponse('Level tidak valid. Maksimal 5 level.', 422);
         }
         $levelFormatted = 'Level ' . $levelNum;
+        $kesulitan = $validated['kesulitan'];
 
-        if (!$quiz->canAddSoalFor($validated['kesulitan'], $levelFormatted)) {
-            return $this->errorResponse("Tingkat {$validated['kesulitan']} {$levelFormatted} sudah mencapai batas maksimal " . Quiz::MAX_SOAL . " soal.", 422);
+        if (!in_array($kesulitan, $quiz->kesulitan_aktif_array)) {
+            return $this->errorResponse("Arc tingkat kesulitan {$kesulitan} tidak aktif pada kuis ini.", 422);
+        }
+
+        if (!$quiz->canAddSoalFor($kesulitan, $levelFormatted)) {
+            return $this->errorResponse("Tingkat {$kesulitan} {$levelFormatted} sudah mencapai batas maksimal " . Quiz::MAX_SOAL . " soal.", 422);
         }
 
         $gambarPath = $this->quizService->handleSoalImageUpload($request);
 
-        $nextUrutan = ($quiz->soalsFor($validated['kesulitan'], $levelFormatted)->max('urutan') ?? 0) + 1;
-
         $pilihanFormatted = [
-            'a' => $request->input('pilihan.a', ''),
-            'b' => $request->input('pilihan.b', ''),
-            'c' => $request->input('pilihan.c', ''),
-            'd' => $request->input('pilihan.d', ''),
+            'a' => trim((string) $request->input('pilihan.a', '')),
+            'b' => trim((string) $request->input('pilihan.b', '')),
+            'c' => trim((string) $request->input('pilihan.c', '')),
+            'd' => trim((string) $request->input('pilihan.d', '')),
         ];
 
         $kunci = $validated['kunci_jawaban'];
         if (is_array($kunci)) {
-            $kunci = json_encode($kunci);
+            $kunci = strtolower(trim((string) ($kunci[0] ?? 'a')));
+        } else {
+            $kunci = strtolower(trim((string) $kunci));
         }
 
-        $soal = Soal::create([
-            'pertanyaan'    => $validated['pertanyaan'],
-            'tipe_soal'     => $validated['tipe_soal'],
-            'kesulitan'     => $validated['kesulitan'],
-            'level'         => $levelFormatted,
-            'pilihan'       => $pilihanFormatted,
-            'kunci_jawaban' => $kunci,
-            'bobot'         => $validated['bobot'] ?? 10,
-            'urutan'        => $nextUrutan,
-            'gambar'        => $gambarPath,
-            'quiz_id'       => $quiz->id,
-            'tugas_id'      => null,
-            'ujian_id'      => null,
-        ]);
+        $groupQuizzes = $this->quizService->getGroupQuizzes($quiz);
+        $primarySoal = null;
 
-        return $this->createdResponse($soal, 'Soal berhasil ditambahkan.');
+        DB::transaction(function () use (
+            $groupQuizzes,
+            $quiz,
+            $validated,
+            $kesulitan,
+            $levelFormatted,
+            $pilihanFormatted,
+            $kunci,
+            $gambarPath,
+            &$primarySoal
+        ) {
+            foreach ($groupQuizzes as $targetQuiz) {
+                if ($targetQuiz->id !== $quiz->id && !$targetQuiz->canAddSoalFor($kesulitan, $levelFormatted)) {
+                    continue;
+                }
+
+                $nextUrutan = ($targetQuiz->soalsFor($kesulitan, $levelFormatted)->max('urutan') ?? 0) + 1;
+
+                $createdSoal = Soal::create([
+                    'pertanyaan'    => $validated['pertanyaan'],
+                    'tipe_soal'     => $validated['tipe_soal'],
+                    'kesulitan'     => $kesulitan,
+                    'level'         => $levelFormatted,
+                    'pilihan'       => $pilihanFormatted,
+                    'kunci_jawaban' => $kunci,
+                    'bobot'         => $validated['bobot'] ?? 10,
+                    'urutan'        => $nextUrutan,
+                    'gambar'        => $gambarPath,
+                    'quiz_id'       => $targetQuiz->id,
+                    'tugas_id'      => null,
+                    'ujian_id'      => null,
+                ]);
+
+                $targetQuiz->sinkronisasiBobotSoal();
+
+                if ($targetQuiz->id === $quiz->id) {
+                    $primarySoal = $createdSoal->fresh();
+                }
+            }
+        });
+
+        return $this->createdResponse($primarySoal, 'Soal berhasil ditambahkan.');
     }
 
     /**
-     * GURU: Perbarui butir soal kuis.
+     * GURU: Perbarui butir soal kuis (sinkron ke grup kuis).
      */
     public function guruUpdateSoal(Request $request, Quiz $quiz, Soal $soal)
     {
-        $guruId = $request->user()?->guru?->id;
+        $guruId = $request->user()?->guru?->id ?? $request->user()?->guru_id;
         $this->authorizeGuru($quiz, $guruId);
 
         if ($soal->quiz_id !== $quiz->id) {
@@ -407,6 +509,7 @@ class QuizController extends Controller
             'kunci_jawaban' => ['required'],
             'bobot'         => ['nullable', 'numeric', 'min:1'],
             'gambar'        => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'hapus_gambar'  => ['nullable', 'boolean'],
         ]);
 
         if ($validator->fails()) {
@@ -414,18 +517,33 @@ class QuizController extends Controller
         }
 
         $validated = $validator->validated();
-        $gambarPath = $this->quizService->handleSoalImageUpload($request, $soal->gambar);
+
+        $oldImage = $soal->gambar;
+        $oldKesulitan = $soal->kesulitan;
+        $oldLevel = $soal->level;
+        $oldUrutan = $soal->urutan;
+        $oldPertanyaan = $soal->pertanyaan;
+
+        if ($request->hasFile('gambar')) {
+            $gambarPath = $request->file('gambar')->store('soals', 'public');
+        } elseif ($request->boolean('hapus_gambar')) {
+            $gambarPath = null;
+        } else {
+            $gambarPath = $oldImage;
+        }
 
         $pilihanFormatted = [
-            'a' => $request->input('pilihan.a', $soal->pilihan['a'] ?? ''),
-            'b' => $request->input('pilihan.b', $soal->pilihan['b'] ?? ''),
-            'c' => $request->input('pilihan.c', $soal->pilihan['c'] ?? ''),
-            'd' => $request->input('pilihan.d', $soal->pilihan['d'] ?? ''),
+            'a' => trim((string) $request->input('pilihan.a', $soal->pilihan['a'] ?? '')),
+            'b' => trim((string) $request->input('pilihan.b', $soal->pilihan['b'] ?? '')),
+            'c' => trim((string) $request->input('pilihan.c', $soal->pilihan['c'] ?? '')),
+            'd' => trim((string) $request->input('pilihan.d', $soal->pilihan['d'] ?? '')),
         ];
 
         $kunci = $validated['kunci_jawaban'];
         if (is_array($kunci)) {
-            $kunci = json_encode($kunci);
+            $kunci = strtolower(trim((string) ($kunci[0] ?? 'a')));
+        } else {
+            $kunci = strtolower(trim((string) $kunci));
         }
 
         $updateData = [
@@ -446,31 +564,101 @@ class QuizController extends Controller
             $updateData['level'] = 'Level ' . $levelNum;
         }
 
-        $soal->update($updateData);
+        $groupQuizzes = $this->quizService->getGroupQuizzes($quiz);
 
-        return $this->successResponse($soal, 'Soal berhasil diperbarui.');
+        DB::transaction(function () use (
+            $groupQuizzes,
+            $quiz,
+            $soal,
+            $updateData,
+            $oldKesulitan,
+            $oldLevel,
+            $oldUrutan,
+            $oldPertanyaan
+        ) {
+            $soal->update($updateData);
+            $quiz->sinkronisasiBobotSoal();
+
+            foreach ($groupQuizzes as $otherQuiz) {
+                if ($otherQuiz->id === $quiz->id) {
+                    continue;
+                }
+
+                $matchingSoal = $otherQuiz->soals()
+                    ->where('kesulitan', $oldKesulitan)
+                    ->where('level', $oldLevel)
+                    ->where(function ($q) use ($oldUrutan, $oldPertanyaan) {
+                        $q->where('urutan', $oldUrutan)
+                          ->orWhere('pertanyaan', $oldPertanyaan);
+                    })
+                    ->first();
+
+                if ($matchingSoal) {
+                    $matchingSoal->update($updateData);
+                    $otherQuiz->sinkronisasiBobotSoal();
+                }
+            }
+        });
+
+        if ($oldImage && $oldImage !== $gambarPath) {
+            $this->quizService->deleteSoalImage($oldImage);
+        }
+
+        return $this->successResponse($soal->fresh(), 'Soal berhasil diperbarui.');
     }
 
     /**
-     * GURU: Hapus butir soal kuis.
+     * GURU: Hapus butir soal kuis (sinkron ke grup kuis).
      */
     public function guruDestroySoal(Request $request, Quiz $quiz, Soal $soal)
     {
-        $guruId = $request->user()?->guru?->id;
+        $guruId = $request->user()?->guru?->id ?? $request->user()?->guru_id;
         $this->authorizeGuru($quiz, $guruId);
 
         if ($soal->quiz_id !== $quiz->id) {
             return $this->forbiddenResponse('Soal bukan milik kuis ini.');
         }
 
-        $this->quizService->deleteSoalImage($soal->gambar);
-        $soal->delete();
+        $arc = $soal->kesulitan ?? 'Mudah';
+        $level = $soal->level ?? 'Level 1';
+        $urutan = $soal->urutan;
+        $pertanyaan = $soal->pertanyaan;
+        $gambar = $soal->gambar;
+
+        $groupQuizzes = $this->quizService->getGroupQuizzes($quiz);
+
+        DB::transaction(function () use ($groupQuizzes, $quiz, $soal, $arc, $level, $urutan, $pertanyaan) {
+            $soal->delete();
+            $quiz->sinkronisasiBobotSoal();
+
+            foreach ($groupQuizzes as $otherQuiz) {
+                if ($otherQuiz->id === $quiz->id) {
+                    continue;
+                }
+
+                $matchingSoal = $otherQuiz->soals()
+                    ->where('kesulitan', $arc)
+                    ->where('level', $level)
+                    ->where(function ($q) use ($urutan, $pertanyaan) {
+                        $q->where('urutan', $urutan)
+                          ->orWhere('pertanyaan', $pertanyaan);
+                    })
+                    ->first();
+
+                if ($matchingSoal) {
+                    $matchingSoal->delete();
+                    $otherQuiz->sinkronisasiBobotSoal();
+                }
+            }
+        });
+
+        $this->quizService->deleteSoalImage($gambar);
 
         return $this->successResponse(null, 'Soal berhasil dihapus.');
     }
 
     /**
-     * SISWA: Menampilkan daftar kuis terpublikasi untuk kelas siswa.
+     * SISWA: Menampilkan daftar kuis terpublikasi untuk kelas siswa beserta data Planet & Leaderboard.
      */
     public function siswaIndex(Request $request)
     {
@@ -492,6 +680,7 @@ class QuizController extends Controller
                         $q->where('siswa_id', $siswa->id);
                     }
                 },
+                'soals',
             ])
             ->withCount('soals');
 
@@ -499,7 +688,9 @@ class QuizController extends Controller
             $query->whereHas('pengampuKelas.guruMapel', fn ($q) => $q->where('mapel_id', $request->mapel_id));
         }
 
-        $quizzes = $query->latest()->get()->map(function ($quiz) {
+        $allQuizzes = $query->latest()->get();
+
+        $quizzes = $allQuizzes->map(function ($quiz) {
             $nilai = $quiz->nilais->first();
 
             return [
@@ -513,10 +704,11 @@ class QuizController extends Controller
                 'total_soal'      => $quiz->soals_count,
                 'waktu_mulai'     => $quiz->waktu_mulai?->format('Y-m-d H:i:s'),
                 'waktu_selesai'   => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
-                'is_completed'    => $nilai !== null,
+                'is_completed'    => $nilai !== null && $nilai->status === 'selesai',
                 'result'          => $nilai ? [
                     'id'           => $nilai->id,
                     'nilai'        => $nilai->nilai,
+                    'bintang'      => Quiz::hitungBintang((float) $nilai->nilai),
                     'status'       => $nilai->status,
                     'durasi'       => $nilai->durasi,
                     'completed_at' => $nilai->created_at,
@@ -524,24 +716,69 @@ class QuizController extends Controller
             ];
         });
 
+        // Jika klien meminta mode petualangan (with_planets=1), sertakan planets & leaderboard
+        if ($request->boolean('with_planets')) {
+            $dbMapels = Mapel::forSiswa($siswa)->get();
+            $planets = $this->adventureService->buildPlanetsCollection($allQuizzes, $dbMapels);
+            $topThree = $this->adventureService->getTopThreeLeaderboard();
+            $leaderboard = $this->adventureService->getSectorLeaderboard($siswa);
+
+            return $this->successResponse([
+                'quizzes'     => $quizzes,
+                'planets'     => $planets,
+                'top_three'   => $topThree,
+                'leaderboard' => $leaderboard,
+            ]);
+        }
+
         return $this->successResponse($quizzes);
     }
 
     /**
-     * SISWA: Detail kuis petualangan (Ringkasan Arc & status pengerjaan).
+     * SISWA: Panduan sistem Kuis Petualangan & katalog Power aktif.
+     */
+    public function siswaPanduan(Request $request)
+    {
+        $siswa = $request->user()?->siswa;
+        if (!$siswa) {
+            return $this->notFoundResponse('Profil siswa tidak ditemukan.');
+        }
+
+        Item::ensureDefaultCatalog();
+        $powers = Item::powers()->where('is_active', true)->orderBy('id')->get()->map(fn (Item $p) => [
+            'id'          => $p->id,
+            'kode'        => $p->kode,
+            'nama'        => $p->nama,
+            'tagline'     => $p->tagline,
+            'deskripsi'   => $p->deskripsi,
+            'detail_efek' => $p->detail_efek,
+            'tipe_efek'   => $p->tipe_efek,
+            'rarity'      => $p->rarity,
+            'icon'        => $p->icon,
+            'tema_warna'  => $p->tema_warna,
+        ]);
+
+        return $this->successResponse([
+            'powers' => $powers,
+        ]);
+    }
+
+    /**
+     * SISWA: Detail kuis petualangan (Ringkasan Arc, Peta Petualangan Bertingkat & Status Pengerjaan).
      */
     public function siswaShow(Request $request, Quiz $quiz)
     {
         $siswa = $request->user()?->siswa;
-        $kelas = $this->quizService->getSiswaPrimaryKelas($siswa);
-        $kelasId = $kelas?->id;
-
-        if (!$kelasId || $quiz->pengampuKelas?->kelas_id !== $kelasId) {
+        if (!$this->quizService->isSiswaAuthorizedForQuiz($quiz, $siswa)) {
             return $this->forbiddenResponse('Kuis tidak ditemukan untuk kelas Anda.');
         }
 
         if ($quiz->status !== 'published') {
             return $this->forbiddenResponse('Kuis belum dipublikasikan oleh guru.');
+        }
+
+        if ($siswa && !app()->runningUnitTests()) {
+            SiswaPower::initializeDefaultInventory($siswa);
         }
 
         $quiz->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru', 'soals']);
@@ -555,6 +792,8 @@ class QuizController extends Controller
         $answeredSoalIds = $siswa
             ? Menjawab::where('siswa_id', $siswa->id)
                 ->whereIn('soal_id', $soalIds)
+                ->whereNotNull('jawaban_dipilih')
+                ->where('jawaban_dipilih', '!=', '')
                 ->pluck('soal_id')
                 ->toArray()
             : [];
@@ -574,11 +813,15 @@ class QuizController extends Controller
             ];
         }
 
-        $riwayatNilai = $siswa
-            ? Nilai::where('siswa_id', $siswa->id)
-                ->where('quiz_id', $quiz->id)
-                ->first()
-            : null;
+        $journey = $this->adventureService->buildQuizAdventureJourney($quiz, $siswa);
+        $riwayatNilai = $journey['nilai'];
+
+        // Bersihkan koleksi model `soals` dari `journey['levels']` agar payload ringkas
+        $adventureLevels = collect($journey['levels'])->map(function ($lvl) {
+            $copy = $lvl;
+            unset($copy['soals']);
+            return $copy;
+        })->values();
 
         return $this->successResponse([
             'id'                 => $quiz->id,
@@ -592,10 +835,25 @@ class QuizController extends Controller
             'guru'               => $quiz->pengampuKelas?->guruMapel?->guru?->nama,
             'soal_counts_by_arc' => $soalCountsByArc,
             'levels'             => $levelsInfo,
-            'is_completed'       => $riwayatNilai !== null,
+            'adventure'          => [
+                'levels'                => $adventureLevels,
+                'arc_summaries'         => $journey['arc_summaries'],
+                'total_levels'          => $journey['total_levels'],
+                'completed_levels'      => $journey['completed_levels'],
+                'remaining_levels'      => $journey['remaining_levels'],
+                'percentage'            => $journey['percentage'],
+                'total_bintang'         => $journey['total_bintang'],
+                'max_bintang'           => $journey['max_bintang'],
+                'active_step'           => $journey['active_step'],
+                'default_selected_step' => $journey['default_selected_step'],
+                'current_arc'           => $journey['current_arc'],
+                'is_all_completed'      => $journey['is_all_completed'],
+            ],
+            'is_completed'       => ($riwayatNilai !== null && $riwayatNilai->status === 'selesai') || $journey['is_all_completed'],
             'result'             => $riwayatNilai ? [
                 'id'           => $riwayatNilai->id,
                 'nilai'        => $riwayatNilai->nilai,
+                'bintang'      => Quiz::hitungBintang((float) $riwayatNilai->nilai),
                 'status'       => $riwayatNilai->status,
                 'durasi'       => $riwayatNilai->durasi,
                 'completed_at' => $riwayatNilai->created_at,
@@ -609,10 +867,7 @@ class QuizController extends Controller
     public function siswaKerjakan(Request $request, Quiz $quiz)
     {
         $siswa = $request->user()?->siswa;
-        $kelas = $this->quizService->getSiswaPrimaryKelas($siswa);
-        $kelasId = $kelas?->id;
-
-        if (!$kelasId || $quiz->pengampuKelas?->kelas_id !== $kelasId) {
+        if (!$this->quizService->isSiswaAuthorizedForQuiz($quiz, $siswa)) {
             return $this->forbiddenResponse('Akses ditolak.');
         }
 
@@ -620,7 +875,10 @@ class QuizController extends Controller
             return $this->forbiddenResponse('Kuis belum dipublikasikan.');
         }
 
-        // Cek apakah siswa sudah pernah menyelesaikan kuis ini
+        if ($siswa && !app()->runningUnitTests()) {
+            SiswaPower::initializeDefaultInventory($siswa);
+        }
+
         $existing = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
         if ($existing && $existing->status === 'selesai') {
             return $this->errorResponse('Anda telah menyelesaikan kuis ini sebelumnya.', 400, [
@@ -653,7 +911,14 @@ class QuizController extends Controller
             }
         }
 
-        $soals = $query->orderBy('urutan')->get()->map(function ($s) use ($quiz) {
+        $soalsRaw = $query->orderBy('urutan')->get();
+
+        $savedAnswers = Menjawab::where('siswa_id', $siswa->id)
+            ->whereIn('soal_id', $soalsRaw->pluck('id'))
+            ->pluck('jawaban_dipilih', 'soal_id')
+            ->toArray();
+
+        $soals = $soalsRaw->map(function ($s) use ($quiz, $savedAnswers) {
             $pilihan = $this->quizService->getShuffledOptionsForSoal($quiz, $s);
 
             $kunci = $s->kunci_jawaban;
@@ -675,32 +940,35 @@ class QuizController extends Controller
                 'pertanyaan'    => $s->pertanyaan,
                 'pilihan'       => $pilihan,
                 'kunci_jawaban' => strtolower(trim((string) $kunci)),
+                'saved_answer'  => $savedAnswers[$s->id] ?? null,
                 'gambar_url'    => $s->gambar ? asset('storage/' . $s->gambar) : null,
                 'bobot'         => $s->bobot,
             ];
         });
 
+        $remainingSeconds = $quiz->waktu_selesai
+            ? max(0, now()->diffInSeconds($quiz->waktu_selesai, false))
+            : null;
+
         return $this->successResponse([
             'quiz' => [
-                'id'            => $quiz->id,
-                'judul'         => $quiz->judul,
-                'waktu_selesai' => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
+                'id'                => $quiz->id,
+                'judul'             => $quiz->judul,
+                'waktu_selesai'     => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
+                'remaining_seconds' => $remainingSeconds,
             ],
-            'soals' => $soals,
+            'soals'         => $soals,
+            'saved_answers' => (object) $savedAnswers,
         ]);
     }
 
     /**
-     * SISWA: Submit jawaban kuis, koreksi otomatis, dan rekam riwayat pengerjaan.
+     * SISWA: Menyimpan progres jawaban kuis sementara (draft).
      */
-    public function siswaSubmit(Request $request, Quiz $quiz)
+    public function siswaSimpanDraft(Request $request, Quiz $quiz)
     {
-        $user = $request->user();
-        $siswa = $user->siswa;
-        $kelas = $this->quizService->getSiswaPrimaryKelas($siswa);
-        $kelasId = $kelas?->id;
-
-        if (!$kelasId || $quiz->pengampuKelas?->kelas_id !== $kelasId) {
+        $siswa = $request->user()?->siswa;
+        if (!$this->quizService->isSiswaAuthorizedForQuiz($quiz, $siswa)) {
             return $this->forbiddenResponse('Akses ditolak.');
         }
 
@@ -708,7 +976,61 @@ class QuizController extends Controller
             return $this->forbiddenResponse('Kuis belum dipublikasikan.');
         }
 
-        // Cegah duplikasi submit jika kuis sudah selesai
+        $alreadyCompleted = Nilai::where('siswa_id', $siswa->id)
+            ->where('quiz_id', $quiz->id)
+            ->where('status', 'selesai')
+            ->exists();
+
+        if ($alreadyCompleted) {
+            return $this->forbiddenResponse('Kuis ini sudah selesai dikerjakan dan tidak dapat diubah lagi.');
+        }
+
+        if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai->copy()->addMinutes(2))) {
+            return $this->errorResponse('Waktu pengerjaan kuis telah kedaluwarsa.', 400);
+        }
+
+        $soals = $quiz->soals;
+        $jawabanInputs = $request->input('jawaban', []);
+
+        DB::transaction(function () use ($soals, $jawabanInputs, $siswa) {
+            foreach ($soals as $soal) {
+                $jawabanUser = $jawabanInputs[$soal->id] ?? $jawabanInputs[(string) $soal->id] ?? null;
+                if ($jawabanUser !== null && $jawabanUser !== '') {
+                    $isBenar = $this->quizService->isAnswerCorrect($soal, $jawabanUser);
+
+                    Menjawab::updateOrCreate(
+                        [
+                            'soal_id'  => $soal->id,
+                            'siswa_id' => $siswa->id,
+                        ],
+                        [
+                            'jawaban_dipilih' => is_array($jawabanUser) ? json_encode($jawabanUser) : (string) $jawabanUser,
+                            'benar'           => $isBenar,
+                        ]
+                    );
+                }
+            }
+        });
+
+        return $this->successResponse(null, 'Progres jawaban level berhasil disimpan!');
+    }
+
+    /**
+     * SISWA: Submit jawaban kuis (per level maupun keseluruhan), koreksi otomatis, dan rekam riwayat pengerjaan.
+     */
+    public function siswaSubmit(Request $request, Quiz $quiz)
+    {
+        $user = $request->user();
+        $siswa = $user->siswa;
+
+        if (!$this->quizService->isSiswaAuthorizedForQuiz($quiz, $siswa)) {
+            return $this->forbiddenResponse('Akses ditolak.');
+        }
+
+        if ($quiz->status !== 'published') {
+            return $this->forbiddenResponse('Kuis belum dipublikasikan.');
+        }
+
         $existing = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
         if ($existing && $existing->status === 'selesai') {
             return $this->errorResponse('Jawaban kuis Anda sebelumnya sudah tersimpan.', 400, [
@@ -717,32 +1039,50 @@ class QuizController extends Controller
             ]);
         }
 
-        // Cek toleransi batas waktu (toleransi 2 menit)
         if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai->copy()->addMinutes(2))) {
             return $this->forbiddenResponse('Waktu pengumpulan kuis telah kedaluwarsa.');
         }
 
         $validator = Validator::make($request->all(), [
-            'jawaban' => ['required', 'array'], // [soal_id => "a", ...]
+            'jawaban' => ['required', 'array'],
             'durasi'  => ['nullable'],
+            'arc'     => ['nullable', 'string'],
+            'level'   => ['nullable'],
+            'step'    => ['nullable', 'integer'],
         ]);
 
         if ($validator->fails()) {
             return $this->validationErrorResponse($validator->errors());
         }
 
-        $soals = $quiz->soals;
-        $totalBobot = $soals->sum('bobot') ?: 100;
-        $skorDidapat = 0;
+        $quiz->load('soals');
+        $allQuizSoals = $quiz->soals;
+
+        // Tentukan apakah submit ini hanya untuk level tertentu atau seluruh kuis
+        $soalsToProcess = $allQuizSoals;
+        $targetLevel = null;
+
+        if ($request->filled('arc') || $request->filled('level') || $request->filled('step')) {
+            $journeyBefore = $this->adventureService->buildQuizAdventureJourney($quiz, $siswa);
+            $targetLevel = $this->adventureService->resolveTargetLevel(
+                collect($journeyBefore['levels']),
+                $request->input('arc'),
+                $this->quizService->parseLevelNumber($request->input('level', '0')),
+                (int) $request->input('step', 0),
+                false
+            );
+            if ($targetLevel && !empty($targetLevel['soals'])) {
+                $soalsToProcess = $targetLevel['soals'];
+            }
+        }
+
         $jumlahBenar = 0;
         $jumlahSalah = 0;
-
-        $wasAlreadyCompleted = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->exists();
         $koinBaruDidapat = 0;
 
-        $nilaiRecord = DB::transaction(function () use ($soals, $request, $siswa, $quiz, &$skorDidapat, &$jumlahBenar, &$jumlahSalah, $totalBobot, &$koinBaruDidapat) {
+        DB::transaction(function () use ($soalsToProcess, $request, $siswa, &$jumlahBenar, &$jumlahSalah, &$koinBaruDidapat) {
             $submittedAnswers = $request->input('jawaban', []);
-            foreach ($soals as $soal) {
+            foreach ($soalsToProcess as $soal) {
                 $existingAns = Menjawab::with('power')
                     ->where('soal_id', $soal->id)
                     ->where('siswa_id', $siswa->id)
@@ -750,8 +1090,8 @@ class QuizController extends Controller
 
                 $jawabanUser = $submittedAnswers[$soal->id] ?? $submittedAnswers[(string) $soal->id] ?? null;
 
-                if ($jawabanUser === null) {
-                    if ($existingAns) {
+                if ($jawabanUser === null || $jawabanUser === '') {
+                    if ($existingAns && $existingAns->jawaban_dipilih !== null && $existingAns->jawaban_dipilih !== '') {
                         $jawabanUser = $existingAns->jawaban_dipilih;
                     }
                 }
@@ -772,7 +1112,6 @@ class QuizController extends Controller
                     }
 
                     if ($isBenar) {
-                        $skorDidapat += ($soal->bobot ?: 10);
                         $jumlahBenar++;
                     } else {
                         $jumlahSalah++;
@@ -799,69 +1138,127 @@ class QuizController extends Controller
             if ($koinBaruDidapat > 0) {
                 $siswa->increment('koin', $koinBaruDidapat);
             }
+        });
 
-            $nilaiAkhir = $totalBobot > 0 ? round(($skorDidapat / $totalBobot) * 100, 2) : 0;
-            if ($nilaiAkhir > 100) {
-                $nilaiAkhir = 100;
+        $durasiDetik = $this->quizService->parseDurationToSeconds($request->input('durasi', 0));
+        $prevDurasi = (int) ($existing?->durasi ?? 0);
+        $totalDurasi = $prevDurasi + $durasiDetik;
+
+        $journeyAfter = $this->adventureService->buildQuizAdventureJourney($quiz, $siswa);
+        $totalAllSoal = $allQuizSoals->count();
+        $answeredCount = Menjawab::where('siswa_id', $siswa->id)
+            ->whereIn('soal_id', $allQuizSoals->pluck('id'))
+            ->whereNotNull('jawaban_dipilih')
+            ->where('jawaban_dipilih', '!=', '')
+            ->count();
+
+        // Jika tidak mengirim parameter level spesifik atau seluruh soal sudah dijawab, selesaikan kuis penuh
+        $isFullQuizSubmit = !$targetLevel || ($totalAllSoal > 0 && $answeredCount >= $totalAllSoal) || $journeyAfter['is_all_completed'];
+
+        $allQuizSoalIds = $allQuizSoals->pluck('id')->toArray();
+        $totalBobot = (float) ($allQuizSoals->sum('bobot') ?: 100);
+        $skorDidapatRaw = 0.0;
+
+        $menjawabSemua = Menjawab::with('power')
+            ->where('siswa_id', $siswa->id)
+            ->whereIn('soal_id', $allQuizSoalIds)
+            ->get()
+            ->keyBy('soal_id');
+
+        foreach ($allQuizSoals as $soal) {
+            $bobot = (float) ($soal->bobot ?: 10);
+            $ans = $menjawabSemua->get($soal->id);
+            if ($ans) {
+                if ($ans->power_id !== null || (float) $ans->poin_diperoleh != 0.0 || !$ans->benar) {
+                    $skorDidapatRaw += (float) $ans->poin_diperoleh;
+                } else {
+                    $skorDidapatRaw += $bobot;
+                }
             }
+        }
 
-            $durasiDetik = $this->quizService->parseDurationToSeconds($request->input('durasi', 0));
+        $totalPoinSiswa = max(0.0, $skorDidapatRaw);
+        $nilaiAkhir = $totalBobot > 0 ? min(100, round(($totalPoinSiswa / $totalBobot) * 100, 2)) : 0;
 
-            return Nilai::updateOrCreate(
+        $nilaiRecord = null;
+        if ($isFullQuizSubmit) {
+            $nilaiRecord = Nilai::updateOrCreate(
                 [
                     'siswa_id' => $siswa->id,
                     'quiz_id'  => $quiz->id,
                 ],
                 [
                     'nilai'  => $nilaiAkhir,
-                    'durasi' => $durasiDetik,
+                    'durasi' => $totalDurasi,
                     'status' => 'selesai',
                 ]
             );
-        });
 
-        if (!$wasAlreadyCompleted) {
-            $this->quizService->notifyGuruQuizCompleted($quiz, $siswa, $user->name, [
-                'nilai' => $nilaiRecord->nilai,
-            ]);
+            if (!$existing || $existing->status !== 'selesai') {
+                $this->quizService->notifyGuruQuizCompleted($quiz, $siswa, $user->name, [
+                    'nilai' => $nilaiRecord->nilai,
+                ]);
+            }
         }
 
         return $this->successResponse([
-            'nilai'             => $nilaiRecord->nilai,
-            'total_soal'        => $soals->count(),
+            'is_quiz_completed' => $isFullQuizSubmit,
+            'nilai'             => $nilaiRecord ? $nilaiRecord->nilai : $nilaiAkhir,
+            'bintang'           => Quiz::hitungBintang((float) ($nilaiRecord ? $nilaiRecord->nilai : $nilaiAkhir)),
+            'total_soal'        => $soalsToProcess->count(),
             'jumlah_benar'      => $jumlahBenar,
             'jumlah_salah'      => $jumlahSalah,
-            'durasi_detik'      => $nilaiRecord->durasi,
+            'durasi_detik'      => $totalDurasi,
             'koin_didapat'      => $koinBaruDidapat,
             'total_koin_siswa'  => (int) $siswa->fresh()->koin,
-        ], 'Selamat! Kuis petualangan berhasil Anda selesaikan.');
+        ], $isFullQuizSubmit
+            ? 'Selamat! Kuis petualangan berhasil Anda selesaikan.'
+            : "Level {$targetLevel['level_num']} pada Arc {$targetLevel['arc']} berhasil diselesaikan!");
     }
 
     /**
-     * SISWA: Hasil evaluasi pengerjaan kuis siswa.
+     * SISWA: Hasil evaluasi pengerjaan kuis siswa (mendukung filter per level maupun rekap keseluruhan).
      */
     public function siswaHasil(Request $request, Quiz $quiz)
     {
         $siswa = $request->user()?->siswa;
-        $kelas = $this->quizService->getSiswaPrimaryKelas($siswa);
-        $kelasId = $kelas?->id;
-
-        if (!$kelasId || $quiz->pengampuKelas?->kelas_id !== $kelasId) {
+        if (!$this->quizService->isSiswaAuthorizedForQuiz($quiz, $siswa)) {
             return $this->forbiddenResponse('Akses ditolak.');
         }
 
-        $nilai = Nilai::where('siswa_id', $siswa->id)->where('quiz_id', $quiz->id)->first();
-        if (!$nilai) {
+        $quiz->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru', 'soals']);
+        $journey = $this->adventureService->buildQuizAdventureJourney($quiz, $siswa);
+        $nilai = $journey['nilai'];
+
+        $reqArc = $request->query('arc');
+        $reqLevelNum = $this->quizService->parseLevelNumber($request->query('level', '0'));
+        $reqStep = (int) $request->query('step', 0);
+
+        $currentLevel = null;
+        if ($reqArc || $reqLevelNum > 0 || $reqStep > 0) {
+            $currentLevel = $this->adventureService->resolveTargetLevel(
+                collect($journey['levels']),
+                $reqArc,
+                $reqLevelNum,
+                $reqStep,
+                false
+            );
+        }
+
+        if (!$nilai && !$currentLevel && $journey['completed_levels'] === 0) {
             return $this->notFoundResponse('Anda belum menyelesaikan kuis ini.');
         }
 
-        $quiz->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru']);
+        $soalsQuery = $quiz->soals()->with(['menjawabs' => fn ($q) => $q->with('power')->where('siswa_id', $siswa->id)]);
+        if ($currentLevel && !empty($currentLevel['soal_ids'])) {
+            $soalsQuery->whereIn('id', $currentLevel['soal_ids']);
+        }
 
-        $soals = $quiz->soals()->with(['menjawabs' => fn ($q) => $q->where('siswa_id', $siswa->id)])->get();
+        $soals = $soalsQuery->orderBy('urutan')->orderBy('id')->get();
 
         $totalSoal  = $soals->count();
         $totalBenar = $soals->filter(fn ($s) => $s->menjawabs->first()?->benar)->count();
-        $totalSalah = $totalSoal - $totalBenar;
+        $totalSalah = max(0, $totalSoal - $totalBenar);
 
         $detailSoal = $soals->map(function ($s) {
             $menjawab = $s->menjawabs->first();
@@ -877,6 +1274,132 @@ class QuizController extends Controller
                 'jawaban_dipilih' => $menjawab?->jawaban_dipilih,
                 'is_benar'        => (bool) $menjawab?->benar,
                 'bobot'           => $s->bobot,
+                'poin_diperoleh'  => $menjawab?->poin_diperoleh,
+                'power'           => $menjawab?->power ? [
+                    'id'   => $menjawab->power->id,
+                    'kode' => $menjawab->power->kode,
+                    'nama' => $menjawab->power->nama,
+                ] : null,
+            ];
+        });
+
+        $skorDitampilkan = $currentLevel
+            ? $currentLevel['skor_level']
+            : ($nilai ? (float) $nilai->nilai : ($totalSoal > 0 ? round(($totalBenar / $totalSoal) * 100, 2) : 0));
+
+        return $this->successResponse([
+            'quiz' => [
+                'id'    => $quiz->id,
+                'judul' => $quiz->judul,
+                'mapel' => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+                'guru'  => $quiz->pengampuKelas?->guruMapel?->guru?->nama,
+            ],
+            'summary' => [
+                'nilai'        => $skorDitampilkan,
+                'bintang'      => Quiz::hitungBintang((float) $skorDitampilkan),
+                'durasi_detik' => $nilai?->durasi ?? 0,
+                'total_soal'   => $totalSoal,
+                'total_benar'  => $totalBenar,
+                'total_salah'  => $totalSalah,
+                'completed_at' => $nilai?->created_at,
+            ],
+            'detail_soals' => $detailSoal,
+        ]);
+    }
+
+    /**
+     * SISWA: Hasil Petualangan Lengkap (rekap nilai akhir gabungan, bintang, statistik Power, dan seluruh soal).
+     */
+    public function siswaHasilPetualangan(Request $request, Quiz $quiz)
+    {
+        $siswa = $request->user()?->siswa;
+        if (!$this->quizService->isSiswaAuthorizedForQuiz($quiz, $siswa)) {
+            return $this->forbiddenResponse('Akses ditolak.');
+        }
+
+        $quiz->load([
+            'pengampuKelas.guruMapel.mapel',
+            'pengampuKelas.guruMapel.guru',
+            'pengampuKelas.kelas',
+            'soals',
+        ]);
+
+        $journey = $this->adventureService->buildQuizAdventureJourney($quiz, $siswa);
+        $nilai = $journey['nilai'];
+
+        $allSoalsRaw = $quiz->soals()
+            ->with(['menjawabs' => fn ($q) => $q->with('power')->where('siswa_id', $siswa->id)])
+            ->get();
+
+        $allSoals = $this->adventureService->sortSoalsByAdventureOrder($allSoalsRaw);
+
+        $totalSoal = $allSoals->count();
+        $totalBenar = $allSoals->filter(fn ($s) => $s->menjawabs->first()?->benar)->count();
+        $totalSalah = max(0, $totalSoal - $totalBenar);
+
+        $totalPoinDidapat = 0.0;
+        $totalBobotSemuaSoal = 0.0;
+        $usedPowersCount = 0;
+        $bonusPowerPoints = 0.0;
+        $penaltyPowerPoints = 0.0;
+
+        foreach ($allSoals as $sItem) {
+            $bobotDasar = (float) ($sItem->bobot ?: 10);
+            $totalBobotSemuaSoal += $bobotDasar;
+            $jwb = $sItem->menjawabs->first();
+
+            if ($jwb) {
+                $poin = (float) $jwb->poin_diperoleh;
+                if ($jwb->power_id !== null || $poin != 0.0 || !$jwb->benar) {
+                    $totalPoinDidapat += $poin;
+                } else {
+                    $totalPoinDidapat += $bobotDasar;
+                }
+
+                if ($jwb->power_id && $jwb->power) {
+                    $usedPowersCount++;
+                    if ($jwb->benar && $poin > $bobotDasar) {
+                        $bonusPowerPoints += ($poin - $bobotDasar);
+                    } elseif (!$jwb->benar && $poin < 0) {
+                        $penaltyPowerPoints += abs($poin);
+                    }
+                }
+            }
+        }
+
+        $totalPoinDidapat = max(0.0, $totalPoinDidapat);
+        $totalBobotKuis = $totalBobotSemuaSoal > 0 ? $totalBobotSemuaSoal : 100.0;
+
+        $nilaiGabungan = $nilai && $nilai->status === 'selesai'
+            ? (float) $nilai->nilai
+            : min(100.0, round(($totalPoinDidapat / $totalBobotKuis) * 100, 2));
+
+        $bintangAkhir = Quiz::hitungBintang($nilaiGabungan);
+
+        $durasiDetik = (int) ($nilai?->durasi ?? 0);
+        $menit = floor($durasiDetik / 60);
+        $detik = $durasiDetik % 60;
+        $durasiFormatted = sprintf('%02d Menit %02d Detik', $menit, $detik);
+
+        $detailSoals = $allSoals->map(function ($s) {
+            $jwb = $s->menjawabs->first();
+            return [
+                'id'              => $s->id,
+                'pertanyaan'      => $s->pertanyaan,
+                'tipe_soal'       => $s->tipe_soal,
+                'kesulitan'       => $s->kesulitan,
+                'level'           => $s->level,
+                'pilihan'         => $s->pilihan,
+                'kunci_jawaban'   => $s->kunci_jawaban,
+                'jawaban_dipilih' => $jwb?->jawaban_dipilih,
+                'is_benar'        => (bool) $jwb?->benar,
+                'bobot'           => $s->bobot,
+                'poin_diperoleh'  => $jwb?->poin_diperoleh,
+                'power'           => $jwb?->power ? [
+                    'id'   => $jwb->power->id,
+                    'kode' => $jwb->power->kode,
+                    'nama' => $jwb->power->nama,
+                ] : null,
             ];
         });
 
@@ -888,14 +1411,23 @@ class QuizController extends Controller
                 'guru'  => $quiz->pengampuKelas?->guruMapel?->guru?->nama,
             ],
             'summary' => [
-                'nilai'        => $nilai->nilai,
-                'durasi_detik' => $nilai->durasi,
-                'total_soal'   => $totalSoal,
-                'total_benar'  => $totalBenar,
-                'total_salah'  => $totalSalah,
-                'completed_at' => $nilai->created_at,
+                'nilai_gabungan'       => $nilaiGabungan,
+                'bintang_akhir'        => $bintangAkhir,
+                'total_bintang_level'  => $journey['total_bintang'],
+                'max_bintang_level'    => $journey['max_bintang'],
+                'total_poin_didapat'   => round($totalPoinDidapat, 2),
+                'total_bobot_kuis'     => round($totalBobotKuis, 2),
+                'total_soal'           => $totalSoal,
+                'total_benar'          => $totalBenar,
+                'total_salah'          => $totalSalah,
+                'durasi_detik'         => $durasiDetik,
+                'durasi_formatted'     => $durasiFormatted,
+                'used_powers_count'    => $usedPowersCount,
+                'bonus_power_points'   => round($bonusPowerPoints, 2),
+                'penalty_power_points' => round($penaltyPowerPoints, 2),
+                'completed_at'         => $nilai?->created_at,
             ],
-            'detail_soals' => $detailSoal,
+            'detail_soals' => $detailSoals,
         ]);
     }
 }

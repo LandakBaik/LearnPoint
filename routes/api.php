@@ -6,8 +6,10 @@ use App\Http\Controllers\Api\GachaBannerController;
 use App\Http\Controllers\Api\JadwalController;
 use App\Http\Controllers\Api\MateriController;
 use App\Http\Controllers\Api\NotifikasiController;
+use App\Http\Controllers\Api\PowerController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\QuizController;
+use App\Http\Controllers\Api\RelokasiAktivitasController;
 use App\Http\Controllers\Api\TugasController;
 use App\Http\Controllers\Api\UjianController;
 use Illuminate\Support\Facades\Route;
@@ -67,11 +69,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/tugas', [TugasController::class, 'guruIndex']);
         Route::get('/tugas/options', [TugasController::class, 'guruOptions']);
         Route::get('/tugas/{id}', [TugasController::class, 'guruShow']);
+        Route::get('/tugas/{id}/kunci-jawaban', [TugasController::class, 'guruKunciJawaban']);
+        Route::get('/tugas/{id}/jawaban-siswa/{pengumpulanId}', [TugasController::class, 'guruDetailJawabanSiswa']);
         Route::post('/tugas', [TugasController::class, 'guruStore']);
         Route::post('/tugas/{id}', [TugasController::class, 'guruUpdate']); // Support multipart/form-data
         Route::put('/tugas/{id}', [TugasController::class, 'guruUpdate']);
         Route::delete('/tugas/{id}', [TugasController::class, 'guruDestroy']);
         Route::post('/tugas/{id}/nilai', [TugasController::class, 'guruBerikanNilai']);
+        Route::post('/pengumpulan/{id}/nilai', [TugasController::class, 'guruBerikanNilai']); // Alias sesuai route web
 
         // Kuis Petualangan Guru
         Route::get('/kuis', [QuizController::class, 'guruIndex']);
@@ -93,12 +98,39 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Ujian Guru
         Route::get('/ujian', [UjianController::class, 'guruIndex']);
         Route::get('/ujian/options', [UjianController::class, 'guruOptions']);
+        Route::get('/ujian/status-realtime', [UjianController::class, 'guruStatusRealtime']);
+        Route::get('/ujian-laporan', [UjianController::class, 'guruLaporan']);
         Route::get('/ujian/{ujian}', [UjianController::class, 'guruShow']);
         Route::post('/ujian', [UjianController::class, 'guruStore']);
         Route::put('/ujian/{ujian}', [UjianController::class, 'guruUpdate']);
+        Route::post('/ujian/{ujian}', [UjianController::class, 'guruUpdate']); // Support multipart/form-data
         Route::delete('/ujian/{ujian}', [UjianController::class, 'guruDestroy']);
         Route::post('/ujian/{ujian}/publish', [UjianController::class, 'guruPublish']);
         Route::post('/ujian/{ujian}/schedule', [UjianController::class, 'guruSchedule']);
+        Route::post('/ujian/{ujian}/unpublish', [UjianController::class, 'guruUnpublish']);
+        Route::post('/ujian/{ujian}/duplicate', [UjianController::class, 'guruDuplicate']);
+        Route::post('/ujian/{ujian}/toggle-archive', [UjianController::class, 'guruToggleArchive']);
+
+        // Monitoring Live & Sesi Token Ujian Guru
+        Route::get('/ujian/{ujian}/monitoring', [UjianController::class, 'guruMonitoringData']);
+        Route::get('/ujian/{ujian}/monitoring/data', [UjianController::class, 'guruMonitoringData']);
+        Route::post('/ujian/{ujian}/peserta/{seleksi}/unlock', [UjianController::class, 'guruUnlockPeserta']);
+        Route::post('/ujian/{ujian}/peserta/{seleksi}/force-submit', [UjianController::class, 'guruForceSubmit']);
+        Route::post('/ujian/{ujian}/peserta/{seleksi}/reopen', [UjianController::class, 'guruReopenPeserta']);
+        Route::post('/ujian/{ujian}/reset-token', [UjianController::class, 'guruResetToken']);
+        Route::post('/ujian/{ujian}/atur-sesi', [UjianController::class, 'guruAturSesiKelas']);
+        Route::post('/ujian/{ujian}/refresh-unlock-code', [UjianController::class, 'guruRefreshUnlockCode']);
+
+        // Rekap Nilai, Koreksi Essay & Remidi/Susulan Ujian Guru
+        Route::get('/ujian/{ujian}/rekap', [UjianController::class, 'guruRekap']);
+        Route::get('/ujian/{ujian}/koreksi-essay', [UjianController::class, 'guruKoreksiEssay']);
+        Route::post('/ujian/{ujian}/simpan-nilai-essay', [UjianController::class, 'guruSimpanNilaiEssay']);
+        Route::get('/ujian/{ujian}/peserta/{siswa}/jawaban', [UjianController::class, 'guruDetailJawabanSiswa']);
+        Route::post('/ujian/{ujian}/buat-remidi-susulan', [UjianController::class, 'guruBuatRemidiSusulan']);
+
+        // Pusat Relokasi / Duplikasi Aktivitas Guru
+        Route::get('/relokasi', [RelokasiAktivitasController::class, 'guruIndex']);
+        Route::post('/relokasi', [RelokasiAktivitasController::class, 'guruRelocate']);
     });
 
     // ==========================================
@@ -107,6 +139,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::middleware(['role:siswa'])->prefix('siswa')->group(function () {
         // Dashboard Siswa
         Route::get('/dashboard', [DashboardController::class, 'siswaDashboard']);
+        Route::get('/beranda', [DashboardController::class, 'siswaDashboard']);
 
         // Jadwal Kelas Siswa
         Route::get('/jadwal', [JadwalController::class, 'siswaIndex']);
@@ -122,19 +155,39 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         // Kuis Petualangan Siswa
         Route::get('/kuis', [QuizController::class, 'siswaIndex']);
+        Route::get('/kuis/panduan', [QuizController::class, 'siswaPanduan']);
         Route::get('/kuis/{quiz}', [QuizController::class, 'siswaShow']);
         Route::get('/kuis/{quiz}/kerjakan', [QuizController::class, 'siswaKerjakan']);
+        Route::post('/kuis/{quiz}/simpan-draft', [QuizController::class, 'siswaSimpanDraft']);
         Route::post('/kuis/{quiz}/submit', [QuizController::class, 'siswaSubmit']);
+        Route::post('/kuis/{quiz}/selesaikan', [QuizController::class, 'siswaSubmit']);
         Route::post('/kuis/{quiz}/kerjakan', [QuizController::class, 'siswaSubmit']); // Aliasing
         Route::get('/kuis/{quiz}/hasil', [QuizController::class, 'siswaHasil']);
+        Route::get('/kuis/{quiz}/hasil-petualangan', [QuizController::class, 'siswaHasilPetualangan']);
+
+        // Sistem Power Kuis Petualangan Siswa
+        Route::get('/kuis/{quiz}/powers', [PowerController::class, 'index']);
+        Route::post('/kuis/{quiz}/powers/use', [PowerController::class, 'usePower']);
+        Route::post('/kuis/{quiz}/powers/second-chance', [PowerController::class, 'verifySecondChance']);
 
         // Gacha Power & Banner Siswa
+        Route::get('/gacha', [GachaBannerController::class, 'status']);
         Route::get('/gacha/status', [GachaBannerController::class, 'status']);
+        Route::get('/gacha/panduan', [GachaBannerController::class, 'panduan']);
         Route::post('/gacha/pull', [GachaBannerController::class, 'pull']);
         Route::post('/banner/equip', [GachaBannerController::class, 'equipBanner']);
 
-        // Ujian Evaluasi Siswa
+        // Ujian Evaluasi Siswa (CBT)
         Route::get('/ujian', [UjianController::class, 'siswaIndex']);
         Route::get('/ujian/{ujian}', [UjianController::class, 'siswaShow']);
+        Route::get('/ujian/{ujian}/konfirmasi', [UjianController::class, 'siswaKonfirmasi']);
+        Route::post('/ujian/{ujian}/validasi-token', [UjianController::class, 'siswaValidasiToken']);
+        Route::get('/ujian/{ujian}/kerjakan', [UjianController::class, 'siswaKerjakan']);
+        Route::post('/ujian/{ujian}/simpan-jawaban', [UjianController::class, 'siswaSimpanJawaban']);
+        Route::post('/ujian/{ujian}/submit', [UjianController::class, 'siswaSubmit']);
+        Route::get('/ujian/{ujian}/hasil', [UjianController::class, 'siswaHasil']);
+        Route::post('/ujian/{ujian}/pelanggaran', [UjianController::class, 'siswaCatatPelanggaran']);
+        Route::get('/ujian/{ujian}/status-sesi', [UjianController::class, 'siswaCekStatusSesi']);
+        Route::post('/ujian/{ujian}/buka-kunci-kode', [UjianController::class, 'siswaBukaKunciDenganKode']);
     });
 });

@@ -36,7 +36,42 @@ class GachaBannerController extends Controller
             'harga_1x'         => GachaService::HARGA_1X,
             'harga_10x'        => GachaService::HARGA_10X,
             'equipped_banner'  => $siswa->equipped_banner ?? 'default',
+            'active_banner'    => $siswa->active_banner,
             'banners_list'     => $siswa->banners_list,
+        ]);
+    }
+
+    /**
+     * API: Panduan & Katalog Item Gacha (Powers & Banners) untuk Mobile.
+     */
+    public function panduan(Request $request)
+    {
+        $siswa = $request->user()?->siswa;
+        if (!$siswa) {
+            return $this->notFoundResponse('Profil siswa tidak ditemukan.');
+        }
+
+        Item::ensureDefaultCatalog();
+        $powers = Item::powers()->where('is_active', true)->orderBy('id')->get()->map(fn (Item $p) => [
+            'id'          => $p->id,
+            'kode'        => $p->kode,
+            'nama'        => $p->nama,
+            'tagline'     => $p->tagline,
+            'deskripsi'   => $p->deskripsi,
+            'detail_efek' => $p->detail_efek,
+            'tipe_efek'   => $p->tipe_efek,
+            'rarity'      => $p->rarity,
+            'bobot_gacha' => $p->bobot_gacha,
+            'icon'        => $p->icon,
+            'tema_warna'  => $p->tema_warna,
+        ]);
+
+        return $this->successResponse([
+            'pity_max'  => GachaService::PITY_LIMIT,
+            'harga_1x'  => GachaService::HARGA_1X,
+            'harga_10x' => GachaService::HARGA_10X,
+            'powers'    => $powers,
+            'banners'   => $siswa->banners_list,
         ]);
     }
 
