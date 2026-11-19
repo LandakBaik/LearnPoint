@@ -366,8 +366,8 @@ class UjianController extends Controller
         }
 
         $ujians = Ujian::with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru'])
-            ->whereHas('pengampuKelas', function ($q) use ($kelasId) {
-                $q->where('kelas_id', $kelasId);
+            ->whereHas('pengampuKelas', function ($q) use ($kelasId, $siswa) {
+                $q->where('kelas_id', $kelasId)->forSiswa($siswa);
             })
             ->whereIn('status', ['published', 'scheduled'])
             ->latest()

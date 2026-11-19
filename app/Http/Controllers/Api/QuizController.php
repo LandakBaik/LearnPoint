@@ -482,7 +482,7 @@ class QuizController extends Controller
             return $this->notFoundResponse('Data kelas siswa tidak ditemukan.');
         }
 
-        $query = Quiz::whereHas('pengampuKelas', fn ($q) => $q->where('kelas_id', $kelasId))
+        $query = Quiz::whereHas('pengampuKelas', fn ($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))
             ->where('status', 'published')
             ->with([
                 'pengampuKelas.guruMapel.mapel',

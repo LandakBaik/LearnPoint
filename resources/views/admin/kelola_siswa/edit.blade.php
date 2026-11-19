@@ -97,8 +97,8 @@
                 </div>
             </div>
 
-            <!-- Jenis Kelamin & Tanggal Lahir (Grid 2 Kolom) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Jenis Kelamin, Agama & Tanggal Lahir -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                     <label for="jenis_kelamin" class="block text-sm font-bold text-gray-700 mb-1">Jenis Kelamin <span class="text-rose-500">*</span></label>
                     <select id="jenis_kelamin" name="jenis_kelamin" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-gray-800">
@@ -106,6 +106,19 @@
                         <option value="P" {{ old('jenis_kelamin', $siswa->jenis_kelamin) == 'P' ? 'selected' : '' }}>Perempuan (P)</option>
                     </select>
                     @error('jenis_kelamin')
+                        <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="agama" class="block text-sm font-bold text-gray-700 mb-1">Agama</label>
+                    <select id="agama" name="agama" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-gray-800">
+                        <option value="">-- Pilih Agama --</option>
+                        @foreach(\App\Models\Siswa::AGAMA_OPTIONS as $agamaOpt)
+                            <option value="{{ $agamaOpt }}" {{ old('agama', $siswa->agama) == $agamaOpt ? 'selected' : '' }}>{{ $agamaOpt }}</option>
+                        @endforeach
+                    </select>
+                    @error('agama')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror
                 </div>

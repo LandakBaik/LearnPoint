@@ -90,4 +90,12 @@ class PengampuKelas extends Model
     {
         return $this->hasMany(Materi::class, 'pengampu_kelas_id');
     }
+
+    /**
+     * Filter pengampu kelas agar hanya menampilkan mapel umum atau mapel yang sesuai agama siswa.
+     */
+    public function scopeForSiswa($query, ?Siswa $siswa)
+    {
+        return $query->whereHas('guruMapel.mapel', fn ($q) => $q->forSiswa($siswa));
+    }
 }

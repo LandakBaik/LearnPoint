@@ -48,12 +48,15 @@ class QuizController extends Controller
             ->withCount('soals')
             ->latest();
 
-        if (!empty($kelasIds)) {
-            $query->whereHas('pengampuKelas', fn ($q) => $q->whereIn('kelas_id', $kelasIds));
-        }
+        $query->whereHas('pengampuKelas', function ($q) use ($kelasIds, $siswa) {
+            $q->forSiswa($siswa);
+            if (!empty($kelasIds)) {
+                $q->whereIn('kelas_id', $kelasIds);
+            }
+        });
 
         $allQuizzes = $query->get();
-        $dbMapels = Mapel::all();
+        $dbMapels = Mapel::forSiswa($siswa)->get();
 
         $planets = $this->adventureService->buildPlanetsCollection($allQuizzes, $dbMapels);
 

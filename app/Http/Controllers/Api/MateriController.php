@@ -500,7 +500,7 @@ class MateriController extends Controller
             return $this->notFoundResponse('Data kelas siswa tidak ditemukan.');
         }
 
-        $daftarMapel = Mapel::whereHas('pengampuKelases', function ($q) use ($kelasId) {
+        $daftarMapel = Mapel::forSiswa($siswa)->whereHas('pengampuKelases', function ($q) use ($kelasId) {
             $q->where('kelas_id', $kelasId);
         })
         ->with(['pengampuKelases' => function ($q) use ($kelasId) {
@@ -556,7 +556,7 @@ class MateriController extends Controller
         $tahunAjaran = $anggotaKelas?->academicPeriod?->tahun_ajaran ?? $activePeriod->tahun_ajaran;
         $semester = ucfirst($anggotaKelas?->academicPeriod?->semester ?? $activePeriod->semester);
 
-        $mapel = Mapel::whereHas('pengampuKelases', function ($q) use ($kelasId) {
+        $mapel = Mapel::forSiswa($siswa)->whereHas('pengampuKelases', function ($q) use ($kelasId) {
             $q->where('kelas_id', $kelasId);
         })->find($mapelId);
 

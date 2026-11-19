@@ -362,8 +362,8 @@ class TugasController extends Controller
                 $query->where('siswa_id', $siswa->id);
             },
         ])
-        ->whereHas('pengampuKelas', function ($query) use ($kelasId) {
-            $query->where('kelas_id', $kelasId);
+        ->whereHas('pengampuKelas', function ($query) use ($kelasId, $siswa) {
+            $query->where('kelas_id', $kelasId)->forSiswa($siswa);
         })
         ->latest()
         ->get()
@@ -413,8 +413,8 @@ class TugasController extends Controller
                 $query->where('siswa_id', $siswa->id);
             },
         ])
-        ->whereHas('pengampuKelas', function ($query) use ($kelasId) {
-            $query->where('kelas_id', $kelasId);
+        ->whereHas('pengampuKelas', function ($query) use ($kelasId, $siswa) {
+            $query->where('kelas_id', $kelasId)->forSiswa($siswa);
         })
         ->find($id);
 

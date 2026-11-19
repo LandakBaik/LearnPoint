@@ -23,7 +23,7 @@ class MateriController extends Controller
         $kelasId = $kelas?->id;
 
         if ($kelasId) {
-            $daftarMapel = Mapel::whereHas('pengampuKelases', function ($query) use ($kelasId) {
+            $daftarMapel = Mapel::forSiswa($siswa)->whereHas('pengampuKelases', function ($query) use ($kelasId) {
                 $query->where('kelas_id', $kelasId);
             })
                 ->with(['pengampuKelases' => function ($query) use ($kelasId) {
@@ -36,7 +36,7 @@ class MateriController extends Controller
         }
 
         if ($daftarMapel->isEmpty()) {
-            $daftarMapel = Mapel::with([
+            $daftarMapel = Mapel::forSiswa($siswa)->with([
                 'pengampuKelases.guruMapel.guru',
                 'pengampuKelases.materis',
                 'guruMapels.guru'
@@ -68,6 +68,10 @@ class MateriController extends Controller
         $semester = ucfirst($anggotaKelas?->academicPeriod?->semester ?? $activePeriod->semester);
 
         $mapel = Mapel::with(['guruMapels.guru', 'pengampuKelases.guruMapel.guru'])->findOrFail($id);
+
+        if (!$mapel->isAccessibleBySiswa($siswa)) {
+            abort(403, 'Mata pelajaran ini tidak sesuai dengan agama Anda.');
+        }
 
         // Ambil materi untuk mapel ini
         if ($kelasId) {

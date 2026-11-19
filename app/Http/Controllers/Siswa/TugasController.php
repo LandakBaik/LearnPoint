@@ -31,8 +31,8 @@ class TugasController extends Controller
                 'pengampuKelas.guruMapel.mapel',
                 'pengampuKelas.kelas',
             ])
-                ->whereHas('pengampuKelas', function ($query) use ($kelasId) {
-                    $query->where('kelas_id', $kelasId);
+                ->whereHas('pengampuKelas', function ($query) use ($kelasId, $siswa) {
+                    $query->where('kelas_id', $kelasId)->forSiswa($siswa);
                 })
                 ->latest()
                 ->get()
