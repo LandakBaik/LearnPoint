@@ -40,11 +40,12 @@ class UjianController extends Controller
         ])
             ->whereIn('status', ['scheduled', 'published', 'completed']);
 
-        if ($kelasId) {
-            $query->whereHas('pengampuKelas', function ($q) use ($kelasId) {
+        $query->whereHas('pengampuKelas', function ($q) use ($kelasId, $siswa) {
+            $q->forSiswa($siswa);
+            if ($kelasId) {
                 $q->where('kelas_id', $kelasId);
-            });
-        }
+            }
+        });
 
         $ujians = $query->latest('waktu_mulai')->get()
          ->filter(function ($ujian) use ($siswa) {

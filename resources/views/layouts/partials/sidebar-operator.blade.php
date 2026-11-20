@@ -139,6 +139,16 @@
             </svg>
             <span>Kelola Jadwal (Foto)</span>
         </a>
+
+        <!-- Tahun Ajaran & Kenaikan Kelas -->
+        @php $isPeriod = request()->routeIs('admin.tahun-ajaran.*'); @endphp
+        <a href="{{ route('admin.tahun-ajaran.index') }}"
+           class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm transition-colors group {{ $isPeriod ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs border border-blue-100/60' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50 font-medium' }}">
+            <svg class="w-5 h-5 {{ $isPeriod ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-600' }} transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+            <span>Tahun Ajaran</span>
+        </a>
     </nav>
 </div>
 

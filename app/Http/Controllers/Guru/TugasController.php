@@ -434,10 +434,13 @@ class TugasController extends Controller
 
         abort_unless($kelas, 404, 'Kelas tugas tidak ditemukan.');
 
-        // Mengambil siswa dari kelas yang menerima tugas.
+        // Mengambil siswa dari kelas yang menerima tugas pada periode tugas/aktif (filter agama jika mapel khusus agama).
+        $periodId = $tugas->pengampuKelas?->academic_period_id ?? \App\Models\AcademicPeriod::currentId();
+        $mapel = $tugas->pengampuKelas?->guruMapel?->mapel;
+        $targetAgama = $mapel?->target_agama;
         $siswas = $kelas->siswas()
-            ->wherePivot('tahun_ajaran', '2026/2027')
-            ->wherePivot('semester', 'ganjil')
+            ->wherePivot('academic_period_id', $periodId)
+            ->when(filled($targetAgama), fn ($q) => $q->where('siswas.agama', $targetAgama))
             ->orderBy('siswas.nama_siswa')
             ->get();
 

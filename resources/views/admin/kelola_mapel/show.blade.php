@@ -12,10 +12,13 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             </a>
             <div>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                     <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{{ $mapel->nama_mapel }}</h1>
                     <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
                         KKM: {{ $mapel->kkm }}
+                    </span>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold {{ str_starts_with((string) $mapel->tipe_mapel, 'agama_') ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' : 'bg-blue-50 text-blue-700 border border-blue-200/80' }}">
+                        {{ $mapel->tipe_label }}
                     </span>
                 </div>
                 <p class="text-xs text-slate-500 mt-0.5">Informasi kurikulum mata pelajaran dan daftar alokasi pengajar tiap kelas.</p>

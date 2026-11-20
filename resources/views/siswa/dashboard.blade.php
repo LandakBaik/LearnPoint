@@ -56,12 +56,16 @@
                     <span>Kelas: <strong class="font-bold {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-200' : 'text-[#2563EB]' }}">{{ $kelas->nama_kelas ?? ($siswa?->anggotaKelases?->first()?->kelas?->nama_kelas ?? 'Belum Ditentukan') }}</strong></span>
                 </div>
 
-                <!-- Generation Meta -->
+                <!-- Generation & Academic Period Meta -->
                 <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl {{ $activeBannerUrl ? 'bg-black/35 backdrop-blur-sm border border-white/10 text-white' : '' }}">
                     <svg class="w-4 h-4 {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-300' : 'text-[#2563EB]' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
                     </svg>
-                    <span>Angkatan: <strong class="font-bold {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-200' : 'text-[#2563EB]' }}">{{ $tahunAjaran ?? ($siswa?->anggotaKelases?->first()?->tahun_ajaran ?? '2024') }}</strong></span>
+                    <span>Angkatan: <strong class="font-bold {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-200' : 'text-[#2563EB]' }}">{{ $siswa->angkatan ?? (\App\Models\AcademicPeriod::defaultAngkatan()) }}</strong></span>
+                </div>
+
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl {{ $activeBannerUrl ? 'bg-black/35 backdrop-blur-sm border border-white/10 text-white' : '' }}">
+                    <span>TA: <strong class="font-bold {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-200' : 'text-[#2563EB]' }}">{{ $tahunAjaran ?? \App\Models\AcademicPeriod::activeTahunAjaran() }} • {{ $semester ?? ucfirst(\App\Models\AcademicPeriod::activeSemester()) }}</strong></span>
                 </div>
 
                 <!-- Student ID Meta -->

@@ -9,6 +9,7 @@ use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\ProfileController;
 
 // Admin / Operator Controllers
+use App\Http\Controllers\Admin\AcademicPeriodController as AdminAcademicPeriodController;
 use App\Http\Controllers\Admin\GuruController as AdminGuruController;
 use App\Http\Controllers\Admin\GuruMapelController as AdminGuruMapelController;
 use App\Http\Controllers\Admin\JadwalController as AdminJadwalController;
@@ -242,6 +243,15 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['role:operator,admin'])->group(function () {
         Route::get('/operator/dashboard', [DashboardController::class, 'operatorDashboard'])->name('operator.dashboard');
         Route::get('/admin/dashboard', [DashboardController::class, 'operatorDashboard'])->name('admin.dashboard');
+
+        // Tahun Ajaran, Semester & Kenaikan Kelas
+        Route::get('/tahun-ajaran', [AdminAcademicPeriodController::class, 'index'])->name('admin.tahun-ajaran.index');
+        Route::post('/tahun-ajaran', [AdminAcademicPeriodController::class, 'store'])->name('admin.tahun-ajaran.store');
+        Route::put('/tahun-ajaran/{academicPeriod}', [AdminAcademicPeriodController::class, 'update'])->name('admin.tahun-ajaran.update');
+        Route::delete('/tahun-ajaran/{academicPeriod}', [AdminAcademicPeriodController::class, 'destroy'])->name('admin.tahun-ajaran.destroy');
+        Route::patch('/tahun-ajaran/{academicPeriod}/activate', [AdminAcademicPeriodController::class, 'activate'])->name('admin.tahun-ajaran.activate');
+        Route::post('/tahun-ajaran/copy-semester', [AdminAcademicPeriodController::class, 'copySemester'])->name('admin.tahun-ajaran.copy-semester');
+        Route::post('/tahun-ajaran/promote', [AdminAcademicPeriodController::class, 'promote'])->name('admin.tahun-ajaran.promote');
 
         // User Toggle Status
         Route::patch('/users/{user}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('users.toggle-status');

@@ -223,27 +223,38 @@ class DashboardController extends Controller
             return $this->notFoundResponse('Profil Siswa tidak ditemukan untuk akun ini.');
         }
 
-        $anggotaKelas = $siswa->anggotaKelases()?->latest()?->first();
+        $activePeriod = \App\Models\AcademicPeriod::current();
+        $anggotaKelas = $siswa->anggotaKelases()?->with('academicPeriod')
+            ?->where('academic_period_id', $activePeriod->id)
+            ->first() ?? $siswa->anggotaKelases()?->with('academicPeriod')->latest()->first();
         $kelas = $siswa->kelas ?? $anggotaKelas?->kelas;
         $kelasId = $kelas?->id;
-        $tahunAjaran = $anggotaKelas?->tahun_ajaran ?? '2026/2027';
-        $semester = $anggotaKelas?->semester ? ucfirst($anggotaKelas->semester) : 'Ganjil';
+        $tahunAjaran = $anggotaKelas?->academicPeriod?->tahun_ajaran ?? $activePeriod->tahun_ajaran;
+        $semester = ucfirst($anggotaKelas?->academicPeriod?->semester ?? $activePeriod->semester);
 
-        $totalMapel = Mapel::count();
+        $totalMapel = Mapel::forSiswa($siswa)->count();
         $siswaId = $siswa->id;
 
         // Hitung badge counts
-        $tugasMenantiCount = $kelasId ? Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))
+        $tugasMenantiCount = $kelasId ? Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))
             ->where('deadline', '>=', now())
             ->whereDoesntHave('nilais', fn($q) => $q->where('siswa_id', $siswaId))
             ->count() : 0;
 
-        $quizCount = $kelasId ? Quiz::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))
+        $quizCount = $kelasId ? Quiz::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))
             ->where('status', 'published')
             ->count() : 0;
 
-        $ujianCount = $kelasId ? Ujian::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))
-            ->whereIn('status', ['published', 'scheduled'])
+        $ujianCount = $kelasId ? Ujian::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))
+            ->whereIn('status', ['published', 'scheduled', 'completed'])
+            ->where(function ($query) use ($siswaId) {
+                $query->where(function ($q) {
+                    $q->where('jenis_ujian', 'reguler')->orWhereNull('jenis_ujian');
+                })->orWhere(function ($q) use ($siswaId) {
+                    $q->whereIn('jenis_ujian', ['remidi', 'susulan'])
+                      ->whereJsonContains('peserta_khusus', (int) $siswaId);
+                });
+            })
             ->count() : 0;
 
         $unreadNotifCount = $user->notifikasi()->where('is_read', false)->count();
@@ -251,7 +262,7 @@ class DashboardController extends Controller
         // Tugas terbaru yang belum diselesaikan
         $tugasTerbaru = null;
         if ($kelasId) {
-            $tugas = Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))
+            $tugas = Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))
                 ->with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru'])
                 ->whereDoesntHave('nilais', fn($q) => $q->where('siswa_id', $siswaId))
                 ->where('deadline', '>=', now())
@@ -259,7 +270,7 @@ class DashboardController extends Controller
                 ->first();
 
             if (!$tugas) {
-                $tugas = Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))
+                $tugas = Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))
                     ->with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru'])
                     ->latest()
                     ->first();
@@ -281,7 +292,7 @@ class DashboardController extends Controller
         // Materi terbaru
         $materiTerbaru = null;
         if ($kelasId) {
-            $materi = Materi::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))
+            $materi = Materi::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))
                 ->with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru'])
                 ->latest()
                 ->first();
@@ -304,7 +315,7 @@ class DashboardController extends Controller
         // Kuis interaktif yang tersedia untuk kelas
         $quizzes = collect();
         if ($kelasId) {
-            $quizzes = Quiz::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId))
+            $quizzes = Quiz::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))
                 ->where('status', 'published')
                 ->with([
                     'pengampuKelas.guruMapel.mapel',
@@ -364,7 +375,8 @@ class DashboardController extends Controller
         // Nilai per Mapel untuk visualisasi mobile
         $daftarMapel = collect();
         if ($kelasId) {
-            $daftarMapel = Mapel::whereHas('pengampuKelases', fn($q) => $q->where('kelas_id', $kelasId))
+            $daftarMapel = Mapel::forSiswa($siswa)
+                ->whereHas('pengampuKelases', fn($q) => $q->where('kelas_id', $kelasId))
                 ->with(['pengampuKelases' => fn($q) => $q->where('kelas_id', $kelasId)->with(['guruMapel.guru'])])
                 ->get();
         }
@@ -394,6 +406,7 @@ class DashboardController extends Controller
         $guruPengampus = collect();
         if ($kelas) {
             $guruPengampus = $kelas->pengampuKelases()
+                ->forSiswa($siswa)
                 ->with(['guruMapel.guru', 'guruMapel.mapel'])
                 ->get()
                 ->map(function ($pk) {

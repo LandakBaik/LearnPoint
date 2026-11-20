@@ -1910,8 +1910,10 @@ class UjianController extends Controller
         $ujianIds = $grupUjians->pluck('id');
         $kelasIds = $grupUjians->pluck('pengampuKelas.kelas_id')->filter()->unique();
 
-        // [UBAHAN 1] Ambil seluruh siswa dari kelas-kelas target melalui relasi anggotaKelases
+        // [UBAHAN 1] Ambil seluruh siswa dari kelas-kelas target melalui relasi anggotaKelases (filter agama jika mapel khusus agama)
+        $mapelUjian = $ujian->pengampuKelas?->guruMapel?->mapel;
         $semuaSiswa = Siswa::with(['user', 'anggotaKelases.kelas'])
+            ->forMapel($mapelUjian)
             ->whereHas('anggotaKelases', function ($sub) use ($kelasIds) {
                 $sub->whereIn('kelas_id', $kelasIds);
             })
@@ -2120,13 +2122,13 @@ class UjianController extends Controller
 
         $kelasIdsGuru = $pengampuList->pluck('kelas_id')->unique();
 
-        // 2. Ambil daftar Tahun Ajaran unik dari tabel anggota_kelases
+        // 2. Ambil daftar Tahun Ajaran unik dari tabel academic_periods yang dipakai oleh anggota_kelases
         $daftarTahunAjaran = DB::table('anggota_kelases')
-            ->whereIn('kelas_id', $kelasIdsGuru)
-            ->whereNotNull('tahun_ajaran')
+            ->join('academic_periods', 'anggota_kelases.academic_period_id', '=', 'academic_periods.id')
+            ->whereIn('anggota_kelases.kelas_id', $kelasIdsGuru)
             ->distinct()
-            ->orderByDesc('tahun_ajaran')
-            ->pluck('tahun_ajaran')
+            ->orderByDesc('academic_periods.tahun_ajaran')
+            ->pluck('academic_periods.tahun_ajaran')
             ->values();
 
         if ($daftarTahunAjaran->isEmpty()) {
@@ -2198,12 +2200,16 @@ class UjianController extends Controller
             $selectedUjianId = $request->input('ujian_id', $ujianRegulers->first()?->id);
             $selectedUjian = $ujianRegulers->firstWhere('id', (int) $selectedUjianId) ?? $ujianRegulers->first();
 
-            // 6. Ambil daftar siswa murni dari anggota_kelases sesuai Kelas, Tahun Ajaran, dan Semester
+            // 6. Ambil daftar siswa murni dari anggota_kelases sesuai Kelas, Tahun Ajaran, dan Semester (filter agama jika mapel khusus agama)
+            $mapelPengampu = $selectedPengampu->guruMapel?->mapel;
             $daftarSiswa = Siswa::with(['user'])
+                ->forMapel($mapelPengampu)
                 ->whereHas('anggotaKelases', function ($q) use ($selectedPengampu, $selectedTahunAjaran, $selectedSemester) {
                     $q->where('kelas_id', $selectedPengampu->kelas_id)
-                        ->where('tahun_ajaran', $selectedTahunAjaran)
-                        ->whereRaw('LOWER(semester) = ?', [$selectedSemester]);
+                        ->whereHas('academicPeriod', function ($ap) use ($selectedTahunAjaran, $selectedSemester) {
+                            $ap->where('tahun_ajaran', $selectedTahunAjaran)
+                                ->whereRaw('LOWER(semester) = ?', [$selectedSemester]);
+                        });
                 })
                 ->get()
                 ->unique('id')
@@ -2213,6 +2219,7 @@ class UjianController extends Controller
             // Fallback: jika di anggota_kelases belum ada yang cocok dengan semester tsb, tarik berdasarkan kelas_id saja
             if ($daftarSiswa->isEmpty()) {
                 $daftarSiswa = Siswa::with(['user'])
+                    ->forMapel($mapelPengampu)
                     ->whereHas('anggotaKelases', function ($q) use ($selectedPengampu) {
                         $q->where('kelas_id', $selectedPengampu->kelas_id);
                     })

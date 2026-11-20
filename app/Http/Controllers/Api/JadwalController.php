@@ -56,7 +56,11 @@ class JadwalController extends Controller
             return $this->notFoundResponse('Profil siswa tidak ditemukan.');
         }
 
-        $anggotaKelas = $siswa->anggotaKelases()?->latest()?->first();
+        $activePeriod = \App\Models\AcademicPeriod::current();
+        $anggotaKelas = $siswa->anggotaKelases()
+            ->with('academicPeriod')
+            ->where('academic_period_id', $activePeriod->id)
+            ->first() ?? $siswa->anggotaKelases()->with('academicPeriod')->latest()->first();
         $kelas = $siswa->kelas ?? $anggotaKelas?->kelas;
 
         if (!$kelas) {
@@ -64,11 +68,15 @@ class JadwalController extends Controller
         }
 
         $pengampuKelases = $kelas->pengampuKelases()
+            ->forSiswa($siswa)
             ->with(['guruMapel.guru', 'guruMapel.mapel'])
             ->get()
             ->map(function ($pk) {
                 return [
+                    'pengampu_kelas_id' => $pk->id,
+                    'mapel_id' => $pk->guruMapel?->mapel_id,
                     'mapel' => $pk->guruMapel?->mapel?->nama_mapel,
+                    'tipe_mapel' => $pk->guruMapel?->mapel?->tipe_mapel,
                     'guru' => $pk->guruMapel?->guru?->nama,
                     'nuptk' => $pk->guruMapel?->guru?->nuptk,
                 ];
@@ -80,6 +88,10 @@ class JadwalController extends Controller
                 'nama_kelas' => $kelas->nama_kelas,
                 'tingkatan' => $kelas->tingkatan,
                 'wali_kelas' => $kelas->guru?->nama,
+            ],
+            'akademik' => [
+                'tahun_ajaran' => $anggotaKelas?->academicPeriod?->tahun_ajaran ?? $activePeriod->tahun_ajaran,
+                'semester' => ucfirst($anggotaKelas?->academicPeriod?->semester ?? $activePeriod->semester),
             ],
             'jadwal_url' => $kelas->jadwal_url,
             'jadwal_file' => $kelas->jadwal,

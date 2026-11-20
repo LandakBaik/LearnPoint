@@ -55,11 +55,14 @@ class ProfileController extends Controller
         $rules = [
             'nomor_telepon' => ['nullable', 'string', 'regex:/^[0-9]{10,13}$/'],
             'jenis_kelamin' => ['nullable', 'in:Laki-laki,Perempuan,L,P'],
+            'password'      => ['nullable', 'string', 'min:6', 'confirmed'],
         ];
 
         $validator = Validator::make($request->all(), $rules, [
             'nomor_telepon.regex' => 'Nomor telepon harus berupa angka dan berisikan 10 hingga 13 digit.',
             'jenis_kelamin.in'    => 'Pilihan jenis kelamin harus Laki-laki atau Perempuan.',
+            'password.min'        => 'Kata sandi baru minimal harus 6 karakter.',
+            'password.confirmed'  => 'Konfirmasi kata sandi baru tidak cocok.',
         ]);
 
         if ($validator->fails()) {
@@ -67,6 +70,12 @@ class ProfileController extends Controller
         }
 
         $validated = $validator->validated();
+
+        if (!empty($validated['password'])) {
+            $user->update([
+                'password' => Hash::make($validated['password']),
+            ]);
+        }
 
         if ($user->guru) {
             $guruData = [];
