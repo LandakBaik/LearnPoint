@@ -246,7 +246,15 @@ class DashboardController extends Controller
             ->count() : 0;
 
         $ujianCount = $kelasId ? Ujian::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))
-            ->whereIn('status', ['published', 'scheduled'])
+            ->whereIn('status', ['published', 'scheduled', 'completed'])
+            ->where(function ($query) use ($siswaId) {
+                $query->where(function ($q) {
+                    $q->where('jenis_ujian', 'reguler')->orWhereNull('jenis_ujian');
+                })->orWhere(function ($q) use ($siswaId) {
+                    $q->whereIn('jenis_ujian', ['remidi', 'susulan'])
+                      ->whereJsonContains('peserta_khusus', (int) $siswaId);
+                });
+            })
             ->count() : 0;
 
         $unreadNotifCount = $user->notifikasi()->where('is_read', false)->count();
@@ -367,7 +375,8 @@ class DashboardController extends Controller
         // Nilai per Mapel untuk visualisasi mobile
         $daftarMapel = collect();
         if ($kelasId) {
-            $daftarMapel = Mapel::whereHas('pengampuKelases', fn($q) => $q->where('kelas_id', $kelasId))
+            $daftarMapel = Mapel::forSiswa($siswa)
+                ->whereHas('pengampuKelases', fn($q) => $q->where('kelas_id', $kelasId))
                 ->with(['pengampuKelases' => fn($q) => $q->where('kelas_id', $kelasId)->with(['guruMapel.guru'])])
                 ->get();
         }
@@ -397,6 +406,7 @@ class DashboardController extends Controller
         $guruPengampus = collect();
         if ($kelas) {
             $guruPengampus = $kelas->pengampuKelases()
+                ->forSiswa($siswa)
                 ->with(['guruMapel.guru', 'guruMapel.mapel'])
                 ->get()
                 ->map(function ($pk) {
