@@ -31,11 +31,11 @@ class TugasController extends Controller
                 'pengampuKelas.guruMapel.mapel',
                 'pengampuKelas.kelas',
             ])
-                ->whereHas('pengampuKelas', function ($query) use ($kelasId) {
-                    $query->where('kelas_id', $kelasId);
-                })
-                ->latest()
-                ->get()
+            ->whereHas('pengampuKelas', function ($query) use ($kelasId) {
+                $query->where('kelas_id', $kelasId);
+            })
+            ->latest()
+            ->get()
             : collect();
 
         // Ambil pengumpulan masing-masing siswa
@@ -45,22 +45,23 @@ class TugasController extends Controller
                 ->first();
         }
 
-        // Tampilkan tugas yang belum dikumpulkan
-        // Tugas upload yang belum dinilai tetap ditampilkan
-        $tugasBelumSelesai = $daftarTugas->filter(function ($tugas) {
-            $pengumpulan = $tugas->pengumpulanSiswa;
+        // Tampilkan hanya tugas yang belum dikumpulkan
+        $tugasBelumSelesai = $daftarTugas
+            ->filter(fn($tugas) => $tugas->pengumpulanSiswa === null)
+            ->values();
 
-            if (!$pengumpulan) {
-                return true;
-            }
+        // Filter urutan deadline
+        $urutan = request('urutan', 'terbaru');
 
-            if ($tugas->tipe === 'pilihan_ganda') {
-                return false;
-            }
-
-            return $pengumpulan->nilai === null;
-        });
-
+        if ($urutan === 'terlama') {
+            $tugasBelumSelesai = $tugasBelumSelesai
+                ->sortBy('deadline')
+                ->values();
+        } else {
+            $tugasBelumSelesai = $tugasBelumSelesai
+                ->sortByDesc('deadline')
+                ->values();
+        }
         // Statistik tugas
         $totalTugas = $daftarTugas->count();
 
@@ -94,6 +95,7 @@ class TugasController extends Controller
             ->first();
 
         return view('siswa.tugas.index', compact(
+            'siswa',
             'daftarTugas',
             'tugasBelumSelesai',
             'totalTugas',

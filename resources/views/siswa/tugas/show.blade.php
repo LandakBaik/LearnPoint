@@ -26,28 +26,17 @@ $fileTerkirimExt = $fileTerkirim
 
 <div class="space-y-5">
 
-    {{-- 1. Navbar Detail Tugas --}}
-    <div class="flex flex-wrap items-center gap-3 text-sm font-medium">
-
-        <a href="{{ route('siswa.dashboard') }}"
-            class="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 hover:bg-slate-100 rounded-full border border-slate-200 transition shadow-sm shrink-0">
-            <i class="fa-solid fa-arrow-left text-xs"></i>
-            Kembali ke Beranda
+    {{-- 1. Breadcrumb Navigation --}}
+    <nav class="flex items-center gap-2 text-xs font-semibold text-slate-400">
+        <a href="{{ route('siswa.dashboard') }}" class="hover:text-blue-600 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-house text-[11px]"></i>
+            <span>Beranda</span>
         </a>
-
-        <span class="text-slate-300">/</span>
-
-        <a href="{{ route('siswa.tugas') }}"
-            class="text-slate-700 hover:text-sky-700 hover:underline font-semibold transition">
+        <span class="text-[#2563EB] font-bold">›</span>
+        <a href="{{ route('siswa.tugas') }}" class="text-[#2563EB] font-bold">
             Tugas
         </a>
-
-        <span class="text-slate-300">/</span>
-
-        <span class="text-slate-800 font-semibold">
-            {{ $tugas->judul }}
-        </span>
-    </div>
+    </nav>
 
     {{-- 2. Notifikasi Berhasil --}}
     @if(session('success'))
@@ -87,14 +76,32 @@ $fileTerkirimExt = $fileTerkirim
                         Deadline:
 
                         {{ $tugas->deadline
-                            ? \Carbon\Carbon::parse($tugas->deadline)->translatedFormat('d M Y, H:i')
-                            : 'Tidak ditentukan' }}
+                    ? \Carbon\Carbon::parse($tugas->deadline)->translatedFormat('d M Y, H:i')
+                    : 'Tidak ditentukan' }}
                     </span>
                 </div>
 
                 <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-snug">
                     {{ $tugas->judul }}
                 </h1>
+
+                {{-- Informasi Guru Pengampu --}}
+                <div class="flex items-center gap-3 pt-2">
+                    <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-user-tie text-sm"></i>
+                    </div>
+
+                    <div class="min-w-0">
+                        <p class="text-[11px] font-medium text-slate-400">
+                            Guru Pengampu
+                        </p>
+
+                        <p class="text-sm font-bold text-slate-700 truncate">
+                            {{ $tugas->pengampuKelas->guruMapel->guru->nama_guru
+                        ?? 'Nama guru belum tersedia' }}
+                        </p>
+                    </div>
+                </div>
             </div>
 
             {{-- Deskripsi Tugas --}}
@@ -108,49 +115,51 @@ $fileTerkirimExt = $fileTerkirim
                 </p>
             </div>
 
-            {{-- Lampiran Guru --}}
-            @if($tugas->file_lampiran)
+        </section>
 
-            @php
-            $lampiranExt = strtolower(pathinfo($tugas->file_lampiran, PATHINFO_EXTENSION));
-            $lampiranUrl = Storage::disk('public')->url($tugas->file_lampiran);
-            @endphp
+        {{-- Lampiran Guru --}}
+        @if($tugas->file_lampiran)
 
-            <div class="pt-4 border-t border-slate-100">
+        @php
+        $lampiranExt = strtolower(pathinfo($tugas->file_lampiran, PATHINFO_EXTENSION));
+        $lampiranUrl = Storage::disk('public')->url($tugas->file_lampiran);
+        @endphp
 
-                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                    Berkas Lampiran
-                </h2>
+        <div class="pt-4 border-t border-slate-100">
 
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50">
+            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+                Berkas Lampiran
+            </h2>
 
-                    <div class="flex items-center gap-3 min-w-0">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50">
 
-                        <div class="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-                            <i class="fa-regular fa-file-lines text-lg"></i>
-                        </div>
+                <div class="flex items-center gap-3 min-w-0">
 
-                        <div class="min-w-0">
-                            <p class="text-sm font-semibold text-slate-800">
-                                Lampiran Tugas
-                            </p>
-
-                            <p class="text-xs text-slate-500 truncate">
-                                {{ basename($tugas->file_lampiran) }}
-                            </p>
-                        </div>
+                    <div class="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                        <i class="fa-regular fa-file-lines text-lg"></i>
                     </div>
 
-                    <a href="{{ $lampiranUrl }}"
-                        target="_blank"
-                        class="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shrink-0">
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-slate-800">
+                            Lampiran Tugas
+                        </p>
 
-                        <i class="fa-regular fa-eye"></i>
-                        Lihat Berkas
-                    </a>
+                        <p class="text-xs text-slate-500 truncate">
+                            {{ basename($tugas->file_lampiran) }}
+                        </p>
+                    </div>
                 </div>
+
+                <a href="{{ $lampiranUrl }}"
+                    target="_blank"
+                    class="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shrink-0">
+
+                    <i class="fa-regular fa-eye"></i>
+                    Lihat Berkas
+                </a>
             </div>
-            @endif
+        </div>
+        @endif
 
         </section>
 
@@ -464,11 +473,11 @@ $fileTerkirimExt = $fileTerkirim
                         @enderror
 
                         <div class="flex justify-center">
-                        <button type="submit"
-                            class="w-full sm:w-1/3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-xl shadow-lg shadow-indigo-200 transition active:scale-[0.98]">
-                            <i class="fa-solid fa-rotate mr-2"></i>
-                            Simpan Revisi
-                        </button>
+                            <button type="submit"
+                                class="w-full sm:w-1/3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-xl shadow-lg shadow-indigo-200 transition active:scale-[0.98]">
+                                <i class="fa-solid fa-rotate mr-2"></i>
+                                Simpan Revisi
+                            </button>
                     </form>
                 </details>
                 @endif
@@ -476,77 +485,6 @@ $fileTerkirimExt = $fileTerkirim
             @endif
 
         </section>
-
-        {{-- MODAL PREVIEW FILE --}}
-        <div id="preview-modal"
-            class="hidden fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-sm items-center justify-center p-3 sm:p-6">
-
-            <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden">
-
-                <div class="flex items-center justify-between gap-3 p-4 border-b border-slate-100">
-
-                    <div class="min-w-0">
-                        <h3 class="text-sm font-bold text-slate-800">
-                            Pratinjau Berkas
-                        </h3>
-
-                        <p id="preview-file-name" class="text-xs text-slate-500 truncate mt-1"></p>
-                    </div>
-
-                    <button type="button"
-                        onclick="closeFilePreview()"
-                        class="w-9 h-9 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center shrink-0">
-
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-
-                <div class="bg-slate-100 p-3 min-h-[300px] max-h-[75vh] overflow-auto flex items-center justify-center">
-
-                    <img id="preview-image"
-                        class="hidden max-w-full max-h-[65vh] object-contain rounded-lg shadow-sm"
-                        alt="Pratinjau gambar">
-
-                    <iframe id="preview-pdf"
-                        class="hidden w-full h-[65vh] rounded-lg bg-white"
-                        title="Pratinjau PDF">
-                    </iframe>
-
-                    <div id="preview-docx" class="hidden text-center p-8">
-
-                        <i class="fa-regular fa-file-word text-5xl text-indigo-500"></i>
-
-                        <p class="text-sm font-semibold text-slate-700 mt-3">
-                            Pratinjau DOCX tidak tersedia langsung di browser.
-                        </p>
-
-                        <p class="text-xs text-slate-500 mt-1">
-                            Silakan buka atau unduh berkas untuk melihat isinya.
-                        </p>
-
-                        <a id="preview-download"
-                            href="#"
-                            target="_blank"
-                            class="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold">
-
-                            <i class="fa-solid fa-download"></i>
-                            Buka / Unduh File
-                        </a>
-                    </div>
-                </div>
-
-                <div class="p-3 border-t border-slate-100 flex justify-end">
-
-                    <button type="button"
-                        onclick="closeFilePreview()"
-                        class="px-5 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200">
-
-                        Tutup
-                    </button>
-                </div>
-            </div>
-        </div>
-
     </div>
 </div>
 
@@ -555,60 +493,20 @@ $fileTerkirimExt = $fileTerkirim
 
     const fileInput = document.getElementById('file_jawaban');
 
-    // Membuka preview file
-    function openFilePreview(url, extension, filename) {
-        const modal = document.getElementById('preview-modal');
-        const image = document.getElementById('preview-image');
-        const pdf = document.getElementById('preview-pdf');
-        const docx = document.getElementById('preview-docx');
-
-        image.classList.add('hidden');
-        pdf.classList.add('hidden');
-        docx.classList.add('hidden');
-
-        image.src = '';
-        pdf.src = '';
-
-        document.getElementById('preview-file-name').textContent = filename;
-
-        extension = extension.toLowerCase();
-
-        if (['jpg', 'jpeg', 'png'].includes(extension)) {
-            image.src = url;
-            image.classList.remove('hidden');
-
-        } else if (extension === 'pdf') {
-            pdf.src = url;
-            pdf.classList.remove('hidden');
-
-        } else {
-            document.getElementById('preview-download').href = url;
-            docx.classList.remove('hidden');
+    // Membuka file di halaman / tab baru
+    function openFilePreview(url) {
+        if (!url) {
+            alert('File tidak ditemukan.');
+            return;
         }
 
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
-
-    // Menutup preview
-    function closeFilePreview() {
-        const modal = document.getElementById('preview-modal');
-
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-
-        document.getElementById('preview-pdf').src = '';
-        document.getElementById('preview-image').src = '';
+        window.open(url, '_blank');
     }
 
     // Preview file yang sudah tersimpan
     document.querySelectorAll('.btn-preview-file').forEach(button => {
         button.addEventListener('click', function() {
-            openFilePreview(
-                this.dataset.previewUrl,
-                this.dataset.previewExtension,
-                this.dataset.previewName
-            );
+            openFilePreview(this.dataset.previewUrl);
         });
     });
 
@@ -664,6 +562,13 @@ $fileTerkirimExt = $fileTerkirim
             }
         });
     }
+
+    // Preview file sebelum dikirim
+    document.getElementById('btn-preview-selected')?.addEventListener('click', function() {
+        if (selectedPreviewUrl) {
+            openFilePreview(selectedPreviewUrl);
+        }
+    });
 
     // Preview file sebelum dikirim
     const previewButton = document.getElementById('btn-preview-selected');
