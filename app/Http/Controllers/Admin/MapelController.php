@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\Mapel;
+use App\Models\Siswa;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -25,6 +26,10 @@ class MapelController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where('nama_mapel', 'like', "%{$search}%");
+        }
+
+        if ($request->filled('tipe_mapel')) {
+            $query->where('tipe_mapel', $request->tipe_mapel);
         }
 
         $mapels = $query->latest()->paginate(10)->withQueryString();
@@ -52,9 +57,14 @@ class MapelController extends Controller
         $validated = $request->validate([
             'nama_mapel' => 'required|string|max:100|unique:mapels,nama_mapel',
             'kkm'        => 'required|integer|min:0|max:100',
+            'tipe_mapel' => ['required', Rule::in(array_keys(Mapel::TIPE_MAPEL_OPTIONS))],
         ]);
 
-        Mapel::create($validated);
+        Mapel::create([
+            'nama_mapel' => $validated['nama_mapel'],
+            'kkm'        => $validated['kkm'],
+            'tipe_mapel' => $validated['tipe_mapel'],
+        ]);
 
         return redirect()->route('mapel.index')->with('success', 'Mata pelajaran berhasil ditambahkan!');
     }
@@ -92,6 +102,7 @@ class MapelController extends Controller
         $validated = $request->validate([
             'nama_mapel'      => ['required', 'string', 'max:100', Rule::unique('mapels')->ignore($mapel->id)],
             'kkm'             => 'required|integer|min:0|max:100',
+            'tipe_mapel'      => ['required', Rule::in(array_keys(Mapel::TIPE_MAPEL_OPTIONS))],
             'new_guru_id'     => 'nullable|exists:gurus,id',
             'new_kelas_ids'   => 'nullable|array',
             'new_kelas_ids.*' => 'exists:kelases,id',
@@ -101,6 +112,7 @@ class MapelController extends Controller
         $mapel->update([
             'nama_mapel' => $validated['nama_mapel'],
             'kkm'        => $validated['kkm'],
+            'tipe_mapel' => $validated['tipe_mapel'],
         ]);
 
         $newKelasIds = $request->input('new_kelas_ids', []);

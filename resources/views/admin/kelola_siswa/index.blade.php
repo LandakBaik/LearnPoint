@@ -92,7 +92,7 @@
     <!-- Filter & Search Card -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
         <form method="GET" action="{{ route('siswa.index') }}" class="grid grid-cols-1 sm:grid-cols-12 gap-3">
-            <div class="sm:col-span-5 relative">
+            <div class="sm:col-span-4 relative">
                 <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -106,7 +106,7 @@
             </div>
 
             <!-- Filter Tingkatan (7,8,9) -->
-            <div class="sm:col-span-3">
+            <div class="sm:col-span-2">
                 <select name="tingkatan" class="w-full py-2.5 px-3 text-xs sm:text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-slate-50/50 text-slate-700">
                     <option value="">Semua Tingkatan</option>
                     <option value="7" {{ request('tingkatan') == '7' ? 'selected' : '' }}>Tingkatan 7</option>
@@ -127,11 +127,23 @@
                 </select>
             </div>
 
+            <!-- Filter Agama -->
+            <div class="sm:col-span-2">
+                <select name="agama" class="w-full py-2.5 px-3 text-xs sm:text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-slate-50/50 text-slate-700">
+                    <option value="">Semua Agama</option>
+                    @foreach(\App\Models\Siswa::AGAMA_OPTIONS as $agamaOpt)
+                        <option value="{{ $agamaOpt }}" {{ request('agama') == $agamaOpt ? 'selected' : '' }}>
+                            {{ $agamaOpt }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
             <div class="sm:col-span-2 flex gap-2">
                 <button type="submit" class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all">
                     Filter
                 </button>
-                @if(request()->hasAny(['search', 'kelas_id', 'tingkatan']))
+                @if(request()->hasAny(['search', 'kelas_id', 'tingkatan', 'agama']))
                     <a href="{{ route('siswa.index') }}" class="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center">
                         Reset
                     </a>
@@ -145,7 +157,7 @@
                 <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100/60">
                     Total: {{ $siswa->total() }} / {{ $totalSiswa }}
                 </span>
-                <span>Menampilkan <strong>{{ $siswa->total() }}</strong> dari total <strong>{{ $totalSiswa }}</strong> data siswa{{ request()->hasAny(['search', 'kelas_id', 'tingkatan']) ? ' (setelah difilter)' : '' }}.</span>
+                <span>Menampilkan <strong>{{ $siswa->total() }}</strong> dari total <strong>{{ $totalSiswa }}</strong> data siswa{{ request()->hasAny(['search', 'kelas_id', 'tingkatan', 'agama']) ? ' (setelah difilter)' : '' }}.</span>
             </div>
         </div>
     </div>
@@ -161,6 +173,7 @@
                         <th class="py-3.5 px-4">Akun Login</th>
                         <th class="py-3.5 px-4">Kelas</th>
                         <th class="py-3.5 px-4">L/P</th>
+                        <th class="py-3.5 px-4">Agama</th>
                         <th class="py-3.5 px-4">Wali &amp; No. HP</th>
                         <th class="py-3.5 px-4 text-right pr-6">Aksi</th>
                     </tr>
@@ -175,7 +188,12 @@
                                     </div>
                                     <div>
                                         <p class="font-bold text-slate-800">{{ $data->nama_siswa }}</p>
-                                        <p class="text-xs text-slate-500 mt-0.5">NIS: {{ $data->nis }}</p>
+                                        <p class="text-xs text-slate-500 mt-0.5">
+                                            NIS: {{ $data->nis }}
+                                            @if($data->angkatan)
+                                                &bull; Angkatan {{ $data->angkatan }}
+                                            @endif
+                                        </p>
                                     </div>
                                 </div>
                             </td>
@@ -219,6 +237,15 @@
                                 <span class="px-2.5 py-0.5 text-xs font-bold rounded-md {{ $data->jenis_kelamin == 'L' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-rose-50 text-rose-700 border border-rose-100' }}">
                                     {{ $data->jenis_kelamin }}
                                 </span>
+                            </td>
+                            <td class="py-4 px-4">
+                                @if($data->agama)
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100/80">
+                                        {{ $data->agama }}
+                                    </span>
+                                @else
+                                    <span class="text-xs text-slate-400 italic">-</span>
+                                @endif
                             </td>
                             <td class="py-4 px-4">
                                 <p class="text-slate-800 font-semibold">{{ $data->wali_murid }}</p>
@@ -267,7 +294,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="py-12 text-center text-slate-400">
+                            <td colspan="8" class="py-12 text-center text-slate-400">
                                 <div class="max-w-xs mx-auto text-center space-y-2">
                                     <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -331,7 +358,7 @@
                         Format Kolom Wajib CSV Siswa:
                     </p>
                     <div class="bg-white p-2.5 rounded-xl border border-blue-200 text-blue-800 text-[11px] overflow-x-auto font-semibold">
-                        nama_siswa,nis,alamat,tanggal_lahir,jenis_kelamin,wali_murid,nohp_wali,kelas
+                        nama_siswa,nis,angkatan,alamat,tanggal_lahir,jenis_kelamin,agama,wali_murid,nohp_wali,kelas
                     </div>
                     <p class="text-blue-700 text-[11px]">
                         * Setiap siswa akan otomatis dibuatkan akun pengguna (Username: NIS, Password: NIS, Role: Siswa, Status: Aktif).

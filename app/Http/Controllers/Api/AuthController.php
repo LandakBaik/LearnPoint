@@ -35,7 +35,7 @@ class AuthController extends Controller
             return $this->unauthorizedResponse('Username/Email atau kata sandi yang Anda masukkan salah.');
         }
 
-        if ($user->status === 'nonaktif') {
+        if ($user->status === 'nonaktif' || $user->guru?->status === 'nonaktif' || $user->siswa?->status === 'nonaktif') {
             return $this->forbiddenResponse('Akun Anda saat ini berstatus NONAKTIF. Silakan hubungi pihak administrator/sekolah.');
         }
 

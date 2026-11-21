@@ -83,11 +83,21 @@
                     class="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800"
                 >
             </div>
+            <div class="sm:w-56">
+                <select name="tipe_mapel" class="w-full py-2.5 px-3 text-xs rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 font-semibold">
+                    <option value="">Semua Tipe Mapel</option>
+                    @foreach(\App\Models\Mapel::TIPE_MAPEL_OPTIONS as $tipeKey => $tipeLabel)
+                        <option value="{{ $tipeKey }}" {{ request('tipe_mapel') == $tipeKey ? 'selected' : '' }}>
+                            {{ $tipeLabel }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
             <div class="flex gap-2">
                 <button type="submit" class="py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all">
-                    Cari
+                    Filter
                 </button>
-                @if(request('search'))
+                @if(request()->hasAny(['search', 'tipe_mapel']))
                     <a href="{{ route('mapel.index') }}" class="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center">
                         Reset
                     </a>
@@ -101,7 +111,7 @@
                 <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100/60">
                     Total: {{ $mapels->total() }} / {{ $totalMapel }}
                 </span>
-                <span>Menampilkan <strong>{{ $mapels->total() }}</strong> dari total <strong>{{ $totalMapel }}</strong> data mata pelajaran{{ request('search') ? ' (setelah difilter)' : '' }}.</span>
+                <span>Menampilkan <strong>{{ $mapels->total() }}</strong> dari total <strong>{{ $totalMapel }}</strong> data mata pelajaran{{ request()->hasAny(['search', 'tipe_mapel']) ? ' (setelah difilter)' : '' }}.</span>
             </div>
         </div>
     </div>
@@ -113,6 +123,7 @@
                 <thead>
                     <tr class="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                         <th class="py-3.5 px-4 sm:px-6">Mata Pelajaran</th>
+                        <th class="py-3.5 px-4">Tipe Mapel</th>
                         <th class="py-3.5 px-4">Nilai KKM Minimal</th>
                         <th class="py-3.5 px-4">Guru Pengampu</th>
                         <th class="py-3.5 px-4 text-right pr-6">Aksi</th>
@@ -120,6 +131,16 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-xs">
                     @forelse($mapels as $mapel)
+                        @php
+                            $isAgamaType = str_starts_with((string) $mapel->tipe_mapel, 'agama_');
+                            $tipeBadgeClass = $isAgamaType
+                                ? 'bg-emerald-50 border-emerald-200/80 text-emerald-700'
+                                : match ($mapel->tipe_mapel) {
+                                    'praktik'           => 'bg-purple-50 border-purple-200/80 text-purple-700',
+                                    'teori_dan_praktik' => 'bg-indigo-50 border-indigo-200/80 text-indigo-700',
+                                    default             => 'bg-blue-50 border-blue-200/80 text-blue-700',
+                                };
+                        @endphp
                         <tr class="hover:bg-slate-50/60 transition-colors">
                             <td class="py-3.5 px-4 sm:px-6">
                                 <div class="flex items-center gap-3">
@@ -133,6 +154,11 @@
                                         <p class="text-[11px] text-slate-400">ID Mapel: #{{ $mapel->id }}</p>
                                     </div>
                                 </div>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold border {{ $tipeBadgeClass }}">
+                                    {{ $mapel->tipe_label }}
+                                </span>
                             </td>
                             <td class="py-3.5 px-4">
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 border border-amber-200/80 text-amber-700">
@@ -165,7 +191,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="py-12 text-center text-slate-400">
+                            <td colspan="5" class="py-12 text-center text-slate-400">
                                 <div class="max-w-xs mx-auto text-center space-y-2">
                                     <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>

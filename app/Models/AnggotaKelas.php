@@ -15,9 +15,18 @@ class AnggotaKelas extends Model
     protected $fillable = [
         'kelas_id',
         'siswa_id',
-        'tahun_ajaran',
-        'semester',
+        'academic_period_id',
+        'jadwal',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $model) {
+            if (empty($model->academic_period_id)) {
+                $model->academic_period_id = AcademicPeriod::currentId();
+            }
+        });
+    }
 
     public function kelas(): BelongsTo
     {
@@ -27,5 +36,10 @@ class AnggotaKelas extends Model
     public function siswa(): BelongsTo
     {
         return $this->belongsTo(Siswa::class, 'siswa_id');
+    }
+
+    public function academicPeriod(): BelongsTo
+    {
+        return $this->belongsTo(AcademicPeriod::class, 'academic_period_id');
     }
 }

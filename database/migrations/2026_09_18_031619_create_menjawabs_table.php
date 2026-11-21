@@ -21,7 +21,7 @@ return new class extends Migration
                 ->constrained('siswas')
                 ->cascadeOnDelete();
 
-            $table->string('jawaban_dipilih', 10);
+            $table->string('jawaban_dipilih', 255);
             $table->boolean('benar');
             $table->timestamps();
         });

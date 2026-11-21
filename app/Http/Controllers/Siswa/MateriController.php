@@ -23,7 +23,7 @@ class MateriController extends Controller
         $kelasId = $kelas?->id;
 
         if ($kelasId) {
-            $daftarMapel = Mapel::whereHas('pengampuKelases', function ($query) use ($kelasId) {
+            $daftarMapel = Mapel::forSiswa($siswa)->whereHas('pengampuKelases', function ($query) use ($kelasId) {
                 $query->where('kelas_id', $kelasId);
             })
                 ->with(['pengampuKelases' => function ($query) use ($kelasId) {
@@ -36,7 +36,7 @@ class MateriController extends Controller
         }
 
         if ($daftarMapel->isEmpty()) {
-            $daftarMapel = Mapel::with([
+            $daftarMapel = Mapel::forSiswa($siswa)->with([
                 'pengampuKelases.guruMapel.guru',
                 'pengampuKelases.materis',
                 'guruMapels.guru'
@@ -58,13 +58,20 @@ class MateriController extends Controller
     {
         $user = $request->user();
         $siswa = $user?->siswa;
-        $anggotaKelas = $siswa?->anggotaKelases()?->latest()?->first();
+        $activePeriod = \App\Models\AcademicPeriod::current();
+        $anggotaKelas = $siswa?->anggotaKelases()?->with('academicPeriod')
+            ?->where('academic_period_id', $activePeriod->id)
+            ->first() ?? $siswa?->anggotaKelases()?->with('academicPeriod')->latest()->first();
         $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;
         $kelasId = $kelas?->id;
-        $tahunAjaran = $anggotaKelas?->tahun_ajaran ?? '2026/2027';
-        $semester = $anggotaKelas?->semester ? ucfirst($anggotaKelas->semester) : 'Ganjil';
+        $tahunAjaran = $anggotaKelas?->academicPeriod?->tahun_ajaran ?? $activePeriod->tahun_ajaran;
+        $semester = ucfirst($anggotaKelas?->academicPeriod?->semester ?? $activePeriod->semester);
 
         $mapel = Mapel::with(['guruMapels.guru', 'pengampuKelases.guruMapel.guru'])->findOrFail($id);
+
+        if (!$mapel->isAccessibleBySiswa($siswa)) {
+            abort(403, 'Mata pelajaran ini tidak sesuai dengan agama Anda.');
+        }
 
         // Ambil materi untuk mapel ini
         if ($kelasId) {
@@ -119,7 +126,26 @@ class MateriController extends Controller
                 ->get();
         }
 
-        // Ambil ujian untuk mapel ini beserta nilai siswa
+        $siswaId = $siswa?->id;
+
+        // Ambil ujian untuk mapel ini beserta nilai siswa (Hanya status scheduled, published, completed)
+        $statusTampil = ['scheduled', 'published', 'completed'];
+
+        // Filter agar ujian remidi/susulan hanya tampil untuk siswa yang terdaftar di peserta_khusus
+        $filterPesertaKhusus = function ($query) use ($siswaId) {
+            $query->where(function ($q) {
+                $q->where('jenis_ujian', 'reguler')
+                  ->orWhereNull('jenis_ujian');
+            });
+
+            if ($siswaId) {
+                $query->orWhere(function ($q) use ($siswaId) {
+                    $q->whereIn('jenis_ujian', ['remidi', 'susulan'])
+                      ->whereJsonContains('peserta_khusus', (int) $siswaId);
+                });
+            }
+        };
+
         if ($kelasId) {
             $ujians = Ujian::with([
                 'pengampuKelas.guruMapel.guru',
@@ -128,6 +154,8 @@ class MateriController extends Controller
                 },
                 'seleksiUjians.nilais'
             ])
+                ->whereIn('status', $statusTampil)
+                ->where($filterPesertaKhusus)
                 ->whereHas('pengampuKelas', function ($query) use ($kelasId, $id) {
                     $query->where('kelas_id', $kelasId)
                         ->whereHas('guruMapel', function ($query) use ($id) {
@@ -148,6 +176,8 @@ class MateriController extends Controller
                 },
                 'seleksiUjians.nilais'
             ])
+                ->whereIn('status', $statusTampil)
+                ->where($filterPesertaKhusus)
                 ->whereHas('pengampuKelas.guruMapel', function ($query) use ($id) {
                     $query->where('mapel_id', $id);
                 })

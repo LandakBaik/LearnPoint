@@ -9,35 +9,47 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('ujians', function (Blueprint $table) {
-            $table->text('kisi_kisi')->nullable();
+            if (!Schema::hasColumn('ujians', 'kisi_kisi')) {
+                $table->text('kisi_kisi')->nullable();
+            }
 
-            $table->decimal('kkm', 5, 2)->default(75);
+            if (!Schema::hasColumn('ujians', 'kkm')) {
+                $table->decimal('kkm', 5, 2)->default(75);
+            }
 
-            $table->enum('status', [
-                'draft',
-                'scheduled',
-                'published',
-                'completed',
-            ])->default('draft');
+            if (!Schema::hasColumn('ujians', 'status')) {
+                $table->enum('status', [
+                    'draft',
+                    'scheduled',
+                    'published',
+                    'completed',
+                ])->default('draft');
+            }
 
-            $table->dateTime('dipublikasi_at')->nullable();
+            if (!Schema::hasColumn('ujians', 'dipublikasi_at')) {
+                $table->dateTime('dipublikasi_at')->nullable();
+            }
 
             // Draft boleh belum memiliki tanggal ujian.
-            $table->dateTime('deadline')->nullable()->change();
+            if (Schema::hasColumn('ujians', 'deadline')) {
+                $table->dateTime('deadline')->nullable()->change();
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('ujians', function (Blueprint $table) {
-            $table->dropColumn([
-                'kisi_kisi',
-                'kkm',
-                'status',
-                'dipublikasi_at',
-            ]);
+            $columns = ['kisi_kisi', 'kkm', 'status', 'dipublikasi_at'];
+            foreach ($columns as $column) {
+                if (Schema::hasColumn('ujians', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
 
-            $table->dateTime('deadline')->nullable(false)->change();
+            if (Schema::hasColumn('ujians', 'deadline')) {
+                $table->dateTime('deadline')->nullable(false)->change();
+            }
         });
     }
 };

@@ -11,12 +11,23 @@ class Siswa extends Model
 
     protected $table = 'siswas';
 
+    public const AGAMA_OPTIONS = [
+        'Islam',
+        'Kristen',
+        'Katolik',
+        'Hindu',
+        'Buddha',
+        'Konghucu',
+    ];
+
     protected $fillable = [
         'nama_siswa',
         'nis',
+        'angkatan',
         'alamat',
         'tanggal_lahir',
         'jenis_kelamin',
+        'agama',
         'wali_murid',
         'nohp_wali',
         'status',
@@ -29,6 +40,7 @@ class Siswa extends Model
     protected function casts(): array
     {
         return [
+            'angkatan'         => 'integer',
             'koin'             => 'integer',
             'pity_gacha'       => 'integer',
             'unlocked_banners' => 'array',
@@ -259,8 +271,7 @@ class Siswa extends Model
             'id',
             'kelas_id'
         )
-            ->where('anggota_kelases.tahun_ajaran', '2026/2027')
-            ->where('anggota_kelases.semester', 'ganjil');
+            ->where('anggota_kelases.academic_period_id', AcademicPeriod::currentId());
     }
 
     public function anggotaKelases()
@@ -315,5 +326,19 @@ class Siswa extends Model
         return $this->belongsToMany(Power::class, 'inventories', 'siswa_id', 'item_id')
             ->withPivot(['id', 'jumlah', 'is_equipped', 'metadata'])
             ->withTimestamps();
+    }
+
+    /**
+     * Filter siswa agar hanya menampilkan siswa yang agamanya sesuai dengan mapel khusus agama.
+     */
+    public function scopeForMapel($query, ?Mapel $mapel)
+    {
+        $targetAgama = $mapel?->target_agama;
+
+        if (filled($targetAgama)) {
+            $query->where('agama', $targetAgama);
+        }
+
+        return $query;
     }
 }

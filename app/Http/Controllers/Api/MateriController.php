@@ -119,7 +119,7 @@ class MateriController extends Controller
             })
             ->get();
 
-        $mapels = $pengampuKelases->pluck('guruMapel.mapel')->unique('id')->values();
+        $mapels = $pengampuKelases->pluck('guruMapel.mapel')->filter()->unique('id')->values();
 
         $kelases = $pengampuKelases->map(function ($pk) {
             return [
@@ -131,9 +131,37 @@ class MateriController extends Controller
             ];
         })->values();
 
+        // Data bertingkat (Mapel -> Tingkatan -> Kelas) seperti pada Web
+        $mapelData = [];
+        foreach ($pengampuKelases as $pk) {
+            $mapel = $pk->guruMapel?->mapel;
+            $kelas = $pk->kelas;
+            if (!$mapel || !$kelas) {
+                continue;
+            }
+
+            if (!isset($mapelData[$mapel->id])) {
+                $mapelData[$mapel->id] = [
+                    'id' => $mapel->id,
+                    'nama' => $mapel->nama_mapel,
+                    'tingkatans' => [],
+                ];
+            }
+            if (!isset($mapelData[$mapel->id]['tingkatans'][$kelas->tingkatan])) {
+                $mapelData[$mapel->id]['tingkatans'][$kelas->tingkatan] = [];
+            }
+            $mapelData[$mapel->id]['tingkatans'][$kelas->tingkatan][] = [
+                'kelas_id' => $kelas->id,
+                'nama_kelas' => $kelas->nama_kelas,
+                'pengampu_kelas_id' => $pk->id,
+            ];
+        }
+        usort($mapelData, fn ($a, $b) => strcmp($a['nama'], $b['nama']));
+
         return $this->successResponse([
             'mapels' => $mapels,
             'kelases' => $kelases,
+            'mapel_data' => array_values($mapelData),
         ]);
     }
 
@@ -500,7 +528,7 @@ class MateriController extends Controller
             return $this->notFoundResponse('Data kelas siswa tidak ditemukan.');
         }
 
-        $daftarMapel = Mapel::whereHas('pengampuKelases', function ($q) use ($kelasId) {
+        $daftarMapel = Mapel::forSiswa($siswa)->whereHas('pengampuKelases', function ($q) use ($kelasId) {
             $q->where('kelas_id', $kelasId);
         })
         ->with(['pengampuKelases' => function ($q) use ($kelasId) {
@@ -539,12 +567,16 @@ class MateriController extends Controller
     }
 
     /**
-     * SISWA: Menampilkan daftar materi di dalam suatu mapel untuk siswa.
+     * SISWA: Menampilkan daftar materi, tugas, dan ujian di dalam suatu mapel untuk siswa.
      */
     public function siswaShow(Request $request, $mapelId)
     {
         $siswa = $request->user()?->siswa;
-        $anggotaKelas = $siswa?->anggotaKelases()?->latest()?->first();
+        $activePeriod = \App\Models\AcademicPeriod::current();
+        $anggotaKelas = $siswa?->anggotaKelases()
+            ?->with('academicPeriod')
+            ->where('academic_period_id', $activePeriod->id)
+            ->first() ?? $siswa?->anggotaKelases()?->with('academicPeriod')?->latest()?->first();
         $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;
         $kelasId = $kelas?->id;
 
@@ -552,15 +584,17 @@ class MateriController extends Controller
             return $this->notFoundResponse('Data kelas siswa tidak ditemukan.');
         }
 
-        $tahunAjaran = $anggotaKelas?->tahun_ajaran ?? '2026/2027';
-        $semester = $anggotaKelas?->semester ? ucfirst($anggotaKelas->semester) : 'Ganjil';
+        $tahunAjaran = $anggotaKelas?->academicPeriod?->tahun_ajaran ?? $activePeriod->tahun_ajaran;
+        $semester = ucfirst($anggotaKelas?->academicPeriod?->semester ?? $activePeriod->semester);
 
-        $mapel = Mapel::whereHas('pengampuKelases', function ($q) use ($kelasId) {
-            $q->where('kelas_id', $kelasId);
-        })->find($mapelId);
+        $mapel = Mapel::with(['guruMapels.guru', 'pengampuKelases.guruMapel.guru'])->find($mapelId);
 
         if (!$mapel) {
-            return $this->notFoundResponse('Mata pelajaran tidak ditemukan atau bukan bagian dari kelas Anda.');
+            return $this->notFoundResponse('Mata pelajaran tidak ditemukan.');
+        }
+
+        if (!$mapel->isAccessibleBySiswa($siswa)) {
+            return $this->forbiddenResponse('Mata pelajaran ini tidak sesuai dengan agama Anda.');
         }
 
         $materis = Materi::with(['pengampuKelas.guruMapel.guru'])
@@ -586,16 +620,97 @@ class MateriController extends Controller
                 ];
             });
 
+        // Tugas pada mapel ini
+        $tugases = \App\Models\Tugas::with([
+            'pengampuKelas.guruMapel.guru',
+            'nilais' => function ($q) use ($siswa) {
+                if ($siswa) {
+                    $q->where('siswa_id', $siswa->id);
+                }
+            },
+        ])
+            ->whereHas('pengampuKelas', function ($q) use ($kelasId, $mapelId) {
+                $q->where('kelas_id', $kelasId)
+                  ->whereHas('guruMapel', fn ($gq) => $gq->where('mapel_id', $mapelId));
+            })
+            ->latest('deadline')
+            ->get()
+            ->map(function ($t) {
+                $nilai = $t->nilais->first();
+                return [
+                    'id' => $t->id,
+                    'judul' => $t->judul,
+                    'deskripsi' => $t->deskripsi,
+                    'tipe' => $t->tipe,
+                    'deadline' => $t->deadline,
+                    'file_url' => $t->file_lampiran ? asset('storage/' . $t->file_lampiran) : null,
+                    'guru' => $t->pengampuKelas?->guruMapel?->guru?->nama,
+                    'is_submitted' => $nilai !== null,
+                    'nilai' => $nilai?->nilai,
+                    'status' => $nilai?->status,
+                ];
+            });
+
+        // Ujian pada mapel ini (filter peserta_khusus untuk remidi/susulan)
+        $siswaId = $siswa?->id;
+        $ujians = \App\Models\Ujian::with([
+            'pengampuKelas.guruMapel.guru',
+            'seleksiUjians' => function ($q) use ($siswaId) {
+                if ($siswaId) {
+                    $q->where('siswa_id', $siswaId);
+                }
+            },
+            'seleksiUjians.nilais',
+        ])
+            ->whereIn('status', ['scheduled', 'published', 'completed'])
+            ->where(function ($query) use ($siswaId) {
+                $query->where(function ($q) {
+                    $q->where('jenis_ujian', 'reguler')->orWhereNull('jenis_ujian');
+                });
+                if ($siswaId) {
+                    $query->orWhere(function ($q) use ($siswaId) {
+                        $q->whereIn('jenis_ujian', ['remidi', 'susulan'])
+                          ->whereJsonContains('peserta_khusus', (int) $siswaId);
+                    });
+                }
+            })
+            ->whereHas('pengampuKelas', function ($q) use ($kelasId, $mapelId) {
+                $q->where('kelas_id', $kelasId)
+                  ->whereHas('guruMapel', fn ($gq) => $gq->where('mapel_id', $mapelId));
+            })
+            ->latest('deadline')
+            ->get()
+            ->map(function ($u) {
+                $sesi = $u->seleksiUjians->first();
+                $nilai = $sesi?->nilais?->first();
+                return [
+                    'id' => $u->id,
+                    'judul' => $u->judul,
+                    'jenis_ujian' => $u->jenis_ujian ?? 'reguler',
+                    'status' => $u->status,
+                    'durasi_menit' => $u->durasi_menit,
+                    'kkm' => $u->kkm,
+                    'waktu_mulai' => $u->waktu_mulai,
+                    'deadline' => $u->deadline,
+                    'guru' => $u->pengampuKelas?->guruMapel?->guru?->nama,
+                    'sudah_dikerjakan' => $nilai !== null || ($sesi && $sesi->status === 'selesai'),
+                    'nilai' => $nilai?->nilai ?? $sesi?->nilai_akhir,
+                ];
+            });
+
         return $this->successResponse([
             'mapel' => [
                 'id' => $mapel->id,
                 'nama_mapel' => $mapel->nama_mapel,
+                'tipe_mapel' => $mapel->tipe_mapel,
                 'nama_kelas' => $kelas?->nama_kelas,
                 'tingkatan' => $kelas?->tingkatan,
                 'semester' => $semester,
                 'tahun_ajaran' => $tahunAjaran,
             ],
             'materis' => $materis,
+            'tugases' => $tugases,
+            'ujians' => $ujians,
         ]);
     }
 }

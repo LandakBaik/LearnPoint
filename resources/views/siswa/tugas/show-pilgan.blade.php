@@ -30,7 +30,6 @@
 
     </div>
 
-
     {{-- 2. Notifikasi Berhasil --}}
     @if(session('success'))
     <div class="max-w-3xl mx-auto w-full px-4 sm:px-0">
@@ -40,7 +39,6 @@
         </div>
     </div>
     @endif
-
 
     {{-- 3. Notifikasi Error --}}
     @if(session('error') || $errors->any())
@@ -63,10 +61,8 @@
     </div>
     @endif
 
-
     {{-- 4. Konten Utama --}}
     <div class="max-w-3xl mx-auto w-full px-4 sm:px-0 space-y-5">
-
 
         {{-- 5. Card Informasi Tugas --}}
         <section class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
@@ -74,7 +70,6 @@
             {{-- Judul dan Deadline --}}
             <div class="space-y-3">
 
-                {{-- Deadline dan Tipe Tugas --}}
                 <div class="flex flex-wrap items-center gap-2">
 
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-100">
@@ -92,13 +87,11 @@
 
                 </div>
 
-                {{-- Judul Tugas --}}
                 <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-snug">
                     {{ $tugas->judul }}
                 </h1>
 
             </div>
-
 
             {{-- Deskripsi Tugas --}}
             <div class="pt-4 border-t border-slate-100">
@@ -113,11 +106,9 @@
 
             </div>
 
-
             {{-- Informasi Guru dan Mapel --}}
             <div class="pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-                {{-- Guru Pengampu --}}
                 <div class="flex items-center gap-3 min-w-0">
 
                     <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
@@ -140,8 +131,6 @@
 
                 </div>
 
-
-                {{-- Mata Pelajaran --}}
                 <div class="flex items-center gap-3 min-w-0">
 
                     <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
@@ -163,7 +152,6 @@
                 </div>
 
             </div>
-
 
             {{-- Lampiran Guru --}}
             @if($tugas->file_lampiran)
@@ -213,7 +201,6 @@
 
         </section>
 
-
         {{-- 6. Informasi Nilai --}}
         @if($pengumpulan)
 
@@ -241,8 +228,6 @@
 
                 </div>
 
-
-                {{-- Nilai Akhir --}}
                 <div class="rounded-xl border border-indigo-100 bg-indigo-50 px-5 py-3 text-center">
 
                     <p class="text-xs font-semibold text-indigo-500">
@@ -260,8 +245,6 @@
 
             </div>
 
-
-            {{-- Informasi Jawaban Terkunci --}}
             <div class="mt-4 flex items-start gap-2.5 rounded-xl bg-emerald-50 border border-emerald-100 p-3.5 text-xs text-emerald-800">
 
                 <i class="fa-solid fa-lock mt-0.5 text-emerald-600"></i>
@@ -276,11 +259,9 @@
 
         @endif
 
-
         {{-- 7. Daftar Soal --}}
         <section class="space-y-4">
 
-            {{-- Header Soal --}}
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
 
                 <div>
@@ -294,7 +275,6 @@
                     </p>
 
                 </div>
-
 
                 @if(!$pengumpulan)
 
@@ -313,7 +293,6 @@
                 @endif
 
             </div>
-
 
             {{-- Jika Belum Ada Soal --}}
             @if($soals->isEmpty())
@@ -336,7 +315,6 @@
 
             @else
 
-
             {{-- 8. Form Jawaban --}}
             <form action="{{ route('siswa.tugas.kumpulkan', $tugas->id) }}"
                 method="POST"
@@ -345,15 +323,18 @@
 
                 @csrf
 
-
                 {{-- Loop Soal --}}
                 @foreach($soals as $index => $soal)
 
                 @php
-                $jawabanTerpilih = $jawabanSiswa->get($soal->id)?->jawaban_dipilih;
-                $pilihan = $soal->pilihan ?? [];
-                @endphp
+                    $jawabanTerpilih = $jawabanSiswa->get($soal->id)?->jawaban_dipilih;
 
+                    $pilihan = $soal->pilihan ?? [];
+
+                    if (is_string($pilihan)) {
+                        $pilihan = json_decode($pilihan, true) ?? [];
+                    }
+                @endphp
 
                 <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
 
@@ -370,25 +351,29 @@
 
                     </div>
 
-
                     {{-- Pertanyaan --}}
-                    <div class="text-sm sm:text-base font-semibold leading-relaxed text-slate-800">
+                    <div class="text-sm sm:text-base font-semibold leading-relaxed text-slate-800 whitespace-pre-line">
                         {{ $soal->pertanyaan }}
                     </div>
 
-
-                    {{-- Gambar Soal --}}
+                    {{-- GAMBAR SOAL --}}
                     @if($soal->gambar)
 
-                    <div>
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+
+                        <p class="mb-2 text-xs font-semibold text-slate-500">
+                            Gambar Soal
+                        </p>
+
                         <img
-                            src="{{ asset('storage/' . $soal->gambar) }}"
-                            alt="Gambar soal"
-                            class="max-h-72 max-w-full rounded-xl border border-slate-200 object-contain">
+                            src="{{ \Illuminate\Support\Facades\Storage::url($soal->gambar) }}"
+                            alt="Gambar soal {{ $index + 1 }}"
+                            class="block max-h-80 max-w-full rounded-lg object-contain"
+                            loading="lazy">
+
                     </div>
 
                     @endif
-
 
                     {{-- Pilihan Jawaban --}}
                     <div class="space-y-2.5">
@@ -398,10 +383,10 @@
                         @if(isset($pilihan[$huruf]) && $pilihan[$huruf] !== null && $pilihan[$huruf] !== '')
 
                         <label class="flex items-start gap-3 p-3.5 sm:p-4 rounded-xl border transition
-                                            {{ strtolower((string) $jawabanTerpilih) === $huruf
-                                                ? 'border-sky-400 bg-sky-50'
-                                                : 'border-slate-200 bg-white hover:border-sky-300 hover:bg-slate-50' }}
-                                            {{ $pengumpulan ? 'cursor-not-allowed' : 'cursor-pointer' }}">
+                            {{ strtolower((string) $jawabanTerpilih) === $huruf
+                                ? 'border-sky-400 bg-sky-50'
+                                : 'border-slate-200 bg-white hover:border-sky-300 hover:bg-slate-50' }}
+                            {{ $pengumpulan ? 'cursor-not-allowed' : 'cursor-pointer' }}">
 
                             <input
                                 type="radio"
@@ -412,14 +397,10 @@
                                 {{ $pengumpulan ? 'disabled' : '' }}
                                 {{ !$pengumpulan ? 'required' : '' }}>
 
-
-                            {{-- Huruf Pilihan --}}
                             <span class="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold uppercase shrink-0">
                                 {{ $huruf }}
                             </span>
 
-
-                            {{-- Isi Pilihan --}}
                             <span class="text-sm text-slate-700 leading-relaxed">
                                 {{ $pilihan[$huruf] }}
                             </span>
@@ -436,13 +417,11 @@
 
                 @endforeach
 
-
                 {{-- 9. Tombol Pengumpulan --}}
                 @if(!$pengumpulan)
 
                 <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
 
-                    {{-- Informasi Sebelum Mengumpulkan --}}
                     <div class="flex items-start gap-2.5 rounded-xl bg-sky-50 border border-sky-100 p-3.5 text-xs text-sky-800">
 
                         <i class="fa-solid fa-circle-info mt-0.5 text-sky-600"></i>
@@ -453,15 +432,13 @@
 
                     </div>
 
-
-                    {{-- Tombol Submit --}}
                     <div class="pt-5 flex justify-center">
 
                         <button
                             type="submit"
                             class="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-xl shadow-lg shadow-indigo-200 transition duration-200 active:scale-[0.98]">
 
-                            {{ $pengumpulan ? 'Simpan Perubahan (Revisi)' : 'Kirim Jawaban' }}
+                            Kirim Jawaban
 
                         </button>
 
@@ -469,30 +446,27 @@
 
                 </div>
 
+                @else
+
+                <div class="rounded-xl bg-emerald-50 border border-emerald-100 p-4 flex items-start gap-2.5 text-xs text-emerald-800">
+
+                    <i class="fa-solid fa-circle-check mt-0.5 text-emerald-600"></i>
+
+                    <p class="leading-relaxed">
+                        Kamu sudah menyelesaikan tugas ini. Jawaban tidak dapat diubah kembali.
+                    </p>
+
+                </div>
+
+                @endif
+
+            </form>
+
+            @endif
+
+        </section>
+
     </div>
-
-    @else
-
-    {{-- Sudah Dikumpulkan --}}
-    <div class="rounded-xl bg-emerald-50 border border-emerald-100 p-4 flex items-start gap-2.5 text-xs text-emerald-800">
-
-        <i class="fa-solid fa-circle-check mt-0.5 text-emerald-600"></i>
-
-        <p class="leading-relaxed">
-            Kamu sudah menyelesaikan tugas ini. Jawaban tidak dapat diubah kembali.
-        </p>
-
-    </div>
-
-    @endif
-
-    </form>
-
-    @endif
-
-    </section>
-
-</div>
 
 </div>
 

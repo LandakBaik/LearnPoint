@@ -55,11 +55,11 @@ class SiswaCrudImportTest extends TestCase
 
         $response->assertRedirect(route('siswa.index'));
         $siswa = Siswa::where('nis', '20241001')->firstOrFail();
+        $periodId = \App\Models\AcademicPeriod::currentId();
         $this->assertDatabaseHas('anggota_kelases', [
             'siswa_id' => $siswa->id,
             'kelas_id' => $kelasAwal->id,
-            'tahun_ajaran' => '2026/2027',
-            'semester' => 'ganjil',
+            'academic_period_id' => $periodId,
         ]);
         $this->assertDatabaseHas('users', ['siswa_id' => $siswa->id, 'role' => 'siswa']);
 
@@ -72,14 +72,12 @@ class SiswaCrudImportTest extends TestCase
         $this->assertDatabaseMissing('anggota_kelases', [
             'siswa_id' => $siswa->id,
             'kelas_id' => $kelasAwal->id,
-            'tahun_ajaran' => '2026/2027',
-            'semester' => 'ganjil',
+            'academic_period_id' => $periodId,
         ]);
         $this->assertDatabaseHas('anggota_kelases', [
             'siswa_id' => $siswa->id,
             'kelas_id' => $kelasBaru->id,
-            'tahun_ajaran' => '2026/2027',
-            'semester' => 'ganjil',
+            'academic_period_id' => $periodId,
         ]);
 
         $response = $this->actingAs($operator)->patch(route('siswa.toggle-status', $siswa));
@@ -108,8 +106,7 @@ class SiswaCrudImportTest extends TestCase
         $this->assertDatabaseHas('anggota_kelases', [
             'siswa_id' => $siswa->id,
             'kelas_id' => $kelas->id,
-            'tahun_ajaran' => '2026/2027',
-            'semester' => 'ganjil',
+            'academic_period_id' => \App\Models\AcademicPeriod::currentId(),
         ]);
         $this->assertDatabaseHas('users', [
             'username' => '20241002',
