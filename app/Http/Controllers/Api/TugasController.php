@@ -10,13 +10,12 @@ use App\Models\Notifikasi;
 use App\Models\PengampuKelas;
 use App\Models\Soal;
 use App\Models\Tugas;
-use App\Models\Menjawab;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
+
 
 class TugasController extends Controller
 {
@@ -169,10 +168,10 @@ class TugasController extends Controller
 
         $siswas = $kelas
             ? $kelas->siswas()
-                ->wherePivot('academic_period_id', $periodId)
-                ->when(filled($targetAgama), fn ($q) => $q->where('siswas.agama', $targetAgama))
-                ->orderBy('siswas.nama_siswa')
-                ->get()
+            ->wherePivot('academic_period_id', $periodId)
+            ->when(filled($targetAgama), fn($q) => $q->where('siswas.agama', $targetAgama))
+            ->orderBy('siswas.nama_siswa')
+            ->get()
             : collect();
 
         $pengumpulansRaw = Nilai::with('siswa')
@@ -287,7 +286,7 @@ class TugasController extends Controller
             return $this->errorResponse('Tugas ini bukan tugas pilihan ganda.', 422);
         }
 
-        $soals = $tugas->soals->sortBy('urutan')->values()->map(fn ($s) => [
+        $soals = $tugas->soals->sortBy('urutan')->values()->map(fn($s) => [
             'id'            => $s->id,
             'urutan'        => $s->urutan,
             'pertanyaan'    => $s->pertanyaan,
@@ -411,7 +410,7 @@ class TugasController extends Controller
                         return;
                     }
                     $jumlahPilihan = collect($value)
-                        ->filter(fn ($jawaban) => is_string($jawaban) && trim($jawaban) !== '')
+                        ->filter(fn($jawaban) => is_string($jawaban) && trim($jawaban) !== '')
                         ->count();
                     if ($jumlahPilihan < 2) {
                         $fail('Minimal harus mengisi 2 pilihan jawaban.');
@@ -658,7 +657,7 @@ class TugasController extends Controller
 
         $pengampuKelasId = (int) ($request->input('pengampu_kelas_id') ?? $tugas->pengampu_kelas_id);
         $pengampu = PengampuKelas::where('id', $pengampuKelasId)
-            ->whereHas('guruMapel', fn ($q) => $q->where('guru_id', $guruId))
+            ->whereHas('guruMapel', fn($q) => $q->where('guru_id', $guruId))
             ->first();
 
         if (!$pengampu) {
@@ -826,43 +825,47 @@ class TugasController extends Controller
                 $query->where('siswa_id', $siswa->id);
             },
         ])
-        ->withCount('soals')
-        ->whereHas('pengampuKelas', function ($query) use ($kelasId, $siswa) {
-            $query->where('kelas_id', $kelasId)->forSiswa($siswa);
-        })
-        ->latest()
-        ->get()
-        ->map(function ($tugas) {
-            $pengumpulan = $tugas->nilais->first();
+            ->withCount('soals')
+            ->whereHas('pengampuKelas', function ($query) use ($kelasId, $siswa) {
+                $query->where('kelas_id', $kelasId)->forSiswa($siswa);
+            })
+            ->latest()
+            ->get()
+            ->map(function ($tugas) {
+                $pengumpulan = $tugas->nilais->first();
 
-            return [
-                'id'                 => $tugas->id,
-                'judul'              => $tugas->judul,
-                'deskripsi'          => $tugas->deskripsi,
-                'deadline'           => $tugas->deadline,
-                'is_deadline_passed' => $tugas->deadline ? Carbon::parse($tugas->deadline)->isPast() : false,
-                'tipe'               => $tugas->tipe,
-                'soals_count'        => $tugas->soals_count,
-                'file_lampiran'      => $tugas->file_lampiran,
-                'file_url'           => $tugas->file_lampiran ? asset('storage/' . $tugas->file_lampiran) : null,
-                'mapel'              => $tugas->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
-                'guru'               => $tugas->pengampuKelas?->guruMapel?->guru?->nama,
-                'is_submitted'       => $pengumpulan !== null,
-                'submission'         => $pengumpulan ? [
-                    'id'               => $pengumpulan->id,
-                    'file_jawaban_url' => $pengumpulan->file_jawaban ? asset('storage/' . $pengumpulan->file_jawaban) : null,
-                    'nilai'            => $pengumpulan->nilai,
-                    'status'           => $pengumpulan->status,
-                    'submitted_at'     => $pengumpulan->created_at,
-                ] : null,
-            ];
-        });
+                return [
+                    'id'                 => $tugas->id,
+                    'judul'              => $tugas->judul,
+                    'deskripsi'          => $tugas->deskripsi,
+                    'deadline'           => $tugas->deadline,
+                    'is_deadline_passed' => $tugas->deadline ? Carbon::parse($tugas->deadline)->isPast() : false,
+                    'tipe'               => $tugas->tipe,
+                    'soals_count'        => $tugas->soals_count,
+                    'file_lampiran'      => $tugas->file_lampiran,
+                    'file_url'           => $tugas->file_lampiran ? asset('storage/' . $tugas->file_lampiran) : null,
+                    'mapel'              => $tugas->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+                    'guru'               => $tugas->pengampuKelas?->guruMapel?->guru?->nama,
+                    'is_submitted'       => $pengumpulan !== null,
+                    'submission'         => $pengumpulan ? [
+                        'id'               => $pengumpulan->id,
+                        'file_jawaban_url' => $pengumpulan->file_jawaban ? asset('storage/' . $pengumpulan->file_jawaban) : null,
+                        'nilai'            => $pengumpulan->nilai,
+                        'status'           => $pengumpulan->status,
+                        'submitted_at'     => $pengumpulan->created_at,
+                    ] : null,
+                ];
+            });
 
         return $this->successResponse(
             $daftarTugas,
             'Berhasil mengambil data tugas'
         );
     }
+
+    /**
+     * SISWA: Detail tugas siswa (beserta butir soal jika tipe pilihan_ganda).
+     */
 
     /**
      * SISWA: Detail tugas siswa (beserta butir soal jika tipe pilihan_ganda).
@@ -888,10 +891,10 @@ class TugasController extends Controller
                 $query->where('siswa_id', $siswa->id);
             },
         ])
-        ->whereHas('pengampuKelas', function ($query) use ($kelasId, $siswa) {
-            $query->where('kelas_id', $kelasId)->forSiswa($siswa);
-        })
-        ->find($id);
+            ->whereHas('pengampuKelas', function ($query) use ($kelasId, $siswa) {
+                $query->where('kelas_id', $kelasId)->forSiswa($siswa);
+            })
+            ->find($id);
 
         if (!$tugas) {
             return $this->notFoundResponse(
@@ -903,6 +906,7 @@ class TugasController extends Controller
         $soalsOrdered = $tugas->soals->sortBy('urutan')->values();
 
         $jawabanSiswa = collect();
+
         if ($tugas->tipe === 'pilihan_ganda' && $pengumpulan) {
             $jawabanSiswa = Menjawab::where('siswa_id', $siswa->id)
                 ->whereIn('soal_id', $soalsOrdered->pluck('id'))
@@ -912,6 +916,7 @@ class TugasController extends Controller
 
         $soalsPayload = $soalsOrdered->map(function ($s) use ($pengumpulan, $jawabanSiswa) {
             $jwb = $jawabanSiswa->get($s->id);
+
             $item = [
                 'id'         => $s->id,
                 'urutan'     => $s->urutan,
@@ -920,13 +925,15 @@ class TugasController extends Controller
                 'pilihan'    => $s->pilihan,
                 'bobot'      => $s->bobot,
                 'gambar'     => $s->gambar,
-                'gambar_url' => $s->gambar ? asset('storage/' . $s->gambar) : null,
+                'gambar_url' => $s->gambar
+                    ? asset('storage/' . $s->gambar)
+                    : null,
             ];
 
             if ($pengumpulan) {
-                $item['kunci_jawaban']   = $s->kunci_jawaban;
+                $item['kunci_jawaban'] = $s->kunci_jawaban;
                 $item['jawaban_dipilih'] = $jwb?->jawaban_dipilih;
-                $item['benar']           = (bool) $jwb?->benar;
+                $item['benar'] = (bool) $jwb?->benar;
             }
 
             return $item;
@@ -939,52 +946,33 @@ class TugasController extends Controller
             'deadline'           => $tugas->deadline,
             'tipe'               => $tugas->tipe,
             'file_lampiran'      => $tugas->file_lampiran,
-            'file_url'           => $tugas->file_lampiran ? asset('storage/' . $tugas->file_lampiran) : null,
+            'file_url'           => $tugas->file_lampiran
+                ? asset('storage/' . $tugas->file_lampiran)
+                : null,
             'mapel'              => $tugas->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
             'guru'               => $tugas->pengampuKelas?->guruMapel?->guru?->nama,
-            'is_deadline_passed' => Carbon::parse($tugas->deadline)->isPast(),
+            'is_deadline_passed' => $tugas->deadline
+                ? Carbon::parse($tugas->deadline)->isPast()
+                : false,
             'soals'              => $soalsPayload,
+            'jawaban_siswa'      => $pengumpulan
+                ? $jawabanSiswa->map(function ($jawaban) {
+                    return [
+                        'soal_id' => $jawaban->soal_id,
+                        'jawaban_dipilih' => $jawaban->jawaban_dipilih,
+                    ];
+                })->values()
+                : [],
             'submission'         => $pengumpulan ? [
                 'id'               => $pengumpulan->id,
-                'file_jawaban_url' => $pengumpulan->file_jawaban ? asset('storage/' . $pengumpulan->file_jawaban) : null,
+                'file_jawaban_url' => $pengumpulan->file_jawaban
+                    ? asset('storage/' . $pengumpulan->file_jawaban)
+                    : null,
                 'nilai'            => $pengumpulan->nilai,
                 'status'           => $pengumpulan->status,
                 'submitted_at'     => $pengumpulan->created_at,
             ] : null,
-        ];
-
-        if ($tugas->tipe === 'pilihan_ganda') {
-            $soals = $tugas->soals()
-                ->orderBy('urutan')
-                ->get();
-
-            $data['soals'] = $soals->map(function ($soal) {
-                return [
-                    'id' => $soal->id,
-                    'urutan' => $soal->urutan,
-                    'pertanyaan' => $soal->pertanyaan,
-                    'gambar_url' => $soal->gambar
-                        ? asset('storage/' . $soal->gambar)
-                        : null,
-                    'pilihan' => $soal->pilihan ?? [],
-                    'bobot' => $soal->bobot,
-                ];
-            });
-
-            $data['jawaban_siswa'] = $pengumpulan
-                ? Menjawab::where('siswa_id', $siswa->id)
-                    ->whereIn('soal_id', $soals->pluck('id'))
-                    ->get(['soal_id', 'jawaban_dipilih'])
-                    ->map(function ($jawaban) {
-                        return [
-                            'soal_id' => $jawaban->soal_id,
-                            'jawaban_dipilih' => $jawaban->jawaban_dipilih,
-                        ];
-                    })
-                : [];
-        }
-
-        return $this->successResponse($data);
+        ]);
     }
 
     /**
@@ -1043,8 +1031,8 @@ class TugasController extends Controller
                 return $this->errorResponse('Soal tugas belum tersedia.', 422);
             }
 
-            $idSoal = $soals->pluck('id')->map(fn ($sid) => (string) $sid)->sort()->values()->all();
-            $idJawaban = collect(array_keys($jawaban))->map(fn ($sid) => (string) $sid)->sort()->values()->all();
+            $idSoal = $soals->pluck('id')->map(fn($sid) => (string) $sid)->sort()->values()->all();
+            $idJawaban = collect(array_keys($jawaban))->map(fn($sid) => (string) $sid)->sort()->values()->all();
 
             if ($idSoal !== $idJawaban) {
                 return $this->validationErrorResponse([
@@ -1094,6 +1082,14 @@ class TugasController extends Controller
                     'durasi'       => null,
                 ]);
             });
+
+            // Pastikan data pengumpulan berhasil dibuat.
+            if (!$pengumpulan instanceof Nilai) {
+                return $this->errorResponse(
+                    'Gagal menyimpan hasil pengumpulan tugas.',
+                    500
+                );
+            }
 
             $guruUser = $tugas->pengampuKelas?->guruMapel?->guru?->user;
             if ($guruUser) {

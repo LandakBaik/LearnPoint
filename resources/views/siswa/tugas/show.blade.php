@@ -79,6 +79,11 @@ $fileTerkirimExt = $fileTerkirim
                     ? \Carbon\Carbon::parse($tugas->deadline)->translatedFormat('d M Y, H:i')
                     : 'Tidak ditentukan' }}
                     </span>
+
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        <i class="fa-solid fa-file-arrow-up"></i>
+                        Upload
+                    </span>
                 </div>
 
                 <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-snug">
@@ -303,13 +308,12 @@ $fileTerkirimExt = $fileTerkirim
                 </div>
 
                 <div class="pt-2 flex justify-center">
-                    <button type="submit"
-                        id="btn-kirim-tugas"
-                        class="w-full sm:w-1/3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-xl shadow-lg shadow-indigo-200 transition active:scale-[0.98]">
-
-                        <i class="fa-solid fa-paper-plane mr-2"></i>
-                        Kirim Tugas
+                    <button
+                        type="submit"
+                        class="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-xl shadow-lg shadow-indigo-200 transition duration-200 active:scale-[0.98]">
+                        Kirim Jawaban
                     </button>
+
                 </div>
 
             </form>
