@@ -2065,6 +2065,38 @@ class UjianController extends Controller
     }
 
     /**
+     * Memastikan ujian milik kelas siswa (serta sesuai agama dan peserta khusus jika remidi/susulan).
+     */
+    private function authorizeUjianSiswaApi(Ujian $ujian, $siswa)
+    {
+        if (!$siswa) {
+            return $this->forbiddenResponse('Profil siswa tidak ditemukan.');
+        }
+
+        $ujian->loadMissing(['pengampuKelas.guruMapel.mapel']);
+
+        $kelas = $siswa->kelas ?? $siswa->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelasId = $kelas?->id;
+
+        if (!$kelasId || (int) $ujian->pengampuKelas?->kelas_id !== (int) $kelasId) {
+            return $this->forbiddenResponse('Anda tidak memiliki akses ke ujian kelas lain.');
+        }
+
+        $mapel = $ujian->pengampuKelas?->guruMapel?->mapel;
+        if ($mapel && method_exists($mapel, 'isAccessibleBySiswa') && !$mapel->isAccessibleBySiswa($siswa)) {
+            return $this->forbiddenResponse('Mata pelajaran ujian ini tidak sesuai dengan agama Anda.');
+        }
+
+        if (in_array($ujian->jenis_ujian, ['remidi', 'susulan']) && !empty($ujian->peserta_khusus)) {
+            if (!in_array((int) $siswa->id, array_map('intval', $ujian->peserta_khusus))) {
+                return $this->forbiddenResponse('Anda tidak terdaftar sebagai peserta pada ujian remidi/susulan ini.');
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * SISWA: Validasi Token Sesi & Jadwal Sesi sebelum membuka lembar soal ujian.
      */
     public function siswaValidasiToken(Request $request, Ujian $ujian)
@@ -2080,8 +2112,8 @@ class UjianController extends Controller
         }
 
         $siswa = $request->user()?->siswa;
-        if (!$siswa) {
-            return $this->forbiddenResponse('Profil siswa tidak ditemukan.');
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
         }
 
         $ujian->sinkronisasiStatus();
@@ -2156,8 +2188,8 @@ class UjianController extends Controller
     public function siswaKerjakan(Request $request, Ujian $ujian)
     {
         $siswa = $request->user()?->siswa;
-        if (!$siswa) {
-            return $this->forbiddenResponse('Profil siswa tidak ditemukan.');
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
         }
 
         $ujian->sinkronisasiStatus();
@@ -2275,8 +2307,8 @@ class UjianController extends Controller
         }
 
         $siswa = $request->user()?->siswa;
-        if (!$siswa) {
-            return $this->forbiddenResponse('Profil siswa tidak ditemukan.');
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
         }
 
         $soal = Soal::where('ujian_id', $ujian->id)->find($request->soal_id);
@@ -2327,6 +2359,11 @@ class UjianController extends Controller
      */
     public function siswaCekStatusSesi(Request $request, Ujian $ujian)
     {
+        $siswa = $request->user()?->siswa;
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
+        }
+
         if ($ujian->status === 'unpublished' || $ujian->status === 'draft') {
             return $this->successResponse([
                 'status'  => 'ditarik',
@@ -2334,7 +2371,7 @@ class UjianController extends Controller
             ]);
         }
 
-        $siswaId = $request->user()?->siswa?->id;
+        $siswaId = $siswa->id;
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
             ->first();
@@ -2360,7 +2397,12 @@ class UjianController extends Controller
      */
     public function siswaCatatPelanggaran(Request $request, Ujian $ujian)
     {
-        $siswaId = $request->user()?->siswa?->id;
+        $siswa = $request->user()?->siswa;
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
+        }
+
+        $siswaId = $siswa->id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
@@ -2401,7 +2443,12 @@ class UjianController extends Controller
             return $this->validationErrorResponse($validator->errors());
         }
 
-        $siswaId = $request->user()?->siswa?->id;
+        $siswa = $request->user()?->siswa;
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
+        }
+
+        $siswaId = $siswa->id;
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
             ->first();
@@ -2435,8 +2482,8 @@ class UjianController extends Controller
     public function siswaSubmit(Request $request, Ujian $ujian)
     {
         $siswa = $request->user()?->siswa;
-        if (!$siswa) {
-            return $this->forbiddenResponse('Profil siswa tidak ditemukan.');
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
         }
 
         $siswaId = $siswa->id;
@@ -2582,9 +2629,14 @@ class UjianController extends Controller
      */
     public function siswaHasil(Request $request, Ujian $ujian)
     {
+        $siswa = $request->user()?->siswa;
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
+        }
+
         $ujian->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru', 'pengampuKelas.kelas']);
 
-        $siswaId = $request->user()?->siswa?->id;
+        $siswaId = $siswa->id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)

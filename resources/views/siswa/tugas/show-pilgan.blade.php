@@ -144,8 +144,7 @@
 
                 </div>
 
-                <a href="{{ asset('storage/' . $tugas->file_lampiran) }}"
-                    download
+                <a href="{{ route('file.tugas', ['tugas' => $tugas->id, 'download' => 1]) }}"
                     class="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shrink-0">
 
                     <i class="fa-solid fa-download"></i>

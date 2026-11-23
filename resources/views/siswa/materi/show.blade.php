@@ -341,7 +341,7 @@
                         <!-- Status Badge & Action -->
                         <div class="flex items-center justify-between sm:justify-end gap-2.5 flex-wrap">
                             @if ($hasFile)
-                                <a href="{{ asset('storage/' . $materi->file_materi) }}" target="_blank"
+                                <a href="{{ route('file.materi', $materi->id) }}" target="_blank"
                                     rel="noopener noreferrer"
                                     class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-200 transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2"
@@ -353,7 +353,7 @@
                                     Baca Online
                                 </a>
 
-                                <a href="{{ asset('storage/' . $materi->file_materi) }}" download
+                                <a href="{{ route('file.materi', ['materi' => $materi->id, 'download' => 1]) }}"
                                     class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2"
                                         viewBox="0 0 24 24">

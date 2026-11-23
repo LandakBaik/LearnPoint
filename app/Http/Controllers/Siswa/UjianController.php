@@ -16,6 +16,43 @@ use Illuminate\Support\Facades\DB;
 class UjianController extends Controller
 {
     /**
+     * Memastikan ujian milik kelas siswa (serta sesuai agama dan daftar peserta khusus jika remidi/susulan).
+     */
+    private function authorizeUjianSiswa(Ujian $ujian, $siswa): void
+    {
+        abort_unless($siswa, 403, 'Profil siswa tidak ditemukan.');
+
+        $ujian->loadMissing(['pengampuKelas.guruMapel.mapel']);
+
+        $anggotaKelas = $siswa->anggotaKelases()?->latest()?->first();
+        $kelas = $siswa->kelas ?? $anggotaKelas?->kelas;
+        $kelasId = $kelas?->id;
+
+        abort_unless(
+            $kelasId && (int) $ujian->pengampuKelas?->kelas_id === (int) $kelasId,
+            403,
+            'Anda tidak memiliki akses ke ujian kelas lain.'
+        );
+
+        $mapel = $ujian->pengampuKelas?->guruMapel?->mapel;
+        if ($mapel && method_exists($mapel, 'isAccessibleBySiswa')) {
+            abort_unless(
+                $mapel->isAccessibleBySiswa($siswa),
+                403,
+                'Mata pelajaran ujian ini tidak sesuai dengan agama Anda.'
+            );
+        }
+
+        if (in_array($ujian->jenis_ujian, ['remidi', 'susulan']) && !empty($ujian->peserta_khusus)) {
+            abort_unless(
+                in_array((int) $siswa->id, array_map('intval', $ujian->peserta_khusus)),
+                403,
+                'Anda tidak terdaftar sebagai peserta pada ujian remidi/susulan ini.'
+            );
+        }
+    }
+
+    /**
      * Menampilkan daftar semua ujian untuk siswa.
      */
     public function index(Request $request)
@@ -85,9 +122,8 @@ class UjianController extends Controller
     {
         $user = Auth::user();
         $siswa = $user->siswa;
-        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
-
-        abort_unless($siswaId, 403, 'Profil siswa tidak ditemukan.');
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         // Sinkronisasi status jadwal jika method tersedia di Model Ujian
         if (method_exists($ujian, 'sinkronisasiStatus')) {
@@ -134,8 +170,8 @@ class UjianController extends Controller
     {
         $user = auth()->user();
         $siswa = $user->siswa;
-        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
-        abort_unless($siswaId, 403, 'Profil siswa tidak ditemukan.');
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         if ($ujian->status !== 'published') {
             return redirect()->route('siswa.dashboard')
@@ -176,8 +212,8 @@ class UjianController extends Controller
 
         $user = auth()->user();
         $siswa = $user->siswa;
-        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
-        abort_unless($siswaId, 403, 'Profil siswa tidak ditemukan.');
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         if ($ujian->status !== 'published') {
             return redirect()->route('siswa.dashboard')
@@ -264,8 +300,8 @@ class UjianController extends Controller
     {
         $user = auth()->user();
         $siswa = $user->siswa;
-        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
-        abort_unless($siswaId, 403, 'Profil siswa tidak ditemukan.');
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         if ($ujian->status !== 'published') {
             return redirect()->route('siswa.dashboard')
@@ -358,6 +394,9 @@ class UjianController extends Controller
      */
     public function cekStatusSesi(Ujian $ujian)
     {
+        $siswa = auth()->user()?->siswa;
+        $this->authorizeUjianSiswa($ujian, $siswa);
+
         if ($ujian->status === 'unpublished' || $ujian->status === 'draft') {
             return response()->json([
                 'status'       => 'ditarik',
@@ -366,7 +405,7 @@ class UjianController extends Controller
             ]);
         }
 
-        $siswaId = auth()->user()->siswa?->id ?? auth()->user()->siswa_id;
+        $siswaId = $siswa->id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
@@ -400,7 +439,8 @@ class UjianController extends Controller
 
         $user = Auth::user();
         $siswa = $user->siswa;
-        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         $soal = Soal::where('ujian_id', $ujian->id)->findOrFail($request->soal_id);
 
@@ -447,7 +487,9 @@ class UjianController extends Controller
      */
     public function catatPelanggaran(Request $request, Ujian $ujian)
     {
-        $siswaId = auth()->user()->siswa?->id ?? auth()->user()->siswa_id;
+        $siswa = auth()->user()?->siswa;
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
@@ -491,7 +533,9 @@ class UjianController extends Controller
 
         /** @var \App\Models\User $user */
         $user = auth()->user();
-        $siswaId = $user?->siswa?->id ?? $user?->siswa_id;
+        $siswa = $user?->siswa;
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
@@ -542,9 +586,8 @@ class UjianController extends Controller
     {
         $user = Auth::user();
         $siswa = $user->siswa;
-        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
-
-        abort_unless($siswaId, 403, 'Profil siswa tidak ditemukan.');
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
@@ -709,7 +752,9 @@ class UjianController extends Controller
      */
     public function hasil(Ujian $ujian)
     {
-        $siswaId = auth()->user()->siswa?->id ?? auth()->user()->siswa_id;
+        $siswa = auth()->user()?->siswa;
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)

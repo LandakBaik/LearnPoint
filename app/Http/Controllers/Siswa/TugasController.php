@@ -38,11 +38,16 @@ class TugasController extends Controller
                 ->get()
             : collect();
 
-        // Ambil pengumpulan masing-masing siswa
+        // Ambil pengumpulan masing-masing siswa dalam satu query (hindari N+1)
+        $pengumpulanMap = $daftarTugas->isNotEmpty()
+            ? Nilai::where('siswa_id', $siswa->id)
+                ->whereIn('tugas_id', $daftarTugas->pluck('id'))
+                ->get()
+                ->keyBy('tugas_id')
+            : collect();
+
         foreach ($daftarTugas as $tugas) {
-            $tugas->pengumpulanSiswa = Nilai::where('siswa_id', $siswa->id)
-                ->where('tugas_id', $tugas->id)
-                ->first();
+            $tugas->pengumpulanSiswa = $pengumpulanMap->get($tugas->id);
         }
 
         // Tampilkan hanya tugas yang belum dikumpulkan
@@ -356,9 +361,9 @@ class TugasController extends Controller
             return back()->with('error', 'Tugas sudah dinilai dan tidak dapat diubah lagi.');
         }
 
-        // Simpan file baru ke storage/app/public/jawaban_tugas
+        // Simpan file baru ke storage/app/private/jawaban_tugas (disk local)
         $file = $request->file('file_jawaban')
-            ->store('jawaban_tugas', 'public');
+            ->store('jawaban_tugas', 'local');
 
         // Simpan atau perbarui pengumpulan
         $pengumpulan = Nilai::updateOrCreate(
@@ -373,15 +378,14 @@ class TugasController extends Controller
             ]
         );
 
-        // Hapus file lama jika ada
+        // Hapus file lama jika ada (baik di disk local maupun legacy public)
         if (
             $pengumpulanLama &&
             $pengumpulanLama->file_jawaban &&
             $pengumpulanLama->file_jawaban !== $file
         ) {
-            Storage::disk('public')->delete(
-                $pengumpulanLama->file_jawaban
-            );
+            Storage::disk('local')->delete($pengumpulanLama->file_jawaban);
+            Storage::disk('public')->delete($pengumpulanLama->file_jawaban);
         }
 
         // Kirim notifikasi kepada guru

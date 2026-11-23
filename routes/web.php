@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 // Shared & Auth Controllers
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\ProfileController;
 
@@ -61,6 +62,11 @@ Route::middleware(['auth'])->group(function () {
 
     // Main Dashboard Router
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Berkas Privat Terautentikasi (Materi, Lampiran Tugas, Jawaban Siswa)
+    Route::get('/file/materi/{materi}', [FileController::class, 'materi'])->name('file.materi');
+    Route::get('/file/tugas/{tugas}', [FileController::class, 'tugas'])->name('file.tugas');
+    Route::get('/file/jawaban/{nilai}', [FileController::class, 'jawaban'])->name('file.jawaban');
 
     // ==========================================
     // Fitur Guru
