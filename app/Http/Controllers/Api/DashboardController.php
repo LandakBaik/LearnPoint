@@ -360,22 +360,30 @@ class DashboardController extends Controller
 
         $hasRealData = ($avgTugasReal !== null || $avgQuizReal !== null || $avgUjianReal !== null);
 
-        $rataRataTugas = $avgTugasReal !== null ? round((float)$avgTugasReal, 1) : 85.0;
-        $rataRataQuiz  = $avgQuizReal !== null ? round((float)$avgQuizReal, 1) : 90.0;
-        $rataRataUjian = $avgUjianReal !== null ? round((float)$avgUjianReal, 1) : 86.5;
-
-        $rataRataSemua = $hasRealData
-            ? round(($rataRataTugas + $rataRataQuiz + $rataRataUjian) / 3, 1)
-            : 87.2;
-
-        if ($rataRataSemua >= 90) {
-            $kategoriNilai = 'Sangat Baik';
-        } elseif ($rataRataSemua >= 80) {
-            $kategoriNilai = 'Baik';
-        } elseif ($rataRataSemua >= 70) {
-            $kategoriNilai = 'Cukup';
+        if (!$kelasId && !$hasRealData) {
+            $rataRataTugas = 0.0;
+            $rataRataQuiz  = 0.0;
+            $rataRataUjian = 0.0;
+            $rataRataSemua = 0.0;
+            $kategoriNilai = 'Belum Ada Data';
         } else {
-            $kategoriNilai = 'Perlu Bimbingan';
+            $rataRataTugas = $avgTugasReal !== null ? round((float)$avgTugasReal, 1) : 85.0;
+            $rataRataQuiz  = $avgQuizReal !== null ? round((float)$avgQuizReal, 1) : 90.0;
+            $rataRataUjian = $avgUjianReal !== null ? round((float)$avgUjianReal, 1) : 86.5;
+
+            $rataRataSemua = $hasRealData
+                ? round(($rataRataTugas + $rataRataQuiz + $rataRataUjian) / 3, 1)
+                : 87.2;
+
+            if ($rataRataSemua >= 90) {
+                $kategoriNilai = 'Sangat Baik';
+            } elseif ($rataRataSemua >= 80) {
+                $kategoriNilai = 'Baik';
+            } elseif ($rataRataSemua >= 70) {
+                $kategoriNilai = 'Cukup';
+            } else {
+                $kategoriNilai = 'Perlu Bimbingan';
+            }
         }
 
         $donutDegree = (int) round(($rataRataSemua / 100) * 360);

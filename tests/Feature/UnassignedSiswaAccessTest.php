@@ -154,5 +154,22 @@ class UnassignedSiswaAccessTest extends TestCase
         $this->actingAs($user)
             ->get(route('siswa.ujian.show', $ujian->id))
             ->assertForbidden();
+
+        // 6. API Siswa: pastikan endpoint API juga konsisten saat siswa belum ditempatkan di kelas
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/siswa/dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.kelas', null)
+            ->assertJsonPath('data.statistics.total_mapel', 0)
+            ->assertJsonPath('data.evaluasi.rata_rata_semua', 0)
+            ->assertJsonPath('data.evaluasi.kategori_nilai', 'Belum Ada Data')
+            ->assertJsonPath('data.evaluasi.nilai_mapel', []);
+
+        $this->actingAs($user, 'sanctum')->getJson('/api/siswa/mapel')->assertNotFound();
+        $this->actingAs($user, 'sanctum')->getJson('/api/siswa/mapel/' . $mapel->id)->assertNotFound();
+        $this->actingAs($user, 'sanctum')->getJson('/api/siswa/tugas')->assertNotFound();
+        $this->actingAs($user, 'sanctum')->getJson('/api/siswa/kuis')->assertNotFound();
+        $this->actingAs($user, 'sanctum')->getJson('/api/siswa/ujian')->assertNotFound();
+        $this->actingAs($user, 'sanctum')->getJson('/api/siswa/jadwal')->assertNotFound();
     }
 }

@@ -2075,7 +2075,7 @@ class UjianController extends Controller
 
         $ujian->loadMissing(['pengampuKelas.guruMapel.mapel']);
 
-        $kelas = $siswa->kelas ?? $siswa->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelas = $siswa->kelas;
         $kelasId = $kelas?->id;
 
         if (!$kelasId || (int) $ujian->pengampuKelas?->kelas_id !== (int) $kelasId) {

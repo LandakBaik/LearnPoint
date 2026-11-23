@@ -597,6 +597,11 @@ class MateriController extends Controller
             return $this->forbiddenResponse('Mata pelajaran ini tidak sesuai dengan agama Anda.');
         }
 
+        $hasMapelInKelas = $mapel->pengampuKelases()->where('kelas_id', $kelasId)->exists();
+        if (!$hasMapelInKelas) {
+            return $this->forbiddenResponse('Mata pelajaran ini tidak tersedia untuk kelas Anda.');
+        }
+
         $materis = Materi::with(['pengampuKelas.guruMapel.guru'])
             ->whereHas('pengampuKelas', function ($q) use ($kelasId, $mapelId) {
                 $q->where('kelas_id', $kelasId)
