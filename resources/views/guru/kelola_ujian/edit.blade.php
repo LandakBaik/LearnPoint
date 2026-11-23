@@ -304,6 +304,113 @@
                     @enderror
                 </div>
 
+                {{-- PEMBAGIAN SESI & KODE MASUK (TOKEN) --}}
+                <div class="md:col-span-2">
+                    <div x-show="kelasDipilih.length === 0 || !waktuMulai"
+                        class="p-4 rounded-2xl bg-slate-50 border border-dashed border-slate-300 text-xs text-slate-500 flex items-center gap-2.5">
+                        <span class="text-base">🔑</span>
+                        <span>
+                            Isi <strong>Waktu Mulai</strong> dan pilih minimal 1 kelas untuk mengatur <strong>Sesi Ujian</strong> dan menampilkan <strong>Kode Masuk (Token)</strong> masing-masing sesi.
+                        </span>
+                    </div>
+
+                    <div x-show="kelasDipilih.length > 0 && waktuMulai" x-cloak
+                        class="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-5 space-y-5">
+
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-indigo-100">
+                            <div>
+                                <h3 class="text-sm font-extrabold text-indigo-950 flex items-center gap-2">
+                                    <span>🔑</span> Pembagian Sesi Kelas & Kode Masuk (Token)
+                                </h3>
+                                <p class="text-xs text-indigo-700/80 mt-0.5">
+                                    Setiap sesi memiliki kode masuk unik yang dapat langsung dibagikan atau diacak ulang.
+                                </p>
+                            </div>
+                            <span class="text-xs font-bold px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 self-start sm:self-auto"
+                                x-text="ringkasanSesiAktif.length + ' Sesi Aktif'"></span>
+                        </div>
+
+                        <div class="space-y-2.5">
+                            <p class="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                1. Tentukan Sesi Masing-Masing Kelas
+                            </p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                <template x-for="kelas in detailKelasDipilih" :key="kelas.pengampu_kelas_id">
+                                    <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-white border border-indigo-100 shadow-2xs">
+                                        <span class="text-sm font-bold text-gray-800 truncate"
+                                            x-text="'Kelas ' + kelas.nama_kelas"></span>
+
+                                        <select :name="`sesi_kelas[${kelas.pengampu_kelas_id}]`" form="form-edit-ujian"
+                                            x-model.number="sesiKelas[String(kelas.pengampu_kelas_id)]"
+                                            {{ $onlyBobot ? 'disabled' : '' }}
+                                            @change="pastikanTokenSesi($event.target.value); sinkronkanJamSesi();"
+                                            class="px-3 py-1.5 rounded-lg border border-indigo-200 text-xs font-bold text-indigo-700 bg-indigo-50/60 focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                                            <option value="1">Sesi 1</option>
+                                            <option value="2">Sesi 2</option>
+                                            <option value="3">Sesi 3</option>
+                                            <option value="4">Sesi 4</option>
+                                            <option value="5">Sesi 5</option>
+                                        </select>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2.5 pt-2 border-t border-indigo-100">
+                            <p class="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                2. Kode Masuk & Jadwal per Sesi
+                            </p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                                <template x-for="item in ringkasanSesiAktif" :key="item.sesi">
+                                    <div class="rounded-xl bg-white border border-indigo-200/80 p-4 space-y-3 shadow-2xs">
+                                        <div class="flex items-start justify-between gap-2">
+                                            <div>
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold bg-indigo-600 text-white">
+                                                    SESI <span class="ml-1" x-text="item.sesi"></span>
+                                                </span>
+                                                <p class="text-xs font-semibold text-gray-700 mt-1.5">
+                                                    Kelas: <span class="text-indigo-700 font-bold" x-text="item.kelasList.join(', ')"></span>
+                                                </p>
+                                            </div>
+
+                                            <div class="text-right">
+                                                <span class="block text-[10px] font-bold uppercase text-gray-400">Kode Masuk</span>
+                                                <span class="inline-block mt-0.5 font-mono text-base font-black tracking-widest text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg select-all"
+                                                    x-text="tokenSesi[item.sesi]"></span>
+                                                <input type="hidden" form="form-edit-ujian"
+                                                    :name="`token_sesi[${item.sesi}]`" :value="tokenSesi[item.sesi]">
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
+                                            <label class="text-[11px] font-semibold text-gray-600">Jam Mulai:</label>
+                                            <input type="time" form="form-edit-ujian"
+                                                :name="`jam_sesi[${item.sesi}]`"
+                                                x-model="jamSesi[item.sesi]"
+                                                {{ $onlyBobot ? 'readonly' : '' }}
+                                                class="text-xs font-mono font-bold text-gray-800 border border-gray-300 rounded-lg px-2 py-1 focus:border-indigo-500">
+                                        </div>
+
+                                        @if (!$onlyBobot)
+                                            <div class="flex items-center gap-2">
+                                                <button type="button" @click="salinKode(tokenSesi[item.sesi])"
+                                                    class="flex-1 py-1.5 px-2 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-lg text-[11px] font-bold transition cursor-pointer">
+                                                    📋 Salin Kode
+                                                </button>
+                                                <button type="button" @click="acakTokenSesi(item.sesi)"
+                                                    class="flex-1 py-1.5 px-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[11px] font-bold transition cursor-pointer">
+                                                    🔄 Acak Kode
+                                                </button>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
                 {{-- KISI-KISI --}}
                 <div class="md:col-span-2">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -487,7 +594,9 @@
                                 <select :name="`soals[${index}][kesulitan]`" form="form-edit-ujian"
                                     x-model.number="question.kesulitan" @change="hitungBobotOtomatis()"
                                     class="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm bg-white focus:ring-2 focus:ring-teal-500 cursor-pointer font-semibold">
-                                    <option value="0">Tidak Valid / Dianulir (Poin: 0)</option>
+                                    @if ($onlyBobot)
+                                        <option value="0">Tidak Valid / Dianulir (Poin: 0)</option>
+                                    @endif
                                     <option value="1">Mudah (Poin: 1)</option>
                                     <option value="2">Menengah (Poin: 2)</option>
                                     <option value="3">Sulit (Poin: 3)</option>
@@ -749,6 +858,88 @@
                 selectedTingkatan: '',
                 kelasDipilih: @js(array_map('strval', (array) old('pengampu_kelas_id', $grupUjians->pluck('pengampu_kelas_id')->toArray()))),
 
+                // State Jadwal, Sesi & Kode Masuk
+                waktuMulai: @js(old('waktu_mulai', $ujian->waktu_mulai?->format('Y-m-d\TH:i') ?? '')),
+                durasiMenit: @js((int) old('durasi_menit', $ujian->durasi_menit ?? 60)),
+                sesiKelas: @js(old('sesi_kelas', $sesiKelasAwal ?? [])),
+                tokenSesi: @js(old('token_sesi', $tokenSesiAwal ?? [])),
+                jamSesi: @js(old('jam_sesi', $jamSesiAwal ?? [])),
+
+                get detailKelasDipilih() {
+                    return this.kelasTerlihat.filter(k =>
+                        this.kelasDipilih.includes(String(k.pengampu_kelas_id))
+                    );
+                },
+
+                get ringkasanSesiAktif() {
+                    const mapSesi = {};
+                    this.detailKelasDipilih.forEach(k => {
+                        const idStr = String(k.pengampu_kelas_id);
+                        const noSesi = Number(this.sesiKelas[idStr] || 1);
+                        if (!mapSesi[noSesi]) {
+                            mapSesi[noSesi] = { sesi: noSesi, kelasList: [] };
+                        }
+                        mapSesi[noSesi].kelasList.push(k.nama_kelas);
+                    });
+
+                    return Object.values(mapSesi).sort((a, b) => a.sesi - b.sesi);
+                },
+
+                buatKodeAcak(nomorSesi) {
+                    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                    let rnd = '';
+                    for (let i = 0; i < 4; i++) {
+                        rnd += chars.charAt(Math.floor(Math.random() * chars.length));
+                    }
+                    return `S${nomorSesi}-${rnd}`;
+                },
+
+                pastikanTokenSesi(nomorSesi) {
+                    const s = Number(nomorSesi || 1);
+                    if (!this.tokenSesi[s]) {
+                        this.tokenSesi[s] = this.buatKodeAcak(s);
+                    }
+                },
+
+                acakTokenSesi(nomorSesi) {
+                    if (this.onlyBobot) return;
+                    this.tokenSesi[nomorSesi] = this.buatKodeAcak(nomorSesi);
+                },
+
+                salinKode(kode) {
+                    navigator.clipboard.writeText(kode);
+                    alert('Kode masuk ' + kode + ' berhasil disalin!');
+                },
+
+                sinkronkanSesiKelas() {
+                    this.kelasDipilih.forEach(id => {
+                        const key = String(id);
+                        if (!this.sesiKelas[key]) {
+                            this.sesiKelas[key] = 1;
+                        }
+                        this.pastikanTokenSesi(this.sesiKelas[key]);
+                    });
+                    this.sinkronkanJamSesi(false);
+                },
+
+                sinkronkanJamSesi(timpaManual = true) {
+                    if (!this.waktuMulai) return;
+                    const baseDate = new Date(this.waktuMulai);
+                    if (isNaN(baseDate.getTime())) return;
+
+                    const durasi = Math.max(1, Number(this.durasiMenit) || 60);
+
+                    this.ringkasanSesiAktif.forEach(item => {
+                        this.pastikanTokenSesi(item.sesi);
+                        if (timpaManual || !this.jamSesi[item.sesi]) {
+                            const d = new Date(baseDate.getTime() + (item.sesi - 1) * durasi * 60000);
+                            const hh = String(d.getHours()).padStart(2, '0');
+                            const mm = String(d.getMinutes()).padStart(2, '0');
+                            this.jamSesi[item.sesi] = `${hh}:${mm}`;
+                        }
+                    });
+                },
+
                 activeQuestion: 0,
                 questions: @js($soalData ?? []),
 
@@ -780,7 +971,7 @@
                 },
 
                 init() {
-                    // 1. Inisialisasi format soal, gambar & kesulitan (mendukung nilai 0 = Tidak Valid)
+                    // 1. Inisialisasi format soal, gambar & kesulitan (mendukung nilai 0 = Tidak Valid saat onlyBobot)
                     this.questions = this.questions.map((q, idx) => {
                         const rawKesulitan = (q.kesulitan !== undefined && q.kesulitan !== null && q.kesulitan !== '')
                             ? Number(q.kesulitan)
@@ -802,7 +993,7 @@
                             error_gambar: '',
                             is_new_image: false,
                             hapus_gambar: false,
-                            kesulitan: rawKesulitan,
+                            kesulitan: this.onlyBobot ? rawKesulitan : Math.max(1, rawKesulitan),
                             bobot: q.bobot !== undefined && q.bobot !== null ? Number(q.bobot) : 1,
                         };
                     });
@@ -826,6 +1017,9 @@
                             }
                         }
                     }
+
+                    // 3. Sinkronisasi sesi, token & jam sesi awal
+                    this.sinkronkanSesiKelas();
                 },
 
                 // =========================================================

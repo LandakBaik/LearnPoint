@@ -651,10 +651,12 @@ class MateriController extends Controller
                 ];
             });
 
-        // Ujian pada mapel ini (filter peserta_khusus untuk remidi/susulan)
+        // Ujian pada mapel ini (selaras dengan UjianController@siswaIndex)
         $siswaId = $siswa?->id;
         $ujians = \App\Models\Ujian::with([
             'pengampuKelas.guruMapel.guru',
+            'pengampuKelas.guruMapel.mapel',
+            'pengampuKelas.kelas',
             'seleksiUjians' => function ($q) use ($siswaId) {
                 if ($siswaId) {
                     $q->where('siswa_id', $siswaId);
@@ -662,39 +664,57 @@ class MateriController extends Controller
             },
             'seleksiUjians.nilais',
         ])
+            ->withCount('soals')
             ->whereIn('status', ['scheduled', 'published', 'completed'])
-            ->where(function ($query) use ($siswaId) {
-                $query->where(function ($q) {
-                    $q->where('jenis_ujian', 'reguler')->orWhereNull('jenis_ujian');
-                });
-                if ($siswaId) {
-                    $query->orWhere(function ($q) use ($siswaId) {
-                        $q->whereIn('jenis_ujian', ['remidi', 'susulan'])
-                          ->whereJsonContains('peserta_khusus', (int) $siswaId);
-                    });
-                }
-            })
             ->whereHas('pengampuKelas', function ($q) use ($kelasId, $mapelId) {
                 $q->where('kelas_id', $kelasId)
                   ->whereHas('guruMapel', fn ($gq) => $gq->where('mapel_id', $mapelId));
             })
-            ->latest('deadline')
+            ->latest('waktu_mulai')
             ->get()
-            ->map(function ($u) {
+            ->filter(function ($u) use ($siswaId) {
+                $pesertaKhusus = is_array($u->peserta_khusus)
+                    ? array_map('intval', $u->peserta_khusus)
+                    : [];
+
+                if (in_array($u->jenis_ujian, ['remidi', 'susulan'], true) || !empty($pesertaKhusus)) {
+                    return $siswaId && in_array((int) $siswaId, $pesertaKhusus, true);
+                }
+
+                return true;
+            })
+            ->values()
+            ->map(function ($u) use ($mapel, $kelas) {
+                $u->sinkronisasiStatus();
                 $sesi = $u->seleksiUjians->first();
                 $nilai = $sesi?->nilais?->first();
+                $sudahDikerjakan = $nilai !== null || ($sesi && $sesi->status === 'selesai');
+                $skorTampil = $nilai?->nilai ?? ($sesi && $sesi->status === 'selesai' ? $sesi->nilai_akhir : null);
+
                 return [
                     'id' => $u->id,
                     'judul' => $u->judul,
+                    'kisi_kisi' => $u->kisi_kisi,
                     'jenis_ujian' => $u->jenis_ujian ?? 'reguler',
+                    'durasi_menit' => (int) ($u->durasi_menit ?? 60),
+                    'total_soal' => (int) ($u->soals_count ?? 0),
+                    'kkm' => (float) ($u->kkm ?? 75),
+                    'tampilkan_nilai' => (bool) $u->tampilkan_nilai,
+                    'sesi' => (int) ($u->sesi ?? 1),
                     'status' => $u->status,
-                    'durasi_menit' => $u->durasi_menit,
-                    'kkm' => $u->kkm,
-                    'waktu_mulai' => $u->waktu_mulai,
-                    'deadline' => $u->deadline,
+                    'status_label' => $u->status_label,
+                    'waktu_mulai' => $u->waktu_mulai?->toIso8601String(),
+                    'waktu_mulai_sesi' => $u->waktu_mulai_sesi?->toIso8601String(),
+                    'deadline' => $u->deadline?->toIso8601String(),
+                    'mapel' => $u->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? $mapel->nama_mapel,
+                    'kelas' => $u->pengampuKelas?->kelas?->nama_kelas ?? $kelas?->nama_kelas,
                     'guru' => $u->pengampuKelas?->guruMapel?->guru?->nama,
-                    'sudah_dikerjakan' => $nilai !== null || ($sesi && $sesi->status === 'selesai'),
-                    'nilai' => $nilai?->nilai ?? $sesi?->nilai_akhir,
+                    'sudah_mulai' => $sesi !== null,
+                    'sudah_dikerjakan' => $sudahDikerjakan,
+                    'status_sesi' => $sesi?->status,
+                    'waktu_selesai' => $sesi?->waktu_selesai,
+                    'nilai' => $u->tampilkan_nilai ? $skorTampil : null,
+                    'nilai_siswa' => $u->tampilkan_nilai ? $skorTampil : null,
                 ];
             });
 
