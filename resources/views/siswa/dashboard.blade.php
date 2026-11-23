@@ -53,7 +53,7 @@
                     <svg class="w-4 h-4 {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-300' : 'text-[#2563EB]' }}" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 3L1 9L12 15L21 10.09V17H23V9M5 13.18V17.18C5 19.94 8.13 22 12 22C15.87 22 19 19.94 19 17.18V13.18L12 17L5 13.18Z"></path>
                     </svg>
-                    <span>Kelas: <strong class="font-bold {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-200' : 'text-[#2563EB]' }}">{{ $kelas->nama_kelas ?? ($siswa?->anggotaKelases?->first()?->kelas?->nama_kelas ?? 'Belum Ditentukan') }}</strong></span>
+                    <span>Kelas: <strong class="font-bold {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-200' : 'text-[#2563EB]' }}">{{ $kelas->nama_kelas ?? 'Belum Ditempatkan' }}</strong></span>
                 </div>
 
                 <!-- Generation & Academic Period Meta -->
@@ -219,6 +219,8 @@
     </div>
     <!-- END: WelcomeBanner -->
 
+    @include('siswa.partials.unassigned-kelas-banner', ['kelas' => $kelas])
+
     <!-- BEGIN: QuickAccessSection -->
     <section class="grid grid-cols-1 md:grid-cols-2 gap-5" data-purpose="quick-access">
         <!-- Tugas Terbaru Card -->
@@ -291,7 +293,7 @@
                             <p class="text-xs text-slate-400 mt-0.5">Lanjutkan materi yang terakhir kamu akses.</p>
                         </div>
                     </div>
-                    <a class="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 transition" href="{{ route('siswa.materi') }}">
+                    <a class="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 transition" href="{{ route('siswa.mapel') }}">
                         Lihat Semua
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                             <path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -304,7 +306,7 @@
                         $materiMapelId = $materiTerbaru->pengampuKelas?->guruMapel?->mapel_id ?? $materiTerbaru->id;
                     @endphp
                     <!-- Nested Lesson Item -->
-                    <a class="group flex items-center justify-between p-3.5 rounded-xl border border-slate-100 bg-[#FBFDFF] hover:bg-slate-50 transition" href="{{ route('siswa.materi.show', $materiMapelId) }}">
+                    <a class="group flex items-center justify-between p-3.5 rounded-xl border border-slate-100 bg-[#FBFDFF] hover:bg-slate-50 transition" href="{{ route('siswa.mapel.show', $materiMapelId) }}">
                         <div class="flex items-center gap-3.5">
                             <div class="w-10 h-10 rounded-xl bg-indigo-500 text-white flex items-center justify-center shrink-0">
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -482,7 +484,7 @@
 
                 <article class="{{ $theme['card_bg'] }} border {{ $theme['card_border'] }} rounded-[22px] p-5 flex flex-col justify-between hover:shadow-md transition">
                     <!-- Subject Header Link -->
-                    <a class="flex items-center justify-between mb-5 group" href="{{ route('siswa.materi.show', $mapel->id) }}">
+                    <a class="flex items-center justify-between mb-5 group" href="{{ route('siswa.mapel.show', $mapel->id) }}">
                         <div class="flex items-center gap-3.5">
                             <div class="w-12 h-12 rounded-2xl {{ $theme['badge_bg'] }} text-white flex items-center justify-center font-bold text-sm tracking-wider shadow-sm shrink-0">
                                 @if($theme['icon_type'] === 'math')
@@ -521,7 +523,7 @@
                     <!-- Action Pills -->
                     <div class="grid grid-cols-3 gap-2">
                         <!-- Materi Pill -->
-                        <a href="{{ route('siswa.materi.show', ['id' => $mapel->id, 'tab' => 'materi']) }}"
+                        <a href="{{ route('siswa.mapel.show', ['id' => $mapel->id, 'tab' => 'materi']) }}"
                            class="bg-white/80 hover:bg-white rounded-xl py-3 px-2 border border-slate-100 flex items-center justify-between text-slate-600 text-xs font-semibold shadow-2xs hover:text-blue-600 transition">
                             <span class="flex items-center gap-1.5 truncate">
                                 <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -533,7 +535,7 @@
                         </a>
 
                         <!-- Tugas Pill -->
-                        <a href="{{ route('siswa.materi.show', ['id' => $mapel->id, 'tab' => 'tugas']) }}"
+                        <a href="{{ route('siswa.mapel.show', ['id' => $mapel->id, 'tab' => 'tugas']) }}"
                            class="bg-white/80 hover:bg-white rounded-xl py-3 px-2 border border-slate-100 flex items-center justify-between text-slate-600 text-xs font-semibold shadow-2xs hover:text-blue-600 transition">
                             <span class="flex items-center gap-1.5 truncate">
                                 <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -545,7 +547,7 @@
                         </a>
 
                         <!-- Ujian Pill -->
-                        <a href="{{ route('siswa.materi.show', ['id' => $mapel->id, 'tab' => 'ujian']) }}"
+                        <a href="{{ route('siswa.mapel.show', ['id' => $mapel->id, 'tab' => 'ujian']) }}"
                            class="bg-white/80 hover:bg-white rounded-xl py-3 px-2 border border-slate-100 flex items-center justify-between text-slate-600 text-xs font-semibold shadow-2xs hover:text-blue-600 transition">
                             <span class="flex items-center gap-1.5 truncate">
                                 <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -766,7 +768,7 @@
                 <div class="divide-y divide-slate-50 mt-1">
                     @foreach($listNilaiMapel as $mapelNilai)
                         @if(!empty($mapelNilai['id']))
-                            <a href="{{ route('siswa.materi.show', $mapelNilai['id']) }}" class="py-3 flex items-center justify-between hover:bg-slate-50 rounded-xl px-2.5 -mx-2.5 transition-colors group">
+                            <a href="{{ route('siswa.mapel.show', $mapelNilai['id']) }}" class="py-3 flex items-center justify-between hover:bg-slate-50 rounded-xl px-2.5 -mx-2.5 transition-colors group">
                         @else
                             <div class="py-3 flex items-center justify-between hover:bg-slate-50 rounded-xl px-2.5 -mx-2.5 transition-colors cursor-pointer group">
                         @endif

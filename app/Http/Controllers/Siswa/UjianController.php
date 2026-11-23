@@ -24,8 +24,7 @@ class UjianController extends Controller
 
         $ujian->loadMissing(['pengampuKelas.guruMapel.mapel']);
 
-        $anggotaKelas = $siswa->anggotaKelases()?->latest()?->first();
-        $kelas = $siswa->kelas ?? $anggotaKelas?->kelas;
+        $kelas = $siswa->kelas;
         $kelasId = $kelas?->id;
 
         abort_unless(
@@ -59,47 +58,47 @@ class UjianController extends Controller
     {
         $user = Auth::user();
         $siswa = $user->siswa;
-        $anggotaKelas = $siswa?->anggotaKelases()?->latest()?->first();
-        $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;
+        $kelas = $siswa?->kelas;
         $kelasId = $kelas?->id;
 
-        // Ambil ujian yang ditujukan untuk kelas siswa
-        $query = Ujian::with([
-            'pengampuKelas.guruMapel.guru',
-            'pengampuKelas.guruMapel.mapel',
-            'pengampuKelas.kelas',
-            'seleksiUjians' => function ($q) use ($siswa) {
-                if ($siswa) {
-                    $q->where('siswa_id', $siswa->id);
-                }
-            },
-            'seleksiUjians.nilais'
-        ])
-            ->whereIn('status', ['scheduled', 'published', 'completed']);
+        if (!$kelasId) {
+            $ujians = collect();
+        } else {
+            // Ambil ujian yang ditujukan untuk kelas siswa
+            $query = Ujian::with([
+                'pengampuKelas.guruMapel.guru',
+                'pengampuKelas.guruMapel.mapel',
+                'pengampuKelas.kelas',
+                'seleksiUjians' => function ($q) use ($siswa) {
+                    if ($siswa) {
+                        $q->where('siswa_id', $siswa->id);
+                    }
+                },
+                'seleksiUjians.nilais'
+            ])
+                ->whereIn('status', ['scheduled', 'published', 'completed']);
 
-        $query->whereHas('pengampuKelas', function ($q) use ($kelasId, $siswa) {
-            $q->forSiswa($siswa);
-            if ($kelasId) {
-                $q->where('kelas_id', $kelasId);
-            }
-        });
+            $query->whereHas('pengampuKelas', function ($q) use ($kelasId, $siswa) {
+                $q->forSiswa($siswa)->where('kelas_id', $kelasId);
+            });
 
-        $ujians = $query->latest('waktu_mulai')->get()
-         ->filter(function ($ujian) use ($siswa) {
-             if (in_array($ujian->jenis_ujian, ['remidi', 'susulan']) && !empty($ujian->peserta_khusus)) {
-                 return $siswa && in_array((int) $siswa->id, array_map('intval', $ujian->peserta_khusus));
-             }
-             return true;
-         })
-         ->values()
-         ->map(function ($ujian) {
-             $sesi = $ujian->seleksiUjians->first();
-             $nilai = $sesi?->nilais?->first();
+            $ujians = $query->latest('waktu_mulai')->get()
+             ->filter(function ($ujian) use ($siswa) {
+                 if (in_array($ujian->jenis_ujian, ['remidi', 'susulan']) && !empty($ujian->peserta_khusus)) {
+                     return $siswa && in_array((int) $siswa->id, array_map('intval', $ujian->peserta_khusus));
+                 }
+                 return true;
+             })
+             ->values()
+             ->map(function ($ujian) {
+                 $sesi = $ujian->seleksiUjians->first();
+                 $nilai = $sesi?->nilais?->first();
 
-             $ujian->sudah_dikerjakan = $nilai !== null;
-             $ujian->nilai_siswa = $nilai?->nilai;
-             return $ujian;
-         });
+                 $ujian->sudah_dikerjakan = $nilai !== null;
+                 $ujian->nilai_siswa = $nilai?->nilai;
+                 return $ujian;
+             });
+        }
 
         // Hitung statistik ringkas untuk header tab
         $totalUjian = $ujians->count();

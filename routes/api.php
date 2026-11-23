@@ -150,9 +150,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Jadwal Kelas Siswa
         Route::get('/jadwal', [JadwalController::class, 'siswaIndex']);
 
-        // Materi Pembelajaran Siswa
-        Route::get('/materi', [MateriController::class, 'siswaIndex']);
-        Route::get('/materi/{mapelId}', [MateriController::class, 'siswaShow']);
+        // Mata Pelajaran & Materi Pembelajaran Siswa
+        Route::get('/mapel', [MateriController::class, 'siswaIndex']);
+        Route::get('/mapel/{mapelId}', [MateriController::class, 'siswaShow']);
 
         // Tugas Siswa
         Route::get('/tugas', [TugasController::class, 'siswaIndex']);

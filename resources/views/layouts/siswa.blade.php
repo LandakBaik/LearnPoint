@@ -100,8 +100,7 @@
                     $firstName = explode(' ', trim($fullName))[0] ?? 'Siswa';
                     $namaKelas = null;
                     try {
-                        $namaKelas = $siswaUser?->kelas?->nama_kelas
-                            ?? $siswaUser?->anggotaKelases()?->latest()?->first()?->kelas?->nama_kelas;
+                        $namaKelas = $siswaUser?->kelas?->nama_kelas;
                     } catch (\Throwable $e) {
                         $namaKelas = null;
                     }

@@ -809,8 +809,7 @@ class TugasController extends Controller
     {
         $siswa = $request->user()?->siswa;
 
-        $kelas = $siswa?->kelas
-            ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelas = $siswa?->kelas;
 
         $kelasId = $kelas?->id;
 
@@ -874,8 +873,7 @@ class TugasController extends Controller
     {
         $siswa = $request->user()?->siswa;
 
-        $kelas = $siswa?->kelas
-            ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelas = $siswa?->kelas;
 
         $kelasId = $kelas?->id;
 
@@ -982,8 +980,7 @@ class TugasController extends Controller
     {
         $siswa = $request->user()?->siswa;
 
-        $kelas = $siswa?->kelas
-            ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelas = $siswa?->kelas;
 
         $kelasId = $kelas?->id;
 

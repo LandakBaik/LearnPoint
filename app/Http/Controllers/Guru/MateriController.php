@@ -288,7 +288,7 @@ class MateriController extends Controller
             if ($pk) {
                 $mapelId = $pk->guruMapel?->mapel_id;
                 $mapelNama = $pk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
-                $targetUrl = $mapelId ? route('siswa.materi.show', $mapelId) : route('siswa.materi');
+                $targetUrl = $mapelId ? route('siswa.mapel.show', $mapelId) : route('siswa.mapel');
                 Notifikasi::kirimKeKelas(
                     $pk->kelas_id,
                     "Materi Baru: {$judul}",
@@ -510,7 +510,7 @@ class MateriController extends Controller
             if ($pk) {
                 $mapelId = $pk->guruMapel?->mapel_id;
                 $mapelNama = $pk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
-                $targetUrl = $mapelId ? route('siswa.materi.show', $mapelId) : route('siswa.materi');
+                $targetUrl = $mapelId ? route('siswa.mapel.show', $mapelId) : route('siswa.mapel');
                 Notifikasi::kirimKeKelas(
                     $pk->kelas_id,
                     "Materi Baru: {$judul}",

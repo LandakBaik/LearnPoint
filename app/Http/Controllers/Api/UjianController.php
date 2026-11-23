@@ -1913,7 +1913,7 @@ class UjianController extends Controller
     public function siswaIndex(Request $request)
     {
         $siswa = $request->user()?->siswa;
-        $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelas = $siswa?->kelas;
         $kelasId = $kelas?->id;
 
         if (!$kelasId) {
@@ -1987,7 +1987,7 @@ class UjianController extends Controller
     public function siswaShow(Request $request, Ujian $ujian)
     {
         $siswa = $request->user()?->siswa;
-        $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelas = $siswa?->kelas;
         $kelasId = $kelas?->id;
 
         if (!$kelasId || $ujian->pengampuKelas?->kelas_id !== $kelasId) {

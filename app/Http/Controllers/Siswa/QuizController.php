@@ -33,32 +33,36 @@ class QuizController extends Controller
         $kelas = $this->quizService->getSiswaPrimaryKelas($siswa);
         $kelasIds = $this->quizService->getSiswaKelasIds($siswa);
 
-        $query = Quiz::where('status', 'published')
-            ->with([
-                'pengampuKelas.guruMapel.mapel',
-                'pengampuKelas.guruMapel.guru',
-                'pengampuKelas.kelas',
-                'nilais' => function ($q) use ($siswa) {
-                    if ($siswa) {
-                        $q->where('siswa_id', $siswa->id);
-                    }
-                },
-                'soals',
-            ])
-            ->withCount('soals')
-            ->latest();
+        if (empty($kelasIds)) {
+            $allQuizzes = collect();
+            $planets = collect();
+        } else {
+            $query = Quiz::where('status', 'published')
+                ->with([
+                    'pengampuKelas.guruMapel.mapel',
+                    'pengampuKelas.guruMapel.guru',
+                    'pengampuKelas.kelas',
+                    'nilais' => function ($q) use ($siswa) {
+                        if ($siswa) {
+                            $q->where('siswa_id', $siswa->id);
+                        }
+                    },
+                    'soals',
+                ])
+                ->withCount('soals')
+                ->latest();
 
-        $query->whereHas('pengampuKelas', function ($q) use ($kelasIds, $siswa) {
-            $q->forSiswa($siswa);
-            if (!empty($kelasIds)) {
-                $q->whereIn('kelas_id', $kelasIds);
-            }
-        });
+            $query->whereHas('pengampuKelas', function ($q) use ($kelasIds, $siswa) {
+                $q->forSiswa($siswa)->whereIn('kelas_id', $kelasIds);
+            });
 
-        $allQuizzes = $query->get();
-        $dbMapels = Mapel::forSiswa($siswa)->get();
+            $allQuizzes = $query->get();
+            $dbMapels = Mapel::forSiswa($siswa)
+                ->whereHas('pengampuKelases', fn ($q) => $q->whereIn('kelas_id', $kelasIds))
+                ->get();
 
-        $planets = $this->adventureService->buildPlanetsCollection($allQuizzes, $dbMapels);
+            $planets = $this->adventureService->buildPlanetsCollection($allQuizzes, $dbMapels);
+        }
 
         // Cek apakah siswa sedang memilih planet tertentu
         $selectedPlanet = null;

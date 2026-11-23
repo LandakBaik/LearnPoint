@@ -23,7 +23,8 @@ class TugasController extends Controller
             abort(403, 'Data siswa tidak ditemukan.');
         }
 
-        $kelasId = $siswa->kelas()->value('kelases.id');
+        $kelas = $siswa->kelas;
+        $kelasId = $kelas?->id;
 
         $daftarTugas = $kelasId
             ? Tugas::with([
@@ -101,6 +102,7 @@ class TugasController extends Controller
 
         return view('siswa.tugas.index', compact(
             'siswa',
+            'kelas',
             'daftarTugas',
             'tugasBelumSelesai',
             'totalTugas',
@@ -129,7 +131,8 @@ class TugasController extends Controller
             'soals',
         ])->findOrFail($id);
 
-        $kelasId = $siswa->kelas()->value('kelases.id');
+        $kelas = $siswa->kelas;
+        $kelasId = $kelas?->id;
         abort_unless($kelasId && $tugas->pengampuKelas?->kelas_id == $kelasId, 403, 'Anda tidak memiliki akses ke tugas ini.');
 
         // Ambil pengumpulan siswa
@@ -185,7 +188,8 @@ class TugasController extends Controller
             'pengampuKelas.kelas',
         ])->findOrFail($id);
 
-        $kelasId = $siswa->kelas()->value('kelases.id');
+        $kelas = $siswa->kelas;
+        $kelasId = $kelas?->id;
         abort_unless($kelasId && $tugas->pengampuKelas?->kelas_id == $kelasId, 403, 'Anda tidak memiliki akses ke tugas ini.');
 
         // Tentukan status pengumpulan

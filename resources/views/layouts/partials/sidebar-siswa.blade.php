@@ -66,10 +66,10 @@
         @endif
     </a>
 
-    <!-- Materi -->
-    @php $isMateri = request()->routeIs('siswa.materi*') || request()->routeIs('guru.materi*'); @endphp
+    <!-- Materi / Mata Pelajaran -->
+    @php $isMateri = request()->routeIs('siswa.mapel*') || request()->routeIs('guru.materi*'); @endphp
     <a 
-        href="{{ Route::has('siswa.materi') ? route('siswa.materi') : '#' }}" 
+        href="{{ Route::has('siswa.mapel') ? route('siswa.mapel') : '#' }}" 
         class="flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm transition-all relative {{ $isMateri ? $activeClass : $inactiveClass }}"
     >
         <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
