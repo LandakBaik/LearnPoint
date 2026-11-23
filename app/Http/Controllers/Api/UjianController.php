@@ -1923,6 +1923,7 @@ class UjianController extends Controller
         $ujians = Ujian::with([
             'pengampuKelas.guruMapel.mapel',
             'pengampuKelas.guruMapel.guru',
+            'pengampuKelas.kelas',
             'seleksiUjians' => function ($q) use ($siswa) {
                 if ($siswa) {
                     $q->where('siswa_id', $siswa->id);
@@ -1930,6 +1931,7 @@ class UjianController extends Controller
             },
             'seleksiUjians.nilais',
         ])
+            ->withCount('soals')
             ->whereHas('pengampuKelas', function ($q) use ($kelasId, $siswa) {
                 $q->where('kelas_id', $kelasId)->forSiswa($siswa);
             })
@@ -1947,27 +1949,32 @@ class UjianController extends Controller
                 $u->sinkronisasiStatus();
                 $sesi = $u->seleksiUjians->first();
                 $nilai = $sesi?->nilais?->first();
+                $sudahDikerjakan = $nilai !== null || ($sesi && $sesi->status === 'selesai');
+                $skorTampil = $nilai?->nilai ?? ($sesi && $sesi->status === 'selesai' ? $sesi->nilai_akhir : null);
 
                 return [
                     'id'               => $u->id,
                     'judul'            => $u->judul,
-                    'deskripsi'        => $u->deskripsi,
                     'kisi_kisi'        => $u->kisi_kisi,
                     'jenis_ujian'      => $u->jenis_ujian ?? 'reguler',
-                    'durasi_menit'     => $u->durasi_menit,
-                    'kkm'              => $u->kkm,
+                    'durasi_menit'     => (int) ($u->durasi_menit ?? 60),
+                    'total_soal'       => (int) ($u->soals_count ?? 0),
+                    'kkm'              => (float) ($u->kkm ?? 75),
                     'tampilkan_nilai'  => (bool) $u->tampilkan_nilai,
-                    'sesi'             => $u->sesi ?? 1,
+                    'sesi'             => (int) ($u->sesi ?? 1),
                     'status'           => $u->status,
                     'status_label'     => $u->status_label,
-                    'waktu_mulai'      => $u->waktu_mulai,
-                    'waktu_mulai_sesi' => $u->waktu_mulai_sesi,
-                    'deadline'         => $u->deadline,
+                    'waktu_mulai'      => $u->waktu_mulai?->toIso8601String(),
+                    'waktu_mulai_sesi' => $u->waktu_mulai_sesi?->toIso8601String(),
+                    'deadline'         => $u->deadline?->toIso8601String(),
                     'mapel'            => $u->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+                    'kelas'            => $u->pengampuKelas?->kelas?->nama_kelas,
                     'guru'             => $u->pengampuKelas?->guruMapel?->guru?->nama,
-                    'sudah_dikerjakan' => $nilai !== null || ($sesi && $sesi->status === 'selesai'),
+                    'sudah_mulai'      => $sesi !== null,
+                    'sudah_dikerjakan' => $sudahDikerjakan,
                     'status_sesi'      => $sesi?->status,
-                    'nilai_siswa'      => $nilai?->nilai ?? ($sesi && $sesi->status === 'selesai' ? $sesi->nilai_akhir : null),
+                    'waktu_selesai'    => $sesi?->waktu_selesai,
+                    'nilai_siswa'      => $u->tampilkan_nilai ? $skorTampil : null,
                 ];
             });
 
@@ -2039,8 +2046,10 @@ class UjianController extends Controller
             'batas_akhir_sesi' => $batasAkhirSesi,
             'deadline'         => $ujian->deadline,
             'mapel'            => $ujian->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+            'kelas'            => $ujian->pengampuKelas?->kelas?->nama_kelas,
             'guru'             => $ujian->pengampuKelas?->guruMapel?->guru?->nama,
             'ringkasan_tipe'   => $ringkasanTipe,
+            'sudah_mulai'      => $sesi !== null,
             'sudah_dikerjakan' => $nilai !== null || ($sesi && $sesi->status === 'selesai'),
             'status_sesi'      => $sesi?->status,
             'nilai_siswa'      => $nilai?->nilai ?? ($sesi && $sesi->status === 'selesai' ? $sesi->nilai_akhir : null),
@@ -2176,7 +2185,22 @@ class UjianController extends Controller
         $sisaDetik = max(0, (int) now()->diffInSeconds($batasAkhirSesi, false));
 
         $soals = $ujian->soals()->orderBy('urutan', 'asc')->orderBy('id', 'asc')->get();
+        $soalsRaw = $ujian->soals()->orderBy('urutan', 'asc')->orderBy('id', 'asc')->get()->values();
+        $idSiswaAcak = (int) $siswa->id;
+        $idUjianAcak = (int) $ujian->id;
 
+        if ($soalsRaw->count() > 1) {
+            $urutanDasar = $soalsRaw->sortBy(fn ($item) => md5("base-ujian-{$idUjianAcak}-soal-{$item->id}"))->values();
+            $indexPertama = ($idSiswaAcak + $idUjianAcak) % $soalsRaw->count();
+            $soalPertama = $urutanDasar->get($indexPertama);
+            $sisaSoal = $urutanDasar->forget($indexPertama)
+                ->sortBy(fn ($item) => md5("acak-ujian-{$idUjianAcak}-siswa-{$idSiswaAcak}-soal-{$item->id}"))
+                ->values();
+
+            $soals = collect([$soalPertama])->concat($sisaSoal)->values();
+        } else {
+            $soals = $soalsRaw;
+        }
         $savedAnswers = Menjawab::where('siswa_id', $siswa->id)
             ->whereIn('soal_id', $soals->pluck('id'))
             ->pluck('jawaban_dipilih', 'soal_id')
@@ -2558,6 +2582,8 @@ class UjianController extends Controller
      */
     public function siswaHasil(Request $request, Ujian $ujian)
     {
+        $ujian->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru', 'pengampuKelas.kelas']);
+
         $siswaId = $request->user()?->siswa?->id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
@@ -2591,6 +2617,7 @@ class UjianController extends Controller
                 'id'              => $ujian->id,
                 'judul'           => $ujian->judul,
                 'mapel'           => $ujian->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+                'kelas'           => $ujian->pengampuKelas?->kelas?->nama_kelas,
                 'guru'            => $ujian->pengampuKelas?->guruMapel?->guru?->nama,
                 'kkm'             => $ujian->kkm,
                 'tampilkan_nilai' => (bool) $ujian->tampilkan_nilai,
