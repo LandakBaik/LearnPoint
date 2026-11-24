@@ -82,7 +82,7 @@
                                 {{ $ujian->pengampuKelas->guruMapel->mapel->nama_mapel ?? 'Mata Pelajaran' }}
                             </span>
                             <span class="text-xs text-slate-400 font-medium">
-                                Guru: {{ $ujian->pengampuKelas->guruMapel->guru->nama_guru ?? 'Guru Pengampu' }}
+                                Guru: {{ $ujian->pengampuKelas?->guruMapel?->guru?->nama ?? 'Guru Pengampu' }}
                             </span>
                         </div>
 

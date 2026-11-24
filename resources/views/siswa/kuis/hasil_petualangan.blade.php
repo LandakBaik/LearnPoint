@@ -80,7 +80,7 @@
         $isIstimewa = $skor >= 85;
         $isLulus = $skor >= 70;
         $mapelName = $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
-        $guruName = $quiz->pengampuKelas?->guruMapel?->guru?->nama_guru ?? 'Guru Pengampu';
+        $guruName = $quiz->pengampuKelas?->guruMapel?->guru?->nama ?? 'Guru Pengampu';
         $kelasName = $quiz->pengampuKelas?->kelas?->nama_kelas ?? 'Kelas';
         $totalBintangTerkumpul = $journey['total_bintang'] ?? 0;
         $maxBintangSemuaLevel = $journey['max_bintang'] ?? (count($levelsData) * 3);

@@ -102,7 +102,7 @@ $fileTerkirimExt = $fileTerkirim
                         </p>
 
                         <p class="text-sm font-bold text-slate-700 truncate">
-                            {{ $tugas->pengampuKelas->guruMapel->guru->nama_guru
+                            {{ $tugas->pengampuKelas?->guruMapel?->guru?->nama
                         ?? 'Nama guru belum tersedia' }}
                         </p>
                     </div>

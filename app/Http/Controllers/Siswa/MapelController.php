@@ -75,6 +75,20 @@ class MapelController extends Controller
             abort(403, 'Mata pelajaran ini tidak tersedia untuk kelas Anda.');
         }
 
+        // Ambil guru pengampu aktif pada kelas dan periode berjalan
+        $pengampuAktif = $mapel->pengampuKelases()
+            ->with('guruMapel.guru')
+            ->where('kelas_id', $kelasId)
+            ->when($activePeriod?->id, fn ($q) => $q->where('academic_period_id', $activePeriod->id))
+            ->first()
+            ?? $mapel->pengampuKelases()
+                ->with('guruMapel.guru')
+                ->where('kelas_id', $kelasId)
+                ->latest('id')
+                ->first();
+
+        $namaGuruPengampu = $pengampuAktif?->guruMapel?->guru?->nama ?? 'Belum ditentukan';
+
         // Ambil materi untuk mapel ini khusus kelas siswa
         $materis = Materi::with(['pengampuKelas.guruMapel.guru', 'pengampuKelas.kelas'])
             ->whereHas('pengampuKelas', function ($query) use ($kelasId, $id) {
@@ -140,6 +154,22 @@ class MapelController extends Controller
         $activeTab = $request->query('tab', 'materi');
         $unreadNotifCount = $user ? $user->notifikasi()->count() : 0;
 
+        // Statistik progress pengerjaan tugas & rata-rata nilai tugas siswa pada mapel ini
+        $totalTugas = $tugases->count();
+        $tugasSelesai = $tugases->filter(fn ($tugas) => $tugas->nilais->isNotEmpty())->count();
+        $persenTugas = $totalTugas > 0 ? (int) round(($tugasSelesai / $totalTugas) * 100) : 0;
+
+        $nilaiTugasDinilai = $tugases
+            ->map(fn ($tugas) => $tugas->nilais->first())
+            ->filter(fn ($nilai) => $nilai !== null && $nilai->nilai !== null)
+            ->pluck('nilai')
+            ->map(fn ($val) => (float) $val);
+
+        $jumlahTugasDinilai = $nilaiTugasDinilai->count();
+        $rataRataNilaiTugas = $jumlahTugasDinilai > 0
+            ? round($nilaiTugasDinilai->avg(), 1)
+            : null;
+
         return view('siswa.mapel.show', compact(
             'mapel',
             'materis',
@@ -150,7 +180,13 @@ class MapelController extends Controller
             'tahunAjaran',
             'semester',
             'activeTab',
-            'unreadNotifCount'
+            'unreadNotifCount',
+            'namaGuruPengampu',
+            'totalTugas',
+            'tugasSelesai',
+            'persenTugas',
+            'jumlahTugasDinilai',
+            'rataRataNilaiTugas'
         ));
     }
 
