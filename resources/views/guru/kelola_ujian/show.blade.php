@@ -351,7 +351,7 @@
                     @endif
 
                     {{-- OPSI JAWABAN (PILIHAN GANDA) --}}
-                    @if(is_array($soal->pilihan) && count($soal->pilihan))
+                    @if(in_array($soal->tipe_soal, ['single_choice', 'multiple_choice']) && is_array($soal->pilihan) && count($soal->pilihan))
                         <div class="space-y-2 pt-1">
                             @foreach($soal->pilihan as $key => $pilihan)
                                 @php
