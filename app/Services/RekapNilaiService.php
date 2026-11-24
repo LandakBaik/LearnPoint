@@ -13,6 +13,7 @@ use App\Models\SeleksiUjian;
 use App\Models\Siswa;
 use App\Models\Tugas;
 use App\Models\Ujian;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class RekapNilaiService
@@ -738,5 +739,447 @@ class RekapNilaiService
                 'predikat' => self::hitungPredikat($rataKeseluruhan, $rataKkm),
             ],
         ];
+    }
+
+    /**
+     * Membangun data statistik nilai riil & dinamis untuk Dashboard Siswa (Web & API).
+     */
+    public function buildSiswaStatistik(?Siswa $siswa, ?int $kelasId = null, ?AcademicPeriod $period = null): array
+    {
+        $period = $period ?? AcademicPeriod::current();
+        $periodId = $period?->id;
+
+        if ($siswa && !$kelasId) {
+            $anggota = AnggotaKelas::where('siswa_id', $siswa->id)
+                ->when($periodId, fn ($q) => $q->where('academic_period_id', $periodId))
+                ->first();
+            $kelasId = $anggota?->kelas_id ?? $siswa->kelas?->id;
+        }
+
+        $pengampus = collect();
+        if ($siswa && $kelasId) {
+            $pengampus = PengampuKelas::with(['guruMapel.mapel', 'guruMapel.guru'])
+                ->where('kelas_id', $kelasId)
+                ->when($periodId, fn ($q) => $q->where('academic_period_id', $periodId))
+                ->get()
+                ->filter(fn ($p) => $p->guruMapel?->mapel && $p->guruMapel->mapel->isAccessibleBySiswa($siswa))
+                ->sortBy(fn ($p) => strtolower((string) $p->guruMapel->mapel->nama_mapel))
+                ->values();
+        }
+
+        $pengampuIds = $pengampus->pluck('id')->all();
+        $siswaId = $siswa?->id;
+
+        $tugases = collect();
+        $quizzes = collect();
+        $ujians = collect();
+        $nilaiTugasList = collect();
+        $nilaiQuizList = collect();
+        $seleksiUjianList = collect();
+
+        if ($siswaId && !empty($pengampuIds)) {
+            $tugases = Tugas::whereIn('pengampu_kelas_id', $pengampuIds)
+                ->select('id', 'judul', 'pengampu_kelas_id', 'created_at')
+                ->get();
+
+            $quizzes = Quiz::whereIn('pengampu_kelas_id', $pengampuIds)
+                ->where('status', 'published')
+                ->select('id', 'judul', 'pengampu_kelas_id', 'created_at')
+                ->get();
+
+            $ujians = Ujian::whereIn('pengampu_kelas_id', $pengampuIds)
+                ->where(function ($q) {
+                    $q->where('jenis_ujian', 'reguler')->orWhereNull('jenis_ujian');
+                })
+                ->whereIn('status', ['published', 'completed', 'unpublished'])
+                ->select('id', 'judul', 'kkm', 'pengampu_kelas_id', 'waktu_mulai', 'created_at')
+                ->get();
+
+            $tugasIds = $tugases->pluck('id')->all();
+            if (!empty($tugasIds)) {
+                $nilaiTugasList = Nilai::where('siswa_id', $siswaId)
+                    ->whereIn('tugas_id', $tugasIds)
+                    ->whereNotNull('nilai')
+                    ->select('id', 'siswa_id', 'tugas_id', 'nilai', 'status', 'created_at', 'updated_at')
+                    ->get();
+            }
+
+            $quizIds = $quizzes->pluck('id')->all();
+            if (!empty($quizIds)) {
+                $nilaiQuizList = Nilai::where('siswa_id', $siswaId)
+                    ->whereIn('quiz_id', $quizIds)
+                    ->where('status', 'selesai')
+                    ->whereNotNull('nilai')
+                    ->select('id', 'siswa_id', 'quiz_id', 'nilai', 'status', 'created_at', 'updated_at')
+                    ->get();
+            }
+
+            $ujianIds = $ujians->pluck('id')->all();
+            if (!empty($ujianIds)) {
+                $seleksiUjianList = SeleksiUjian::where('siswa_id', $siswaId)
+                    ->whereIn('ujian_id', $ujianIds)
+                    ->where(function ($q) {
+                        $q->where('status', 'selesai')->orWhereNotNull('waktu_selesai');
+                    })
+                    ->whereNotNull('nilai_akhir')
+                    ->select('id', 'siswa_id', 'ujian_id', 'nilai_awal', 'nilai_akhir', 'waktu_selesai', 'status', 'created_at', 'updated_at')
+                    ->get();
+            }
+        }
+
+        // Hitung rata-rata riil per komponen
+        $avgTugasReal = $nilaiTugasList->isNotEmpty() ? round((float) $nilaiTugasList->avg('nilai'), 1) : null;
+        $avgQuizReal = $nilaiQuizList->isNotEmpty() ? round((float) $nilaiQuizList->avg('nilai'), 1) : null;
+        $avgUjianReal = $seleksiUjianList->isNotEmpty() ? round((float) $seleksiUjianList->avg('nilai_akhir'), 1) : null;
+
+        $komponenAktif = array_values(array_filter(
+            [$avgTugasReal, $avgQuizReal, $avgUjianReal],
+            fn ($v) => $v !== null
+        ));
+
+        $hasRealData = count($komponenAktif) > 0;
+        $rataRataTugas = $avgTugasReal ?? 0.0;
+        $rataRataQuiz = $avgQuizReal ?? 0.0;
+        $rataRataUjian = $avgUjianReal ?? 0.0;
+        $rataRataSemua = $hasRealData
+            ? round(array_sum($komponenAktif) / count($komponenAktif), 1)
+            : 0.0;
+
+        if (!$hasRealData) {
+            $kategoriNilai = 'Belum Ada Data';
+        } elseif ($rataRataSemua >= 90.0) {
+            $kategoriNilai = 'Sangat Baik';
+        } elseif ($rataRataSemua >= 80.0) {
+            $kategoriNilai = 'Baik';
+        } elseif ($rataRataSemua >= 70.0) {
+            $kategoriNilai = 'Cukup';
+        } else {
+            $kategoriNilai = 'Perlu Bimbingan';
+        }
+
+        $donutDegree = $hasRealData
+            ? (int) round((min(100.0, max(0.0, $rataRataSemua)) / 100.0) * 360)
+            : 0;
+
+        // Data nilai riil per Mata Pelajaran (gabungan Tugas, Kuis, Ujian)
+        $tugasByPengampu = $tugases->groupBy('pengampu_kelas_id');
+        $quizByPengampu = $quizzes->groupBy('pengampu_kelas_id');
+        $ujianByPengampu = $ujians->groupBy('pengampu_kelas_id');
+
+        $nilaiTugasMap = $nilaiTugasList->keyBy('tugas_id');
+        $nilaiQuizMap = $nilaiQuizList->keyBy('quiz_id');
+        $seleksiUjianMap = $seleksiUjianList->keyBy('ujian_id');
+
+        $listNilaiMapel = [];
+        foreach ($pengampus as $index => $pk) {
+            $mapel = $pk->guruMapel->mapel;
+            $kkm = (float) ($mapel->kkm ?? 75);
+
+            $pkTugasVals = [];
+            foreach (($tugasByPengampu->get($pk->id) ?? collect()) as $t) {
+                $n = $nilaiTugasMap->get($t->id);
+                if ($n && $n->nilai !== null) {
+                    $pkTugasVals[] = (float) $n->nilai;
+                }
+            }
+            $rataTugasMapel = count($pkTugasVals) > 0 ? round(array_sum($pkTugasVals) / count($pkTugasVals), 1) : null;
+
+            $pkQuizVals = [];
+            foreach (($quizByPengampu->get($pk->id) ?? collect()) as $qz) {
+                $n = $nilaiQuizMap->get($qz->id);
+                if ($n && $n->nilai !== null) {
+                    $pkQuizVals[] = (float) $n->nilai;
+                }
+            }
+            $rataQuizMapel = count($pkQuizVals) > 0 ? round(array_sum($pkQuizVals) / count($pkQuizVals), 1) : null;
+
+            $pkUjianVals = [];
+            foreach (($ujianByPengampu->get($pk->id) ?? collect()) as $uj) {
+                $s = $seleksiUjianMap->get($uj->id);
+                if ($s && $s->nilai_akhir !== null) {
+                    $pkUjianVals[] = (float) $s->nilai_akhir;
+                }
+            }
+            $rataUjianMapel = count($pkUjianVals) > 0 ? round(array_sum($pkUjianVals) / count($pkUjianVals), 1) : null;
+
+            $mapelKomponen = array_values(array_filter(
+                [$rataTugasMapel, $rataQuizMapel, $rataUjianMapel],
+                fn ($v) => $v !== null
+            ));
+            $nilaiMapel = count($mapelKomponen) > 0
+                ? round(array_sum($mapelKomponen) / count($mapelKomponen), 1)
+                : null;
+
+            $visual = $this->resolveMapelVisual((string) $mapel->nama_mapel, $index);
+
+            $listNilaiMapel[] = [
+                'id' => $mapel->id,
+                'mapel_id' => $mapel->id,
+                'nama' => $mapel->nama_mapel,
+                'kode_mapel' => $mapel->kode_mapel ?? null,
+                'kkm' => $kkm,
+                'nilai' => $nilaiMapel,
+                'has_nilai' => $nilaiMapel !== null,
+                'tuntas' => $nilaiMapel !== null ? $nilaiMapel >= $kkm : null,
+                'rata_tugas' => $rataTugasMapel,
+                'rata_kuis' => $rataQuizMapel,
+                'rata_ujian' => $rataUjianMapel,
+                'color' => $visual['color'],
+                'type' => $visual['type'],
+            ];
+        }
+
+        // Perkembangan nilai bulanan riil (dinamis mengikuti periode akademik / data penilaian)
+        $perkembanganNilai = $this->buildPerkembanganNilaiBulanan(
+            $period,
+            $nilaiTugasList,
+            $nilaiQuizList,
+            $seleksiUjianList
+        );
+
+        return [
+            'has_real_data' => $hasRealData,
+            'has_tugas_data' => $avgTugasReal !== null,
+            'has_quiz_data' => $avgQuizReal !== null,
+            'has_ujian_data' => $avgUjianReal !== null,
+            'rata_rata_semua' => $rataRataSemua,
+            'rata_rata_tugas' => $rataRataTugas,
+            'rata_rata_quiz' => $rataRataQuiz,
+            'rata_rata_ujian' => $rataRataUjian,
+            'tugas_dinilai' => $nilaiTugasList->count(),
+            'tugas_total' => $tugases->count(),
+            'kuis_dinilai' => $nilaiQuizList->count(),
+            'kuis_total' => $quizzes->count(),
+            'ujian_dinilai' => $seleksiUjianList->count(),
+            'ujian_total' => $ujians->count(),
+            'kategori_nilai' => $kategoriNilai,
+            'donut_degree' => $donutDegree,
+            'list_nilai_mapel' => $listNilaiMapel,
+            'perkembangan_nilai' => $perkembanganNilai,
+        ];
+    }
+
+    /**
+     * Tentukan warna & tipe ikon visual untuk kartu mata pelajaran.
+     */
+    private function resolveMapelVisual(string $namaMapel, int $index): array
+    {
+        $lower = mb_strtolower($namaMapel);
+
+        if (str_contains($lower, 'matematika') || str_contains($lower, 'math')) {
+            return ['color' => '#2563EB', 'type' => 'math'];
+        }
+        if (str_contains($lower, 'indonesia')) {
+            return ['color' => '#EF4444', 'type' => 'book'];
+        }
+        if (str_contains($lower, 'inggris') || str_contains($lower, 'english')) {
+            return ['color' => '#6366F1', 'type' => 'letters'];
+        }
+        if (str_contains($lower, 'ipa') || str_contains($lower, 'sains') || str_contains($lower, 'biologi') || str_contains($lower, 'fisika') || str_contains($lower, 'kimia')) {
+            return ['color' => '#10B981', 'type' => 'beaker'];
+        }
+        if (str_contains($lower, 'ips') || str_contains($lower, 'sosial') || str_contains($lower, 'geografi') || str_contains($lower, 'sejarah')) {
+            return ['color' => '#F59E0B', 'type' => 'globe'];
+        }
+        if (str_contains($lower, 'pkn') || str_contains($lower, 'ppkn') || str_contains($lower, 'kewarganegaraan')) {
+            return ['color' => '#06B6D4', 'type' => 'group'];
+        }
+
+        $palette = ['#2563EB', '#EF4444', '#6366F1', '#10B981', '#F59E0B', '#06B6D4', '#8B5CF6', '#EC4899'];
+
+        return [
+            'color' => $palette[$index % count($palette)],
+            'type' => 'default',
+        ];
+    }
+
+    /**
+     * Membangun seri grafik perkembangan nilai bulanan riil dari data Tugas, Kuis, dan Ujian.
+     */
+    private function buildPerkembanganNilaiBulanan(
+        ?AcademicPeriod $period,
+        Collection $nilaiTugasList,
+        Collection $nilaiQuizList,
+        Collection $seleksiUjianList
+    ): array {
+        $groupByMonth = function (Collection $items, callable $dateResolver, callable $scoreResolver): array {
+            $buckets = [];
+            foreach ($items as $item) {
+                $dt = $dateResolver($item);
+                if (!$dt) {
+                    continue;
+                }
+                $key = Carbon::parse($dt)->format('Y-m');
+                $buckets[$key][] = (float) $scoreResolver($item);
+            }
+
+            $averages = [];
+            foreach ($buckets as $key => $scores) {
+                $averages[$key] = [
+                    'avg' => round(array_sum($scores) / count($scores), 1),
+                    'count' => count($scores),
+                ];
+            }
+
+            return $averages;
+        };
+
+        $tugasByMonth = $groupByMonth(
+            $nilaiTugasList,
+            fn ($n) => $n->updated_at ?? $n->created_at,
+            fn ($n) => $n->nilai
+        );
+
+        $quizByMonth = $groupByMonth(
+            $nilaiQuizList,
+            fn ($n) => $n->updated_at ?? $n->created_at,
+            fn ($n) => $n->nilai
+        );
+
+        $ujianByMonth = $groupByMonth(
+            $seleksiUjianList,
+            fn ($s) => $s->waktu_selesai ?? $s->updated_at ?? $s->created_at,
+            fn ($s) => $s->nilai_akhir
+        );
+
+        $allDataMonths = array_unique(array_merge(
+            array_keys($tugasByMonth),
+            array_keys($quizByMonth),
+            array_keys($ujianByMonth)
+        ));
+        sort($allDataMonths);
+
+        $monthSlots = $this->resolveSemesterMonths($period, $allDataMonths);
+
+        $slotCount = count($monthSlots);
+        $xStart = 70;
+        $xEnd = 490;
+        $xCoords = [];
+        for ($i = 0; $i < $slotCount; $i++) {
+            $xCoords[] = $slotCount > 1
+                ? (int) round($xStart + ($i * ($xEnd - $xStart) / ($slotCount - 1)))
+                : (int) round(($xStart + $xEnd) / 2);
+        }
+
+        $shortNames = [
+            1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'Mei', 6 => 'Jun',
+            7 => 'Jul', 8 => 'Agu', 9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des',
+        ];
+        $fullNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+            7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
+
+        $buildSeries = function (array $byMonth) use ($monthSlots, $xCoords, $fullNames): array {
+            $coords = [];
+            $pointsArr = [];
+            foreach ($monthSlots as $idx => $ym) {
+                if (!isset($byMonth[$ym])) {
+                    continue;
+                }
+                $score = min(100.0, max(0.0, (float) $byMonth[$ym]['avg']));
+                $x = $xCoords[$idx];
+                // Y-axis SVG: 100 -> 20, 0 -> 195 (tinggi 175px)
+                $y = round(195 - ($score / 100.0) * 175, 1);
+                $monthNum = (int) substr($ym, 5, 2);
+                $yearNum = substr($ym, 0, 4);
+
+                $coords[] = [
+                    'x' => $x,
+                    'y' => $y,
+                    'nilai' => $score,
+                    'jumlah' => $byMonth[$ym]['count'],
+                    'bulan' => ($fullNames[$monthNum] ?? $ym) . ' ' . $yearNum,
+                    'index' => $idx,
+                ];
+                $pointsArr[] = "{$x},{$y}";
+            }
+
+            return [
+                'points' => count($pointsArr) >= 2 ? implode(' ', $pointsArr) : '',
+                'coords' => $coords,
+            ];
+        };
+
+        $bulanLabels = [];
+        $monthlySummary = [];
+        foreach ($monthSlots as $idx => $ym) {
+            $monthNum = (int) substr($ym, 5, 2);
+            $yearNum = substr($ym, 0, 4);
+            $short = $shortNames[$monthNum] ?? $ym;
+            $full = ($fullNames[$monthNum] ?? $ym) . ' ' . $yearNum;
+
+            $bulanLabels[] = $short;
+            $monthlySummary[] = [
+                'ym' => $ym,
+                'label' => $short,
+                'bulan_penuh' => $full,
+                'x' => $xCoords[$idx],
+                'tugas' => $tugasByMonth[$ym]['avg'] ?? null,
+                'kuis' => $quizByMonth[$ym]['avg'] ?? null,
+                'ujian' => $ujianByMonth[$ym]['avg'] ?? null,
+            ];
+        }
+
+        $tugasSeries = $buildSeries($tugasByMonth);
+        $kuizSeries = $buildSeries($quizByMonth);
+        $ujianSeries = $buildSeries($ujianByMonth);
+
+        $hasChartData = !empty($tugasSeries['coords']) || !empty($kuizSeries['coords']) || !empty($ujianSeries['coords']);
+
+        return [
+            'bulan' => $bulanLabels,
+            'x_coords' => $xCoords,
+            'tugas' => $tugasSeries,
+            'kuiz' => $kuizSeries,
+            'ujian' => $ujianSeries,
+            'monthly_summary' => $monthlySummary,
+            'has_chart_data' => $hasChartData,
+        ];
+    }
+
+    /**
+     * Menentukan 6 slot bulan (YYYY-MM) sesuai semester aktif atau rentang data riil siswa.
+     */
+    private function resolveSemesterMonths(?AcademicPeriod $period, array $allDataMonths): array
+    {
+        $slots = [];
+
+        if ($period && $period->tanggal_mulai && $period->tanggal_selesai) {
+            $cursor = $period->tanggal_mulai->copy()->startOfMonth();
+            $end = $period->tanggal_selesai->copy()->startOfMonth();
+            while ($cursor->lte($end) && count($slots) < 6) {
+                $slots[] = $cursor->format('Y-m');
+                $cursor->addMonth();
+            }
+        }
+
+        if (empty($slots)) {
+            $startYear = (int) now()->format('Y');
+            if ($period && preg_match('/^(\d{4})/', (string) $period->tahun_ajaran, $m)) {
+                $startYear = (int) $m[1];
+            }
+
+            $isGenap = $period && strtolower((string) $period->semester) === 'genap';
+            $cursor = $isGenap
+                ? Carbon::create($startYear + 1, 1, 1)
+                : Carbon::create($startYear, 7, 1);
+
+            for ($i = 0; $i < 6; $i++) {
+                $slots[] = $cursor->copy()->addMonths($i)->format('Y-m');
+            }
+        }
+
+        // Jika ada data riil namun seluruhnya berada di luar rentang default semester,
+        // geser jendela 6 bulan hingga bulan data terbaru agar grafik tetap menampilkan data riil.
+        if (!empty($allDataMonths) && empty(array_intersect($slots, $allDataMonths))) {
+            $latestMonth = Carbon::createFromFormat('Y-m', end($allDataMonths))->startOfMonth();
+            $slots = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $slots[] = $latestMonth->copy()->subMonths($i)->format('Y-m');
+            }
+        }
+
+        return $slots;
     }
 }
