@@ -253,7 +253,7 @@ class QuizService
     }
 
     /**
-     * Mengambil kelas utama siswa (dari relasi langsung atau riwayat anggota_kelas terbaru).
+     * Mengambil kelas utama siswa pada periode akademik aktif.
      */
     public function getSiswaPrimaryKelas(?Siswa $siswa): ?Kelas
     {
@@ -261,11 +261,11 @@ class QuizService
             return null;
         }
 
-        return $siswa->kelas ?? $siswa->anggotaKelases()->with('kelas')->latest()->first()?->kelas;
+        return $siswa->kelas;
     }
 
     /**
-     * Mengambil seluruh ID kelas yang diikuti oleh siswa.
+     * Mengambil seluruh ID kelas yang diikuti oleh siswa pada periode akademik aktif.
      */
     public function getSiswaKelasIds(?Siswa $siswa): array
     {
@@ -273,7 +273,15 @@ class QuizService
             return [];
         }
 
-        $kelasIds = $siswa->anggotaKelases()->pluck('kelas_id')->filter()->unique()->values()->all();
+        $activePeriodId = \App\Models\AcademicPeriod::currentId();
+        $kelasIds = $siswa->anggotaKelases()
+            ->where('academic_period_id', $activePeriodId)
+            ->pluck('kelas_id')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
         if ($siswa->kelas?->id) {
             $kelasIds[] = $siswa->kelas->id;
         }
@@ -292,22 +300,15 @@ class QuizService
 
         $quizKelasId = $quiz->pengampuKelas?->kelas_id;
         if (!$quizKelasId) {
-            return true;
+            return false;
         }
 
         $siswaKelasIds = $this->getSiswaKelasIds($siswa);
         if (empty($siswaKelasIds)) {
-            return true;
-        }
-
-        if (!in_array($quizKelasId, $siswaKelasIds)) {
-            if (Kelas::count() <= 1) {
-                return true;
-            }
             return false;
         }
 
-        return true;
+        return in_array($quizKelasId, $siswaKelasIds);
     }
 
     /**

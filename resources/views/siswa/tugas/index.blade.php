@@ -1,233 +1,171 @@
-
 @extends('layouts.siswa')
 
 @section('title', 'Daftar Tugas - LearnPoint')
 
 @section('content')
+<div class="space-y-6">
 
-{{-- Container Utama --}}
-<div class="w-full">
-
-    {{-- Navbar / Breadcrumb --}}
-    <div class="flex flex-wrap items-center gap-3 text-sm font-medium mb-6">
-
-        <a href="{{ route('siswa.dashboard') }}"
-            class="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 hover:bg-slate-100 rounded-full border border-slate-200 transition shadow-sm shrink-0">
-            <i class="fa-solid fa-arrow-left text-xs"></i>
-            Kembali ke Beranda
+    {{-- 1. Breadcrumb Navigation --}}
+    <nav class="flex items-center gap-2 text-xs font-semibold text-slate-400">
+        <a href="{{ route('siswa.dashboard') }}" class="hover:text-blue-600 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-house text-[11px]"></i>
+            <span>Beranda</span>
         </a>
-
-        <span class="text-slate-300">/</span>
-
-        <a href="{{ route('siswa.tugas') }}"
-            class="text-slate-700 hover:text-sky-700 hover:underline font-semibold transition">
+        <span class="text-[#2563EB] font-bold">›</span>
+        <a href="{{ route('siswa.tugas') }}" class="text-[#2563EB] font-bold">
             Tugas
         </a>
+    </nav>
 
-    </div>
+    @include('siswa.partials.unassigned-kelas-banner', ['kelas' => $kelas ?? null])
 
-    {{-- Konten Tugas --}}
-    <div class="w-full max-w-5xl mx-auto space-y-5">
+    <!-- 3. Header Daftar Tugas -->
+    <div id="tugas-terbaru" class="space-y-5">
 
-        {{-- Header --}}
-        <div class="flex items-center gap-4 pt-0">
-
-            <div class="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                <i class="fa-solid fa-clipboard-list text-2xl text-blue-600"></i>
-            </div>
-
-            <div>
-                <h2 class="text-lg font-extrabold text-slate-800 tracking-tight">
-                    Tugas & PR
-                </h2>
-
-                <p class="text-sm text-slate-500">
-                    Kerjakan dan kumpulkan tugas sesuai tenggat waktu yang ditentukan guru pengampu.
+        <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="space-y-1">
+                <div class="flex items-center gap-3">
+                    <h1 class="text-2xl font-extrabold tracking-tight text-slate-800">
+                        Timeline Tugas
+                    </h1>
+                    <span class="px-2.5 py-1 bg-blue-50 text-blue-600 font-bold text-xs rounded-full border border-blue-100">
+                        {{ $tugasBelumSelesai->count() }} Tugas
+                    </span>
+                </div>
+                <p class="text-sm text-slate-500 font-normal">
+                    Daftar tugas yang belum kamu kerjakan.
                 </p>
             </div>
 
-        </div>
+            <!-- Filter Deadline -->
+            <form method="GET" action="{{ route('siswa.tugas') }}">
+                <div class="relative">
+                    <select
+                        name="urutan"
+                        onchange="this.form.submit()"
+                        class="appearance-none w-full sm:w-auto min-w-[190px] pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 shadow-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 cursor-pointer">
 
-        {{-- Daftar Tugas --}}
-        <div id="tugas-terbaru" class="w-full space-y-3 mt-4">
+                        <option value="terbaru" {{ request('urutan', 'terbaru') === 'terbaru' ? 'selected' : '' }}>
+                            Deadline Terbaru
+                        </option>
 
-            @forelse($daftarTugas as $tugas)
+                        <option value="terlama" {{ request('urutan') === 'terlama' ? 'selected' : '' }}>
+                            Deadline Terlama
+                        </option>
+                    </select>
+
+                    <i class="fa-solid fa-arrow-down-wide-short absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-600 text-sm pointer-events-none"></i>
+
+                    <i class="fa-solid fa-chevron-down absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
+                </div>
+            </form>
+        </header>
+
+        <!-- 4. Daftar Item Tugas -->
+        <div class="space-y-4">
+
+            @forelse($tugasBelumSelesai as $tugas)
 
             @php
-                $pengumpulan = $tugas->pengumpulanSiswa;
-                $sudahDikumpul = $pengumpulan !== null;
-
-                $deadline = $tugas->deadline
-                    ? \Carbon\Carbon::parse($tugas->deadline)
-                    : null;
-
-                $tenggatLewat = $deadline
-                    ? $deadline->isPast()
-                    : false;
-
-                $statusTerlambat = !$sudahDikumpul && $tenggatLewat;
-
-                $tenggatFormatted = $deadline
-                    ? $deadline->isoFormat('D MMM YYYY, HH:mm')
-                    : 'Tidak ada tenggat';
-
-                $sisaWaktu = $deadline && !$tenggatLewat
-                    ? now()->diffInSeconds($deadline)
-                    : 0;
-
-                $sisaWaktuFormatted = $sisaWaktu >= 86400
-                    ? 'Sisa ' . (int) floor($sisaWaktu / 86400) . ' hari lagi'
-                    : ($sisaWaktu > 0
-                        ? 'Sisa ' . (int) ceil($sisaWaktu / 3600) . ' jam lagi'
-                        : null);
+            $tenggatFormatted = $tugas->deadline
+            ? \Carbon\Carbon::parse($tugas->deadline)->isoFormat('D MMM YYYY, HH:mm') . ' WIB'
+            : 'Tidak ada tenggat';
             @endphp
 
-            {{-- Card Tugas --}}
-            <div class="w-full bg-white p-5 rounded-2xl border border-blue-200/80 shadow-sm hover:shadow-md transition flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <!-- Card Tugas -->
+            <div class="bg-white p-5 rounded-2xl border border-blue-200/80 shadow-xs hover:shadow-md transition flex flex-col md:flex-row md:items-center justify-between gap-4">
 
-                {{-- Informasi Tugas --}}
-                <div class="flex items-start gap-4 min-w-0 flex-1">
+                <div class="flex items-start gap-4">
 
-                    {{-- Ikon Dokumen --}}
-                    <div class="w-16 h-16 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                        <i class="fa-regular fa-file-lines text-3xl"></i>
+                    <!-- Icon -->
+                    <div class="p-3.5 rounded-xl bg-blue-50 text-blue-600 text-xl flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-clipboard-list"></i>
                     </div>
 
-                    {{-- Detail Tugas --}}
-                    <div class="space-y-2 min-w-0 flex-1">
+                    <div class="space-y-1">
 
-                        {{-- Informasi Mata Pelajaran, Guru, dan Tipe Tugas --}}
-                        <div class="flex flex-wrap items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
 
-                            {{-- Mata Pelajaran --}}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-600">
-                                <i class="fa-solid fa-book-open"></i>
-
-                                {{ $tugas->pengampuKelas?->guruMapel?->mapel?->nama_mapel
-                                    ?? $tugas->pengampuKelas?->guruMapel?->mapel?->nama
-                                    ?? 'Mata Pelajaran' }}
+                            <!-- Nama Guru -->
+                            <span class="px-2.5 py-0.5 rounded-md text-[10px] font-bold tracking-wide uppercase bg-blue-100 text-blue-800">
+                                {{ $tugas->pengampuKelas?->guruMapel?->guru?->nama
+                                        ?? $tugas->pengampuKelas?->guru?->nama
+                                        ?? 'GURU PENGAMPU' }}
                             </span>
 
-                            {{-- Guru Pengampu --}}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-600">
-                                <i class="fa-solid fa-chalkboard-user"></i>
-
-                                {{ $tugas->pengampuKelas?->guruMapel?->guru?->nama_guru
-                                    ?? $tugas->pengampuKelas?->guruMapel?->guru?->nama
-                                    ?? 'Guru belum tersedia' }}
+                            <!-- Status -->
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600">
+                                <i class="fa-regular fa-circle-dot mr-1"></i>
+                                Belum Dikerjakan
                             </span>
 
-                            {{-- Tipe Tugas --}}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-600">
-                                <i class="fa-solid fa-file-circle-check"></i>
-
-                                {{ $tugas->tipe === 'pilihan_ganda' ? 'Pilihan Ganda' : 'Upload File' }}
+                            <!-- Deadline -->
+                            <span class="text-xs text-slate-400">
+                                <i class="fa-regular fa-clock mr-1"></i>
+                                Tenggat: {{ $tenggatFormatted }}
                             </span>
-
                         </div>
 
-                        {{-- Judul Tugas --}}
-                        <h3 class="text-base font-bold text-slate-800 break-words">
-                            {{ $loop->iteration }}. {{ $tugas->judul }}
+                        <h3 class="text-base font-bold text-slate-800">
+                            {{ $tugas->judul }}
                         </h3>
 
-                        {{-- Tenggat dan Sisa Waktu --}}
-                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-
-                            <span class="{{ $statusTerlambat ? 'text-red-500' : 'text-slate-400' }}">
-                                <i class="fa-solid fa-calendar-days mr-1"></i>
-                                Batas: {{ $tenggatFormatted }}
-                            </span>
-
-                            @if($sisaWaktuFormatted && !$sudahDikumpul)
-
-                                <span class="text-slate-300">|</span>
-
-                                <span class="font-semibold text-blue-600">
-                                    <i class="fa-regular fa-clock mr-1"></i>
-                                    {{ $sisaWaktuFormatted }}
-                                </span>
-
-                            @elseif($statusTerlambat)
-
-                                <span class="font-semibold text-red-500">
-                                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>
-                                    Tenggat telah lewat
-                                </span>
-
-                            @elseif($sudahDikumpul && $pengumpulan->nilai !== null)
-
-                                <span class="font-semibold text-emerald-600">
-                                    <i class="fa-solid fa-circle-check mr-1"></i>
-                                    Sudah Dinilai (Nilai: {{ number_format((float) $pengumpulan->nilai, 0) }})
-                                </span>
-
-                            @elseif($sudahDikumpul)
-
-                                <span class="font-semibold text-amber-600">
-                                    <i class="fa-regular fa-clock mr-1"></i>
-                                    Menunggu Penilaian
-                                </span>
-
-                            @endif
-
-                        </div>
-
-                        {{-- Deskripsi --}}
                         <p class="text-xs text-slate-500 max-w-2xl leading-relaxed">
                             {{ $tugas->deskripsi ?? 'Tidak ada deskripsi tugas.' }}
                         </p>
 
-                    </div>
-
-                </div>
-
-                {{-- Tombol Aksi --}}
-                <div class="shrink-0 self-end md:self-center">
-
-                    <a href="{{ route('siswa.tugas.show', $tugas->id) }}"
-                        class="px-5 py-2.5 text-xs font-semibold rounded-xl transition flex items-center justify-between gap-4
-                            {{ $sudahDikumpul
-                                ? 'bg-white text-blue-600 border border-blue-200 hover:bg-blue-50'
-                                : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md' }}">
-
-                        @if($sudahDikumpul)
-                            Lihat Jawaban
-                        @else
-                            Kerjakan
+                        @if($tugas->file_lampiran)
+                        <a href="{{ route('file.tugas', $tugas->id) }}"
+                            target="_blank"
+                            class="inline-flex items-center gap-1.5 text-xs text-blue-600 font-semibold hover:underline pt-2">
+                            <i class="fa-solid fa-paperclip"></i>
+                            Lihat Lampiran Guru
+                        </a>
                         @endif
 
-                        <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                </div>
 
+                <!-- Tombol Kerjakan -->
+                <div class="shrink-0 self-end md:self-center">
+                    <a href="{{ route('siswa.tugas.show', $tugas->id) }}"
+                        class="px-5 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition flex items-center gap-2 shadow-md">
+                        <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                        Kerjakan
                     </a>
-
                 </div>
 
             </div>
 
             @empty
 
-            {{-- Tampilan Kosong --}}
-            <div class="p-8 bg-white rounded-2xl border border-dashed border-slate-200 text-center text-slate-400">
+            <!-- Empty State -->
+            <div class="p-10 sm:p-12 bg-white rounded-2xl border border-dashed border-slate-200 text-center">
 
-                <i class="fa-regular fa-file-lines text-3xl text-blue-300 mb-2"></i>
+                <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-2xl">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
 
-                <p class="text-sm font-semibold text-slate-700">
+                <p class="text-base font-bold text-slate-800">
                     Tidak Ada Tugas
                 </p>
 
-                <p class="text-xs text-slate-400 mt-0.5">
-                    Belum ada tugas yang diberikan oleh guru.
+                <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
+                    Semua tugas sudah kamu kerjakan. Belum ada tugas lain yang perlu dikumpulkan.
                 </p>
+
+                <a href="{{ route('siswa.beranda') }}"
+                    class="inline-flex items-center gap-2 mt-5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition">
+                    <i class="fa-solid fa-house"></i>
+                    Kembali ke Beranda
+                </a>
 
             </div>
 
             @endforelse
 
         </div>
-
     </div>
 
 </div>
-
 @endsection

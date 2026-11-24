@@ -259,7 +259,7 @@ class MateriController extends Controller
                 ]);
         }
 
-        $path = $request->file('file_materi')->store('materi_files', 'public');
+        $path = $request->file('file_materi')->store('materi_files', 'local');
         $idGrubMateri = (string) Str::uuid();
 
         try {
@@ -276,8 +276,8 @@ class MateriController extends Controller
                 }
             });
         } catch (\Throwable $e) {
-            if ($path && Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
+            if ($path) {
+                Storage::disk('local')->delete($path);
             }
             throw $e;
         }
@@ -288,7 +288,7 @@ class MateriController extends Controller
             if ($pk) {
                 $mapelId = $pk->guruMapel?->mapel_id;
                 $mapelNama = $pk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
-                $targetUrl = $mapelId ? route('siswa.materi.show', $mapelId) : route('siswa.materi');
+                $targetUrl = $mapelId ? route('siswa.mapel.show', $mapelId) : route('siswa.mapel');
                 Notifikasi::kirimKeKelas(
                     $pk->kelas_id,
                     "Materi Baru: {$judul}",
@@ -401,7 +401,8 @@ class MateriController extends Controller
         // Jika semua kelas dilepas / dicentang kosong, hapus materi ini sepenuhnya
         if (empty($submittedPengampuIds)) {
             $filePath = $firstMateri->file_materi;
-            if ($filePath && Storage::disk('public')->exists($filePath)) {
+            if ($filePath) {
+                Storage::disk('local')->delete($filePath);
                 Storage::disk('public')->delete($filePath);
             }
             Materi::where('id_grub_materi', $id_grub_materi)->delete();
@@ -451,7 +452,7 @@ class MateriController extends Controller
         $filePath = $oldFilePath;
 
         if ($request->hasFile('file_materi')) {
-            $newFilePath = $request->file('file_materi')->store('materi_files', 'public');
+            $newFilePath = $request->file('file_materi')->store('materi_files', 'local');
             $filePath = $newFilePath;
         }
 
@@ -491,14 +492,15 @@ class MateriController extends Controller
                 }
             });
         } catch (\Throwable $e) {
-            if ($newFilePath && Storage::disk('public')->exists($newFilePath)) {
-                Storage::disk('public')->delete($newFilePath);
+            if ($newFilePath) {
+                Storage::disk('local')->delete($newFilePath);
             }
             throw $e;
         }
 
         // Hapus file lama hanya setelah transaksi database berhasil
-        if ($newFilePath && $oldFilePath && $oldFilePath !== $newFilePath && Storage::disk('public')->exists($oldFilePath)) {
+        if ($newFilePath && $oldFilePath && $oldFilePath !== $newFilePath) {
+            Storage::disk('local')->delete($oldFilePath);
             Storage::disk('public')->delete($oldFilePath);
         }
 
@@ -508,7 +510,7 @@ class MateriController extends Controller
             if ($pk) {
                 $mapelId = $pk->guruMapel?->mapel_id;
                 $mapelNama = $pk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
-                $targetUrl = $mapelId ? route('siswa.materi.show', $mapelId) : route('siswa.materi');
+                $targetUrl = $mapelId ? route('siswa.mapel.show', $mapelId) : route('siswa.mapel');
                 Notifikasi::kirimKeKelas(
                     $pk->kelas_id,
                     "Materi Baru: {$judul}",
@@ -543,7 +545,8 @@ class MateriController extends Controller
 
         // Hapus file dari storage (cukup sekali karena satu grup = satu file)
         $filePath = $firstMateri->file_materi;
-        if ($filePath && Storage::disk('public')->exists($filePath)) {
+        if ($filePath) {
+            Storage::disk('local')->delete($filePath);
             Storage::disk('public')->delete($filePath);
         }
 

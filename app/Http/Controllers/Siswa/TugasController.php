@@ -23,7 +23,8 @@ class TugasController extends Controller
             abort(403, 'Data siswa tidak ditemukan.');
         }
 
-        $kelasId = $siswa->kelas()->value('kelases.id');
+        $kelas = $siswa->kelas;
+        $kelasId = $kelas?->id;
 
         $daftarTugas = $kelasId
             ? Tugas::with([
@@ -31,36 +32,42 @@ class TugasController extends Controller
                 'pengampuKelas.guruMapel.mapel',
                 'pengampuKelas.kelas',
             ])
-                ->whereHas('pengampuKelas', function ($query) use ($kelasId, $siswa) {
-                    $query->where('kelas_id', $kelasId)->forSiswa($siswa);
+                ->whereHas('pengampuKelas', function ($query) use ($kelasId) {
+                    $query->where('kelas_id', $kelasId);
                 })
                 ->latest()
                 ->get()
             : collect();
 
-        // Ambil pengumpulan masing-masing siswa
+        // Ambil pengumpulan masing-masing siswa dalam satu query (hindari N+1)
+        $pengumpulanMap = $daftarTugas->isNotEmpty()
+            ? Nilai::where('siswa_id', $siswa->id)
+                ->whereIn('tugas_id', $daftarTugas->pluck('id'))
+                ->get()
+                ->keyBy('tugas_id')
+            : collect();
+
         foreach ($daftarTugas as $tugas) {
-            $tugas->pengumpulanSiswa = Nilai::where('siswa_id', $siswa->id)
-                ->where('tugas_id', $tugas->id)
-                ->first();
+            $tugas->pengumpulanSiswa = $pengumpulanMap->get($tugas->id);
         }
 
-        // Tampilkan tugas yang belum dikumpulkan
-        // Tugas upload yang belum dinilai tetap ditampilkan
-        $tugasBelumSelesai = $daftarTugas->filter(function ($tugas) {
-            $pengumpulan = $tugas->pengumpulanSiswa;
+        // Tampilkan hanya tugas yang belum dikumpulkan
+        $tugasBelumSelesai = $daftarTugas
+            ->filter(fn($tugas) => $tugas->pengumpulanSiswa === null)
+            ->values();
 
-            if (!$pengumpulan) {
-                return true;
-            }
+        // Filter urutan deadline
+        $urutan = request('urutan', 'terbaru');
 
-            if ($tugas->tipe === 'pilihan_ganda') {
-                return false;
-            }
-
-            return $pengumpulan->nilai === null;
-        });
-
+        if ($urutan === 'terlama') {
+            $tugasBelumSelesai = $tugasBelumSelesai
+                ->sortBy('deadline')
+                ->values();
+        } else {
+            $tugasBelumSelesai = $tugasBelumSelesai
+                ->sortByDesc('deadline')
+                ->values();
+        }
         // Statistik tugas
         $totalTugas = $daftarTugas->count();
 
@@ -94,6 +101,8 @@ class TugasController extends Controller
             ->first();
 
         return view('siswa.tugas.index', compact(
+            'siswa',
+            'kelas',
             'daftarTugas',
             'tugasBelumSelesai',
             'totalTugas',
@@ -122,7 +131,8 @@ class TugasController extends Controller
             'soals',
         ])->findOrFail($id);
 
-        $kelasId = $siswa->kelas()->value('kelases.id');
+        $kelas = $siswa->kelas;
+        $kelasId = $kelas?->id;
         abort_unless($kelasId && $tugas->pengampuKelas?->kelas_id == $kelasId, 403, 'Anda tidak memiliki akses ke tugas ini.');
 
         // Ambil pengumpulan siswa
@@ -178,7 +188,8 @@ class TugasController extends Controller
             'pengampuKelas.kelas',
         ])->findOrFail($id);
 
-        $kelasId = $siswa->kelas()->value('kelases.id');
+        $kelas = $siswa->kelas;
+        $kelasId = $kelas?->id;
         abort_unless($kelasId && $tugas->pengampuKelas?->kelas_id == $kelasId, 403, 'Anda tidak memiliki akses ke tugas ini.');
 
         // Tentukan status pengumpulan
@@ -354,9 +365,9 @@ class TugasController extends Controller
             return back()->with('error', 'Tugas sudah dinilai dan tidak dapat diubah lagi.');
         }
 
-        // Simpan file baru ke storage/app/public/jawaban_tugas
+        // Simpan file baru ke storage/app/private/jawaban_tugas (disk local)
         $file = $request->file('file_jawaban')
-            ->store('jawaban_tugas', 'public');
+            ->store('jawaban_tugas', 'local');
 
         // Simpan atau perbarui pengumpulan
         $pengumpulan = Nilai::updateOrCreate(
@@ -371,15 +382,14 @@ class TugasController extends Controller
             ]
         );
 
-        // Hapus file lama jika ada
+        // Hapus file lama jika ada (baik di disk local maupun legacy public)
         if (
             $pengumpulanLama &&
             $pengumpulanLama->file_jawaban &&
             $pengumpulanLama->file_jawaban !== $file
         ) {
-            Storage::disk('public')->delete(
-                $pengumpulanLama->file_jawaban
-            );
+            Storage::disk('local')->delete($pengumpulanLama->file_jawaban);
+            Storage::disk('public')->delete($pengumpulanLama->file_jawaban);
         }
 
         // Kirim notifikasi kepada guru

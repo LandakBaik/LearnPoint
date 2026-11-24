@@ -226,13 +226,21 @@ class DashboardController extends Controller
         $activePeriod = \App\Models\AcademicPeriod::current();
         $anggotaKelas = $siswa->anggotaKelases()?->with('academicPeriod')
             ?->where('academic_period_id', $activePeriod->id)
-            ->first() ?? $siswa->anggotaKelases()?->with('academicPeriod')->latest()->first();
+            ->first();
         $kelas = $siswa->kelas ?? $anggotaKelas?->kelas;
         $kelasId = $kelas?->id;
         $tahunAjaran = $anggotaKelas?->academicPeriod?->tahun_ajaran ?? $activePeriod->tahun_ajaran;
         $semester = ucfirst($anggotaKelas?->academicPeriod?->semester ?? $activePeriod->semester);
 
-        $totalMapel = Mapel::forSiswa($siswa)->count();
+        $daftarMapel = collect();
+        if ($kelasId) {
+            $daftarMapel = Mapel::forSiswa($siswa)
+                ->whereHas('pengampuKelases', fn($q) => $q->where('kelas_id', $kelasId))
+                ->with(['pengampuKelases' => fn($q) => $q->where('kelas_id', $kelasId)->with(['guruMapel.guru'])])
+                ->get();
+        }
+
+        $totalMapel = $daftarMapel->count();
         $siswaId = $siswa->id;
 
         // Hitung badge counts
@@ -352,34 +360,35 @@ class DashboardController extends Controller
 
         $hasRealData = ($avgTugasReal !== null || $avgQuizReal !== null || $avgUjianReal !== null);
 
-        $rataRataTugas = $avgTugasReal !== null ? round((float)$avgTugasReal, 1) : 85.0;
-        $rataRataQuiz  = $avgQuizReal !== null ? round((float)$avgQuizReal, 1) : 90.0;
-        $rataRataUjian = $avgUjianReal !== null ? round((float)$avgUjianReal, 1) : 86.5;
-
-        $rataRataSemua = $hasRealData
-            ? round(($rataRataTugas + $rataRataQuiz + $rataRataUjian) / 3, 1)
-            : 87.2;
-
-        if ($rataRataSemua >= 90) {
-            $kategoriNilai = 'Sangat Baik';
-        } elseif ($rataRataSemua >= 80) {
-            $kategoriNilai = 'Baik';
-        } elseif ($rataRataSemua >= 70) {
-            $kategoriNilai = 'Cukup';
+        if (!$kelasId && !$hasRealData) {
+            $rataRataTugas = 0.0;
+            $rataRataQuiz  = 0.0;
+            $rataRataUjian = 0.0;
+            $rataRataSemua = 0.0;
+            $kategoriNilai = 'Belum Ada Data';
         } else {
-            $kategoriNilai = 'Perlu Bimbingan';
+            $rataRataTugas = $avgTugasReal !== null ? round((float)$avgTugasReal, 1) : 85.0;
+            $rataRataQuiz  = $avgQuizReal !== null ? round((float)$avgQuizReal, 1) : 90.0;
+            $rataRataUjian = $avgUjianReal !== null ? round((float)$avgUjianReal, 1) : 86.5;
+
+            $rataRataSemua = $hasRealData
+                ? round(($rataRataTugas + $rataRataQuiz + $rataRataUjian) / 3, 1)
+                : 87.2;
+
+            if ($rataRataSemua >= 90) {
+                $kategoriNilai = 'Sangat Baik';
+            } elseif ($rataRataSemua >= 80) {
+                $kategoriNilai = 'Baik';
+            } elseif ($rataRataSemua >= 70) {
+                $kategoriNilai = 'Cukup';
+            } else {
+                $kategoriNilai = 'Perlu Bimbingan';
+            }
         }
 
         $donutDegree = (int) round(($rataRataSemua / 100) * 360);
 
-        // Nilai per Mapel untuk visualisasi mobile
-        $daftarMapel = collect();
-        if ($kelasId) {
-            $daftarMapel = Mapel::forSiswa($siswa)
-                ->whereHas('pengampuKelases', fn($q) => $q->where('kelas_id', $kelasId))
-                ->with(['pengampuKelases' => fn($q) => $q->where('kelas_id', $kelasId)->with(['guruMapel.guru'])])
-                ->get();
-        }
+        // Nilai per Mapel untuk visualisasi mobile (menggunakan $daftarMapel yang sudah difilter kelas)
 
         $listNilaiMapel = [];
         $palette = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];

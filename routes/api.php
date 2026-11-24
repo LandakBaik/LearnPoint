@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\RelokasiAktivitasController;
 use App\Http\Controllers\Api\TugasController;
 use App\Http\Controllers\Api\UjianController;
+use App\Http\Controllers\FileController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -30,6 +31,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', [AuthController::class, 'me']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Berkas Privat Terautentikasi (Materi, Lampiran Tugas, Jawaban Siswa)
+    Route::get('/file/materi/{materi}', [FileController::class, 'materi']);
+    Route::get('/file/tugas/{tugas}', [FileController::class, 'tugas']);
+    Route::get('/file/jawaban/{nilai}', [FileController::class, 'jawaban']);
 
     // Profile Management (Guru & Siswa)
     Route::get('/profile', [ProfileController::class, 'show']);
@@ -144,9 +150,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Jadwal Kelas Siswa
         Route::get('/jadwal', [JadwalController::class, 'siswaIndex']);
 
-        // Materi Pembelajaran Siswa
-        Route::get('/materi', [MateriController::class, 'siswaIndex']);
-        Route::get('/materi/{mapelId}', [MateriController::class, 'siswaShow']);
+        // Mata Pelajaran & Materi Pembelajaran Siswa
+        Route::get('/mapel', [MateriController::class, 'siswaIndex']);
+        Route::get('/mapel/{mapelId}', [MateriController::class, 'siswaShow']);
 
         // Tugas Siswa
         Route::get('/tugas', [TugasController::class, 'siswaIndex']);

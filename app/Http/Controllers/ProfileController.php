@@ -59,24 +59,24 @@ class ProfileController extends Controller
             $rules = [
                 'nomor_telepon' => 'nullable|string|regex:/^[0-9]{10,13}$/',
                 'jenis_kelamin' => 'nullable|in:Laki-laki,Perempuan,L,P',
-                'password'      => 'nullable|string|min:6|confirmed',
+                'password'      => 'nullable|string|min:8|confirmed',
             ];
 
             $messages = [
                 'nomor_telepon.regex' => 'Nomor telepon harus berupa angka dan berisikan 10 hingga 13 digit.',
                 'jenis_kelamin.in'    => 'Pilihan jenis kelamin tidak valid.',
-                'password.min'        => 'Kata sandi baru minimal harus 6 karakter.',
+                'password.min'        => 'Kata sandi baru minimal harus 8 karakter.',
                 'password.confirmed'  => 'Konfirmasi kata sandi baru tidak cocok.',
             ];
         } else {
             // Admin (operator / kepala_sekolah) & Siswa: Hanya bisa ubah password
             $rules = [
-                'password' => 'required|string|min:6|confirmed',
+                'password' => 'required|string|min:8|confirmed',
             ];
 
             $messages = [
                 'password.required'  => 'Kata sandi baru wajib diisi.',
-                'password.min'       => 'Kata sandi baru minimal harus 6 karakter.',
+                'password.min'       => 'Kata sandi baru minimal harus 8 karakter.',
                 'password.confirmed' => 'Konfirmasi kata sandi baru tidak cocok.',
             ];
         }

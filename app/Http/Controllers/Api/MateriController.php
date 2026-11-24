@@ -304,7 +304,7 @@ class MateriController extends Controller
             if ($pk) {
                 $mapelId = $pk->guruMapel?->mapel_id;
                 $mapelNama = $pk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
-                $targetUrl = $mapelId ? route('siswa.materi.show', $mapelId) : route('siswa.materi');
+                $targetUrl = $mapelId ? route('siswa.mapel.show', $mapelId) : route('siswa.mapel');
                 Notifikasi::kirimKeKelas(
                     $pk->kelas_id,
                     "Materi Baru: {$judul}",
@@ -468,7 +468,7 @@ class MateriController extends Controller
             if ($pk) {
                 $mapelId = $pk->guruMapel?->mapel_id;
                 $mapelNama = $pk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
-                $targetUrl = $mapelId ? route('siswa.materi.show', $mapelId) : route('siswa.materi');
+                $targetUrl = $mapelId ? route('siswa.mapel.show', $mapelId) : route('siswa.mapel');
                 Notifikasi::kirimKeKelas(
                     $pk->kelas_id,
                     "Materi Baru: {$judul}",
@@ -521,7 +521,7 @@ class MateriController extends Controller
     public function siswaIndex(Request $request)
     {
         $siswa = $request->user()?->siswa;
-        $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelas = $siswa?->kelas;
         $kelasId = $kelas?->id;
 
         if (!$kelasId) {
@@ -576,7 +576,7 @@ class MateriController extends Controller
         $anggotaKelas = $siswa?->anggotaKelases()
             ?->with('academicPeriod')
             ->where('academic_period_id', $activePeriod->id)
-            ->first() ?? $siswa?->anggotaKelases()?->with('academicPeriod')?->latest()?->first();
+            ->first();
         $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;
         $kelasId = $kelas?->id;
 
@@ -595,6 +595,11 @@ class MateriController extends Controller
 
         if (!$mapel->isAccessibleBySiswa($siswa)) {
             return $this->forbiddenResponse('Mata pelajaran ini tidak sesuai dengan agama Anda.');
+        }
+
+        $hasMapelInKelas = $mapel->pengampuKelases()->where('kelas_id', $kelasId)->exists();
+        if (!$hasMapelInKelas) {
+            return $this->forbiddenResponse('Mata pelajaran ini tidak tersedia untuk kelas Anda.');
         }
 
         $materis = Materi::with(['pengampuKelas.guruMapel.guru'])

@@ -6,29 +6,17 @@
 
 <div class="space-y-5">
 
-    {{-- 1. Navbar Detail Tugas --}}
-    <div class="flex flex-wrap items-center gap-3 text-sm font-medium">
-
-        <a href="{{ route('siswa.dashboard') }}"
-            class="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 hover:bg-slate-100 rounded-full border border-slate-200 transition shadow-sm shrink-0">
-            <i class="fa-solid fa-arrow-left text-xs"></i>
-            Kembali ke Beranda
+    {{-- 1. Breadcrumb Navigation --}}
+    <nav class="flex items-center gap-2 text-xs font-semibold text-slate-400">
+        <a href="{{ route('siswa.dashboard') }}" class="hover:text-blue-600 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-house text-[11px]"></i>
+            <span>Beranda</span>
         </a>
-
-        <span class="text-slate-300">/</span>
-
-        <a href="{{ route('siswa.tugas') }}"
-            class="text-slate-700 hover:text-sky-700 hover:underline font-semibold transition">
+        <span class="text-[#2563EB] font-bold">›</span>
+        <a href="{{ route('siswa.tugas') }}" class="text-[#2563EB] font-bold">
             Tugas
         </a>
-
-        <span class="text-slate-300">/</span>
-
-        <span class="text-slate-800 font-semibold">
-            {{ $tugas->judul }}
-        </span>
-
-    </div>
+    </nav>
 
     {{-- 2. Notifikasi Berhasil --}}
     @if(session('success'))
@@ -64,6 +52,7 @@
     {{-- 4. Konten Utama --}}
     <div class="max-w-3xl mx-auto w-full px-4 sm:px-0 space-y-5">
 
+
         {{-- 5. Card Informasi Tugas --}}
         <section class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
 
@@ -71,20 +60,18 @@
             <div class="space-y-3">
 
                 <div class="flex flex-wrap items-center gap-2">
-
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-100">
                         <i class="fa-regular fa-calendar"></i>
                         Deadline:
                         {{ $tugas->deadline
-                            ? \Carbon\Carbon::parse($tugas->deadline)->translatedFormat('d M Y, H:i')
-                            : 'Tidak ditentukan' }}
+                    ? \Carbon\Carbon::parse($tugas->deadline)->translatedFormat('d M Y, H:i')
+                    : 'Tidak ditentukan' }}
                     </span>
 
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
                         <i class="fa-solid fa-list-check"></i>
                         Pilihan Ganda
                     </span>
-
                 </div>
 
                 <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-snug">
@@ -93,9 +80,28 @@
 
             </div>
 
+            {{-- Informasi Guru Pengampu --}}
+            <div class="flex items-center gap-3 pt-2">
+
+                <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-user-tie text-sm"></i>
+                </div>
+
+                <div class="min-w-0">
+                    <p class="text-[11px] font-medium text-slate-400">
+                        Guru Pengampu
+                    </p>
+
+                    <p class="text-sm font-bold text-slate-700 truncate">
+                        {{ $tugas->pengampuKelas?->guruMapel?->guru?->nama_guru
+                    ?? 'Nama guru belum tersedia' }}
+                    </p>
+                </div>
+
+            </div>
+
             {{-- Deskripsi Tugas --}}
             <div class="pt-4 border-t border-slate-100">
-
                 <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
                     Deskripsi Tugas
                 </h2>
@@ -103,101 +109,54 @@
                 <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
                     {{ $tugas->deskripsi ?? 'Tidak ada deskripsi tugas.' }}
                 </p>
-
             </div>
 
-            {{-- Informasi Guru dan Mapel --}}
-            <div class="pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        </section>
+
+        {{-- Lampiran Guru --}}
+        @if($tugas->file_lampiran)
+
+        <div class="pt-4 border-t border-slate-100">
+
+            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+                Berkas Lampiran
+            </h2>
+
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50">
 
                 <div class="flex items-center gap-3 min-w-0">
 
-                    <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-user-tie"></i>
+                    <div class="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                        <i class="fa-regular fa-file-pdf text-lg"></i>
                     </div>
 
                     <div class="min-w-0">
 
-                        <p class="text-xs font-semibold text-slate-400">
-                            Guru Pengampu
+                        <p class="text-sm font-semibold text-slate-800">
+                            Lampiran Tugas
                         </p>
 
-                        <p class="text-sm font-semibold text-slate-700 truncate">
-                            {{ $tugas->pengampuKelas?->guru?->nama_guru
-                                ?? $tugas->pengampuKelas?->guru?->user?->name
-                                ?? '-' }}
-                        </p>
-
-                    </div>
-
-                </div>
-
-                <div class="flex items-center gap-3 min-w-0">
-
-                    <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-book"></i>
-                    </div>
-
-                    <div class="min-w-0">
-
-                        <p class="text-xs font-semibold text-slate-400">
-                            Mata Pelajaran
-                        </p>
-
-                        <p class="text-sm font-semibold text-slate-700 truncate">
-                            {{ $tugas->pengampuKelas?->mapel?->nama_mapel ?? '-' }}
+                        <p class="text-xs text-slate-500 truncate">
+                            {{ basename($tugas->file_lampiran) }}
                         </p>
 
                     </div>
 
                 </div>
+
+                <a href="{{ route('file.tugas', ['tugas' => $tugas->id, 'download' => 1]) }}"
+                    class="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shrink-0">
+
+                    <i class="fa-solid fa-download"></i>
+                    Unduh Berkas
+
+                </a>
 
             </div>
 
-            {{-- Lampiran Guru --}}
-            @if($tugas->file_lampiran)
+        </div>
 
-            <div class="pt-4 border-t border-slate-100">
-
-                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                    Berkas Lampiran
-                </h2>
-
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50">
-
-                    <div class="flex items-center gap-3 min-w-0">
-
-                        <div class="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-                            <i class="fa-regular fa-file-pdf text-lg"></i>
-                        </div>
-
-                        <div class="min-w-0">
-
-                            <p class="text-sm font-semibold text-slate-800">
-                                Lampiran Tugas
-                            </p>
-
-                            <p class="text-xs text-slate-500 truncate">
-                                {{ basename($tugas->file_lampiran) }}
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                    <a href="{{ asset('storage/' . $tugas->file_lampiran) }}"
-                        download
-                        class="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shrink-0">
-
-                        <i class="fa-solid fa-download"></i>
-                        Unduh Berkas
-
-                    </a>
-
-                </div>
-
-            </div>
-
-            @endif
+        @endif
 
         </section>
 
@@ -327,13 +286,13 @@
                 @foreach($soals as $index => $soal)
 
                 @php
-                    $jawabanTerpilih = $jawabanSiswa->get($soal->id)?->jawaban_dipilih;
+                $jawabanTerpilih = $jawabanSiswa->get($soal->id)?->jawaban_dipilih;
 
-                    $pilihan = $soal->pilihan ?? [];
+                $pilihan = $soal->pilihan ?? [];
 
-                    if (is_string($pilihan)) {
-                        $pilihan = json_decode($pilihan, true) ?? [];
-                    }
+                if (is_string($pilihan)) {
+                $pilihan = json_decode($pilihan, true) ?? [];
+                }
                 @endphp
 
                 <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">

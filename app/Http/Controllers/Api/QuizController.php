@@ -718,7 +718,9 @@ class QuizController extends Controller
 
         // Jika klien meminta mode petualangan (with_planets=1), sertakan planets & leaderboard
         if ($request->boolean('with_planets')) {
-            $dbMapels = Mapel::forSiswa($siswa)->get();
+            $dbMapels = Mapel::forSiswa($siswa)
+                ->whereHas('pengampuKelases', fn ($q) => $q->where('kelas_id', $kelasId))
+                ->get();
             $planets = $this->adventureService->buildPlanetsCollection($allQuizzes, $dbMapels);
             $topThree = $this->adventureService->getTopThreeLeaderboard();
             $leaderboard = $this->adventureService->getSectorLeaderboard($siswa);

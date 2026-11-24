@@ -14,6 +14,8 @@
     {{-- Komponen Modal Gacha Power & Banner --}}
     @include('siswa.kuis.partials.gacha-modal')
 
+    @include('siswa.partials.unassigned-kelas-banner', ['kelas' => $kelas ?? null])
+
     @if($viewMode === 'planets')
         {{-- ================================================================= --}}
         {{-- MODE 1: GALAXY MAP / PILIHAN PLANET (SESUAI GAMBAR 1)           --}}

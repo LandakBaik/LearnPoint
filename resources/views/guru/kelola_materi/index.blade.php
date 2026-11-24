@@ -222,7 +222,7 @@
                                 </div>
                             </td>
                             <td class="py-4 px-6">
-                                <a href="{{ asset('storage/' . $materi->file_materi) }}" target="_blank" rel="noopener" class="text-blue-700 hover:underline text-xs font-semibold">Buka file</a>
+                                <a href="{{ route('file.materi', $materi->id) }}" target="_blank" rel="noopener" class="text-blue-700 hover:underline text-xs font-semibold">Buka file</a>
                                 @if($materi->url_youtube)
                                     <a href="{{ $materi->url_youtube }}" target="_blank" rel="noopener" class="block mt-1 text-red-600 hover:underline text-xs font-semibold">Video YouTube</a>
                                 @endif

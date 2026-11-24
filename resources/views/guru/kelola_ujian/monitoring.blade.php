@@ -475,7 +475,7 @@ function monitoringLive(ujianId, totalSoal, isSelesai = false) {
             if (!this.isSelesai) {
                 this.pollInterval = setInterval(() => {
                     this.fetchDataMonitoring();
-                }, 5000);
+                }, 12000);
 
                 this.tickerInterval = setInterval(() => {
                     this.pesertas.forEach(p => {

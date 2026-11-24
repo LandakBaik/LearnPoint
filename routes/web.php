@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 // Shared & Auth Controllers
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\ProfileController;
 
@@ -28,7 +29,7 @@ use App\Http\Controllers\Guru\UjianController as GuruUjianController;
 
 // Siswa Controllers
 use App\Http\Controllers\Siswa\GachaBannerController as SiswaGachaBannerController;
-use App\Http\Controllers\Siswa\MateriController as SiswaMateriController;
+use App\Http\Controllers\Siswa\MapelController as SiswaMapelController;
 use App\Http\Controllers\Siswa\PowerController as SiswaPowerController;
 use App\Http\Controllers\Siswa\QuizController as SiswaQuizController;
 use App\Http\Controllers\Siswa\TugasController as SiswaTugasController;
@@ -61,6 +62,11 @@ Route::middleware(['auth'])->group(function () {
 
     // Main Dashboard Router
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Berkas Privat Terautentikasi (Materi, Lampiran Tugas, Jawaban Siswa)
+    Route::get('/file/materi/{materi}', [FileController::class, 'materi'])->name('file.materi');
+    Route::get('/file/tugas/{tugas}', [FileController::class, 'tugas'])->name('file.tugas');
+    Route::get('/file/jawaban/{nilai}', [FileController::class, 'jawaban'])->name('file.jawaban');
 
     // ==========================================
     // Fitur Guru
@@ -192,8 +198,8 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['role:siswa'])->group(function () {
         Route::get('/siswa/dashboard', [DashboardController::class, 'siswaDashboard'])->name('siswa.dashboard');
         Route::get('/siswa/beranda', [DashboardController::class, 'siswaDashboard'])->name('siswa.beranda');
-        Route::get('/siswa/materi', [SiswaMateriController::class, 'index'])->name('siswa.materi');
-        Route::get('/siswa/materi/{id}', [SiswaMateriController::class, 'show'])->name('siswa.materi.show');
+        Route::get('/siswa/mapel', [SiswaMapelController::class, 'index'])->name('siswa.mapel');
+        Route::get('/siswa/mapel/{id}', [SiswaMapelController::class, 'show'])->name('siswa.mapel.show');
         Route::get('/siswa/tugas', [SiswaTugasController::class, 'index'])->name('siswa.tugas');
         Route::get('/siswa/tugas/{id}', [SiswaTugasController::class, 'show'])->name('siswa.tugas.show');
         Route::post('/siswa/tugas/{id}/kumpulkan', [SiswaTugasController::class, 'kumpulkanTugas'])->name('siswa.tugas.kumpulkan');
