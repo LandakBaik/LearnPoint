@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
@@ -65,6 +64,15 @@ class AuthController extends Controller
     {
         $user = $request->user()->load(['guru', 'siswa.kelas']);
 
+        if ($user->status === 'nonaktif' || $user->guru?->status === 'nonaktif' || $user->siswa?->status === 'nonaktif') {
+            $token = method_exists($user, 'currentAccessToken') ? $user->currentAccessToken() : null;
+            if ($token && method_exists($token, 'delete')) {
+                $token->delete();
+            }
+
+            return $this->forbiddenResponse('Akun Anda saat ini berstatus NONAKTIF. Silakan hubungi pihak administrator/sekolah.');
+        }
+
         return $this->successResponse([
             'user' => [
                 'id'       => $user->id,
@@ -84,7 +92,10 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $token = $request->user()?->currentAccessToken();
+        if ($token && method_exists($token, 'delete')) {
+            $token->delete();
+        }
 
         return $this->successResponse(null, 'Berhasil keluar (logout).');
     }

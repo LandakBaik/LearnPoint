@@ -441,6 +441,32 @@ class UjianController extends Controller
         $this->authorizeUjianSiswa($ujian, $siswa);
         $siswaId = $siswa->id;
 
+        $ujian->sinkronisasiStatus();
+        if ($ujian->status !== 'published') {
+            return response()->json(['status' => 'error', 'message' => 'Ujian sedang tidak aktif.'], 403);
+        }
+
+        $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
+            ->where('siswa_id', $siswaId)
+            ->first();
+
+        if (!$sesi) {
+            return response()->json(['status' => 'error', 'message' => 'Sesi ujian belum dimulai.'], 403);
+        }
+
+        if ($sesi->status === 'terkunci') {
+            return response()->json(['status' => 'error', 'message' => 'Sesi ujian Anda sedang terkunci.'], 403);
+        }
+
+        if ($sesi->status === 'selesai') {
+            return response()->json(['status' => 'error', 'message' => 'Ujian sudah diselesaikan dan jawaban tidak dapat diubah.'], 403);
+        }
+
+        $batasAkhir = $ujian->batasAkhirSesi($sesi);
+        if ($batasAkhir && now()->greaterThan($batasAkhir->copy()->addMinutes(2))) {
+            return response()->json(['status' => 'error', 'message' => 'Waktu pengerjaan ujian telah berakhir.'], 403);
+        }
+
         $soal = Soal::where('ujian_id', $ujian->id)->findOrFail($request->soal_id);
 
         $rawJawaban = $request->jawaban;
@@ -588,9 +614,26 @@ class UjianController extends Controller
         $this->authorizeUjianSiswa($ujian, $siswa);
         $siswaId = $siswa->id;
 
+        $ujian->sinkronisasiStatus();
+
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
             ->firstOrFail();
+
+        if ($sesi->status === 'selesai') {
+            return redirect()->route('siswa.ujian.hasil', $ujian->id)
+                ->with('info', 'Ujian Anda sudah dikumpulkan sebelumnya.');
+        }
+
+        if ($sesi->status === 'terkunci') {
+            return redirect()->route('siswa.ujian.kerjakan', $ujian->id)
+                ->with('error', 'Sesi ujian Anda sedang terkunci. Hubungi pengawas untuk membuka kunci.');
+        }
+
+        if (!in_array($ujian->status, ['published', 'completed'], true)) {
+            return redirect()->route('siswa.ujian.index')
+                ->with('error', 'Ujian sedang tidak aktif.');
+        }
 
         return DB::transaction(function () use ($ujian, $siswaId, $sesi) {
             $soals = $ujian->soals;
@@ -758,6 +801,11 @@ class UjianController extends Controller
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
             ->firstOrFail();
+
+        if ($sesi->status !== 'selesai') {
+            return redirect()->route('siswa.ujian.kerjakan', $ujian->id)
+                ->with('warning', 'Selesaikan ujian terlebih dahulu untuk melihat hasil.');
+        }
 
         // 1. Ambil data nilai dari tabel nilais, atau fallback dari data seleksi_ujians
         $nilai = Nilai::where('seleksi_ujian_id', $sesi->id)

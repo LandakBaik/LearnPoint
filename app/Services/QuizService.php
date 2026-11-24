@@ -298,17 +298,24 @@ class QuizService
             return false;
         }
 
+        $quiz->loadMissing('pengampuKelas.guruMapel.mapel');
+
         $quizKelasId = $quiz->pengampuKelas?->kelas_id;
         if (!$quizKelasId) {
             return false;
         }
 
         $siswaKelasIds = $this->getSiswaKelasIds($siswa);
-        if (empty($siswaKelasIds)) {
+        if (empty($siswaKelasIds) || !in_array($quizKelasId, $siswaKelasIds)) {
             return false;
         }
 
-        return in_array($quizKelasId, $siswaKelasIds);
+        $mapel = $quiz->pengampuKelas?->guruMapel?->mapel;
+        if ($mapel && method_exists($mapel, 'isAccessibleBySiswa') && !$mapel->isAccessibleBySiswa($siswa)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

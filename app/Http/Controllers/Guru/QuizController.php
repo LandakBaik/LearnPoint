@@ -139,7 +139,7 @@ class QuizController extends Controller
                 'waktu_mulai'       => $validated['waktu_mulai'] ?? null,
                 'waktu_selesai'     => $validated['waktu_selesai'] ?? null,
                 'acak_jawaban'      => $request->boolean('acak_jawaban'),
-                'status'            => $validated['status'] ?? 'draft',
+                'status'            => 'draft',
                 'level'             => 'Level 1',
                 'kesulitan'         => $orderedDifficulties[0] ?? 'Mudah',
             ]);

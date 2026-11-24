@@ -107,7 +107,24 @@
                         <i class="fa-solid fa-lock text-amber-500"></i>
                         Ganti Kata Sandi Baru
                     </h2>
-                    <p class="text-xs text-slate-500 mt-1">Masukkan kata sandi baru untuk akun Anda (minimal 6 karakter).</p>
+                    <p class="text-xs text-slate-500 mt-1">Masukkan kata sandi saat ini dan kata sandi baru untuk akun Anda (minimal 8 karakter).</p>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label for="current_password" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Kata Sandi Saat Ini <span class="text-rose-500">*</span>
+                    </label>
+                    <input 
+                        type="password" 
+                        id="current_password" 
+                        name="current_password" 
+                        placeholder="Masukkan kata sandi saat ini"
+                        required
+                        class="w-full px-4 py-3 rounded-2xl border @error('current_password') border-rose-400 bg-rose-50/20 @else border-slate-200 bg-slate-50/50 @enderror text-sm text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    >
+                    @error('current_password')
+                        <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -120,7 +137,7 @@
                             type="password" 
                             id="password" 
                             name="password" 
-                            placeholder="Minimal 6 karakter"
+                            placeholder="Minimal 8 karakter"
                             required
                             class="w-full px-4 py-3 rounded-2xl border @error('password') border-rose-400 bg-rose-50/20 @else border-slate-200 bg-slate-50/50 @enderror text-sm text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                         >
@@ -323,8 +340,25 @@
                     {{ $user->isGuru() ? 'Ubah Kata Sandi (Opsional)' : 'Ubah Kata Sandi Baru' }}
                 </h2>
                 <p class="text-xs text-gray-500">
-                    {{ $user->isGuru() ? 'Kosongkan jika Anda tidak ingin mengganti kata sandi.' : 'Masukkan kata sandi baru untuk akun Anda (minimal 6 karakter).' }}
+                    {{ $user->isGuru() ? 'Kosongkan jika Anda tidak ingin mengganti kata sandi.' : 'Masukkan kata sandi saat ini dan kata sandi baru untuk akun Anda (minimal 8 karakter).' }}
                 </p>
+
+                <div class="space-y-1.5">
+                    <label for="current_password" class="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                        Kata Sandi Saat Ini {{ $user->isGuru() ? '(Wajib jika mengganti kata sandi)' : '*' }}
+                    </label>
+                    <input 
+                        type="password" 
+                        id="current_password" 
+                        name="current_password" 
+                        placeholder="Masukkan kata sandi saat ini"
+                        {{ $user->isGuru() ? '' : 'required' }}
+                        class="w-full px-4 py-2.5 rounded-xl border @error('current_password') border-rose-400 bg-rose-50/30 @else border-gray-300 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                    @error('current_password')
+                        <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-1.5">
@@ -335,7 +369,7 @@
                             type="password" 
                             id="password" 
                             name="password" 
-                            placeholder="Minimal 6 karakter"
+                            placeholder="Minimal 8 karakter"
                             {{ $user->isGuru() ? '' : 'required' }}
                             class="w-full px-4 py-2.5 rounded-xl border @error('password') border-rose-400 bg-rose-50/30 @else border-gray-300 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >

@@ -7,7 +7,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
@@ -53,16 +52,18 @@ class ProfileController extends Controller
         }
 
         $rules = [
-            'nomor_telepon' => ['nullable', 'string', 'regex:/^[0-9]{10,13}$/'],
-            'jenis_kelamin' => ['nullable', 'in:Laki-laki,Perempuan,L,P'],
-            'password'      => ['nullable', 'string', 'min:8', 'confirmed'],
+            'nomor_telepon'    => ['nullable', 'string', 'regex:/^[0-9]{10,13}$/'],
+            'jenis_kelamin'    => ['nullable', 'in:Laki-laki,Perempuan,L,P'],
+            'current_password' => ['required_with:password', 'nullable', 'string'],
+            'password'         => ['nullable', 'string', 'min:8', 'confirmed'],
         ];
 
         $validator = Validator::make($request->all(), $rules, [
-            'nomor_telepon.regex' => 'Nomor telepon harus berupa angka dan berisikan 10 hingga 13 digit.',
-            'jenis_kelamin.in'    => 'Pilihan jenis kelamin harus Laki-laki atau Perempuan.',
-            'password.min'        => 'Kata sandi baru minimal harus 8 karakter.',
-            'password.confirmed'  => 'Konfirmasi kata sandi baru tidak cocok.',
+            'nomor_telepon.regex'           => 'Nomor telepon harus berupa angka dan berisikan 10 hingga 13 digit.',
+            'jenis_kelamin.in'              => 'Pilihan jenis kelamin tidak valid.',
+            'current_password.required_with' => 'Kata sandi saat ini wajib diisi untuk mengganti kata sandi.',
+            'password.min'                  => 'Kata sandi baru minimal harus 8 karakter.',
+            'password.confirmed'            => 'Konfirmasi kata sandi baru tidak cocok.',
         ]);
 
         if ($validator->fails()) {
@@ -72,6 +73,12 @@ class ProfileController extends Controller
         $validated = $validator->validated();
 
         if (!empty($validated['password'])) {
+            if (!Hash::check($validated['current_password'] ?? '', $user->password)) {
+                return $this->validationErrorResponse([
+                    'current_password' => ['Kata sandi saat ini salah.'],
+                ], 'Kata sandi saat ini yang Anda masukkan salah.');
+            }
+
             $user->update([
                 'password' => Hash::make($validated['password']),
             ]);

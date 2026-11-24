@@ -63,7 +63,7 @@ class FileController extends Controller
         $user = $request->user();
         abort_unless($user, 403);
 
-        $tugas->loadMissing(['pengampuKelas.guruMapel', 'pengampuKelas.kelas']);
+        $tugas->loadMissing(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.kelas']);
 
         if ($user->role === 'guru') {
             $guruId = $user->guru?->id;
@@ -84,6 +84,15 @@ class FileController extends Controller
                 403,
                 'Anda tidak memiliki akses ke lampiran tugas kelas lain.'
             );
+
+            $mapel = $tugas->pengampuKelas?->guruMapel?->mapel;
+            if ($mapel && method_exists($mapel, 'isAccessibleBySiswa')) {
+                abort_unless(
+                    $mapel->isAccessibleBySiswa($siswa),
+                    403,
+                    'Mata pelajaran ini tidak sesuai dengan agama Anda.'
+                );
+            }
         } elseif (!in_array($user->role, ['operator', 'admin', 'kepala_sekolah'], true)) {
             abort(403);
         }

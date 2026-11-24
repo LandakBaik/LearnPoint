@@ -32,8 +32,9 @@ class TugasController extends Controller
                 'pengampuKelas.guruMapel.mapel',
                 'pengampuKelas.kelas',
             ])
-                ->whereHas('pengampuKelas', function ($query) use ($kelasId) {
-                    $query->where('kelas_id', $kelasId);
+                ->whereHas('pengampuKelas', function ($query) use ($kelasId, $siswa) {
+                    $query->where('kelas_id', $kelasId)
+                        ->forSiswa($siswa);
                 })
                 ->latest()
                 ->get()
@@ -135,6 +136,11 @@ class TugasController extends Controller
         $kelasId = $kelas?->id;
         abort_unless($kelasId && $tugas->pengampuKelas?->kelas_id == $kelasId, 403, 'Anda tidak memiliki akses ke tugas ini.');
 
+        $mapel = $tugas->pengampuKelas?->guruMapel?->mapel;
+        if ($mapel && method_exists($mapel, 'isAccessibleBySiswa')) {
+            abort_unless($mapel->isAccessibleBySiswa($siswa), 403, 'Mata pelajaran ini tidak sesuai dengan agama Anda.');
+        }
+
         // Ambil pengumpulan siswa
         $pengumpulan = Nilai::where('siswa_id', $siswa->id)
             ->where('tugas_id', $tugas->id)
@@ -185,12 +191,23 @@ class TugasController extends Controller
         $tugas = Tugas::with([
             'soals',
             'pengampuKelas.guruMapel.guru',
+            'pengampuKelas.guruMapel.mapel',
             'pengampuKelas.kelas',
         ])->findOrFail($id);
 
         $kelas = $siswa->kelas;
         $kelasId = $kelas?->id;
         abort_unless($kelasId && $tugas->pengampuKelas?->kelas_id == $kelasId, 403, 'Anda tidak memiliki akses ke tugas ini.');
+
+        $mapel = $tugas->pengampuKelas?->guruMapel?->mapel;
+        if ($mapel && method_exists($mapel, 'isAccessibleBySiswa')) {
+            abort_unless($mapel->isAccessibleBySiswa($siswa), 403, 'Mata pelajaran ini tidak sesuai dengan agama Anda.');
+        }
+
+        $mapel = $tugas->pengampuKelas?->guruMapel?->mapel;
+        if ($mapel && method_exists($mapel, 'isAccessibleBySiswa')) {
+            abort_unless($mapel->isAccessibleBySiswa($siswa), 403, 'Mata pelajaran ini tidak sesuai dengan agama Anda.');
+        }
 
         // Tentukan status pengumpulan
         $status = (
