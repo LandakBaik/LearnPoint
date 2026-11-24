@@ -215,7 +215,6 @@ class DashboardController extends Controller
     /**
      * Dashboard Data untuk Siswa.
      */
-    public function siswaDashboard(Request $request)
     public function siswaDashboard(Request $request, RekapNilaiService $rekapNilaiService)
     {
         $user = $request->user();
@@ -353,16 +352,10 @@ class DashboardController extends Controller
         }
 
         // =========================================================
-        // STATISTIK NILAI SISWA (Real / Benchmark jika belum ada)
         // STATISTIK NILAI SISWA (DATA RIIL & DINAMIS)
         // =========================================================
-        $avgTugasReal = Nilai::where('siswa_id', $siswaId)->whereNotNull('tugas_id')->whereNotNull('nilai')->avg('nilai');
-        $avgQuizReal = Nilai::where('siswa_id', $siswaId)->whereNotNull('quiz_id')->whereNotNull('nilai')->avg('nilai');
-        $avgUjianReal = SeleksiUjian::where('siswa_id', $siswaId)->whereNotNull('nilai_akhir')->avg('nilai_akhir')
-            ?? Nilai::where('siswa_id', $siswaId)->whereNotNull('seleksi_ujian_id')->whereNotNull('nilai')->avg('nilai');
         $statistik = $rekapNilaiService->buildSiswaStatistik($siswa, $kelasId, $activePeriod);
 
-        $hasRealData = ($avgTugasReal !== null || $avgQuizReal !== null || $avgUjianReal !== null);
         $rataRataSemua = $statistik['rata_rata_semua'];
         $rataRataTugas = $statistik['rata_rata_tugas'];
         $rataRataQuiz  = $statistik['rata_rata_quiz'];
@@ -370,16 +363,6 @@ class DashboardController extends Controller
         $kategoriNilai = $statistik['kategori_nilai'];
         $donutDegree   = $statistik['donut_degree'];
 
-        if (!$kelasId && !$hasRealData) {
-            $rataRataTugas = 0.0;
-            $rataRataQuiz  = 0.0;
-            $rataRataUjian = 0.0;
-            $rataRataSemua = 0.0;
-            $kategoriNilai = 'Belum Ada Data';
-        } else {
-            $rataRataTugas = $avgTugasReal !== null ? round((float)$avgTugasReal, 1) : 85.0;
-            $rataRataQuiz  = $avgQuizReal !== null ? round((float)$avgQuizReal, 1) : 90.0;
-            $rataRataUjian = $avgUjianReal !== null ? round((float)$avgUjianReal, 1) : 86.5;
         $listNilaiMapel = array_map(fn ($item) => [
             'mapel_id'   => $item['mapel_id'],
             'nama_mapel' => $item['nama'],
@@ -392,46 +375,6 @@ class DashboardController extends Controller
             'tuntas'     => $item['tuntas'],
             'color'      => $item['color'],
         ], $statistik['list_nilai_mapel']);
-
-            $rataRataSemua = $hasRealData
-                ? round(($rataRataTugas + $rataRataQuiz + $rataRataUjian) / 3, 1)
-                : 87.2;
-
-            if ($rataRataSemua >= 90) {
-                $kategoriNilai = 'Sangat Baik';
-            } elseif ($rataRataSemua >= 80) {
-                $kategoriNilai = 'Baik';
-            } elseif ($rataRataSemua >= 70) {
-                $kategoriNilai = 'Cukup';
-            } else {
-                $kategoriNilai = 'Perlu Bimbingan';
-            }
-        }
-
-        $donutDegree = (int) round(($rataRataSemua / 100) * 360);
-
-        // Nilai per Mapel untuk visualisasi mobile (menggunakan $daftarMapel yang sudah difilter kelas)
-
-        $listNilaiMapel = [];
-        $palette = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
-        $idx = 0;
-
-        foreach ($daftarMapel as $mapelItem) {
-            $realMapelScore = Nilai::where('siswa_id', $siswaId)
-                ->whereHas('tugas.pengampuKelas.guruMapel', fn($q) => $q->where('mapel_id', $mapelItem->id))
-                ->whereNotNull('nilai')
-                ->avg('nilai');
-
-            $score = $realMapelScore !== null ? round((float)$realMapelScore, 1) : 85.0;
-            $listNilaiMapel[] = [
-                'mapel_id'   => $mapelItem->id,
-                'nama_mapel' => $mapelItem->nama_mapel,
-                'kode_mapel' => $mapelItem->kode_mapel,
-                'nilai'      => $score,
-                'color'      => $palette[$idx % count($palette)],
-            ];
-            $idx++;
-        }
 
         // Daftar Guru Pengampu Kelas
         $guruPengampus = collect();
@@ -485,13 +428,6 @@ class DashboardController extends Controller
                 'unread_notif_count'  => $unreadNotifCount,
             ],
             'evaluasi' => [
-                'rata_rata_semua' => $rataRataSemua,
-                'kategori_nilai'  => $kategoriNilai,
-                'donut_degree'    => $donutDegree,
-                'rata_rata_tugas' => $rataRataTugas,
-                'rata_rata_quiz'  => $rataRataQuiz,
-                'rata_rata_ujian' => $rataRataUjian,
-                'nilai_mapel'     => $listNilaiMapel,
                 'has_real_data'      => $statistik['has_real_data'],
                 'rata_rata_semua'    => $rataRataSemua,
                 'kategori_nilai'     => $kategoriNilai,

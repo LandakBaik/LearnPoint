@@ -601,13 +601,6 @@
         $hasChartData      = (bool) ($perkembanganNilai['has_chart_data'] ?? false);
     @endphp
     <section x-show="currentTab === 'statistik'" style="display: none;" class="bg-white rounded-[24px] border border-slate-100 p-6 md:p-8 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-7" data-purpose="statistics-content">
-        <!-- Section Header with Blue Tile Icon -->
-        <div class="flex items-start gap-3.5">
-            <div class="w-10 h-10 rounded-xl bg-[#2563EB] text-white flex items-center justify-center shrink-0 shadow-sm">
-                <!-- Bookmark / Ribbon Icon -->
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" stroke-linecap="round" stroke-linejoin="round"></path>
-                </svg>
         <!-- Section Header with Blue Tile Icon & Period Filter -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-start gap-3.5">
@@ -621,10 +614,6 @@
                     <h2 class="text-lg font-bold text-slate-900 leading-snug">Statistik Keseluruhan Nilai</h2>
                     <p class="text-xs md:text-sm text-slate-400">Rekapitulasi nilai riil dari tugas, kuis, dan ujian yang telah dinilai.</p>
                 </div>
-            </div>
-            <div>
-                <h2 class="text-lg font-bold text-slate-900 leading-snug">Statistik Keseluruhan Nilai</h2>
-                <p class="text-xs md:text-sm text-slate-400">Rekapitulasi nilai dari semua tugas, kuiz, dan ujian.</p>
             </div>
 
             @if(isset($statistikPeriods) && $statistikPeriods->count() > 1)
@@ -655,13 +644,9 @@
             <!-- Circular Donut Chart Card -->
             <div class="flex items-center justify-center p-2">
                 <div class="relative w-36 h-36 rounded-full flex items-center justify-center p-3.5 shadow-sm transition-all duration-500"
-                     style="background: conic-gradient(#2563eb 0deg {{ $donutDegree }}deg, #e2e8f0 {{ $donutDegree }}deg 360deg);">
-                    <div class="w-full h-full bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
                      style="background: conic-gradient({{ $donutRingColor }} 0deg {{ $donutDegree }}deg, #e2e8f0 {{ $donutDegree }}deg 360deg);">
                     <div class="w-full h-full bg-white rounded-full flex flex-col items-center justify-center shadow-inner px-2 text-center">
                         <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-tight">Rata-rata Nilai</span>
-                        <span class="text-2xl font-extrabold text-slate-800 my-0.5">{{ number_format($rataRataSemua, 1, ',', '.') }}</span>
-                        <span class="px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-blue-50 text-blue-600 border border-blue-100">{{ $kategoriNilai }}</span>
                         <span class="text-2xl font-extrabold text-slate-800 my-0.5">
                             {{ $statHasReal ? number_format($rataRataSemua, 1, ',', '.') : '-' }}
                         </span>
@@ -672,11 +657,6 @@
 
             <!-- Metric Card 1: Tugas (Sky/Blue) -->
             <div class="bg-[#F0F7FF] border border-[#DCEBFE] rounded-2xl p-5 flex flex-col justify-between hover:shadow-xs transition">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-[#E0EFFF] flex items-center justify-center text-blue-600">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round"></path>
-                        </svg>
                 <div class="flex items-center justify-between gap-2">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-[#E0EFFF] flex items-center justify-center text-blue-600">
@@ -686,15 +666,12 @@
                         </div>
                         <span class="text-sm font-bold text-slate-700">Tugas</span>
                     </div>
-                    <span class="text-sm font-bold text-slate-700">Tugas</span>
                     <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/80 text-blue-600 border border-blue-100">
                         {{ $statistik['tugas_dinilai'] ?? 0 }}/{{ $statistik['tugas_total'] ?? 0 }}
                     </span>
                 </div>
                 <div class="flex items-end justify-between mt-4">
                     <div>
-                        <p class="text-3xl font-extrabold text-slate-900 tracking-tight leading-none">{{ number_format($rataRataTugas, 1, ',', '.') }}</p>
-                        <p class="text-xs text-slate-400 mt-1">Rata-rata nilai</p>
                         <p class="text-3xl font-extrabold text-slate-900 tracking-tight leading-none">
                             {{ $statHasTugas ? number_format($rataRataTugas, 1, ',', '.') : '-' }}
                         </p>
@@ -710,14 +687,8 @@
                 </div>
             </div>
 
-            <!-- Metric Card 2: Kuiz (Purple) -->
             <!-- Metric Card 2: Kuis (Purple) -->
             <div class="bg-[#F9F6FF] border border-[#EFE8FE] rounded-2xl p-5 flex flex-col justify-between hover:shadow-xs transition">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-[#EFE8FE] flex items-center justify-center text-purple-600">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-linecap="round" stroke-linejoin="round"></path>
-                        </svg>
                 <div class="flex items-center justify-between gap-2">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-[#EFE8FE] flex items-center justify-center text-purple-600">
@@ -727,15 +698,12 @@
                         </div>
                         <span class="text-sm font-bold text-slate-700">Kuis</span>
                     </div>
-                    <span class="text-sm font-bold text-slate-700">Kuiz</span>
                     <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/80 text-purple-600 border border-purple-100">
                         {{ $statistik['kuis_dinilai'] ?? 0 }}/{{ $statistik['kuis_total'] ?? 0 }}
                     </span>
                 </div>
                 <div class="flex items-end justify-between mt-4">
                     <div>
-                        <p class="text-3xl font-extrabold text-slate-900 tracking-tight leading-none">{{ number_format($rataRataQuiz, 1, ',', '.') }}</p>
-                        <p class="text-xs text-slate-400 mt-1">Rata-rata nilai</p>
                         <p class="text-3xl font-extrabold text-slate-900 tracking-tight leading-none">
                             {{ $statHasQuiz ? number_format($rataRataQuiz, 1, ',', '.') : '-' }}
                         </p>
@@ -743,23 +711,16 @@
                             {{ $statHasQuiz ? 'Rata-rata nilai kuis' : 'Belum ada nilai kuis' }}
                         </p>
                     </div>
-                    <button @click="currentTab = 'kuiz'" aria-label="Detail Kuiz" class="p-1 rounded-lg text-purple-600 hover:translate-x-0.5 transition" type="button">
                     <a href="{{ route('siswa.kuis') }}" aria-label="Detail Kuis" class="p-1 rounded-lg text-purple-600 hover:translate-x-0.5 transition">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                             <path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round"></path>
                         </svg>
-                    </button>
                     </a>
                 </div>
             </div>
 
             <!-- Metric Card 3: Ujian (Green/Emerald) -->
             <div class="bg-[#F0FAF4] border border-[#DCF4E4] rounded-2xl p-5 flex flex-col justify-between hover:shadow-xs transition">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-[#DCF4E4] flex items-center justify-center text-emerald-600">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-linecap="round" stroke-linejoin="round"></path>
-                        </svg>
                 <div class="flex items-center justify-between gap-2">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-[#DCF4E4] flex items-center justify-center text-emerald-600">
@@ -769,15 +730,12 @@
                         </div>
                         <span class="text-sm font-bold text-slate-700">Ujian</span>
                     </div>
-                    <span class="text-sm font-bold text-slate-700">Ujian</span>
                     <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/80 text-emerald-600 border border-emerald-100">
                         {{ $statistik['ujian_dinilai'] ?? 0 }}/{{ $statistik['ujian_total'] ?? 0 }}
                     </span>
                 </div>
                 <div class="flex items-end justify-between mt-4">
                     <div>
-                        <p class="text-3xl font-extrabold text-slate-900 tracking-tight leading-none">{{ number_format($rataRataUjian, 1, ',', '.') }}</p>
-                        <p class="text-xs text-slate-400 mt-1">Rata-rata nilai</p>
                         <p class="text-3xl font-extrabold text-slate-900 tracking-tight leading-none">
                             {{ $statHasUjian ? number_format($rataRataUjian, 1, ',', '.') : '-' }}
                         </p>
@@ -785,12 +743,10 @@
                             {{ $statHasUjian ? 'Rata-rata nilai ujian' : 'Belum ada nilai ujian' }}
                         </p>
                     </div>
-                    <button aria-label="Detail Ujian" class="p-1 rounded-lg text-emerald-600 hover:translate-x-0.5 transition" type="button">
                     <a href="{{ route('siswa.ujian.index') }}" aria-label="Detail Ujian" class="p-1 rounded-lg text-emerald-600 hover:translate-x-0.5 transition">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                             <path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round"></path>
                         </svg>
-                    </button>
                     </a>
                 </div>
             </div>
@@ -802,7 +758,6 @@
             <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-100 p-5 md:p-6 flex flex-col justify-between shadow-[0_2px_8px_rgba(0,0,0,0.02)]" data-purpose="progression-chart">
                 <!-- Chart Header & Legends -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-50 gap-3">
-                    <h3 class="text-base font-bold text-slate-900">Perkembangan Nilai</h3>
                     <div>
                         <h3 class="text-base font-bold text-slate-900">Perkembangan Nilai</h3>
                         <p class="text-[11px] text-slate-400 mt-0.5">Arahkan kursor ke bulan untuk melihat detail rata-rata nilai.</p>
@@ -814,7 +769,6 @@
                         </div>
                         <div class="flex items-center gap-1.5 text-purple-600">
                             <span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
-                            <span>Kuiz</span>
                             <span>Kuis</span>
                         </div>
                         <div class="flex items-center gap-1.5 text-emerald-500">
@@ -849,7 +803,6 @@
                 </div>
 
                 <!-- Line Chart SVG Graphic -->
-                <div class="w-full pt-4 pb-2">
                 <div class="relative w-full pt-2 pb-2" @mouseleave="hoveredMonthIdx = null">
                     <svg class="w-full h-56 overflow-visible text-xs select-none" viewBox="0 0 540 220">
                         <!-- Horizontal Grid Lines -->
@@ -872,11 +825,6 @@
                         </g>
                         <!-- Vertical Dash Guides -->
                         <g stroke="#E2E8F0" stroke-dasharray="3,3" stroke-width="1">
-                            <line x1="80" x2="80" y1="20" y2="195"></line>
-                            <line x1="180" x2="180" y1="20" y2="195"></line>
-                            <line x1="280" x2="280" y1="20" y2="195"></line>
-                            <line x1="380" x2="380" y1="20" y2="195"></line>
-                            <line x1="480" x2="480" y1="20" y2="195"></line>
                             @foreach($chartXCoords as $xPos)
                                 <line x1="{{ $xPos }}" x2="{{ $xPos }}" y1="20" y2="195"></line>
                             @endforeach
@@ -891,14 +839,12 @@
                         @endforeach
 
                         <!-- Data Line 1: Tugas (Blue) -->
-                        <polyline fill="none" points="{{ $perkembanganNilai['tugas']['points'] }}" stroke="#2563EB" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></polyline>
                         @if(!empty($perkembanganNilai['tugas']['points']))
                             <polyline fill="none" points="{{ $perkembanganNilai['tugas']['points'] }}" stroke="#2563EB" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></polyline>
                         @endif
                         <!-- Data Points: Tugas -->
                         <g fill="#2563EB">
                             @foreach($perkembanganNilai['tugas']['coords'] as $pt)
-                                <circle cx="{{ $pt[0] }}" cy="{{ $pt[1] }}" r="4" stroke="#ffffff" stroke-width="2"></circle>
                                 <circle cx="{{ $pt['x'] }}" cy="{{ $pt['y'] }}" r="4.5" stroke="#ffffff" stroke-width="2"
                                         class="cursor-pointer"
                                         @mouseenter="hoveredMonthIdx = {{ $pt['index'] }}">
@@ -906,9 +852,6 @@
                                 </circle>
                             @endforeach
                         </g>
-                        <!-- Data Line 2: Kuiz (Purple) -->
-                        <polyline fill="none" points="{{ $perkembanganNilai['kuiz']['points'] }}" stroke="#8B5CF6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></polyline>
-                        <!-- Data Points: Kuiz -->
 
                         <!-- Data Line 2: Kuis (Purple) -->
                         @if(!empty($perkembanganNilai['kuiz']['points']))
@@ -917,7 +860,6 @@
                         <!-- Data Points: Kuis -->
                         <g fill="#8B5CF6">
                             @foreach($perkembanganNilai['kuiz']['coords'] as $pt)
-                                <circle cx="{{ $pt[0] }}" cy="{{ $pt[1] }}" r="4" stroke="#ffffff" stroke-width="2"></circle>
                                 <circle cx="{{ $pt['x'] }}" cy="{{ $pt['y'] }}" r="4.5" stroke="#ffffff" stroke-width="2"
                                         class="cursor-pointer"
                                         @mouseenter="hoveredMonthIdx = {{ $pt['index'] }}">
@@ -927,14 +869,12 @@
                         </g>
 
                         <!-- Data Line 3: Ujian (Green) -->
-                        <polyline fill="none" points="{{ $perkembanganNilai['ujian']['points'] }}" stroke="#10B981" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></polyline>
                         @if(!empty($perkembanganNilai['ujian']['points']))
                             <polyline fill="none" points="{{ $perkembanganNilai['ujian']['points'] }}" stroke="#10B981" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></polyline>
                         @endif
                         <!-- Data Points: Ujian -->
                         <g fill="#10B981">
                             @foreach($perkembanganNilai['ujian']['coords'] as $pt)
-                                <circle cx="{{ $pt[0] }}" cy="{{ $pt[1] }}" r="4" stroke="#ffffff" stroke-width="2"></circle>
                                 <circle cx="{{ $pt['x'] }}" cy="{{ $pt['y'] }}" r="4.5" stroke="#ffffff" stroke-width="2"
                                         class="cursor-pointer"
                                         @mouseenter="hoveredMonthIdx = {{ $pt['index'] }}">
@@ -945,9 +885,7 @@
 
                         <!-- X-Axis Labels -->
                         <g fill="#64748B" font-size="11" font-weight="500" text-anchor="middle">
-                            @php $xCoords = [80, 180, 280, 380, 480]; @endphp
                             @foreach($perkembanganNilai['bulan'] as $i => $bulan)
-                                <text x="{{ $xCoords[$i] ?? 80 }}" y="215">{{ $bulan }}</text>
                                 <text x="{{ $chartXCoords[$i] ?? 70 }}" y="215">{{ $bulan }}</text>
                             @endforeach
                         </g>
@@ -968,17 +906,8 @@
             <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-100 p-5 md:p-6 flex flex-col justify-between shadow-[0_2px_8px_rgba(0,0,0,0.02)]" data-purpose="subject-scores-list">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-50">
                     <h3 class="text-base font-bold text-slate-900">Nilai per Mata Pelajaran</h3>
-                    <span class="text-xs text-slate-400 font-medium">Semester {{ $semester ?? 'Ganjil' }}</span>
                     <span class="text-xs text-slate-400 font-medium">Semester {{ $statSemesterLabel }}</span>
                 </div>
-                <div class="divide-y divide-slate-50 mt-1">
-                    @foreach($listNilaiMapel as $mapelNilai)
-                        @if(!empty($mapelNilai['id']))
-                            <a href="{{ route('siswa.mapel.show', $mapelNilai['id']) }}" class="py-3 flex items-center justify-between hover:bg-slate-50 rounded-xl px-2.5 -mx-2.5 transition-colors group">
-                        @else
-                            <div class="py-3 flex items-center justify-between hover:bg-slate-50 rounded-xl px-2.5 -mx-2.5 transition-colors cursor-pointer group">
-                        @endif
-                            <div class="flex items-center gap-3">
                 <div class="divide-y divide-slate-50 mt-1 flex-1">
                     @forelse($listNilaiMapel as $mapelNilai)
                         <a href="{{ route('siswa.mapel.show', $mapelNilai['id']) }}" class="py-3 flex items-center justify-between gap-3 hover:bg-slate-50 rounded-xl px-2.5 -mx-2.5 transition-colors group">
@@ -1016,7 +945,6 @@
                                         </svg>
                                     @endif
                                 </div>
-                                <span class="text-sm font-semibold text-slate-800 group-hover:text-blue-600 transition-colors">{{ $mapelNilai['nama'] }}</span>
                                 <div class="min-w-0">
                                     <span class="text-sm font-semibold text-slate-800 group-hover:text-blue-600 transition-colors block truncate">{{ $mapelNilai['nama'] }}</span>
                                     @if(!empty($mapelNilai['has_nilai']))
@@ -1034,8 +962,6 @@
                                     @endif
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm font-bold text-slate-700">{{ number_format($mapelNilai['nilai'], 1, ',', '.') }}</span>
                             <div class="flex items-center gap-2 shrink-0">
                                 @if(!empty($mapelNilai['has_nilai']))
                                     <div class="text-right">
@@ -1051,12 +977,6 @@
                                     <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
                                 </svg>
                             </div>
-                        @if(!empty($mapelNilai['id']))
-                            </a>
-                        @else
-                            </div>
-                        @endif
-                    @endforeach
                         </a>
                     @empty
                         <div class="py-10 text-center text-slate-400">
