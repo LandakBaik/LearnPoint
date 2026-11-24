@@ -16,6 +16,8 @@ use App\Http\Controllers\Admin\GuruMapelController as AdminGuruMapelController;
 use App\Http\Controllers\Admin\JadwalController as AdminJadwalController;
 use App\Http\Controllers\Admin\KelasController as AdminKelasController;
 use App\Http\Controllers\Admin\MapelController as AdminMapelController;
+use App\Http\Controllers\Admin\MonitoringGuruController as AdminMonitoringGuruController;
+use App\Http\Controllers\Admin\RekapNilaiController as AdminRekapNilaiController;
 use App\Http\Controllers\Admin\SiswaController as AdminSiswaController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 
@@ -289,6 +291,20 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/kelola-jadwal/guru', [AdminJadwalController::class, 'uploadJadwalGuru'])->name('admin.jadwal.upload_guru');
         Route::delete('/kelola-jadwal/kelas/{kelas}', [AdminJadwalController::class, 'destroyJadwalKelas'])->name('admin.jadwal.destroy_kelas');
         Route::delete('/kelola-jadwal/guru/{guruMapel}', [AdminJadwalController::class, 'destroyJadwalGuru'])->name('admin.jadwal.destroy_guru');
+
+        // Perekapan Nilai Keseluruhan
+        Route::get('/admin/rekap-nilai', [AdminRekapNilaiController::class, 'index'])->name('admin.rekap-nilai.index');
+        Route::get('/admin/rekap-nilai/export-pdf', [AdminRekapNilaiController::class, 'exportPdf'])->name('admin.rekap-nilai.export-pdf');
+        Route::get('/admin/rekap-nilai/export-csv', [AdminRekapNilaiController::class, 'exportCsv'])->name('admin.rekap-nilai.export-csv');
+        Route::get('/admin/rekap-nilai/siswa/{siswa}', [AdminRekapNilaiController::class, 'showSiswa'])->name('admin.rekap-nilai.siswa');
+        Route::get('/admin/rekap-nilai/siswa/{siswa}/pdf', [AdminRekapNilaiController::class, 'exportSiswaPdf'])->name('admin.rekap-nilai.siswa.pdf');
+
+        // Perekapan & Monitoring Aktivitas Guru
+        Route::get('/admin/monitoring-guru', [AdminMonitoringGuruController::class, 'index'])->name('admin.monitoring-guru.index');
+        Route::get('/admin/monitoring-guru/export-pdf', [AdminMonitoringGuruController::class, 'exportPdf'])->name('admin.monitoring-guru.export-pdf');
+        Route::get('/admin/monitoring-guru/export-csv', [AdminMonitoringGuruController::class, 'exportCsv'])->name('admin.monitoring-guru.export-csv');
+        Route::get('/admin/monitoring-guru/{guru}', [AdminMonitoringGuruController::class, 'showGuru'])->name('admin.monitoring-guru.guru');
+        Route::get('/admin/monitoring-guru/{guru}/pdf', [AdminMonitoringGuruController::class, 'exportGuruPdf'])->name('admin.monitoring-guru.guru.pdf');
     });
 
     // ==========================================
