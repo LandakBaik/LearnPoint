@@ -1651,7 +1651,7 @@ class UjianController extends Controller
             $user = $siswa?->user;
 
             $nama = $user->name ?? $siswa?->nama_lengkap ?? $siswa?->nama ?? ('Siswa #' . $sesi->siswa_id);
-            $nisn = $siswa?->nisn ?? $user?->username ?? '-';
+            $nisn = $siswa?->nis ?? $siswa?->nisn ?? $user?->username ?? '-';
             $namaKelas = $ujianSiswa?->pengampuKelas?->kelas?->nama_kelas ?? '-';
             $nomorSesi = $ujianSiswa?->sesi ?? 1;
 
@@ -1715,7 +1715,8 @@ class UjianController extends Controller
     }
 
     /**
-     * Membuka kunci sesi siswa yang terblokir browser/perangkat.
+     * Membuka kunci sesi siswa yang terblokir browser/perangkat
+     * TANPA mereset total pelanggaran_count.
      */
     public function unlockPeserta(Ujian $ujian, SeleksiUjian $seleksi)
     {
@@ -1723,10 +1724,13 @@ class UjianController extends Controller
 
         $seleksi->update([
             'status' => 'sedang_mengerjakan',
-            'pelanggaran_count' => 0,
         ]);
 
-        return response()->json(['status' => 'success', 'message' => 'Sesi siswa berhasil dibuka kembali.']);
+        return response()->json([
+            'status'            => 'success',
+            'pelanggaran_count' => (int) ($seleksi->pelanggaran_count ?? 0),
+            'message'           => 'Sesi siswa berhasil dibuka kembali. Riwayat pelanggaran tetap tercatat.',
+        ]);
     }
 
     /**
@@ -1858,14 +1862,13 @@ class UjianController extends Controller
             // 1. Hapus rekap nilai sementara agar status "Selesai" di dashboard siswa hilang
             Nilai::where('seleksi_ujian_id', $seleksi->id)->delete();
 
-            // 2. Kembalikan status seleksi_ujians ke sedang_mengerjakan
-            // CATATAN: Data di tabel `menjawabs` TIDAK dihapus sehingga seluruh progres jawaban tetap utuh.
+            // 2. Kembalikan status ke sedang_mengerjakan TANPA mereset pelanggaran_count
+            // Data di tabel `menjawabs` juga tetap dipertahankan.
             $seleksi->update([
-                'status' => 'sedang_mengerjakan',
+                'status'        => 'sedang_mengerjakan',
                 'waktu_selesai' => null,
-                'nilai_awal' => 0,
-                'nilai_akhir' => 0,
-                'pelanggaran_count' => 0,
+                'nilai_awal'    => 0,
+                'nilai_akhir'   => 0,
             ]);
         });
 
@@ -2114,7 +2117,7 @@ class UjianController extends Controller
                 'ujian_id' => $ujianSiswa?->id ?? $ujian->id,
                 'seleksi_id' => $sesi?->id,
                 'nama' => $siswa->user->name ?? $siswa->nama_lengkap ?? $siswa->nama ?? ('Siswa #' . $siswa->id),
-                'nisn' => $siswa->nisn ?? '-',
+                'nisn' => $siswa->nis ?? $siswa->nisn ?? $siswa->user?->username ?? '-',
                 'kelas' => $namaKelasSiswa, // [UBAHAN 3] Pakai variabel $namaKelasSiswa
                 'sudah_selesai' => $sudahSelesai,
                 'pg_benar' => $pgBenar,
@@ -2437,7 +2440,7 @@ class UjianController extends Controller
                 return [
                     'siswa_id' => $siswa->id,
                     'nama' => $siswa->user->name ?? $siswa->nama_lengkap ?? $siswa->nama ?? ('Siswa #' . $siswa->id),
-                    'nisn' => $siswa->nisn ?? '-',
+                    'nisn' => $siswa->nis ?? $siswa->nisn ?? $siswa->user?->username ?? '-',
                     'nilai_per_ujian' => $nilaiPerUjian,
                     'rata_rata' => $rataRata,
                 ];
@@ -2516,7 +2519,7 @@ class UjianController extends Controller
                     return [
                         'siswa_id' => $siswa->id,
                         'nama' => $siswa->user->name ?? $siswa->nama_lengkap ?? $siswa->nama ?? ('Siswa #' . $siswa->id),
-                        'nisn' => $siswa->nisn ?? '-',
+                        'nisn' => $siswa->nis ?? $siswa->nisn ?? $siswa->user?->username ?? '-',
                         'sudah_selesai' => $sudahSelesai,
                         'pg_benar' => $pgBenar,
                         'pg_salah' => $pgSalah,

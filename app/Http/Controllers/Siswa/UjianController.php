@@ -494,28 +494,27 @@ class UjianController extends Controller
             ->where('siswa_id', $siswaId)
             ->first();
 
-        if (!$sesi || $sesi->status === 'selesai') {
+        if (!$sesi || in_array($sesi->status, ['selesai', 'terkunci'], true)) {
             return response()->json(['status' => 'ignored']);
         }
 
-        // Naikkan counter pelanggaran
         $sesi->increment('pelanggaran_count');
         $sesi->refresh();
 
-        $maxToleransi = 3; // Batas maksimal pindah tab/jendela
+        $maxToleransi = 3;
         $isLocked = false;
 
-        // Kunci sesi pengerjaan otomatis jika melewati batas
+        // Mulai pelanggaran ke-3, 4, 5, 6, dst. langsung terkunci otomatis
         if ($sesi->pelanggaran_count >= $maxToleransi) {
             $sesi->update(['status' => 'terkunci']);
             $isLocked = true;
         }
 
         return response()->json([
-            'status' => 'success',
-            'pelanggaran_count' => $sesi->pelanggaran_count,
-            'max_toleransi' => $maxToleransi,
-            'is_locked' => $isLocked,
+            'status'            => 'success',
+            'pelanggaran_count' => (int) $sesi->pelanggaran_count,
+            'max_toleransi'     => $maxToleransi,
+            'is_locked'         => $isLocked,
         ]);
     }
 
@@ -567,7 +566,6 @@ class UjianController extends Controller
         // Buka kunci dan reset hitungan pelanggaran
         $sesi->update([
             'status'            => 'sedang_mengerjakan',
-            'pelanggaran_count' => 0,
         ]);
 
         return response()->json([
