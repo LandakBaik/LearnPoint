@@ -84,18 +84,16 @@ $fileTerkirimExt = $fileTerkirim
                         </p>
                     </div>
                 </div>
-            </div>
+                {{-- Deskripsi Tugas --}}
+                <div class="pt-4 border-t border-slate-100">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                        Deskripsi Tugas
+                    </h2>
 
-            {{-- Deskripsi Tugas --}}
-            <div class="pt-4 border-t border-slate-100">
-                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    Deskripsi Tugas
-                </h2>
-
-                <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
-                    {{ $tugas->deskripsi ?? 'Tidak ada deskripsi tugas.' }}
-                </p>
-            </div>
+                    <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+                        {{ $tugas->deskripsi ?? 'Tidak ada deskripsi tugas.' }}
+                    </p>
+                </div>
 
         </section>
 
