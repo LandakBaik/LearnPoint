@@ -9,6 +9,7 @@ use App\Models\Soal;
 use App\Services\QuizService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -652,7 +653,7 @@ class QuizController extends Controller
      */
     private function resolveGuruId(): int
     {
-        $user = auth()->user();
+        $user = Auth::user();
         $guruId = $user?->guru?->id ?? $user?->guru_id;
         abort_unless($user && $user->role === 'guru' && $guruId, 403, 'Akses ditolak.');
 

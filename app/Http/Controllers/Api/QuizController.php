@@ -1079,6 +1079,7 @@ class QuizController extends Controller
         }
 
         $quiz->load('soals');
+        $allQuizSoals = $quiz->soals;
         $journeyBefore = $this->adventureService->buildQuizAdventureJourney($quiz, $siswa);
 
         if ($journeyBefore['is_all_completed']) {
