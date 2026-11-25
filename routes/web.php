@@ -81,29 +81,33 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/guru/materi/{id_grub_materi}/edit', [GuruMateriController::class, 'edit'])->name('guru.materi.edit');
         Route::put('/guru/materi/{id_grub_materi}', [GuruMateriController::class, 'update'])->name('guru.materi.update');
         Route::delete('/guru/materi/{id_grub_materi}', [GuruMateriController::class, 'destroy'])->name('guru.materi.destroy');
-        Route::get('/guru/tugas', [GuruTugasController::class, 'index'])->name('guru.tugas');
 
-        // Halaman tambah tugas
+        //HALAMAN GURU TUGAS
+        Route::get('/guru/tugas', [GuruTugasController::class, 'index'])->name('guru.tugas');
+        Route::get('/guru/tugas/create', [GuruTugasController::class, 'create'])
+            ->name('guru.tugas.create');
+        // SIMPAN TUGAS
         Route::post('/guru/tugas', [GuruTugasController::class, 'store'])
             ->name('guru.tugas.store');
+        Route::get('/guru/tugas/{id}/edit', [GuruTugasController::class, 'edit'])
+            ->name('guru.tugas.edit');
+        // DETAIL TUGAS
         Route::get('/guru/tugas/{id}', [GuruTugasController::class, 'show'])
             ->name('guru.tugas.show');
-
-        // Simpan / perbarui nilai siswa
+        // SIMPAN / PERBARUI NILAI SISWA
         Route::post('/guru/pengumpulan/{id}/nilai', [GuruTugasController::class, 'berikanNilai'])
             ->name('guru.pengumpulan.nilai');
         Route::put('/guru/tugas/{id}', [GuruTugasController::class, 'update'])
             ->name('guru.tugas.update');
         Route::delete('/guru/tugas/{id}', [GuruTugasController::class, 'destroy'])
             ->name('guru.tugas.destroy');
-        // Halaman kunci jawaban pilihan ganda
+        // HALAMAN KUNCI JAWABAN PILIHAN GANDA
         Route::get('/guru/tugas/{id}/kunci-jawaban', [GuruTugasController::class, 'kunciJawaban'])
             ->name('guru.tugas.kunci-jawaban');
-
-        // Halaman detail jawaban siswa
+        // HALAMAN DETAIL JAWABAN SISWA
         Route::get('/guru/tugas/{id}/jawaban-siswa/{pengumpulanId}', [GuruTugasController::class, 'detailJawabanSiswa'])
             ->name('guru.tugas.detail-jawaban-siswa');
-            
+
         Route::get('/guru/jadwal', [GuruJadwalController::class, 'index'])
             ->name('guru.jadwal');
 
@@ -242,7 +246,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/siswa/ujian/{ujian}/pelanggaran', [SiswaUjianController::class, 'catatPelanggaran'])->name('siswa.ujian.pelanggaran');
         Route::get('/siswa/ujian/{ujian}/status-sesi', [SiswaUjianController::class, 'cekStatusSesi'])->name('siswa.ujian.status-sesi');
         Route::post('/siswa/ujian/{ujian}/buka-kunci-kode', [SiswaUjianController::class, 'bukaKunciDenganKode'])
-    ->name('siswa.ujian.buka-kunci-kode');
+            ->name('siswa.ujian.buka-kunci-kode');
     });
 
     // ==========================================

@@ -94,7 +94,84 @@ class TugasController extends Controller
         ));
     }
 
-    // 2. Validasi data tugas dan soal
+    // 2. Menampilkan halaman tambah tugas (bukan popup)
+    public function create(Request $request)
+    {
+        $user = $request->user();
+        $guru_id = $user?->guru?->id;
+
+        abort_unless($user?->role === 'guru' && $guru_id, 403);
+
+        $pengampuKelases = PengampuKelas::with([
+            'guruMapel.mapel',
+            'kelas'
+        ])
+            ->whereHas('guruMapel', function ($query) use ($guru_id) {
+                $query->where('guru_id', $guru_id);
+            })
+            ->get();
+
+        $kelases = $pengampuKelases->pluck('kelas')
+            ->unique('id')
+            ->filter();
+
+        $mapels = $pengampuKelases->pluck('guruMapel.mapel')
+            ->unique('id')
+            ->filter();
+
+        return view('guru.kelola_tugas.create', compact(
+            'pengampuKelases',
+            'kelases',
+            'mapels'
+        ));
+    }
+
+    // 3. Menampilkan halaman edit tugas (bukan popup)
+    public function edit(Request $request, string $id)
+    {
+        $user = $request->user();
+        $guru_id = $user?->guru?->id;
+
+        abort_unless($user?->role === 'guru' && $guru_id, 403);
+
+        $tugas = Tugas::with([
+            'pengampuKelas.guruMapel.mapel',
+            'pengampuKelas.kelas',
+            'soals'
+        ])->findOrFail($id);
+
+        abort_unless(
+            $tugas->pengampuKelas?->guruMapel?->guru_id == $guru_id,
+            403,
+            'Akses ditolak.'
+        );
+
+        $pengampuKelases = PengampuKelas::with([
+            'guruMapel.mapel',
+            'kelas'
+        ])
+            ->whereHas('guruMapel', function ($query) use ($guru_id) {
+                $query->where('guru_id', $guru_id);
+            })
+            ->get();
+
+        $kelases = $pengampuKelases->pluck('kelas')
+            ->unique('id')
+            ->filter();
+
+        $mapels = $pengampuKelases->pluck('guruMapel.mapel')
+            ->unique('id')
+            ->filter();
+
+        return view('guru.kelola_tugas.edit', compact(
+            'tugas',
+            'pengampuKelases',
+            'kelases',
+            'mapels'
+        ));
+    }
+
+    // 4. Validasi data tugas dan soal
     private function validasiTugas(Request $request, bool $isUpdate = false)
     {
         $rules = [
@@ -192,7 +269,7 @@ class TugasController extends Controller
         ]);
     }
 
-    // 3. Menyimpan soal pilihan ganda
+    // 5. Menyimpan soal pilihan ganda
     private function simpanSoal(Tugas $tugas, Request $request)
     {
         if ($tugas->tipe !== 'pilihan_ganda') {
@@ -303,7 +380,7 @@ class TugasController extends Controller
         }
     }
 
-    // 4. Membuat tugas baru
+    // 6. Membuat tugas baru
     public function store(Request $request)
     {
         $user = $request->user();
@@ -403,14 +480,15 @@ class TugasController extends Controller
             );
         }
 
-        return redirect()->back()
+        // Setelah berhasil, kembali ke daftar tugas.
+        return redirect()->route('guru.tugas')
             ->with(
                 'success',
                 'Tugas berhasil dipublikasikan ke ' . $hasilTugas->count() . ' kelas!'
             );
     }
 
-    // 5. Menampilkan detail pengumpulan tugas
+    // 7. Menampilkan detail pengumpulan tugas
     public function show(Request $request, string $id)
     {
         $user = $request->user();
@@ -438,9 +516,10 @@ class TugasController extends Controller
         $periodId = $tugas->pengampuKelas?->academic_period_id ?? \App\Models\AcademicPeriod::currentId();
         $mapel = $tugas->pengampuKelas?->guruMapel?->mapel;
         $targetAgama = $mapel?->target_agama;
+
         $siswas = $kelas->siswas()
             ->wherePivot('academic_period_id', $periodId)
-            ->when(filled($targetAgama), fn ($q) => $q->where('siswas.agama', $targetAgama))
+            ->when(filled($targetAgama), fn($q) => $q->where('siswas.agama', $targetAgama))
             ->orderBy('siswas.nama_siswa')
             ->get();
 
@@ -513,7 +592,7 @@ class TugasController extends Controller
         ));
     }
 
-    // 6. Menampilkan kunci jawaban pilihan ganda
+    // 8. Menampilkan kunci jawaban pilihan ganda
     public function kunciJawaban(Request $request, string $id)
     {
         $user = $request->user();
@@ -545,7 +624,7 @@ class TugasController extends Controller
         ));
     }
 
-    // 7. Menampilkan detail jawaban siswa
+    // 9. Menampilkan detail jawaban siswa
     public function detailJawabanSiswa(
         Request $request,
         string $id,
@@ -603,7 +682,7 @@ class TugasController extends Controller
         );
     }
 
-    // 8. Memperbarui tugas
+    // 10. Memperbarui tugas
     public function update(Request $request, string $id)
     {
         $user = $request->user();
@@ -687,11 +766,12 @@ class TugasController extends Controller
             Storage::disk('public')->delete($fileLama);
         }
 
-        return redirect()->back()
+        // Setelah berhasil edit, kembali ke daftar tugas.
+        return redirect()->route('guru.tugas')
             ->with('success', 'Tugas berhasil diperbarui!');
     }
 
-    // 9. Menghapus tugas
+    // 11. Menghapus tugas
     public function destroy(Request $request, string $id)
     {
         $user = $request->user();
@@ -735,7 +815,7 @@ class TugasController extends Controller
             ->with('success', 'Tugas berhasil dihapus!');
     }
 
-    // 10. Memberikan nilai kepada siswa
+    // 12. Memberikan nilai kepada siswa
     public function berikanNilai(Request $request, string $id)
     {
         $user = $request->user();
