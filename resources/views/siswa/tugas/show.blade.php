@@ -13,10 +13,10 @@ $sudahDinilai = $pengumpulan
 $fileTerkirim = $pengumpulan?->file_jawaban;
 
 $fileTerkirimAda = $fileTerkirim
-&& Storage::disk('public')->exists($fileTerkirim);
+&& (Storage::disk('local')->exists($fileTerkirim) || Storage::disk('public')->exists($fileTerkirim));
 
-$fileTerkirimUrl = $fileTerkirimAda
-? asset('storage/' . $fileTerkirim)
+$fileTerkirimUrl = $fileTerkirimAda && $pengumpulan
+? route('file.jawaban', $pengumpulan->id)
 : null;
 
 $fileTerkirimExt = $fileTerkirim
@@ -102,7 +102,7 @@ $fileTerkirimExt = $fileTerkirim
                         </p>
 
                         <p class="text-sm font-bold text-slate-700 truncate">
-                            {{ $tugas->pengampuKelas->guruMapel->guru->nama_guru
+                            {{ $tugas->pengampuKelas?->guruMapel?->guru?->nama
                         ?? 'Nama guru belum tersedia' }}
                         </p>
                     </div>
@@ -127,7 +127,7 @@ $fileTerkirimExt = $fileTerkirim
 
         @php
         $lampiranExt = strtolower(pathinfo($tugas->file_lampiran, PATHINFO_EXTENSION));
-        $lampiranUrl = Storage::disk('public')->url($tugas->file_lampiran);
+        $lampiranUrl = route('file.tugas', $tugas->id);
         @endphp
 
         <div class="pt-4 border-t border-slate-100">

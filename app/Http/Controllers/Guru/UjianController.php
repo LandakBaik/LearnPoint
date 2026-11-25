@@ -1031,8 +1031,21 @@ class UjianController extends Controller
         }
 
         $kelasIds = is_array($request->pengampu_kelas_id)
-            ? array_map('intval', $request->pengampu_kelas_id)
+            ? array_values(array_unique(array_map('intval', $request->pengampu_kelas_id)))
             : [(int) $request->pengampu_kelas_id];
+
+        $guruId = auth()->user()?->guru?->id;
+        $validKelasIds = PengampuKelas::whereIn('id', $kelasIds)
+            ->whereHas('guruMapel', fn ($q) => $q->where('guru_id', $guruId))
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if (count($validKelasIds) !== count($kelasIds) || empty($validKelasIds)) {
+            return back()->withInput()->withErrors([
+                'pengampu_kelas_id' => 'Anda tidak memiliki hak akses pada salah satu kelas yang dipilih.',
+            ]);
+        }
 
         DB::transaction(function () use ($request, $validated, $grup, $kelasIds, $status, $ujian) {
             $grupUjianId = $ujian->id_grup_ujian ?: (string) Str::uuid();
@@ -1721,6 +1734,11 @@ class UjianController extends Controller
     {
         $this->authorizeGuruUjian($ujian);
 
+        $ujianIds = $ujian->id_grup_ujian
+            ? Ujian::where('id_grup_ujian', $ujian->id_grup_ujian)->pluck('id')->map(fn ($id) => (int) $id)->all()
+            : [(int) $ujian->id];
+        abort_unless(in_array((int) $seleksi->ujian_id, $ujianIds, true), 403, 'Sesi peserta tidak termasuk dalam ujian ini.');
+
         $seleksi->update([
             'status' => 'sedang_mengerjakan',
             'pelanggaran_count' => 0,
@@ -1739,13 +1757,19 @@ class UjianController extends Controller
         // Ambil data sesi (baik jika terkirim sebagai ID maupun Model Binding)
         $seleksi = $seleksi instanceof SeleksiUjian ? $seleksi : SeleksiUjian::findOrFail($seleksi);
 
+        $ujianIds = $ujian->id_grup_ujian
+            ? Ujian::where('id_grup_ujian', $ujian->id_grup_ujian)->pluck('id')->map(fn ($id) => (int) $id)->all()
+            : [(int) $ujian->id];
+        abort_unless(in_array((int) $seleksi->ujian_id, $ujianIds, true), 403, 'Sesi peserta tidak termasuk dalam ujian ini.');
+
         if ($seleksi->status === 'selesai') {
             return response()->json(['status' => 'success', 'message' => 'Ujian siswa sudah selesai.'], 200);
         }
 
-        return DB::transaction(function () use ($ujian, $seleksi) {
+        return DB::transaction(function () use ($seleksi) {
             $siswaId = $seleksi->siswa_id;
-            $soals = $ujian->soals;
+            $ujianPeserta = Ujian::with('soals')->findOrFail($seleksi->ujian_id);
+            $soals = $ujianPeserta->soals;
             $soalIds = $soals->pluck('id');
 
             $jawabanSiswa = Menjawab::where('siswa_id', $siswaId)
@@ -2654,6 +2678,11 @@ class UjianController extends Controller
             'catatan_guru' => 'nullable|string|max:500',
         ]);
 
+        $ujianIds = $ujian->id_grup_ujian
+            ? Ujian::where('id_grup_ujian', $ujian->id_grup_ujian)->pluck('id')->map(fn ($id) => (int) $id)->all()
+            : [(int) $ujian->id];
+        abort_unless(in_array((int) $validated['ujian_id'], $ujianIds, true), 403, 'Ujian tidak termasuk dalam grup ujian Anda.');
+
         $soal = Soal::where('ujian_id', $validated['ujian_id'])->findOrFail($validated['soal_id']);
         $bobotMaks = (float) ($soal->bobot ?? 100);
         $skorValid = min($bobotMaks, max(0, (float) $validated['skor']));
@@ -2757,21 +2786,29 @@ class UjianController extends Controller
 
         $siswaList = Siswa::with('anggotaKelases')->whereIn('id', $siswaIdsTerpilih)->get();
 
-        // Kelompokkan siswa terpilih berdasarkan kelas ujian induk masing-masing
+        // Kelompokkan siswa terpilih berdasarkan kelas ujian induk masing-masing (tolak siswa luar kelas ujian)
         $pesertaPerUjianInduk = [];
         foreach ($siswaList as $siswa) {
             $sesiInduk = $sesiIndukMap->get($siswa->id);
             if ($sesiInduk) {
                 $targetUjianInduk = $grupUjians->firstWhere('id', $sesiInduk->ujian_id);
             } else {
-                $kelasSiswaId = $siswa->anggotaKelases->last()?->kelas_id;
-                $targetUjianInduk = $grupUjians->firstWhere('pengampuKelas.kelas_id', $kelasSiswaId) ?? $grupUjians->first();
+                $kelasSiswaIds = $siswa->anggotaKelases->pluck('kelas_id')->filter()->map(fn ($id) => (int) $id)->all();
+                $targetUjianInduk = $grupUjians->first(
+                    fn ($u) => in_array((int) $u->pengampuKelas?->kelas_id, $kelasSiswaIds, true)
+                );
             }
 
             if ($targetUjianInduk) {
                 $pesertaPerUjianInduk[$targetUjianInduk->id]['ujian'] = $targetUjianInduk;
                 $pesertaPerUjianInduk[$targetUjianInduk->id]['siswa_ids'][] = $siswa->id;
             }
+        }
+
+        if (empty($pesertaPerUjianInduk)) {
+            return back()->withInput()->withErrors([
+                'siswa_ids' => 'Tidak ada siswa valid dari kelas peserta ujian ini.',
+            ]);
         }
 
         $ujianBaruPertama = null;

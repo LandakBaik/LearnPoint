@@ -13,9 +13,17 @@
 @section('content')
     @php
         $namaLower = strtolower($mapel->nama_mapel ?? '');
-        $totalMateri = $materis->count();
-        $completedMateri = $totalMateri > 0 ? min($totalMateri, 1) : 0;
-        $persenSelesai = $totalMateri > 0 ? round(($completedMateri / $totalMateri) * 100) : 0;
+        $totalTugas = $totalTugas ?? $tugases->count();
+        $tugasSelesai = $tugasSelesai ?? $tugases->filter(fn ($t) => $t->nilais->isNotEmpty())->count();
+        $persenTugas = $persenTugas ?? ($totalTugas > 0 ? (int) round(($tugasSelesai / $totalTugas) * 100) : 0);
+        $jumlahTugasDinilai = $jumlahTugasDinilai ?? 0;
+        $rataRataNilaiTugas = $rataRataNilaiTugas ?? null;
+        $rataRataNilaiTugasFormatted = $rataRataNilaiTugas !== null
+            ? (fmod((float) $rataRataNilaiTugas, 1.0) == 0.0
+                ? number_format((float) $rataRataNilaiTugas, 0)
+                : number_format((float) $rataRataNilaiTugas, 1))
+            : '-';
+        $namaGuruPengampu = $namaGuruPengampu ?? 'Belum ditentukan';
 
         /** @var \App\Models\User $user */
         $user = auth()->user();
@@ -52,45 +60,45 @@
                 <div class="flex items-start gap-6 max-w-2xl">
                     <!-- Course Square Icon -->
                     <div
-                        class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 shrink-0 flex items-center justify-center shadow-lg shadow-blue-500/25 border-2 border-white/40">
+                        class="w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded-3xl bg-gradient-to-br from-blue-500 to-blue-600 shrink-0 flex items-center justify-center shadow-lg shadow-blue-500/25 border-2 border-white/40">
                         @if (str_contains($namaLower, 'matematika') || str_contains($namaLower, 'math'))
                             <div
-                                class="grid grid-cols-2 gap-1.5 p-3 text-white font-extrabold text-lg sm:text-xl text-center leading-none">
+                                class="grid grid-cols-2 gap-2.5 p-3 text-white font-extrabold text-3xl sm:text-4xl text-center leading-none">
                                 <span class="flex items-center justify-center">＋</span>
                                 <span class="flex items-center justify-center">－</span>
                                 <span class="flex items-center justify-center">✕</span>
                                 <span class="flex items-center justify-center">÷</span>
                             </div>
                         @elseif(str_contains($namaLower, 'indonesia'))
-                            <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-14 h-14 sm:w-16 sm:h-16 text-white" fill="currentColor" viewBox="0 0 24 24">
                                 <path
                                     d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z">
                                 </path>
                             </svg>
                         @elseif(str_contains($namaLower, 'inggris') || str_contains($namaLower, 'english'))
-                            <span class="text-white font-black text-2xl sm:text-3xl">Aa</span>
+                            <span class="text-white font-black text-4xl sm:text-5xl">Aa</span>
                         @elseif(str_contains($namaLower, 'ipa') || str_contains($namaLower, 'sains'))
-                            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" stroke-width="2"
+                            <svg class="w-14 h-14 sm:w-16 sm:h-16 text-white" fill="none" stroke="currentColor" stroke-width="2"
                                 viewBox="0 0 24 24">
                                 <path
                                     d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
                                     stroke-linecap="round" stroke-linejoin="round"></path>
                             </svg>
                         @elseif(str_contains($namaLower, 'ips') || str_contains($namaLower, 'sosial'))
-                            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" stroke-width="2"
+                            <svg class="w-14 h-14 sm:w-16 sm:h-16 text-white" fill="none" stroke="currentColor" stroke-width="2"
                                 viewBox="0 0 24 24">
                                 <path
                                     d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                                     stroke-linecap="round" stroke-linejoin="round"></path>
                             </svg>
                         @elseif(str_contains($namaLower, 'pkn') || str_contains($namaLower, 'ppkn'))
-                            <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-14 h-14 sm:w-16 sm:h-16 text-white" fill="currentColor" viewBox="0 0 24 24">
                                 <path
                                     d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z">
                                 </path>
                             </svg>
                         @else
-                            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" stroke-width="2"
+                            <svg class="w-14 h-14 sm:w-16 sm:h-16 text-white" fill="none" stroke="currentColor" stroke-width="2"
                                 viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
@@ -101,32 +109,88 @@
 
                     <!-- Title and Meta -->
                     <div class="flex-1 pt-1">
-                        <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
+                        <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-1.5">
                             {{ $mapel->nama_mapel }}</h1>
-                        <p class="text-base text-slate-500 font-medium mb-6">
+                        <p class="text-base text-slate-500 font-medium mb-1.5">
                             Kelas {{ $kelas->nama_kelas ?? 'VII' }} •
                             {{ $semester ? (str_contains(strtolower($semester), 'semester') ? $semester : 'Semester ' . $semester) : 'Semester 1' }}
                         </p>
+                        <p class="text-sm text-slate-600 font-medium flex items-center gap-2 mb-5">
+                            <i class="fa-solid fa-chalkboard-user text-blue-600 text-xs"></i>
+                            <span>Guru Pengampu: <strong class="text-slate-800 font-bold">{{ $namaGuruPengampu }}</strong></span>
+                        </p>
 
-                        <!-- Progress Bar Section -->
+                        <!-- Progress Bar Section (Plain) -->
                         <div class="w-full max-w-md">
                             <div class="w-full bg-blue-200/60 rounded-full h-3 overflow-hidden">
                                 <div class="bg-blue-600 h-3 rounded-full transition-all duration-500"
-                                    style="width: {{ $totalMateri > 0 ? max(15, $persenSelesai) : 0 }}%"></div>
+                                    style="width: {{ $persenTugas }}%"></div>
                             </div>
                             <div
                                 class="flex justify-between items-center mt-2.5 text-xs sm:text-sm font-semibold text-slate-500">
-                                <span>{{ $persenSelesai }}% selesai</span>
-                                <span>{{ $completedMateri }} dari {{ $totalMateri }} materi</span>
+                                <span>{{ $persenTugas }}% tugas selesai</span>
+                                <span>{{ $tugasSelesai }} dari {{ $totalTugas }} tugas</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Right: Rata-rata Nilai Tugas (Plain Ring Gauge, tanpa box) -->
+                @php
+                    $ringCircumference = 263.89;
+                    $ringPercent = $rataRataNilaiTugas !== null ? min(100, max(0, (float) $rataRataNilaiTugas)) : 0;
+                    $ringOffset = $ringCircumference - ($ringCircumference * $ringPercent / 100);
+                    $ringColorClass = match (true) {
+                        $rataRataNilaiTugas === null => 'text-slate-300',
+                        $rataRataNilaiTugas >= 85 => 'text-emerald-500',
+                        $rataRataNilaiTugas >= 70 => 'text-blue-600',
+                        default => 'text-amber-500',
+                    };
+                    $predikatRataRata = match (true) {
+                        $rataRataNilaiTugas === null => 'Belum Dinilai',
+                        $rataRataNilaiTugas >= 85 => 'Sangat Baik',
+                        $rataRataNilaiTugas >= 70 => 'Baik',
+                        default => 'Perlu Ditingkatkan',
+                    };
+                @endphp
+                <div class="flex items-center gap-5 shrink-0 md:pl-8 md:border-l md:border-blue-200/70">
+                    <div class="relative w-32 h-32 sm:w-36 sm:h-36 shrink-0 flex items-center justify-center">
+                        <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="8"
+                                class="text-blue-200/70" />
+                            <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="8"
+                                stroke-linecap="round"
+                                stroke-dasharray="{{ $ringCircumference }}"
+                                stroke-dashoffset="{{ number_format($ringOffset, 2, '.', '') }}"
+                                class="{{ $ringColorClass }} transition-all duration-700" />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-3xl sm:text-4xl font-extrabold tracking-tight leading-none {{ $rataRataNilaiTugas !== null ? 'text-slate-900' : 'text-slate-400' }}">
+                                {{ $rataRataNilaiTugasFormatted }}
+                            </span>
+                            @if ($rataRataNilaiTugas !== null)
+                                <span class="text-xs font-bold text-slate-500 mt-1">/ 100</span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="space-y-1">
+                        <p class="text-xs sm:text-sm font-bold uppercase tracking-wider text-blue-600">
+                            Rata-rata Nilai Tugas
+                        </p>
+                        <p class="text-xl sm:text-2xl font-extrabold text-slate-900 leading-tight">
+                            {{ $predikatRataRata }}
+                        </p>
+                        <p class="text-sm font-medium text-slate-600">
+                            {{ $jumlahTugasDinilai > 0 ? 'Dari ' . $jumlahTugasDinilai . ' tugas dinilai' : 'Belum ada tugas dinilai' }}
+                        </p>
                     </div>
                 </div>
             </div>
 
             <!-- Right: Decorative Learning Stationery Illustration (Pure SVG) -->
             <div
-                class="absolute right-4 bottom-0 top-0 hidden lg:flex items-center justify-end pointer-events-none opacity-90 select-none pr-8">
+                class="absolute right-4 bottom-0 top-0 hidden lg:flex items-center justify-end pointer-events-none opacity-30 select-none pr-8">
                 <svg class="h-48 w-80 text-blue-300" fill="none" viewBox="0 0 320 200"
                     xmlns="http://www.w3.org/2000/svg">
                     <path d="M72 65L74 58L76 65L83 67L76 69L74 76L72 69L65 67L72 65Z" fill="#93C5FD"></path>
@@ -341,7 +405,7 @@
                         <!-- Status Badge & Action -->
                         <div class="flex items-center justify-between sm:justify-end gap-2.5 flex-wrap">
                             @if ($hasFile)
-                                <a href="{{ asset('storage/' . $materi->file_materi) }}" target="_blank"
+                                <a href="{{ route('file.materi', $materi->id) }}" target="_blank"
                                     rel="noopener noreferrer"
                                     class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-200 transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2"
@@ -353,7 +417,7 @@
                                     Baca Online
                                 </a>
 
-                                <a href="{{ asset('storage/' . $materi->file_materi) }}" download
+                                <a href="{{ route('file.materi', ['materi' => $materi->id, 'download' => 1]) }}"
                                     class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2"
                                         viewBox="0 0 24 24">
@@ -557,7 +621,7 @@
                                         </span>
                                     @endif
                                     <span class="text-xs text-slate-400 font-medium">
-                                        Guru: {{ $ujian->pengampuKelas?->guruMapel?->guru?->nama_guru ?? 'Guru Pengampu' }}
+                                        Guru: {{ $ujian->pengampuKelas?->guruMapel?->guru?->nama ?? 'Guru Pengampu' }}
                                     </span>
                                 </div>
 

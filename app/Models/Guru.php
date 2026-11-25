@@ -68,4 +68,12 @@ class Guru extends Model
     {
         return $this->nuptk;
     }
+
+    /**
+     * Alias backward compatibility untuk nama_guru -> nama.
+     */
+    public function getNamaGuruAttribute(): ?string
+    {
+        return $this->nama;
+    }
 }

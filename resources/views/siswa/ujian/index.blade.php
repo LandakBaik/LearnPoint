@@ -10,7 +10,7 @@
         <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div class="max-w-xl space-y-2">
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-white/20 backdrop-blur-md text-white border border-white/20">
-                    Kelas {{ $kelas->nama_kelas ?? 'Siswa' }}
+                    {{ $kelas ? 'Kelas ' . $kelas->nama_kelas : 'Belum Ditempatkan di Kelas' }}
                 </span>
                 <h1 class="text-3xl sm:text-4xl font-black tracking-tight">Evaluasi & Ujian Sekolah</h1>
                 <p class="text-indigo-100 text-sm sm:text-base leading-relaxed">
@@ -35,6 +35,8 @@
             </div>
         </div>
     </section>
+
+    @include('siswa.partials.unassigned-kelas-banner', ['kelas' => $kelas ?? null])
 
     <!-- Navigasi Tab Filter -->
     <nav class="bg-white rounded-2xl p-1.5 border border-slate-200/80 shadow-xs max-w-md">
@@ -80,7 +82,7 @@
                                 {{ $ujian->pengampuKelas->guruMapel->mapel->nama_mapel ?? 'Mata Pelajaran' }}
                             </span>
                             <span class="text-xs text-slate-400 font-medium">
-                                Guru: {{ $ujian->pengampuKelas->guruMapel->guru->nama_guru ?? 'Guru Pengampu' }}
+                                Guru: {{ $ujian->pengampuKelas?->guruMapel?->guru?->nama ?? 'Guru Pengampu' }}
                             </span>
                         </div>
 

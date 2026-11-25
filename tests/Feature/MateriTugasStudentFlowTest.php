@@ -202,7 +202,7 @@ class MateriTugasStudentFlowTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('siswa.materi'))
+            ->get(route('siswa.mapel'))
             ->assertOk()
             ->assertSee('Matematika')
             ->assertSee('1 Modul')

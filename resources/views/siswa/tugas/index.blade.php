@@ -1,9 +1,9 @@
-@extends('layouts.app')
+@extends('layouts.siswa')
 
-@section('title', 'Daftar Tugas')
+@section('title', 'Daftar Tugas - LearnPoint')
 
 @section('content')
-<div class="space-y-5">
+<div class="space-y-6">
 
     {{-- 1. Breadcrumb Navigation --}}
     <nav class="flex items-center gap-2 text-xs font-semibold text-slate-400">
@@ -17,15 +17,22 @@
         </a>
     </nav>
 
-    <!-- 3. Header Daftar Tugas -->
-    <div id="tugas-terbaru" class="space-y-4">
+    @include('siswa.partials.unassigned-kelas-banner', ['kelas' => $kelas ?? null])
 
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-                <h2 class="text-xl font-bold text-slate-800 tracking-tight">
-                    Timeline Tugas
-                </h2>
-                <p class="text-xs text-slate-500 mt-1">
+    <!-- 3. Header Daftar Tugas -->
+    <div id="tugas-terbaru" class="space-y-5">
+
+        <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="space-y-1">
+                <div class="flex items-center gap-3">
+                    <h1 class="text-2xl font-extrabold tracking-tight text-slate-800">
+                        Timeline Tugas
+                    </h1>
+                    <span class="px-2.5 py-1 bg-blue-50 text-blue-600 font-bold text-xs rounded-full border border-blue-100">
+                        {{ $tugasBelumSelesai->count() }} Tugas
+                    </span>
+                </div>
+                <p class="text-sm text-slate-500 font-normal">
                     Daftar tugas yang belum kamu kerjakan.
                 </p>
             </div>
@@ -52,7 +59,7 @@
                     <i class="fa-solid fa-chevron-down absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
                 </div>
             </form>
-        </div>
+        </header>
 
         <!-- 4. Daftar Item Tugas -->
         <div class="space-y-4">
@@ -108,7 +115,7 @@
                         </p>
 
                         @if($tugas->file_lampiran)
-                        <a href="{{ asset('storage/' . $tugas->file_lampiran) }}"
+                        <a href="{{ route('file.tugas', $tugas->id) }}"
                             target="_blank"
                             class="inline-flex items-center gap-1.5 text-xs text-blue-600 font-semibold hover:underline pt-2">
                             <i class="fa-solid fa-paperclip"></i>

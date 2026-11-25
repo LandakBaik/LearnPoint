@@ -557,7 +557,7 @@
                         @if ($tugas->file_lampiran)
 
                         <a
-                            href="{{ asset('storage/' . $tugas->file_lampiran) }}"
+                            href="{{ route('file.tugas', $tugas->id) }}"
                             target="_blank"
                             class="inline-flex items-center gap-1.5 pt-1 text-xs font-semibold text-indigo-700 hover:text-indigo-900 hover:underline">
 

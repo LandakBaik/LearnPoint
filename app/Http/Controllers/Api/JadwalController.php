@@ -60,7 +60,7 @@ class JadwalController extends Controller
         $anggotaKelas = $siswa->anggotaKelases()
             ->with('academicPeriod')
             ->where('academic_period_id', $activePeriod->id)
-            ->first() ?? $siswa->anggotaKelases()->with('academicPeriod')->latest()->first();
+            ->first();
         $kelas = $siswa->kelas ?? $anggotaKelas?->kelas;
 
         if (!$kelas) {

@@ -301,6 +301,20 @@ class PowerController extends Controller
                     ];
                 }
 
+                $quiz->loadMissing('soals');
+                $journey = app(\App\Services\QuizAdventureService::class)->buildQuizAdventureJourney($quiz, $siswa);
+                $soalLevel = collect($journey['levels'])->first(
+                    fn ($lvl) => in_array($soal->id, $lvl['soal_ids'] ?? [], true)
+                );
+                if (($soalLevel && $soalLevel['status'] !== 'aktif') || ($existingMenjawab && $existingMenjawab->koin_diklaim)) {
+                    return [
+                        'error'   => true,
+                        'status'  => 422,
+                        'code'    => 'LEVEL_NOT_ACTIVE',
+                        'message' => 'Power hanya dapat digunakan pada soal di level yang sedang aktif dikerjakan.',
+                    ];
+                }
+
                 $effectData = $this->generatePowerEffectForSoal($soal, $power, true);
 
                 if ($existingMenjawab) {
@@ -396,6 +410,46 @@ class PowerController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Akses khusus siswa.',
+            ], 403);
+        }
+
+        if (!$this->quizService->isSiswaAuthorizedForQuiz($quiz, $siswa)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kuis ini bukan untuk kelas Anda.',
+            ], 403);
+        }
+
+        if (!$quiz->isPublished()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kuis belum dipublikasikan.',
+            ], 403);
+        }
+
+        if ($quiz->waktu_mulai && now()->lessThan($quiz->waktu_mulai)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kuis belum dimulai.',
+            ], 403);
+        }
+
+        if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai->copy()->addMinutes(2))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Waktu pengerjaan kuis telah berakhir.',
+            ], 403);
+        }
+
+        $alreadyCompleted = Nilai::where('siswa_id', $siswa->id)
+            ->where('quiz_id', $quiz->id)
+            ->where('status', 'selesai')
+            ->exists();
+
+        if ($alreadyCompleted) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kuis ini sudah selesai dikerjakan.',
             ], 403);
         }
 

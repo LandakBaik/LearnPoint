@@ -255,6 +255,7 @@ class UjianController extends Controller
             'soals.*.kesulitan'   => ['nullable', 'in:0,1,2,3'],
             'soals.*.bobot'       => ['nullable', 'numeric', 'min:0'],
             'soals.*.urutan'      => ['nullable', 'integer'],
+            'soals.*.gambar'      => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:2048'],
         ]);
 
         if ($validator->fails()) {
@@ -422,6 +423,11 @@ class UjianController extends Controller
         $guruId = $request->user()?->guru?->id ?? $request->user()?->guru_id;
         $this->authorizeGuruUjian($ujian, $guruId);
 
+        $ujian->sinkronisasiStatus();
+        if (!$ujian->bolehDiedit()) {
+            return $this->forbiddenResponse('Ujian yang sedang dipublikasikan/berlangsung tidak dapat diedit secara langsung.');
+        }
+
         $validator = Validator::make($request->all(), [
             'judul'                 => ['required', 'string', 'max:200'],
             'deskripsi'             => ['nullable', 'string', 'max:1000'],
@@ -440,6 +446,7 @@ class UjianController extends Controller
             'soals.*.kesulitan'     => ['nullable', 'in:0,1,2,3'],
             'soals.*.bobot'         => ['nullable', 'numeric', 'min:0'],
             'soals.*.urutan'        => ['nullable', 'integer'],
+            'soals.*.gambar'        => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:2048'],
         ]);
 
         if ($validator->fails()) {
@@ -447,6 +454,15 @@ class UjianController extends Controller
         }
 
         $validated = $validator->validated();
+
+        if (!empty($validated['pengampu_kelas_id'])) {
+            $ownedPengampu = PengampuKelas::where('id', (int) $validated['pengampu_kelas_id'])
+                ->whereHas('guruMapel', fn ($q) => $q->where('guru_id', $guruId))
+                ->exists();
+            if (!$ownedPengampu) {
+                return $this->forbiddenResponse('Anda tidak memiliki hak akses pada kelas pengampu tersebut.');
+            }
+        }
 
         DB::transaction(function () use ($request, $validated, $ujian) {
             $updatePayload = [
@@ -928,6 +944,13 @@ class UjianController extends Controller
         $guruId = $request->user()?->guru?->id ?? $request->user()?->guru_id;
         $this->authorizeGuruUjian($ujian, $guruId);
 
+        $ujianIds = $ujian->id_grup_ujian
+            ? Ujian::where('id_grup_ujian', $ujian->id_grup_ujian)->pluck('id')->map(fn ($id) => (int) $id)->all()
+            : [(int) $ujian->id];
+        if (!in_array((int) $seleksi->ujian_id, $ujianIds, true)) {
+            return $this->forbiddenResponse('Sesi peserta tidak termasuk dalam ujian ini.');
+        }
+
         $seleksi->update([
             'status'            => 'sedang_mengerjakan',
             'pelanggaran_count' => 0,
@@ -945,6 +968,13 @@ class UjianController extends Controller
         $this->authorizeGuruUjian($ujian, $guruId);
 
         $seleksi = $seleksi instanceof SeleksiUjian ? $seleksi : SeleksiUjian::findOrFail($seleksi);
+
+        $ujianIds = $ujian->id_grup_ujian
+            ? Ujian::where('id_grup_ujian', $ujian->id_grup_ujian)->pluck('id')->map(fn ($id) => (int) $id)->all()
+            : [(int) $ujian->id];
+        if (!in_array((int) $seleksi->ujian_id, $ujianIds, true)) {
+            return $this->forbiddenResponse('Sesi peserta tidak termasuk dalam ujian ini.');
+        }
 
         if ($seleksi->status === 'selesai') {
             return $this->successResponse($seleksi, 'Ujian siswa sudah selesai.');
@@ -1402,6 +1432,13 @@ class UjianController extends Controller
         $validated = $validator->validated();
         $targetUjianId = (int) ($validated['ujian_id'] ?? $ujian->id);
 
+        $ujianIds = $ujian->id_grup_ujian
+            ? Ujian::where('id_grup_ujian', $ujian->id_grup_ujian)->pluck('id')->map(fn ($id) => (int) $id)->all()
+            : [(int) $ujian->id];
+        if (!in_array($targetUjianId, $ujianIds, true)) {
+            return $this->forbiddenResponse('Ujian tidak termasuk dalam grup ujian Anda.');
+        }
+
         $soal = Soal::where('ujian_id', $targetUjianId)->findOrFail($validated['soal_id']);
         $bobotMaks = (float) ($soal->bobot ?? 100);
         $skorValid = min($bobotMaks, max(0, (float) $validated['skor']));
@@ -1531,14 +1568,22 @@ class UjianController extends Controller
             if ($sesiInduk) {
                 $targetUjianInduk = $grupUjians->firstWhere('id', $sesiInduk->ujian_id);
             } else {
-                $kelasSiswaId = $siswa->anggotaKelases->last()?->kelas_id;
-                $targetUjianInduk = $grupUjians->firstWhere('pengampuKelas.kelas_id', $kelasSiswaId) ?? $grupUjians->first();
+                $kelasSiswaIds = $siswa->anggotaKelases->pluck('kelas_id')->filter()->map(fn ($id) => (int) $id)->all();
+                $targetUjianInduk = $grupUjians->first(
+                    fn ($u) => in_array((int) $u->pengampuKelas?->kelas_id, $kelasSiswaIds, true)
+                );
             }
 
             if ($targetUjianInduk) {
                 $pesertaPerUjianInduk[$targetUjianInduk->id]['ujian'] = $targetUjianInduk;
                 $pesertaPerUjianInduk[$targetUjianInduk->id]['siswa_ids'][] = $siswa->id;
             }
+        }
+
+        if (empty($pesertaPerUjianInduk)) {
+            return $this->validationErrorResponse([
+                'siswa_ids' => ['Tidak ada siswa valid dari kelas peserta ujian ini.'],
+            ]);
         }
 
         $createdUjians = [];
@@ -1913,7 +1958,7 @@ class UjianController extends Controller
     public function siswaIndex(Request $request)
     {
         $siswa = $request->user()?->siswa;
-        $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelas = $siswa?->kelas;
         $kelasId = $kelas?->id;
 
         if (!$kelasId) {
@@ -1987,10 +2032,10 @@ class UjianController extends Controller
     public function siswaShow(Request $request, Ujian $ujian)
     {
         $siswa = $request->user()?->siswa;
-        $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelas = $siswa?->kelas;
         $kelasId = $kelas?->id;
 
-        if (!$kelasId || $ujian->pengampuKelas?->kelas_id !== $kelasId) {
+        if (!$kelasId || (int) $ujian->pengampuKelas?->kelas_id !== (int) $kelasId) {
             return $this->forbiddenResponse('Akses ditolak.');
         }
 
@@ -2005,6 +2050,10 @@ class UjianController extends Controller
         }
 
         $ujian->sinkronisasiStatus();
+
+        if (!in_array($ujian->status, ['published', 'scheduled', 'completed'], true)) {
+            return $this->forbiddenResponse('Ujian ini belum dipublikasikan atau sedang tidak aktif.');
+        }
 
         $ujian->load([
             'pengampuKelas.guruMapel.mapel',
@@ -2052,7 +2101,9 @@ class UjianController extends Controller
             'sudah_mulai'      => $sesi !== null,
             'sudah_dikerjakan' => $nilai !== null || ($sesi && $sesi->status === 'selesai'),
             'status_sesi'      => $sesi?->status,
-            'nilai_siswa'      => $nilai?->nilai ?? ($sesi && $sesi->status === 'selesai' ? $sesi->nilai_akhir : null),
+            'nilai_siswa'      => $ujian->tampilkan_nilai
+                ? ($nilai?->nilai ?? ($sesi && $sesi->status === 'selesai' ? $sesi->nilai_akhir : null))
+                : null,
         ]);
     }
 
@@ -2062,6 +2113,38 @@ class UjianController extends Controller
     public function siswaKonfirmasi(Request $request, Ujian $ujian)
     {
         return $this->siswaShow($request, $ujian);
+    }
+
+    /**
+     * Memastikan ujian milik kelas siswa (serta sesuai agama dan peserta khusus jika remidi/susulan).
+     */
+    private function authorizeUjianSiswaApi(Ujian $ujian, $siswa)
+    {
+        if (!$siswa) {
+            return $this->forbiddenResponse('Profil siswa tidak ditemukan.');
+        }
+
+        $ujian->loadMissing(['pengampuKelas.guruMapel.mapel']);
+
+        $kelas = $siswa->kelas;
+        $kelasId = $kelas?->id;
+
+        if (!$kelasId || (int) $ujian->pengampuKelas?->kelas_id !== (int) $kelasId) {
+            return $this->forbiddenResponse('Anda tidak memiliki akses ke ujian kelas lain.');
+        }
+
+        $mapel = $ujian->pengampuKelas?->guruMapel?->mapel;
+        if ($mapel && method_exists($mapel, 'isAccessibleBySiswa') && !$mapel->isAccessibleBySiswa($siswa)) {
+            return $this->forbiddenResponse('Mata pelajaran ujian ini tidak sesuai dengan agama Anda.');
+        }
+
+        if (in_array($ujian->jenis_ujian, ['remidi', 'susulan']) && !empty($ujian->peserta_khusus)) {
+            if (!in_array((int) $siswa->id, array_map('intval', $ujian->peserta_khusus))) {
+                return $this->forbiddenResponse('Anda tidak terdaftar sebagai peserta pada ujian remidi/susulan ini.');
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -2080,8 +2163,8 @@ class UjianController extends Controller
         }
 
         $siswa = $request->user()?->siswa;
-        if (!$siswa) {
-            return $this->forbiddenResponse('Profil siswa tidak ditemukan.');
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
         }
 
         $ujian->sinkronisasiStatus();
@@ -2094,7 +2177,7 @@ class UjianController extends Controller
         $tokenKelas = strtoupper(trim((string) $ujian->token));
         $nomorSesiKelas = $ujian->sesi ?? 1;
 
-        if (!empty($tokenKelas) && $inputToken !== $tokenKelas) {
+        if (empty($tokenKelas) || $inputToken !== $tokenKelas) {
             if ($ujian->id_grup_ujian) {
                 $ujianSesiLain = Ujian::where('id_grup_ujian', $ujian->id_grup_ujian)
                     ->whereRaw('UPPER(token) = ?', [$inputToken])
@@ -2156,8 +2239,8 @@ class UjianController extends Controller
     public function siswaKerjakan(Request $request, Ujian $ujian)
     {
         $siswa = $request->user()?->siswa;
-        if (!$siswa) {
-            return $this->forbiddenResponse('Profil siswa tidak ditemukan.');
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
         }
 
         $ujian->sinkronisasiStatus();
@@ -2180,11 +2263,16 @@ class UjianController extends Controller
             return $this->forbiddenResponse('Silakan validasi token sesi ujian terlebih dahulu.');
         }
 
+        $verifiedToken = Cache::get("token_ujian_verified_{$siswa->id}_{$ujian->id}")
+            ?? (session()->isStarted() ? session('token_ujian_verified_' . $ujian->id) : null);
+        if (!empty($ujian->token) && $verifiedToken !== null && strtoupper(trim((string) $verifiedToken)) !== strtoupper(trim((string) $ujian->token))) {
+            return $this->forbiddenResponse('Token sesi ujian telah diperbarui. Silakan validasi ulang token terbaru.');
+        }
+
         $waktuMulaiSesi = Carbon::parse($ujian->waktu_mulai_sesi ?? $ujian->waktu_mulai ?? $sesi->waktu_mulai ?? now());
         $batasAkhirSesi = $waktuMulaiSesi->copy()->addMinutes((int) $ujian->durasi_menit);
         $sisaDetik = max(0, (int) now()->diffInSeconds($batasAkhirSesi, false));
 
-        $soals = $ujian->soals()->orderBy('urutan', 'asc')->orderBy('id', 'asc')->get();
         $soalsRaw = $ujian->soals()->orderBy('urutan', 'asc')->orderBy('id', 'asc')->get()->values();
         $idSiswaAcak = (int) $siswa->id;
         $idUjianAcak = (int) $ujian->id;
@@ -2275,8 +2363,35 @@ class UjianController extends Controller
         }
 
         $siswa = $request->user()?->siswa;
-        if (!$siswa) {
-            return $this->forbiddenResponse('Profil siswa tidak ditemukan.');
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
+        }
+
+        $ujian->sinkronisasiStatus();
+        if ($ujian->status !== 'published') {
+            return $this->forbiddenResponse('Ujian sedang tidak aktif.');
+        }
+
+        $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
+            ->where('siswa_id', $siswa->id)
+            ->first();
+
+        if (!$sesi) {
+            return $this->forbiddenResponse('Sesi ujian belum dimulai. Silakan validasi token terlebih dahulu.');
+        }
+
+        if ($sesi->status === 'terkunci') {
+            return $this->forbiddenResponse('Sesi ujian Anda sedang terkunci.');
+        }
+
+        if ($sesi->status === 'selesai') {
+            return $this->forbiddenResponse('Ujian sudah diselesaikan dan jawaban tidak dapat diubah.');
+        }
+
+        $waktuMulaiSesi = Carbon::parse($ujian->waktu_mulai_sesi ?? $ujian->waktu_mulai ?? $sesi->waktu_mulai ?? now());
+        $batasAkhirSesi = $waktuMulaiSesi->copy()->addMinutes((int) $ujian->durasi_menit);
+        if (now()->greaterThan($batasAkhirSesi->copy()->addMinutes(2))) {
+            return $this->forbiddenResponse('Waktu pengerjaan ujian telah berakhir.');
         }
 
         $soal = Soal::where('ujian_id', $ujian->id)->find($request->soal_id);
@@ -2327,6 +2442,11 @@ class UjianController extends Controller
      */
     public function siswaCekStatusSesi(Request $request, Ujian $ujian)
     {
+        $siswa = $request->user()?->siswa;
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
+        }
+
         if ($ujian->status === 'unpublished' || $ujian->status === 'draft') {
             return $this->successResponse([
                 'status'  => 'ditarik',
@@ -2334,7 +2454,7 @@ class UjianController extends Controller
             ]);
         }
 
-        $siswaId = $request->user()?->siswa?->id;
+        $siswaId = $siswa->id;
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
             ->first();
@@ -2360,7 +2480,12 @@ class UjianController extends Controller
      */
     public function siswaCatatPelanggaran(Request $request, Ujian $ujian)
     {
-        $siswaId = $request->user()?->siswa?->id;
+        $siswa = $request->user()?->siswa;
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
+        }
+
+        $siswaId = $siswa->id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
@@ -2401,7 +2526,12 @@ class UjianController extends Controller
             return $this->validationErrorResponse($validator->errors());
         }
 
-        $siswaId = $request->user()?->siswa?->id;
+        $siswa = $request->user()?->siswa;
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
+        }
+
+        $siswaId = $siswa->id;
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
             ->first();
@@ -2435,26 +2565,36 @@ class UjianController extends Controller
     public function siswaSubmit(Request $request, Ujian $ujian)
     {
         $siswa = $request->user()?->siswa;
-        if (!$siswa) {
-            return $this->forbiddenResponse('Profil siswa tidak ditemukan.');
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
         }
 
         $siswaId = $siswa->id;
 
-        $sesi = SeleksiUjian::firstOrCreate(
-            [
-                'ujian_id' => $ujian->id,
-                'siswa_id' => $siswaId,
-            ],
-            [
-                'nilai_awal'        => 0,
-                'nilai_akhir'       => 0,
-                'jumlah_remidi'     => 0,
-                'waktu_mulai'       => now(),
-                'status'            => 'sedang_mengerjakan',
-                'pelanggaran_count' => 0,
-            ]
-        );
+        $ujian->sinkronisasiStatus();
+
+        $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
+            ->where('siswa_id', $siswaId)
+            ->first();
+
+        if (!$sesi) {
+            return $this->forbiddenResponse('Sesi ujian belum dimulai. Silakan validasi token terlebih dahulu.');
+        }
+
+        if ($sesi->status === 'selesai') {
+            return $this->errorResponse('Ujian Anda sudah dikumpulkan sebelumnya.', 400, [
+                'seleksi_id' => $sesi->id,
+                'status'     => 'selesai',
+            ]);
+        }
+
+        if ($sesi->status === 'terkunci') {
+            return $this->forbiddenResponse('Sesi ujian Anda sedang terkunci. Hubungi pengawas untuk membuka kunci.');
+        }
+
+        if (!in_array($ujian->status, ['published', 'completed'], true)) {
+            return $this->forbiddenResponse('Ujian sedang tidak aktif.');
+        }
 
         // Jika klien mengirim batch jawaban sekaligus saat submit
         if ($request->filled('jawaban') && is_array($request->input('jawaban'))) {
@@ -2582,16 +2722,21 @@ class UjianController extends Controller
      */
     public function siswaHasil(Request $request, Ujian $ujian)
     {
+        $siswa = $request->user()?->siswa;
+        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
+            return $denied;
+        }
+
         $ujian->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru', 'pengampuKelas.kelas']);
 
-        $siswaId = $request->user()?->siswa?->id;
+        $siswaId = $siswa->id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
             ->first();
 
-        if (!$sesi) {
-            return $this->notFoundResponse('Anda belum menyelesaikan ujian ini.');
+        if (!$sesi || $sesi->status !== 'selesai') {
+            return $this->forbiddenResponse('Anda belum menyelesaikan ujian ini.');
         }
 
         $nilai = Nilai::where('seleksi_ujian_id', $sesi->id)
@@ -2609,8 +2754,9 @@ class UjianController extends Controller
 
         $totalBenar = $jawaban->where('benar', true)->count();
         $totalSalah = max(0, $totalSoal - $totalBenar);
-        $adaEssay = $ujian->soals()->where('tipe_soal', 'essay')->exists();
-        $essayBelumDinilai = $adaEssay && $jawaban->whereNull('skor_essay')->count() > 0;
+        $essaySoalIds = $ujian->soals()->where('tipe_soal', 'essay')->pluck('id');
+        $adaEssay = $essaySoalIds->isNotEmpty();
+        $essayBelumDinilai = $adaEssay && $jawaban->whereIn('soal_id', $essaySoalIds)->whereNull('skor_essay')->count() > 0;
 
         return $this->successResponse([
             'ujian' => [
@@ -2627,11 +2773,11 @@ class UjianController extends Controller
                 'nilai'               => $ujian->tampilkan_nilai ? $skorNilai : null,
                 'nilai_awal'          => $ujian->tampilkan_nilai ? (float) $sesi->nilai_awal : null,
                 'nilai_akhir'         => $ujian->tampilkan_nilai ? (float) $sesi->nilai_akhir : null,
-                'tuntas'              => $skorNilai >= (float) ($ujian->kkm ?? 75),
+                'tuntas'              => $ujian->tampilkan_nilai ? ($skorNilai >= (float) ($ujian->kkm ?? 75)) : null,
                 'status'              => $sesi->status,
                 'total_soal'          => $totalSoal,
-                'total_benar'         => $totalBenar,
-                'total_salah'         => $totalSalah,
+                'total_benar'         => $ujian->tampilkan_nilai ? $totalBenar : null,
+                'total_salah'         => $ujian->tampilkan_nilai ? $totalSalah : null,
                 'ada_essay'           => $adaEssay,
                 'essay_belum_dinilai' => $essayBelumDinilai,
                 'durasi_detik'        => $nilai?->durasi,
