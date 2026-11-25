@@ -154,7 +154,6 @@ class AcademicPeriodService
                     ],
                     [
                         'kelas_id' => $member->kelas_id,
-                        'jadwal'   => $member->jadwal,
                     ]
                 );
 

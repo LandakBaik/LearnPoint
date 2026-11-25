@@ -52,10 +52,10 @@ class MateriTugasStudentFlowTest extends TestCase
         $guruMapelLain = GuruMapel::create(['guru_id' => $guru->id, 'mapel_id' => $mapelLain->id]);
         PengampuKelas::create(['guru_mapel_id' => $guruMapelLain->id, 'kelas_id' => $kelasA->id]);
 
-        $guruMapelLainGuru = GuruMapel::create(['guru_id' => $guruLain->id, 'mapel_id' => $mapel->id]);
+        $guruMapelLainGuru = GuruMapel::create(['guru_id' => $guruLain->id, 'mapel_id' => $mapelLain->id]);
         $assignmentGuruLain = PengampuKelas::create([
             'guru_mapel_id' => $guruMapelLainGuru->id,
-            'kelas_id' => $kelasA->id,
+            'kelas_id' => $kelasB->id,
         ]);
 
         $groupId = (string) Str::uuid();
@@ -213,7 +213,7 @@ class MateriTugasStudentFlowTest extends TestCase
             ->get(route('siswa.tugas'))
             ->assertOk()
             ->assertSee('Latihan Persamaan')
-            ->assertSee('Matematika')
+            ->assertSee('Guru Uji')
             ->assertDontSee('Tugas Kelas Lain');
     }
 }

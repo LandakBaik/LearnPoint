@@ -16,7 +16,6 @@ class AnggotaKelas extends Model
         'kelas_id',
         'siswa_id',
         'academic_period_id',
-        'jadwal',
     ];
 
     protected static function booted(): void

@@ -115,6 +115,7 @@ class GuruNuptkAndProfileTest extends TestCase
         $response = $this->actingAs($operator)->put(route('profile.update'), [
             'name'                  => 'Admin Operator Diubah',
             'email'                 => 'adminbaru@learnpoint.sch.id',
+            'current_password'      => 'passwordlama123',
             'password'              => 'passwordbaru123',
             'password_confirmation' => 'passwordbaru123',
         ]);
@@ -143,6 +144,7 @@ class GuruNuptkAndProfileTest extends TestCase
         $response = $this->actingAs($siswaUser)->put(route('profile.update'), [
             'name'                  => 'Nama Siswa Palsu',
             'email'                 => 'siswabaru@learnpoint.sch.id',
+            'current_password'      => 'passwordlama123',
             'password'              => 'passwordbaru123',
             'password_confirmation' => 'passwordbaru123',
         ]);

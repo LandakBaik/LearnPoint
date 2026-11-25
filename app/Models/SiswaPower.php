@@ -19,6 +19,7 @@ class SiswaPower extends Model
     protected $fillable = [
         'siswa_id',
         'item_id',
+        'power_id',
         'jumlah',
         'is_equipped',
         'metadata',
