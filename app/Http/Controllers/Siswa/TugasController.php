@@ -23,7 +23,8 @@ class TugasController extends Controller
             abort(403, 'Data siswa tidak ditemukan.');
         }
 
-        $kelasId = $siswa->kelas()->value('kelases.id');
+        $kelas = $siswa->kelas;
+        $kelasId = $kelas?->id;
 
         $daftarTugas = $kelasId
             ? Tugas::with([
@@ -31,18 +32,25 @@ class TugasController extends Controller
                 'pengampuKelas.guruMapel.mapel',
                 'pengampuKelas.kelas',
             ])
-                ->whereHas('pengampuKelas', function ($query) use ($kelasId) {
-                    $query->where('kelas_id', $kelasId);
+                ->whereHas('pengampuKelas', function ($query) use ($kelasId, $siswa) {
+                    $query->currentPeriod()
+                        ->where('kelas_id', $kelasId)
+                        ->forSiswa($siswa);
                 })
                 ->latest()
                 ->get()
             : collect();
 
-        // Ambil pengumpulan masing-masing siswa
+        // Ambil pengumpulan masing-masing siswa dalam satu query (hindari N+1)
+        $pengumpulanMap = $daftarTugas->isNotEmpty()
+            ? Nilai::where('siswa_id', $siswa->id)
+                ->whereIn('tugas_id', $daftarTugas->pluck('id'))
+                ->get()
+                ->keyBy('tugas_id')
+            : collect();
+
         foreach ($daftarTugas as $tugas) {
-            $tugas->pengumpulanSiswa = Nilai::where('siswa_id', $siswa->id)
-                ->where('tugas_id', $tugas->id)
-                ->first();
+            $tugas->pengumpulanSiswa = $pengumpulanMap->get($tugas->id);
         }
 
         // Tampilkan hanya tugas yang belum dikumpulkan
@@ -96,6 +104,7 @@ class TugasController extends Controller
 
         return view('siswa.tugas.index', compact(
             'siswa',
+            'kelas',
             'daftarTugas',
             'tugasBelumSelesai',
             'totalTugas',
@@ -124,8 +133,14 @@ class TugasController extends Controller
             'soals',
         ])->findOrFail($id);
 
-        $kelasId = $siswa->kelas()->value('kelases.id');
+        $kelas = $siswa->kelas;
+        $kelasId = $kelas?->id;
         abort_unless($kelasId && $tugas->pengampuKelas?->kelas_id == $kelasId, 403, 'Anda tidak memiliki akses ke tugas ini.');
+
+        $mapel = $tugas->pengampuKelas?->guruMapel?->mapel;
+        if ($mapel && method_exists($mapel, 'isAccessibleBySiswa')) {
+            abort_unless($mapel->isAccessibleBySiswa($siswa), 403, 'Mata pelajaran ini tidak sesuai dengan agama Anda.');
+        }
 
         // Ambil pengumpulan siswa
         $pengumpulan = Nilai::where('siswa_id', $siswa->id)
@@ -177,11 +192,23 @@ class TugasController extends Controller
         $tugas = Tugas::with([
             'soals',
             'pengampuKelas.guruMapel.guru',
+            'pengampuKelas.guruMapel.mapel',
             'pengampuKelas.kelas',
         ])->findOrFail($id);
 
-        $kelasId = $siswa->kelas()->value('kelases.id');
+        $kelas = $siswa->kelas;
+        $kelasId = $kelas?->id;
         abort_unless($kelasId && $tugas->pengampuKelas?->kelas_id == $kelasId, 403, 'Anda tidak memiliki akses ke tugas ini.');
+
+        $mapel = $tugas->pengampuKelas?->guruMapel?->mapel;
+        if ($mapel && method_exists($mapel, 'isAccessibleBySiswa')) {
+            abort_unless($mapel->isAccessibleBySiswa($siswa), 403, 'Mata pelajaran ini tidak sesuai dengan agama Anda.');
+        }
+
+        $mapel = $tugas->pengampuKelas?->guruMapel?->mapel;
+        if ($mapel && method_exists($mapel, 'isAccessibleBySiswa')) {
+            abort_unless($mapel->isAccessibleBySiswa($siswa), 403, 'Mata pelajaran ini tidak sesuai dengan agama Anda.');
+        }
 
         // Tentukan status pengumpulan
         $status = (
@@ -307,19 +334,23 @@ class TugasController extends Controller
             });
 
             // Kirim notifikasi kepada guru
-            $guru = $tugas->pengampuKelas?->guruMapel?->guru;
+            $guruUser = $tugas->pengampuKelas?->guruMapel?->guru?->user;
 
-            if ($guru && $guru->user_id) {
+            if ($guruUser) {
+                $isLate = $status === 'telat';
+                $namaSiswa = $siswa->nama_siswa ?? Auth::user()->name;
+                $namaKelas = $tugas->pengampuKelas?->kelas?->nama_kelas ?? 'Kelas';
                 Notifikasi::kirim(
-                    $guru->user_id,
-                    'Tugas Pilihan Ganda Dikumpulkan',
-                    'Siswa telah mengumpulkan tugas pilihan ganda.',
-                    'tugas',
+                    $guruUser->id,
+                    ($isLate ? 'Pengumpulan Tugas Terlambat: ' : 'Tugas Pilihan Ganda Dikumpulkan: ') . $tugas->judul,
+                    "Siswa {$namaSiswa} ({$namaKelas}) telah mengumpulkan tugas pilihan ganda '{$tugas->judul}'.",
+                    $isLate ? 'tugas_terlambat' : 'tugas_dikumpulkan',
                     route('guru.tugas.show', $tugas->id),
                     $tugas->id,
                     [
                         'tugas_id' => $tugas->id,
                         'siswa_id' => $siswa->id,
+                        'is_late' => $isLate,
                     ]
                 );
             }
@@ -356,9 +387,9 @@ class TugasController extends Controller
             return back()->with('error', 'Tugas sudah dinilai dan tidak dapat diubah lagi.');
         }
 
-        // Simpan file baru ke storage/app/public/jawaban_tugas
+        // Simpan file baru ke storage/app/private/jawaban_tugas (disk local)
         $file = $request->file('file_jawaban')
-            ->store('jawaban_tugas', 'public');
+            ->store('jawaban_tugas', 'local');
 
         // Simpan atau perbarui pengumpulan
         $pengumpulan = Nilai::updateOrCreate(
@@ -373,31 +404,34 @@ class TugasController extends Controller
             ]
         );
 
-        // Hapus file lama jika ada
+        // Hapus file lama jika ada (baik di disk local maupun legacy public)
         if (
             $pengumpulanLama &&
             $pengumpulanLama->file_jawaban &&
             $pengumpulanLama->file_jawaban !== $file
         ) {
-            Storage::disk('public')->delete(
-                $pengumpulanLama->file_jawaban
-            );
+            Storage::disk('local')->delete($pengumpulanLama->file_jawaban);
+            Storage::disk('public')->delete($pengumpulanLama->file_jawaban);
         }
 
         // Kirim notifikasi kepada guru
-        $guru = $tugas->pengampuKelas?->guruMapel?->guru;
+        $guruUser = $tugas->pengampuKelas?->guruMapel?->guru?->user;
 
-        if ($guru && $guru->user_id) {
+        if ($guruUser) {
+            $isLate = $status === 'telat';
+            $namaSiswa = $siswa->nama_siswa ?? Auth::user()->name;
+            $namaKelas = $tugas->pengampuKelas?->kelas?->nama_kelas ?? 'Kelas';
             Notifikasi::kirim(
-                $guru->user_id,
-                'Tugas Upload Dikumpulkan',
-                'Siswa telah mengumpulkan tugas upload.',
-                'tugas',
+                $guruUser->id,
+                ($isLate ? 'Pengumpulan Tugas Terlambat: ' : 'Pengumpulan Tugas Masuk: ') . $tugas->judul,
+                "Siswa {$namaSiswa} ({$namaKelas}) telah mengumpulkan tugas '{$tugas->judul}'" . ($isLate ? ' melewati batas deadline.' : '.'),
+                $isLate ? 'tugas_terlambat' : 'tugas_dikumpulkan',
                 route('guru.tugas.show', $tugas->id),
                 $tugas->id,
                 [
                     'tugas_id' => $tugas->id,
                     'siswa_id' => $siswa->id,
+                    'is_late' => $isLate,
                 ]
             );
         }

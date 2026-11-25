@@ -96,15 +96,13 @@
                 @php
                     $authUser = auth()->user();
                     $siswaUser = $authUser?->siswa;
-                    $fullName = $siswaUser?->nama_siswa ?? $authUser?->name ?? 'Budi';
-                    $firstName = explode(' ', trim($fullName))[0] ?? 'Budi';
-                    $namaKelas = '7-A';
+                    $fullName = $siswaUser?->nama_siswa ?? $authUser?->name ?? 'Siswa';
+                    $firstName = explode(' ', trim($fullName))[0] ?? 'Siswa';
+                    $namaKelas = null;
                     try {
-                        $namaKelas = $siswaUser?->kelas?->nama_kelas 
-                            ?? $siswaUser?->anggotaKelases()?->latest()?->first()?->kelas?->nama_kelas 
-                            ?? '7-A';
+                        $namaKelas = $siswaUser?->kelas?->nama_kelas;
                     } catch (\Throwable $e) {
-                        $namaKelas = '7-A';
+                        $namaKelas = null;
                     }
                 @endphp
                 <button @click="profileOpen = !profileOpen" type="button" class="flex items-center gap-3 cursor-pointer focus:outline-none select-none group">
@@ -113,7 +111,7 @@
                     </div>
                     <div class="text-left hidden sm:block">
                         <div class="text-xs font-bold text-slate-800 leading-tight">Halo, {{ $firstName }}</div>
-                        <div class="text-[11px] font-medium text-slate-400">Kelas {{ $namaKelas }}</div>
+                        <div class="text-[11px] font-medium text-slate-400">{{ $namaKelas ? 'Kelas ' . $namaKelas : 'Belum ada kelas' }}</div>
                     </div>
                 </button>
 

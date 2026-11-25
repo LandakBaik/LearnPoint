@@ -20,8 +20,8 @@ class JadwalController extends Controller
         }
 
         $guruMapels = $guru->guruMapels()
-            ->has('pengampuKelases')
-            ->with(['mapel', 'pengampuKelases.kelas'])
+            ->whereHas('pengampuKelases', fn ($q) => $q->currentPeriod())
+            ->with(['mapel', 'pengampuKelases' => fn ($q) => $q->currentPeriod()->with('kelas')])
             ->get()
             ->map(function ($gm) {
                 return [
@@ -60,7 +60,7 @@ class JadwalController extends Controller
         $anggotaKelas = $siswa->anggotaKelases()
             ->with('academicPeriod')
             ->where('academic_period_id', $activePeriod->id)
-            ->first() ?? $siswa->anggotaKelases()->with('academicPeriod')->latest()->first();
+            ->first();
         $kelas = $siswa->kelas ?? $anggotaKelas?->kelas;
 
         if (!$kelas) {
@@ -68,6 +68,7 @@ class JadwalController extends Controller
         }
 
         $pengampuKelases = $kelas->pengampuKelases()
+            ->currentPeriod($activePeriod->id)
             ->forSiswa($siswa)
             ->with(['guruMapel.guru', 'guruMapel.mapel'])
             ->get()

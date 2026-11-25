@@ -13,6 +13,7 @@ use App\Models\Materi;
 use App\Models\Nilai;
 use App\Models\SeleksiUjian;
 use App\Models\User;
+use App\Services\RekapNilaiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -92,7 +93,6 @@ class DashboardController extends Controller
             'kelasPerTingkat'
         ));
     }
-
 
     /**
      * Halaman Dashboard Guru.
@@ -232,7 +232,7 @@ class DashboardController extends Controller
     /**
      * Halaman Dashboard Siswa.
      */
-    public function siswaDashboard()
+    public function siswaDashboard(Request $request, RekapNilaiService $rekapNilaiService)
     {
         $user = Auth::user();
         if ($user->role !== 'siswa') {
@@ -247,42 +247,34 @@ class DashboardController extends Controller
         $activePeriod = \App\Models\AcademicPeriod::current();
         $anggotaKelas = $siswa?->anggotaKelases()?->with('academicPeriod')
             ?->where('academic_period_id', $activePeriod->id)
-            ->first() ?? $siswa?->anggotaKelases()?->with('academicPeriod')->latest()->first();
+            ->first();
         $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;
         $kelasId = $kelas?->id;
         $tahunAjaran = $anggotaKelas?->academicPeriod?->tahun_ajaran ?? $activePeriod->tahun_ajaran;
         $semester = ucfirst($anggotaKelas?->academicPeriod?->semester ?? $activePeriod->semester);
 
-        // Hitung total mapel
-        $totalMapel = Mapel::forSiswa($siswa)->count();
-
-        // Ambil daftar mapel beserta relasi guru
+        // Ambil daftar mapel beserta relasi guru khusus untuk kelas siswa (periode aktif)
         if ($kelasId) {
-            $daftarMapel = Mapel::forSiswa($siswa)->whereHas('pengampuKelases', function ($query) use ($kelasId) {
-                $query->where('kelas_id', $kelasId);
-            })->with(['pengampuKelases' => function ($query) use ($kelasId) {
-                $query->where('kelas_id', $kelasId)->with(['guruMapel.guru', 'materis', 'tugases', 'ujians']);
+            $daftarMapel = Mapel::forSiswa($siswa)->whereHas('pengampuKelases', function ($query) use ($kelasId, $activePeriod) {
+                $query->currentPeriod($activePeriod->id)->where('kelas_id', $kelasId);
+            })->with(['pengampuKelases' => function ($query) use ($kelasId, $activePeriod) {
+                $query->currentPeriod($activePeriod->id)->where('kelas_id', $kelasId)->with(['guruMapel.guru', 'materis', 'tugases', 'ujians']);
             }])->get();
         } else {
-            $daftarMapel = Mapel::forSiswa($siswa)->with(['guruMapels.guru'])->get();
+            $daftarMapel = collect();
         }
 
-        if ($daftarMapel->isEmpty()) {
-            $daftarMapel = Mapel::forSiswa($siswa)->with(['guruMapels.guru'])->get();
-        }
+        // Hitung total mapel sesuai kelas siswa
+        $totalMapel = $daftarMapel->count();
 
         // Tugas terbaru
         $siswaId = $siswa?->id;
-        $kelasId = $kelas?->id ?? $siswa?->kelas_id;
 
         $tugasTerbaru = null;
 
-        if ($siswaId) {
+        if ($siswaId && $kelasId) {
             $tugasTerbaru = Tugas::whereHas('pengampuKelas', function ($q) use ($kelasId, $siswa) {
-                if ($kelasId) {
-                    $q->where('kelas_id', $kelasId);
-                }
-                $q->forSiswa($siswa);
+                $q->where('kelas_id', $kelasId)->forSiswa($siswa);
             })
                 ->whereDoesntHave('nilais', function ($q) use ($siswaId) {
                     $q->where('siswa_id', $siswaId);
@@ -292,7 +284,7 @@ class DashboardController extends Controller
                 ->first();
 
             if (!$tugasTerbaru) {
-                $tugasTerbaru = Tugas::whereHas('pengampuKelas', fn ($q) => $q->forSiswa($siswa))
+                $tugasTerbaru = Tugas::whereHas('pengampuKelas', fn ($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))
                     ->whereDoesntHave('nilais', function ($q) use ($siswaId) {
                         $q->where('siswa_id', $siswaId);
                     })
@@ -309,15 +301,23 @@ class DashboardController extends Controller
             ->first()
             : null;
 
-        if (!$materiTerbaru) {
-            $materiTerbaru = Materi::whereHas('pengampuKelas', fn($q) => $q->forSiswa($siswa))
-                ->with(['pengampuKelas.guruMapel.mapel'])->latest()->first();
-        }
-
-        // Hitung badge counts
-        $tugasMenantiCount = $kelasId ? Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))->where('deadline', '>=', now())->count() : 0;
+        // Hitung badge counts (selaras dengan API Dashboard)
+        $tugasMenantiCount = $kelasId ? Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))
+            ->whereDoesntHave('nilais', fn($q) => $q->where('siswa_id', $siswaId))
+            ->where('deadline', '>=', now())
+            ->count() : 0;
         $quizCount         = $kelasId ? Quiz::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))->where('status', 'published')->count() : 0;
-        $ujianCount        = $kelasId ? Ujian::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))->count() : 0;
+        $ujianCount        = $kelasId ? Ujian::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))
+            ->whereIn('status', ['published', 'scheduled', 'completed'])
+            ->where(function ($q) use ($siswaId) {
+                $q->where('jenis_ujian', 'reguler')
+                    ->orWhereNull('jenis_ujian')
+                    ->orWhere(function ($sq) use ($siswaId) {
+                        $sq->whereIn('jenis_ujian', ['remidi', 'susulan'])
+                            ->whereJsonContains('peserta_khusus', (int) $siswaId);
+                    });
+            })
+            ->count() : 0;
 
         // Quizzes Dipublikasikan untuk Kelas Siswa
         $quizzes = $kelasId
@@ -334,134 +334,50 @@ class DashboardController extends Controller
             ->get()
             : collect();
 
-        $unreadNotifCount = $user->notifikasi()->count() ?? 0;
+        $unreadNotifCount = $user->unreadNotifikasiCount();
 
         // =========================================================
-        // STATISTIK SISWA
+        // STATISTIK SISWA (DATA RIIL & DINAMIS)
         // =========================================================
-        $siswaId = $siswa?->id;
-
-        // Rata-rata Tugas
-        $avgTugasReal = $siswaId ? Nilai::where('siswa_id', $siswaId)->whereNotNull('tugas_id')->whereNotNull('nilai')->avg('nilai') : null;
-        // Rata-rata Quiz
-        $avgQuizReal = $siswaId ? Nilai::where('siswa_id', $siswaId)->whereNotNull('quiz_id')->whereNotNull('nilai')->avg('nilai') : null;
-        // Rata-rata Ujian
-        $avgUjianReal = $siswaId ? (
-            SeleksiUjian::where('siswa_id', $siswaId)->whereNotNull('nilai_akhir')->avg('nilai_akhir')
-            ?? Nilai::where('siswa_id', $siswaId)->whereNotNull('seleksi_ujian_id')->whereNotNull('nilai')->avg('nilai')
-        ) : null;
-
-        $hasRealData = ($avgTugasReal !== null || $avgQuizReal !== null || $avgUjianReal !== null);
-
-        // Nilai acuan benchmark sesuai desain refrensi jika belum ada data penilaian di database
-        $rataRataTugas = $avgTugasReal !== null ? round((float)$avgTugasReal, 1) : 85.2;
-        $rataRataQuiz  = $avgQuizReal !== null ? round((float)$avgQuizReal, 1) : 90.1;
-        $rataRataUjian = $avgUjianReal !== null ? round((float)$avgUjianReal, 1) : 86.7;
-
-        if ($hasRealData) {
-            $rataRataSemua = round(($rataRataTugas + $rataRataQuiz + $rataRataUjian) / 3, 1);
-        } else {
-            $rataRataSemua = 87.5;
+        $statistikPeriodIds = $siswa
+            ? $siswa->anggotaKelases()->pluck('academic_period_id')->filter()->unique()->all()
+            : [];
+        if ($activePeriod?->id && !in_array($activePeriod->id, $statistikPeriodIds, true)) {
+            $statistikPeriodIds[] = $activePeriod->id;
         }
 
-        // Tentukan predikat
-        if ($rataRataSemua >= 90) {
-            $kategoriNilai = 'Sangat Baik';
-        } elseif ($rataRataSemua >= 80) {
-            $kategoriNilai = 'Baik';
-        } elseif ($rataRataSemua >= 70) {
-            $kategoriNilai = 'Cukup';
-        } else {
-            $kategoriNilai = 'Perlu Bimbingan';
-        }
+        $statistikPeriods = !empty($statistikPeriodIds)
+            ? \App\Models\AcademicPeriod::whereIn('id', $statistikPeriodIds)
+                ->orderByDesc('tahun_ajaran')
+                ->orderByRaw("CASE WHEN semester = 'genap' THEN 2 ELSE 1 END DESC")
+                ->get()
+            : collect([$activePeriod])->filter();
 
-        // Derajat untuk conic-gradient progress ring (contoh: 87.5% -> 315deg)
-        $donutDegree = (int) round(($rataRataSemua / 100) * 360);
+        $requestedPeriodId = $request->filled('period_id') ? (int) $request->input('period_id') : null;
+        $selectedStatistikPeriod = ($requestedPeriodId ? $statistikPeriods->firstWhere('id', $requestedPeriodId) : null)
+            ?? $activePeriod;
 
-        // Data Nilai per Mata Pelajaran (Benchmark / Real)
-        $defaultMapelNilai = [
-            'matematika' => ['nama' => 'Matematika', 'nilai' => 88.0, 'color' => '#2563EB', 'type' => 'math'],
-            'indonesia'  => ['nama' => 'Bahasa Indonesia', 'nilai' => 85.5, 'color' => '#EF4444', 'type' => 'book'],
-            'inggris'    => ['nama' => 'Bahasa Inggris', 'nilai' => 90.2, 'color' => '#6366F1', 'type' => 'letters'],
-            'ipa'        => ['nama' => 'IPA', 'nilai' => 86.7, 'color' => '#10B981', 'type' => 'beaker'],
-            'ips'        => ['nama' => 'IPS', 'nilai' => 84.9, 'color' => '#F59E0B', 'type' => 'globe'],
-            'ppkn'       => ['nama' => 'PPKn', 'nilai' => 89.3, 'color' => '#06B6D4', 'type' => 'group'],
-        ];
-
-        $listNilaiMapel = [];
-        if ($daftarMapel && $daftarMapel->isNotEmpty()) {
-            foreach ($daftarMapel as $mapelItem) {
-                $namaMapel = $mapelItem->nama_mapel;
-
-                $realMapelScore = null;
-                if ($siswaId) {
-                    $realMapelScore = Nilai::where('siswa_id', $siswaId)
-                        ->whereHas('tugas.pengampuKelas.guruMapel', fn($q) => $q->where('mapel_id', $mapelItem->id))
-                        ->whereNotNull('nilai')
-                        ->avg('nilai');
-                }
-
-                $benchmark = null;
-                foreach ($defaultMapelNilai as $k => $def) {
-                    if (str_contains(strtolower($namaMapel), $k)) {
-                        $benchmark = $def;
-                        break;
-                    }
-                }
-
-                $score = $realMapelScore !== null ? round((float)$realMapelScore, 1) : ($benchmark['nilai'] ?? 85.0);
-                $color = $benchmark['color'] ?? '#2563EB';
-                $type = $benchmark['type'] ?? 'book';
-
-                $listNilaiMapel[] = [
-                    'id'    => $mapelItem->id,
-                    'nama'  => $namaMapel,
-                    'nilai' => $score,
-                    'color' => $color,
-                    'type'  => $type,
-                ];
+        $statistikKelasId = null;
+        if ($siswa && $selectedStatistikPeriod) {
+            if ($selectedStatistikPeriod->id === $activePeriod?->id) {
+                $statistikKelasId = $kelasId;
+            } else {
+                $statistikKelasId = $siswa->anggotaKelases()
+                    ->where('academic_period_id', $selectedStatistikPeriod->id)
+                    ->value('kelas_id');
             }
         }
 
-        // Lengkapi dengan mapel standar jika data di database sedikit (contoh baru ada Matematika & IPA)
-        if (count($listNilaiMapel) < 6) {
-            $existingNames = array_map(fn($item) => strtolower($item['nama']), $listNilaiMapel);
-            foreach ($defaultMapelNilai as $def) {
-                $alreadyExists = false;
-                foreach ($existingNames as $existing) {
-                    if (str_contains($existing, strtolower($def['nama'])) || str_contains(strtolower($def['nama']), $existing)) {
-                        $alreadyExists = true;
-                        break;
-                    }
-                }
-                if (!$alreadyExists) {
-                    $listNilaiMapel[] = [
-                        'id'    => null,
-                        'nama'  => $def['nama'],
-                        'nilai' => $def['nilai'],
-                        'color' => $def['color'],
-                        'type'  => $def['type'],
-                    ];
-                }
-            }
-        }
+        $statistik = $rekapNilaiService->buildSiswaStatistik($siswa, $statistikKelasId, $selectedStatistikPeriod);
 
-        // Perkembangan nilai bulanan
-        $perkembanganNilai = [
-            'bulan' => ['Agustus', 'September', 'Oktober', 'November', 'Desember'],
-            'tugas' => [
-                'points' => '80,100 180,75 280,79 380,67 480,56',
-                'coords' => [[80, 100], [180, 75], [280, 79], [380, 67], [480, 56]],
-            ],
-            'kuiz' => [
-                'points' => '80,107 180,88 280,69 380,56 480,46',
-                'coords' => [[80, 107], [180, 88], [280, 69], [380, 56], [480, 46]],
-            ],
-            'ujian' => [
-                'points' => '80,118 180,105 280,105 380,81 480,76',
-                'coords' => [[80, 118], [180, 105], [280, 105], [380, 81], [480, 76]],
-            ],
-        ];
+        $rataRataSemua     = $statistik['rata_rata_semua'];
+        $rataRataTugas     = $statistik['rata_rata_tugas'];
+        $rataRataQuiz      = $statistik['rata_rata_quiz'];
+        $rataRataUjian     = $statistik['rata_rata_ujian'];
+        $kategoriNilai     = $statistik['kategori_nilai'];
+        $donutDegree       = $statistik['donut_degree'];
+        $listNilaiMapel    = $statistik['list_nilai_mapel'];
+        $perkembanganNilai = $statistik['perkembangan_nilai'];
 
         return view('siswa.dashboard', compact(
             'siswa',
@@ -477,6 +393,9 @@ class DashboardController extends Controller
             'ujianCount',
             'quizzes',
             'unreadNotifCount',
+            'statistik',
+            'statistikPeriods',
+            'selectedStatistikPeriod',
             'rataRataSemua',
             'rataRataTugas',
             'rataRataQuiz',
@@ -487,6 +406,7 @@ class DashboardController extends Controller
             'perkembanganNilai'
         ));
     }
+
     /**
      * Halaman Dashboard Kepala Sekolah.
      */

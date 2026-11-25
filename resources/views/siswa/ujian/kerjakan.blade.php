@@ -123,7 +123,7 @@
 
                         <!-- Pertanyaan -->
                         <div class="text-slate-800 text-lg font-medium leading-relaxed mb-8 whitespace-pre-line"
-                            x-html="currentSoal.pertanyaan"></div>
+                            x-text="currentSoal.pertanyaan"></div>
 
                         <!-- 1. JAWABAN PILIHAN GANDA (SINGLE & MULTIPLE CHOICE) -->
                         <template x-if="currentSoal.tipe_soal !== 'essay'">
@@ -339,13 +339,13 @@
                     oleh pengawas.
                 </p>
 
-                <div class="my-4 p-3 bg-rose-50 rounded-2xl border border-rose-200">
+                <div class="my-4 p-3 bg-rose-50 rounded-2xl border border-rose-200 space-y-1">
                     <p class="text-xs font-bold text-rose-800">
                         Peringatan ke-<span class="text-sm font-black" x-text="pelanggaranCount"></span> dari <span
                             x-text="maxToleransi"></span>
                     </p>
-                    <p class="text-[11px] text-rose-600 mt-0.5">
-                        Jika mencapai <span x-text="maxToleransi"></span> kali, ujian akan <strong>TERKUNCI
+                    <p class="text-[11px] text-rose-600">
+                        Jika mencapai <span x-text="maxToleransi"></span> kali atau lebih, ujian akan langsung <strong>TERKUNCI
                             OTOMATIS</strong>.
                     </p>
                 </div>
@@ -547,7 +547,16 @@
 
                     this.keluarFullscreen();
 
-                    if (pesan) alert(pesan);
+                    if (pesan && typeof Swal !== 'undefined') {
+                        await Swal.fire({
+                            icon: 'info',
+                            title: 'Mengumpulkan Ujian',
+                            text: pesan,
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#4f46e5',
+                            allowOutsideClick: false,
+                        });
+                    }
 
                     if (this.$refs.formSubmitUjian) {
                         this.$refs.formSubmitUjian.submit();
@@ -589,7 +598,16 @@
                                 clearInterval(this.heartbeatInterval);
                                 clearInterval(this.timerInterval);
                                 this.keluarFullscreen();
-                                alert(data.message || 'Ujian sedang ditarik oleh guru pengawas.');
+                                if (typeof Swal !== 'undefined') {
+                                    await Swal.fire({
+                                        icon: 'warning',
+                                        title: 'Ujian Ditarik',
+                                        text: data.message || 'Ujian sedang ditarik oleh guru pengawas.',
+                                        confirmButtonText: 'OK',
+                                        confirmButtonColor: '#4f46e5',
+                                        allowOutsideClick: false,
+                                    });
+                                }
                                 window.location.href = data.redirect_url;
                                 return;
                             }
@@ -598,7 +616,16 @@
                                 clearInterval(this.heartbeatInterval);
                                 clearInterval(this.timerInterval);
                                 this.keluarFullscreen();
-                                alert('Ujian Anda telah ditarik paksa dan diselesaikan oleh guru pengawas.');
+                                if (typeof Swal !== 'undefined') {
+                                    await Swal.fire({
+                                        icon: 'info',
+                                        title: 'Ujian Selesai',
+                                        text: 'Ujian Anda telah ditarik paksa dan diselesaikan oleh guru pengawas.',
+                                        confirmButtonText: 'Lihat Hasil',
+                                        confirmButtonColor: '#4f46e5',
+                                        allowOutsideClick: false,
+                                    });
+                                }
                                 window.location.href = data.redirect_url;
                                 return;
                             }
@@ -621,7 +648,7 @@
                         } catch (err) {
                             console.error('Heartbeat error:', err);
                         }
-                    }, 3000);
+                    }, 12000);
                 },
 
                 formatWaktu(sec) {
@@ -792,17 +819,29 @@
                     this.showWarningModal = false;
                 },
 
-                konfirmasiSelesai() {
+                async konfirmasiSelesai() {
                     const totalDijawab = this.soals.filter(s => this.isSoalTerjawab(s.id)).length;
                     const total = this.soals.length;
+                    const teksKonfirmasi = totalDijawab < total
+                        ? `Perhatian: Kamu baru menjawab ${totalDijawab} dari ${total} soal. Yakin ingin mengumpulkan ujian sekarang?`
+                        : `Semua soal (${total}) telah dijawab. Yakin ingin mengumpulkan ujian sekarang?`;
 
-                    const konfirmasi = confirm(
-                        totalDijawab < total ?
-                        `Perhatian: Kamu baru menjawab ${totalDijawab} dari ${total} soal. Yakin ingin mengumpulkan ujian sekarang?` :
-                        `Semua soal (${total}) telah dijawab. Yakin ingin mengumpulkan ujian sekarang?`
-                    );
+                    if (typeof Swal !== 'undefined') {
+                        const result = await Swal.fire({
+                            icon: totalDijawab < total ? 'warning' : 'question',
+                            title: 'Kumpulkan Ujian?',
+                            text: teksKonfirmasi,
+                            showCancelButton: true,
+                            confirmButtonText: 'Ya, Kumpulkan',
+                            cancelButtonText: 'Batal',
+                            confirmButtonColor: '#4f46e5',
+                            cancelButtonColor: '#64748b',
+                        });
 
-                    if (konfirmasi) {
+                        if (result.isConfirmed) {
+                            this.eksekusiSubmitOtomatis();
+                        }
+                    } else {
                         this.eksekusiSubmitOtomatis();
                     }
                 },

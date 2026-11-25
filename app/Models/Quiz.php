@@ -16,6 +16,7 @@ class Quiz extends Model
         'judul',
         'deskripsi',
         'status',
+        'asset',
         'kesulitan_aktif',
         'waktu_mulai',
         'waktu_selesai',
@@ -28,6 +29,7 @@ class Quiz extends Model
     protected function casts(): array
     {
         return [
+            'asset' => 'integer',
             'kesulitan_aktif' => 'array',
             'waktu_mulai' => 'datetime',
             'waktu_selesai' => 'datetime',
@@ -48,6 +50,30 @@ class Quiz extends Model
     public function getGuruMapelAttribute()
     {
         return $this->pengampuKelas?->guruMapel;
+    }
+
+    /**
+     * Daftar opsi scene (`QuizScenePreset`) yang tersedia untuk kuis ini berdasarkan `mapel->asset` (Opsi A).
+     */
+    public function getAvailableScenesAttribute(): array
+    {
+        $mapel = $this->pengampuKelas?->guruMapel?->mapel;
+        return $mapel?->planet_scenes ?? Mapel::PLANET_ASSET_OPTIONS[0]['scenes'];
+    }
+
+    /**
+     * Nama label scene (`QuizScenePreset`) yang sedang dipilih pada kuis ini.
+     */
+    public function getSceneLabelAttribute(): string
+    {
+        $scenes = $this->available_scenes;
+        $idx = (int) ($this->asset ?? 0);
+        if (isset($scenes[$idx])) {
+            return $scenes[$idx];
+        }
+        $count = count($scenes);
+        $safeIdx = $count > 0 ? ($idx % $count) : 0;
+        return $scenes[$safeIdx] ?? 'Scene 1 (Default)';
     }
 
     public function soals()

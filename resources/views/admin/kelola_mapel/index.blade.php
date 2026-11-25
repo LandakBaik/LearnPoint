@@ -124,6 +124,7 @@
                     <tr class="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                         <th class="py-3.5 px-4 sm:px-6">Mata Pelajaran</th>
                         <th class="py-3.5 px-4">Tipe Mapel</th>
+                        <th class="py-3.5 px-4">Tema Planet (Asset)</th>
                         <th class="py-3.5 px-4">Nilai KKM Minimal</th>
                         <th class="py-3.5 px-4">Guru Pengampu</th>
                         <th class="py-3.5 px-4 text-right pr-6">Aksi</th>
@@ -161,6 +162,14 @@
                                 </span>
                             </td>
                             <td class="py-3.5 px-4">
+                                @php $pInfo = $mapel->planet_info; @endphp
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold border {{ $pInfo['badge_class'] }}">
+                                    <span>#{{ (int) ($mapel->asset ?? 0) }}</span>
+                                    <span>•</span>
+                                    <span>{{ $pInfo['nama'] }}</span>
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4">
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 border border-amber-200/80 text-amber-700">
                                     KKM: {{ $mapel->kkm }}
                                 </span>
@@ -191,7 +200,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="py-12 text-center text-slate-400">
+                            <td colspan="6" class="py-12 text-center text-slate-400">
                                 <div class="max-w-xs mx-auto text-center space-y-2">
                                     <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>

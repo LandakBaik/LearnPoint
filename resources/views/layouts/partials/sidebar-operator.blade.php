@@ -130,6 +130,26 @@
             <span>Mata Pelajaran</span>
         </a>
 
+        <!-- Perekapan Nilai Keseluruhan -->
+        @php $isRekapNilai = request()->routeIs('admin.rekap-nilai.*'); @endphp
+        <a href="{{ route('admin.rekap-nilai.index') }}"
+           class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm transition-colors group {{ $isRekapNilai ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs border border-blue-100/60' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50 font-medium' }}">
+            <svg class="w-5 h-5 {{ $isRekapNilai ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-600' }} transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+            <span>Rekap Nilai</span>
+        </a>
+
+        <!-- Monitoring Aktivitas Guru -->
+        @php $isMonitoringGuru = request()->routeIs('admin.monitoring-guru.*'); @endphp
+        <a href="{{ route('admin.monitoring-guru.index') }}"
+           class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm transition-colors group {{ $isMonitoringGuru ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs border border-blue-100/60' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50 font-medium' }}">
+            <svg class="w-5 h-5 {{ $isMonitoringGuru ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-600' }} transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+            <span>Monitoring Guru</span>
+        </a>
+
         <!-- Kelola Jadwal (Foto) -->
         @php $isJadwal = request()->routeIs('admin.jadwal.*'); @endphp
         <a href="{{ route('admin.jadwal.index') }}"

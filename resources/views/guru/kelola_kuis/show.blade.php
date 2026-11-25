@@ -55,6 +55,7 @@
             judul: '{{ addslashes($quiz->judul) }}',
             deskripsi: '{{ addslashes($quiz->deskripsi ?? '') }}',
             pengampu_kelas_id: '{{ $quiz->pengampu_kelas_id }}',
+            asset: '{{ (int) ($quiz->asset ?? 0) }}',
             kesulitan_aktif: {{ json_encode($quiz->kesulitan_aktif_array) }},
             status: '{{ $quiz->status ?? 'draft' }}',
             waktu_mulai: '{{ $quiz->waktu_mulai ? $quiz->waktu_mulai->format('Y-m-d\TH:i') : '' }}',
@@ -211,6 +212,10 @@
                                     Acak Jawaban
                                 </span>
                             @endif
+
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" title="Tema Peta Level Mobile (QuizScenePreset)">
+                                Asset #{{ (int) ($quiz->asset ?? 0) }} • {{ $quiz->scene_label }}
+                            </span>
                         </div>
 
                         <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 mt-1 flex-wrap">
@@ -988,6 +993,22 @@
                         </label>
                         <textarea name="deskripsi" x-model="editQuizData.deskripsi" rows="2"
                             class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"></textarea>
+                    </div>
+
+                    {{-- Tema Peta Level Mobile (QuizScenePreset / Asset) --}}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                            Tema Peta Level Mobile (QuizScenePreset) <span class="text-rose-500">*</span>
+                        </label>
+                        <select name="asset" x-model="editQuizData.asset"
+                            class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition cursor-pointer">
+                            @foreach($quiz->available_scenes as $sceneIdx => $sceneLabel)
+                                <option value="{{ $sceneIdx }}">[Asset #{{ $sceneIdx }}] {{ $sceneLabel }}</option>
+                            @endforeach
+                        </select>
+                        <p class="text-[11px] text-slate-400 mt-1">
+                            Tema planet mapel: <strong class="text-slate-600">{{ $quiz->pengampuKelas?->guruMapel?->mapel?->planet_label }}</strong>
+                        </p>
                     </div>
 
                     {{-- Arc Kesulitan Aktif --}}

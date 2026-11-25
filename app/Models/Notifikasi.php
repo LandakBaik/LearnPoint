@@ -93,22 +93,47 @@ class Notifikasi extends Model
     }
 
     /**
-     * Helper kirim notifikasi massal ke semua siswa dalam satu kelas.
+     * Helper kirim notifikasi massal ke semua siswa dalam satu kelas (bulk insert).
      */
-    public static function kirimKeKelas(int $kelasId, string $judul, string $pesan, string $tipe = 'info', ?string $url = null, ?int $idReferensi = null, ?array $data = null): int
+    public static function kirimKeKelas(int $kelasId, string $judul, string $pesan, string $tipe = 'info', ?string $url = null, ?int $idReferensi = null, ?array $data = null, ?string $targetAgama = null): int
     {
-        $siswas = Siswa::with('user')
-            ->whereHas('anggotaKelases', fn($q) => $q->where('kelas_id', $kelasId))
-            ->get();
+        $periodId = AcademicPeriod::currentId();
 
-        $count = 0;
-        foreach ($siswas as $siswa) {
-            if ($siswa->user) {
-                self::kirim($siswa->user->id, $judul, $pesan, $tipe, $url, $idReferensi, $data);
-                $count++;
-            }
+        $userIds = User::where('status', '!=', 'nonaktif')
+            ->whereHas('siswa', function ($sq) use ($kelasId, $periodId, $targetAgama) {
+                $sq->where('status', '!=', 'nonaktif')
+                    ->when(filled($targetAgama), fn ($aq) => $aq->where('agama', $targetAgama))
+                    ->whereHas('anggotaKelases', function ($ak) use ($kelasId, $periodId) {
+                        $ak->where('kelas_id', $kelasId)
+                            ->when($periodId, fn ($pq) => $pq->where('academic_period_id', $periodId));
+                    });
+            })
+            ->pluck('id');
+
+        if ($userIds->isEmpty()) {
+            return 0;
         }
 
-        return $count;
+        $now = now();
+        $encodedData = $data !== null ? json_encode($data) : null;
+
+        $rows = $userIds->map(fn($userId) => [
+            'user_id'      => $userId,
+            'judul'        => $judul,
+            'pesan'        => $pesan,
+            'tipe'         => $tipe,
+            'url'          => $url,
+            'id_referensi' => $idReferensi,
+            'data'         => $encodedData,
+            'is_read'      => false,
+            'created_at'   => $now,
+            'updated_at'   => $now,
+        ])->all();
+
+        foreach (array_chunk($rows, 200) as $chunk) {
+            self::insert($chunk);
+        }
+
+        return count($rows);
     }
 }

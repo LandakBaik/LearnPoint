@@ -12,8 +12,11 @@
     todayStartDate: '{{ now()->format('Y-m-d\T00:00') }}',
 
     mapelData: {{ Js::from(array_values($mapelData)) }},
+    pengampuSceneMap: {{ Js::from($pengampuKelases->mapWithKeys(fn($pk) => [$pk->id => ['planet_label' => $pk->guruMapel?->mapel?->planet_label ?? 'Planet 1', 'scenes' => $pk->guruMapel?->mapel?->planet_scenes ?? [0 => 'Scene 1 (Default)']]])) }},
     selectedMapel: '',
     selectedTingkatan: '',
+    selectedAsset: 0,
+    availableScenes: { 0: 'Scene 1: Chess Teal (Biru Teal)' },
     tingkatans: [],
     kelases: [],
 
@@ -21,8 +24,14 @@
         let mapel = this.mapelData.find(m => m.id == this.selectedMapel);
         if (mapel && mapel.tingkatans) {
             this.tingkatans = Object.keys(mapel.tingkatans).sort();
+            this.availableScenes = mapel.scenes || { 0: 'Scene 1 (Default)' };
+            if (!(this.selectedAsset in this.availableScenes)) {
+                this.selectedAsset = 0;
+            }
         } else {
             this.tingkatans = [];
+            this.availableScenes = { 0: 'Scene 1 (Default)' };
+            this.selectedAsset = 0;
         }
 
         if (!this.selectedTingkatan || !this.tingkatans.includes(this.selectedTingkatan)) {
@@ -31,6 +40,22 @@
         } else {
             this.updateKelas();
         }
+    },
+
+    getEditScenes() {
+        const pkId = this.editData.pengampu_kelas_id;
+        if (pkId && this.pengampuSceneMap[pkId] && this.pengampuSceneMap[pkId].scenes) {
+            return this.pengampuSceneMap[pkId].scenes;
+        }
+        return { 0: 'Scene 1 (Default)' };
+    },
+
+    getEditPlanetLabel() {
+        const pkId = this.editData.pengampu_kelas_id;
+        if (pkId && this.pengampuSceneMap[pkId]) {
+            return this.pengampuSceneMap[pkId].planet_label || '';
+        }
+        return '';
     },
 
     updateKelas() {
@@ -73,6 +98,7 @@
         judul: '',
         deskripsi: '',
         pengampu_kelas_id: '',
+        asset: 0,
         kesulitan_aktif: ['Mudah', 'Sedang', 'Sulit'],
         status: 'draft',
         waktu_mulai: '',
@@ -138,6 +164,7 @@
             judul: quiz.judul || '',
             deskripsi: quiz.deskripsi || '',
             pengampu_kelas_id: quiz.pengampu_kelas_id,
+            asset: Number.isInteger(quiz.asset) ? quiz.asset : (parseInt(quiz.asset) || 0),
             kesulitan_aktif: Array.isArray(quiz.kesulitan_aktif) && quiz.kesulitan_aktif.length > 0
                 ? quiz.kesulitan_aktif
                 : ['Mudah', 'Sedang', 'Sulit'],
@@ -478,11 +505,15 @@
                                 {{ $quiz->judul }}
                             </h3>
 
-                            <div class="flex items-center gap-1.5 text-xs text-blue-600 font-semibold mt-1">
+                            <div class="flex items-center gap-1.5 text-xs text-blue-600 font-semibold mt-1 flex-wrap">
                                 <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                                 </svg>
                                 <span>{{ $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran' }}</span>
+                                <span class="text-slate-300">•</span>
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/80 text-[11px] font-bold">
+                                    {{ $quiz->scene_label }}
+                                </span>
                             </div>
 
                             @if($quiz->deskripsi)
@@ -839,6 +870,26 @@
                             </template>
                         </div>
                     </div>
+
+                    {{-- Tema Peta Level (QuizScenePreset / Asset) menyesuaikan Planet Mapel --}}
+                    <div class="space-y-1.5 pt-1">
+                        <label for="kuis_asset_create" class="block text-xs font-bold text-slate-700 uppercase">
+                            Tema Peta Level Mobile (QuizScenePreset) <span class="text-rose-500">*</span>
+                        </label>
+                        <select
+                            name="asset"
+                            id="kuis_asset_create"
+                            x-model="selectedAsset"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition cursor-pointer"
+                        >
+                            <template x-for="([sceneIdx, sceneLabel]) in Object.entries(availableScenes)" :key="sceneIdx">
+                                <option :value="sceneIdx" x-text="'[Asset #' + sceneIdx + '] ' + sceneLabel"></option>
+                            </template>
+                        </select>
+                        <p class="text-[11px] text-slate-400">
+                            Menentukan background <code>QuizScenePreset</code> pada peta level di aplikasi mobile (otomatis menyesuaikan dengan tema planet mata pelajaran yang dipilih).
+                        </p>
+                    </div>
                 </div>
 
                 {{-- Pilihan Arc Kesulitan yang Aktif (1 sampai 3 Arc) --}}
@@ -1057,6 +1108,7 @@
                     <select
                         name="pengampu_kelas_id"
                         x-model="editData.pengampu_kelas_id"
+                        @change="if (!(editData.asset in getEditScenes())) { editData.asset = 0; }"
                         required
                         class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
                     >
@@ -1066,6 +1118,25 @@
                             </option>
                         @endforeach
                     </select>
+                </div>
+
+                {{-- Tema Peta Level (QuizScenePreset / Asset) --}}
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                        Tema Peta Level Mobile (QuizScenePreset) <span class="text-rose-500">*</span>
+                    </label>
+                    <select
+                        name="asset"
+                        x-model="editData.asset"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-sm text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition cursor-pointer"
+                    >
+                        <template x-for="([sceneIdx, sceneLabel]) in Object.entries(getEditScenes())" :key="sceneIdx">
+                            <option :value="sceneIdx" :selected="String(editData.asset) === String(sceneIdx)" x-text="'[Asset #' + sceneIdx + '] ' + sceneLabel"></option>
+                        </template>
+                    </select>
+                    <p class="text-[11px] text-slate-400 mt-1">
+                        Tema planet mapel: <strong class="text-slate-600" x-text="getEditPlanetLabel()"></strong>
+                    </p>
                 </div>
 
                 {{-- Pilihan Arc Kesulitan Aktif --}}

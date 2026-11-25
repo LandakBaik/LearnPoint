@@ -57,27 +57,33 @@ class ProfileController extends Controller
         if ($user->isGuru()) {
             // Guru: Boleh ubah nomor telepon (10-13 digit angka), jenis kelamin, dan password (opsional)
             $rules = [
-                'nomor_telepon' => 'nullable|string|regex:/^[0-9]{10,13}$/',
-                'jenis_kelamin' => 'nullable|in:Laki-laki,Perempuan,L,P',
-                'password'      => 'nullable|string|min:6|confirmed',
+                'nomor_telepon'    => 'nullable|string|regex:/^[0-9]{10,13}$/',
+                'jenis_kelamin'    => 'nullable|in:Laki-laki,Perempuan,L,P',
+                'current_password' => 'required_with:password|nullable|string|current_password',
+                'password'         => 'nullable|string|min:8|confirmed',
             ];
 
             $messages = [
-                'nomor_telepon.regex' => 'Nomor telepon harus berupa angka dan berisikan 10 hingga 13 digit.',
-                'jenis_kelamin.in'    => 'Pilihan jenis kelamin tidak valid.',
-                'password.min'        => 'Kata sandi baru minimal harus 6 karakter.',
-                'password.confirmed'  => 'Konfirmasi kata sandi baru tidak cocok.',
+                'nomor_telepon.regex'           => 'Nomor telepon harus berupa angka dan berisikan 10 hingga 13 digit.',
+                'jenis_kelamin.in'              => 'Pilihan jenis kelamin tidak valid.',
+                'current_password.required_with' => 'Kata sandi saat ini wajib diisi untuk mengganti kata sandi.',
+                'current_password.current_password' => 'Kata sandi saat ini yang Anda masukkan salah.',
+                'password.min'                  => 'Kata sandi baru minimal harus 8 karakter.',
+                'password.confirmed'            => 'Konfirmasi kata sandi baru tidak cocok.',
             ];
         } else {
             // Admin (operator / kepala_sekolah) & Siswa: Hanya bisa ubah password
             $rules = [
-                'password' => 'required|string|min:6|confirmed',
+                'current_password' => 'required|string|current_password',
+                'password'         => 'required|string|min:8|confirmed',
             ];
 
             $messages = [
-                'password.required'  => 'Kata sandi baru wajib diisi.',
-                'password.min'       => 'Kata sandi baru minimal harus 6 karakter.',
-                'password.confirmed' => 'Konfirmasi kata sandi baru tidak cocok.',
+                'current_password.required'         => 'Kata sandi saat ini wajib diisi.',
+                'current_password.current_password' => 'Kata sandi saat ini yang Anda masukkan salah.',
+                'password.required'                 => 'Kata sandi baru wajib diisi.',
+                'password.min'                      => 'Kata sandi baru minimal harus 8 karakter.',
+                'password.confirmed'                => 'Konfirmasi kata sandi baru tidak cocok.',
             ];
         }
 

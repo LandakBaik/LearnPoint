@@ -28,6 +28,36 @@ class RoleMiddleware
         }
 
         $user = Auth::user();
+        $user->loadMissing(['guru', 'siswa']);
+
+        if (
+            $user->status === 'nonaktif'
+            || $user->guru?->status === 'nonaktif'
+            || $user->siswa?->status === 'nonaktif'
+        ) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                $token = method_exists($user, 'currentAccessToken') ? $user->currentAccessToken() : null;
+                if ($token && method_exists($token, 'delete')) {
+                    $token->delete();
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun Anda saat ini berstatus NONAKTIF. Silakan hubungi pihak administrator/sekolah.',
+                ], 403);
+            }
+
+            Auth::logout();
+            if ($request->hasSession()) {
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
+
+            return redirect()->route('login')->withErrors([
+                'login' => 'Akun Anda saat ini berstatus NONAKTIF. Silakan hubungi pihak administrator/sekolah.',
+            ]);
+        }
+
         $userRole = $user->role;
 
         // Map 'admin' alias to 'operator'

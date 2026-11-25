@@ -12,6 +12,7 @@ use App\Models\SiswaPower;
 use App\Models\Soal;
 use App\Services\QuizService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class PowerController extends Controller
@@ -109,7 +110,8 @@ class PowerController extends Controller
             if ($soal && $m->power) {
                 $eff = $this->generatePowerEffectForSoal($soal, $m->power, false);
                 if ($m->power->kode === 'second_chance') {
-                    $blockedOpt = session("second_chance_blocked_{$siswa->id}_{$soal->id}");
+                    $scKey = "second_chance_blocked_{$siswa->id}_{$soal->id}";
+                    $blockedOpt = Cache::get($scKey) ?? session($scKey);
                     if ($blockedOpt) {
                         $eff['second_chance_armed'] = false;
                         $eff['second_chance_blocked'] = $blockedOpt;
@@ -258,7 +260,7 @@ class PowerController extends Controller
         }
 
         try {
-            $result = DB::transaction(function () use ($siswa, $soal, $powerPreview) {
+            $result = DB::transaction(function () use ($quiz, $siswa, $soal, $powerPreview) {
                 // 1. Lock Power master record dan cek status aktif
                 $power = Power::where('id', $powerPreview->id)->lockForUpdate()->first();
                 if (!$power || !$power->is_active) {
@@ -306,6 +308,21 @@ class PowerController extends Controller
                         'status' => 422,
                         'code' => 'QUESTION_ALREADY_HAS_POWER',
                         'message' => 'Soal ini sudah menggunakan Power. Maksimal 1 Power per butir soal.',
+                    ];
+                }
+
+                // Pastikan level soal berstatus aktif (tidak terkunci dan belum diselesaikan)
+                $quiz->loadMissing('soals');
+                $journey = app(\App\Services\QuizAdventureService::class)->buildQuizAdventureJourney($quiz, $siswa);
+                $soalLevel = collect($journey['levels'])->first(
+                    fn ($lvl) => in_array($soal->id, $lvl['soal_ids'] ?? [], true)
+                );
+                if (($soalLevel && $soalLevel['status'] !== 'aktif') || ($existingMenjawab && $existingMenjawab->koin_diklaim)) {
+                    return [
+                        'error' => true,
+                        'status' => 422,
+                        'code' => 'LEVEL_NOT_ACTIVE',
+                        'message' => 'Power hanya dapat digunakan pada soal di level yang sedang aktif dikerjakan.',
                     ];
                 }
 
@@ -411,6 +428,46 @@ class PowerController extends Controller
             ], 403);
         }
 
+        if (!$this->isSiswaAuthorizedForQuiz($quiz, $siswa)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kuis ini bukan untuk kelas Anda.',
+            ], 403);
+        }
+
+        if (!$quiz->isPublished()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kuis belum dipublikasikan.',
+            ], 403);
+        }
+
+        if ($quiz->waktu_mulai && now()->lessThan($quiz->waktu_mulai)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kuis belum dimulai.',
+            ], 403);
+        }
+
+        if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai->copy()->addMinutes(2))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Waktu pengerjaan kuis telah berakhir.',
+            ], 403);
+        }
+
+        $alreadyCompleted = Nilai::where('siswa_id', $siswa->id)
+            ->where('quiz_id', $quiz->id)
+            ->where('status', 'selesai')
+            ->exists();
+
+        if ($alreadyCompleted) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kuis ini sudah selesai dikerjakan.',
+            ], 403);
+        }
+
         $soal = Soal::where('id', $request->input('soal_id'))
             ->where('quiz_id', $quiz->id)
             ->first();
@@ -443,17 +500,19 @@ class PowerController extends Controller
         }
 
         $sessionKey = "second_chance_blocked_{$siswa->id}_{$soal->id}";
-        if (session()->has($sessionKey)) {
+        $blockedOption = Cache::get($sessionKey) ?? session($sessionKey);
+        if ($blockedOption) {
             return response()->json([
                 'success' => false,
                 'message' => 'Perisai Second Chance pada soal ini sudah terpakai.',
-                'blocked_option' => session($sessionKey),
+                'blocked_option' => $blockedOption,
             ], 422);
         }
 
         $isCorrect = $this->checkIsAnswerCorrect($soal, $pilihanSiswa);
 
         if (!$isCorrect) {
+            Cache::put($sessionKey, $pilihanSiswa, now()->addHours(24));
             session([$sessionKey => $pilihanSiswa]);
 
             return response()->json([

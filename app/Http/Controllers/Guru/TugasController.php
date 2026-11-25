@@ -339,7 +339,7 @@ class TugasController extends Controller
 
         if ($data['tipe'] === 'upload' && $request->hasFile('file_tugas_input')) {
             $filePath = $request->file('file_tugas_input')
-                ->store('lampiran_tugas', 'public');
+                ->store('lampiran_tugas', 'local');
         }
 
         try {
@@ -375,7 +375,7 @@ class TugasController extends Controller
             });
         } catch (\Throwable $e) {
             if ($filePath) {
-                Storage::disk('public')->delete($filePath);
+                Storage::disk('local')->delete($filePath);
             }
 
             throw $e;
@@ -494,7 +494,7 @@ class TugasController extends Controller
                 'file' => $pengumpulan?->file_jawaban,
 
                 'file_url' => $pengumpulan && $pengumpulan->file_jawaban
-                    ? asset('storage/' . $pengumpulan->file_jawaban)
+                    ? route('file.jawaban', $pengumpulan->id)
                     : null,
 
                 'nilai' => $pengumpulan?->nilai,
@@ -644,7 +644,7 @@ class TugasController extends Controller
             $request->hasFile('file_tugas_input')
         ) {
             $fileBaru = $request->file('file_tugas_input')
-                ->store('lampiran_tugas', 'public');
+                ->store('lampiran_tugas', 'local');
         }
 
         $filePath = $fileBaru
@@ -671,7 +671,7 @@ class TugasController extends Controller
             });
         } catch (\Throwable $e) {
             if ($fileBaru) {
-                Storage::disk('public')->delete($fileBaru);
+                Storage::disk('local')->delete($fileBaru);
             }
 
             throw $e;
@@ -681,9 +681,9 @@ class TugasController extends Controller
         if (
             $fileLama &&
             $fileLama !== $filePath &&
-            !Tugas::where('file_lampiran', $fileLama)->exists() &&
-            Storage::disk('public')->exists($fileLama)
+            !Tugas::where('file_lampiran', $fileLama)->exists()
         ) {
+            Storage::disk('local')->delete($fileLama);
             Storage::disk('public')->delete($fileLama);
         }
 
@@ -708,6 +708,7 @@ class TugasController extends Controller
         );
 
         $fileLama = $tugas->file_lampiran;
+        $gambarSoals = $tugas->soals()->pluck('gambar')->filter()->all();
 
         DB::transaction(function () use ($tugas) {
             Soal::where('tugas_id', $tugas->id)->delete();
@@ -715,12 +716,18 @@ class TugasController extends Controller
             $tugas->delete();
         });
 
+        foreach ($gambarSoals as $gambar) {
+            if (!Soal::where('gambar', $gambar)->exists() && Storage::disk('public')->exists($gambar)) {
+                Storage::disk('public')->delete($gambar);
+            }
+        }
+
         // Hapus file lampiran jika ada dan tidak dipakai tugas lain.
         if (
             $fileLama &&
-            !Tugas::where('file_lampiran', $fileLama)->exists() &&
-            Storage::disk('public')->exists($fileLama)
+            !Tugas::where('file_lampiran', $fileLama)->exists()
         ) {
+            Storage::disk('local')->delete($fileLama);
             Storage::disk('public')->delete($fileLama);
         }
 
@@ -754,7 +761,7 @@ class TugasController extends Controller
 
         $pengumpulan->update([
             'nilai' => $data['nilai'],
-            'status' => 'selesai',
+            'status' => $pengumpulan->status === 'telat' ? 'telat' : 'selesai',
         ]);
 
         if ($pengumpulan->siswa?->user) {

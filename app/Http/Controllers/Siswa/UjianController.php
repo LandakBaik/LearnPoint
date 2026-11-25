@@ -16,53 +16,89 @@ use Illuminate\Support\Facades\DB;
 class UjianController extends Controller
 {
     /**
+     * Memastikan ujian milik kelas siswa (serta sesuai agama dan daftar peserta khusus jika remidi/susulan).
+     */
+    private function authorizeUjianSiswa(Ujian $ujian, $siswa): void
+    {
+        abort_unless($siswa, 403, 'Profil siswa tidak ditemukan.');
+
+        $ujian->loadMissing(['pengampuKelas.guruMapel.mapel']);
+
+        $kelas = $siswa->kelas;
+        $kelasId = $kelas?->id;
+
+        abort_unless(
+            $kelasId && (int) $ujian->pengampuKelas?->kelas_id === (int) $kelasId,
+            403,
+            'Anda tidak memiliki akses ke ujian kelas lain.'
+        );
+
+        $mapel = $ujian->pengampuKelas?->guruMapel?->mapel;
+        if ($mapel && method_exists($mapel, 'isAccessibleBySiswa')) {
+            abort_unless(
+                $mapel->isAccessibleBySiswa($siswa),
+                403,
+                'Mata pelajaran ujian ini tidak sesuai dengan agama Anda.'
+            );
+        }
+
+        if (in_array($ujian->jenis_ujian, ['remidi', 'susulan']) && !empty($ujian->peserta_khusus)) {
+            abort_unless(
+                in_array((int) $siswa->id, array_map('intval', $ujian->peserta_khusus)),
+                403,
+                'Anda tidak terdaftar sebagai peserta pada ujian remidi/susulan ini.'
+            );
+        }
+    }
+
+    /**
      * Menampilkan daftar semua ujian untuk siswa.
      */
     public function index(Request $request)
     {
         $user = Auth::user();
         $siswa = $user->siswa;
-        $anggotaKelas = $siswa?->anggotaKelases()?->latest()?->first();
-        $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;
+        $kelas = $siswa?->kelas;
         $kelasId = $kelas?->id;
 
-        // Ambil ujian yang ditujukan untuk kelas siswa
-        $query = Ujian::with([
-            'pengampuKelas.guruMapel.guru',
-            'pengampuKelas.guruMapel.mapel',
-            'pengampuKelas.kelas',
-            'seleksiUjians' => function ($q) use ($siswa) {
-                if ($siswa) {
-                    $q->where('siswa_id', $siswa->id);
-                }
-            },
-            'seleksiUjians.nilais'
-        ])
-            ->whereIn('status', ['scheduled', 'published', 'completed']);
+        if (!$kelasId) {
+            $ujians = collect();
+        } else {
+            // Ambil ujian yang ditujukan untuk kelas siswa
+            $query = Ujian::with([
+                'pengampuKelas.guruMapel.guru',
+                'pengampuKelas.guruMapel.mapel',
+                'pengampuKelas.kelas',
+                'seleksiUjians' => function ($q) use ($siswa) {
+                    if ($siswa) {
+                        $q->where('siswa_id', $siswa->id);
+                    }
+                },
+                'seleksiUjians.nilais'
+            ])
+                ->whereIn('status', ['scheduled', 'published', 'completed']);
 
-        $query->whereHas('pengampuKelas', function ($q) use ($kelasId, $siswa) {
-            $q->forSiswa($siswa);
-            if ($kelasId) {
-                $q->where('kelas_id', $kelasId);
-            }
-        });
+            $query->whereHas('pengampuKelas', function ($q) use ($kelasId, $siswa) {
+                $q->forSiswa($siswa)->where('kelas_id', $kelasId);
+            });
 
-        $ujians = $query->latest('waktu_mulai')->get()
-         ->filter(function ($ujian) use ($siswa) {
-             if (in_array($ujian->jenis_ujian, ['remidi', 'susulan']) && !empty($ujian->peserta_khusus)) {
-                 return $siswa && in_array((int) $siswa->id, array_map('intval', $ujian->peserta_khusus));
-             }
-             return true;
-         })
-         ->values()
-         ->map(function ($ujian) {
-             $sesi = $ujian->seleksiUjians->first();
-             $nilai = $sesi?->nilais?->first();
+            $ujians = $query->latest('waktu_mulai')->get()
+             ->filter(function ($ujian) use ($siswa) {
+                 if (in_array($ujian->jenis_ujian, ['remidi', 'susulan']) && !empty($ujian->peserta_khusus)) {
+                     return $siswa && in_array((int) $siswa->id, array_map('intval', $ujian->peserta_khusus));
+                 }
+                 return true;
+             })
+             ->values()
+             ->map(function ($ujian) {
+                 $sesi = $ujian->seleksiUjians->first();
+                 $nilai = $sesi?->nilais?->first();
 
-             $ujian->sudah_dikerjakan = $nilai !== null;
-             $ujian->nilai_siswa = $nilai?->nilai;
-             return $ujian;
-         });
+                 $ujian->sudah_dikerjakan = $nilai !== null;
+                 $ujian->nilai_siswa = $nilai?->nilai;
+                 return $ujian;
+             });
+        }
 
         // Hitung statistik ringkas untuk header tab
         $totalUjian = $ujians->count();
@@ -85,9 +121,8 @@ class UjianController extends Controller
     {
         $user = Auth::user();
         $siswa = $user->siswa;
-        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
-
-        abort_unless($siswaId, 403, 'Profil siswa tidak ditemukan.');
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         // Sinkronisasi status jadwal jika method tersedia di Model Ujian
         if (method_exists($ujian, 'sinkronisasiStatus')) {
@@ -134,8 +169,8 @@ class UjianController extends Controller
     {
         $user = auth()->user();
         $siswa = $user->siswa;
-        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
-        abort_unless($siswaId, 403, 'Profil siswa tidak ditemukan.');
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         if ($ujian->status !== 'published') {
             return redirect()->route('siswa.dashboard')
@@ -176,8 +211,8 @@ class UjianController extends Controller
 
         $user = auth()->user();
         $siswa = $user->siswa;
-        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
-        abort_unless($siswaId, 403, 'Profil siswa tidak ditemukan.');
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         if ($ujian->status !== 'published') {
             return redirect()->route('siswa.dashboard')
@@ -264,8 +299,8 @@ class UjianController extends Controller
     {
         $user = auth()->user();
         $siswa = $user->siswa;
-        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
-        abort_unless($siswaId, 403, 'Profil siswa tidak ditemukan.');
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         if ($ujian->status !== 'published') {
             return redirect()->route('siswa.dashboard')
@@ -358,6 +393,9 @@ class UjianController extends Controller
      */
     public function cekStatusSesi(Ujian $ujian)
     {
+        $siswa = auth()->user()?->siswa;
+        $this->authorizeUjianSiswa($ujian, $siswa);
+
         if ($ujian->status === 'unpublished' || $ujian->status === 'draft') {
             return response()->json([
                 'status'       => 'ditarik',
@@ -366,7 +404,7 @@ class UjianController extends Controller
             ]);
         }
 
-        $siswaId = auth()->user()->siswa?->id ?? auth()->user()->siswa_id;
+        $siswaId = $siswa->id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
@@ -400,7 +438,35 @@ class UjianController extends Controller
 
         $user = Auth::user();
         $siswa = $user->siswa;
-        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
+
+        $ujian->sinkronisasiStatus();
+        if ($ujian->status !== 'published') {
+            return response()->json(['status' => 'error', 'message' => 'Ujian sedang tidak aktif.'], 403);
+        }
+
+        $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
+            ->where('siswa_id', $siswaId)
+            ->first();
+
+        if (!$sesi) {
+            return response()->json(['status' => 'error', 'message' => 'Sesi ujian belum dimulai.'], 403);
+        }
+
+        if ($sesi->status === 'terkunci') {
+            return response()->json(['status' => 'error', 'message' => 'Sesi ujian Anda sedang terkunci.'], 403);
+        }
+
+        if ($sesi->status === 'selesai') {
+            return response()->json(['status' => 'error', 'message' => 'Ujian sudah diselesaikan dan jawaban tidak dapat diubah.'], 403);
+        }
+
+        $waktuMulaiSesi = Carbon::parse($ujian->waktu_mulai_sesi ?? $ujian->waktu_mulai ?? $sesi->waktu_mulai ?? now());
+        $batasAkhir = $waktuMulaiSesi->copy()->addMinutes((int) $ujian->durasi_menit);
+        if (now()->greaterThan($batasAkhir->copy()->addMinutes(2))) {
+            return response()->json(['status' => 'error', 'message' => 'Waktu pengerjaan ujian telah berakhir.'], 403);
+        }
 
         $soal = Soal::where('ujian_id', $ujian->id)->findOrFail($request->soal_id);
 
@@ -447,34 +513,35 @@ class UjianController extends Controller
      */
     public function catatPelanggaran(Request $request, Ujian $ujian)
     {
-        $siswaId = auth()->user()->siswa?->id ?? auth()->user()->siswa_id;
+        $siswa = auth()->user()?->siswa;
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
             ->first();
 
-        if (!$sesi || $sesi->status === 'selesai') {
+        if (!$sesi || in_array($sesi->status, ['selesai', 'terkunci'], true)) {
             return response()->json(['status' => 'ignored']);
         }
 
-        // Naikkan counter pelanggaran
         $sesi->increment('pelanggaran_count');
         $sesi->refresh();
 
-        $maxToleransi = 3; // Batas maksimal pindah tab/jendela
+        $maxToleransi = 3;
         $isLocked = false;
 
-        // Kunci sesi pengerjaan otomatis jika melewati batas
+        // Mulai pelanggaran ke-3, 4, 5, 6, dst. langsung terkunci otomatis
         if ($sesi->pelanggaran_count >= $maxToleransi) {
             $sesi->update(['status' => 'terkunci']);
             $isLocked = true;
         }
 
         return response()->json([
-            'status' => 'success',
-            'pelanggaran_count' => $sesi->pelanggaran_count,
-            'max_toleransi' => $maxToleransi,
-            'is_locked' => $isLocked,
+            'status'            => 'success',
+            'pelanggaran_count' => (int) $sesi->pelanggaran_count,
+            'max_toleransi'     => $maxToleransi,
+            'is_locked'         => $isLocked,
         ]);
     }
 
@@ -491,7 +558,9 @@ class UjianController extends Controller
 
         /** @var \App\Models\User $user */
         $user = auth()->user();
-        $siswaId = $user?->siswa?->id ?? $user?->siswa_id;
+        $siswa = $user?->siswa;
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
@@ -524,7 +593,6 @@ class UjianController extends Controller
         // Buka kunci dan reset hitungan pelanggaran
         $sesi->update([
             'status'            => 'sedang_mengerjakan',
-            'pelanggaran_count' => 0,
         ]);
 
         return response()->json([
@@ -542,13 +610,29 @@ class UjianController extends Controller
     {
         $user = Auth::user();
         $siswa = $user->siswa;
-        $siswaId = $siswa ? $siswa->id : ($user->siswa_id ?? null);
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
-        abort_unless($siswaId, 403, 'Profil siswa tidak ditemukan.');
+        $ujian->sinkronisasiStatus();
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
             ->firstOrFail();
+
+        if ($sesi->status === 'selesai') {
+            return redirect()->route('siswa.ujian.hasil', $ujian->id)
+                ->with('info', 'Ujian Anda sudah dikumpulkan sebelumnya.');
+        }
+
+        if ($sesi->status === 'terkunci') {
+            return redirect()->route('siswa.ujian.kerjakan', $ujian->id)
+                ->with('error', 'Sesi ujian Anda sedang terkunci. Hubungi pengawas untuk membuka kunci.');
+        }
+
+        if (!in_array($ujian->status, ['published', 'completed'], true)) {
+            return redirect()->route('siswa.ujian.index')
+                ->with('error', 'Ujian sedang tidak aktif.');
+        }
 
         return DB::transaction(function () use ($ujian, $siswaId, $sesi) {
             $soals = $ujian->soals;
@@ -709,11 +793,18 @@ class UjianController extends Controller
      */
     public function hasil(Ujian $ujian)
     {
-        $siswaId = auth()->user()->siswa?->id ?? auth()->user()->siswa_id;
+        $siswa = auth()->user()?->siswa;
+        $this->authorizeUjianSiswa($ujian, $siswa);
+        $siswaId = $siswa->id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
             ->firstOrFail();
+
+        if ($sesi->status !== 'selesai') {
+            return redirect()->route('siswa.ujian.kerjakan', $ujian->id)
+                ->with('warning', 'Selesaikan ujian terlebih dahulu untuk melihat hasil.');
+        }
 
         // 1. Ambil data nilai dari tabel nilais, atau fallback dari data seleksi_ujians
         $nilai = Nilai::where('seleksi_ujian_id', $sesi->id)

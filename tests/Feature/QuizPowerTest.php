@@ -725,5 +725,24 @@ class QuizPowerTest extends TestCase
         $this->assertEquals(66.67, (float) $nilai->nilai);
         $this->assertSame('selesai', $nilai->status);
     }
+
+    public function test_api_submit_kuis_tidak_mengalami_undefined_all_quiz_soals(): void
+    {
+        $response = $this->actingAs($this->userSiswa)
+            ->postJson("/api/siswa/kuis/{$this->quiz->id}/submit", [
+                'arc' => 'Mudah',
+                'level' => 1,
+                'step' => 1,
+                'jawaban' => [
+                    $this->soal1->id => 'a',
+                    $this->soal2->id => 'b',
+                    $this->soal3->id => 'c',
+                ],
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.is_quiz_completed', true);
+    }
 }
 

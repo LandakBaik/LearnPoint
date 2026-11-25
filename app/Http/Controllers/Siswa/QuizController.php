@@ -33,32 +33,36 @@ class QuizController extends Controller
         $kelas = $this->quizService->getSiswaPrimaryKelas($siswa);
         $kelasIds = $this->quizService->getSiswaKelasIds($siswa);
 
-        $query = Quiz::where('status', 'published')
-            ->with([
-                'pengampuKelas.guruMapel.mapel',
-                'pengampuKelas.guruMapel.guru',
-                'pengampuKelas.kelas',
-                'nilais' => function ($q) use ($siswa) {
-                    if ($siswa) {
-                        $q->where('siswa_id', $siswa->id);
-                    }
-                },
-                'soals',
-            ])
-            ->withCount('soals')
-            ->latest();
+        if (empty($kelasIds)) {
+            $allQuizzes = collect();
+            $planets = collect();
+        } else {
+            $query = Quiz::where('status', 'published')
+                ->with([
+                    'pengampuKelas.guruMapel.mapel',
+                    'pengampuKelas.guruMapel.guru',
+                    'pengampuKelas.kelas',
+                    'nilais' => function ($q) use ($siswa) {
+                        if ($siswa) {
+                            $q->where('siswa_id', $siswa->id);
+                        }
+                    },
+                    'soals',
+                ])
+                ->withCount('soals')
+                ->latest();
 
-        $query->whereHas('pengampuKelas', function ($q) use ($kelasIds, $siswa) {
-            $q->forSiswa($siswa);
-            if (!empty($kelasIds)) {
-                $q->whereIn('kelas_id', $kelasIds);
-            }
-        });
+            $query->whereHas('pengampuKelas', function ($q) use ($kelasIds, $siswa) {
+                $q->forSiswa($siswa)->whereIn('kelas_id', $kelasIds);
+            });
 
-        $allQuizzes = $query->get();
-        $dbMapels = Mapel::forSiswa($siswa)->get();
+            $allQuizzes = $query->get();
+            $dbMapels = Mapel::forSiswa($siswa)
+                ->whereHas('pengampuKelases', fn ($q) => $q->whereIn('kelas_id', $kelasIds))
+                ->get();
 
-        $planets = $this->adventureService->buildPlanetsCollection($allQuizzes, $dbMapels);
+            $planets = $this->adventureService->buildPlanetsCollection($allQuizzes, $dbMapels);
+        }
 
         // Cek apakah siswa sedang memilih planet tertentu
         $selectedPlanet = null;
@@ -363,6 +367,17 @@ class QuizController extends Controller
                 ->with('info', 'Kuis ini sudah selesai dikerjakan dan tidak dapat diubah lagi.');
         }
 
+        if ($quiz->waktu_mulai && now()->lessThan($quiz->waktu_mulai)) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kuis belum dimulai.',
+                ], 403);
+            }
+            return redirect()->route('siswa.kuis.show', $quiz->id)
+                ->with('error', 'Kuis belum dimulai.');
+        }
+
         if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai->copy()->addMinutes(2))) {
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json([
@@ -423,6 +438,17 @@ class QuizController extends Controller
         $user = auth()->user();
         $siswa = $this->resolveAuthorizedSiswa($quiz, 'Akses ditolak.');
         abort_unless($quiz->isPublished(), 403, 'Kuis belum dipublikasikan.');
+
+        if ($quiz->waktu_mulai && now()->lessThan($quiz->waktu_mulai)) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kuis belum dimulai.',
+                ], 403);
+            }
+            return redirect()->route('siswa.kuis.show', $quiz->id)
+                ->with('error', 'Kuis belum dimulai.');
+        }
 
         if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai->copy()->addMinutes(2))) {
             return redirect()->route('siswa.kuis.show', $quiz->id)
@@ -612,6 +638,7 @@ class QuizController extends Controller
     public function hasil(Quiz $quiz)
     {
         $siswa = $this->resolveAuthorizedSiswa($quiz, 'Akses ditolak.');
+        abort_unless($quiz->isPublished(), 403, 'Kuis belum dipublikasikan.');
 
         $quiz->load([
             'pengampuKelas.guruMapel.mapel',
@@ -640,7 +667,9 @@ class QuizController extends Controller
             $currentLevel = $levelsData->where('status', 'selesai')->last();
         }
 
-        if (!$currentLevel && !$nilai) {
+        $isQuizCompleted = $journey['is_all_completed'] || ($nilai && $nilai->status === 'selesai');
+
+        if ((!$currentLevel && !$isQuizCompleted) || ($currentLevel && $currentLevel['status'] !== 'selesai' && !$isQuizCompleted)) {
             return redirect()->route('siswa.kuis.show', $quiz->id)
                 ->with('warning', 'Kamu belum menyelesaikan level pada kuis ini.');
         }
@@ -654,7 +683,7 @@ class QuizController extends Controller
             }
         }
 
-        $showAllSoals = request()->boolean('all') || (!$reqArc && !$reqLevelNum && !$reqStep && $journey['is_all_completed']);
+        $showAllSoals = $isQuizCompleted && (request()->boolean('all') || (!$reqArc && !$reqLevelNum && !$reqStep));
 
         if ($showAllSoals || !$currentLevel) {
             $soals = $quiz->soals()
@@ -710,6 +739,7 @@ class QuizController extends Controller
     public function hasilPetualangan(Quiz $quiz)
     {
         $siswa = $this->resolveAuthorizedSiswa($quiz, 'Akses ditolak.');
+        abort_unless($quiz->isPublished(), 403, 'Kuis belum dipublikasikan.');
 
         $quiz->load([
             'pengampuKelas.guruMapel.mapel',
@@ -721,6 +751,11 @@ class QuizController extends Controller
         $journey = $this->adventureService->buildQuizAdventureJourney($quiz, $siswa);
         $levelsData = collect($journey['levels']);
         $nilai = $journey['nilai'];
+
+        if (!$journey['is_all_completed'] && (!$nilai || $nilai->status !== 'selesai')) {
+            return redirect()->route('siswa.kuis.show', $quiz->id)
+                ->with('warning', 'Selesaikan seluruh level kuis terlebih dahulu untuk melihat hasil petualangan lengkap.');
+        }
 
         $allSoalsRaw = $quiz->soals()
             ->with(['menjawabs' => fn ($q) => $q->with('power')->where('siswa_id', $siswa->id)])

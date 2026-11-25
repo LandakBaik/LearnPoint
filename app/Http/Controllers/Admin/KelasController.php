@@ -152,6 +152,17 @@ class KelasController extends Controller
             );
         }
 
+        if ($kela->anggotaKelases()->exists()) {
+            return redirect()->route('kelas.index')->with(
+                'error',
+                "Kelas {$kela->nama_kelas} tidak dapat dihapus karena masih memiliki data siswa terdaftar."
+            );
+        }
+
+        if ($kela->jadwal && \Illuminate\Support\Facades\Storage::disk('public')->exists($kela->jadwal)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($kela->jadwal);
+        }
+
         $kela->delete();
 
         return redirect()->route('kelas.index')->with('success', 'Data kelas berhasil dihapus!');

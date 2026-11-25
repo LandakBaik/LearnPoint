@@ -62,7 +62,14 @@ class MateriController extends Controller
 
         $matchingGroupIds = (clone $query)->distinct()->pluck('id_grub_materi');
 
+        if ($matchingGroupIds->isEmpty()) {
+            return $this->successResponse([]);
+        }
+
         $materisQuery = Materi::whereIn('id_grub_materi', $matchingGroupIds)
+            ->whereHas('pengampuKelas.guruMapel', function ($q) use ($guruId) {
+                $q->where('guru_id', $guruId);
+            })
             ->with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.kelas']);
 
         $sort = $request->input('sort', 'terbaru');
@@ -93,7 +100,7 @@ class MateriController extends Controller
                 'deskripsi' => $first->deskripsi,
                 'url_youtube' => $first->url_youtube,
                 'file_materi' => $first->file_materi,
-                'file_url' => $first->file_materi ? asset('storage/' . $first->file_materi) : null,
+                'file_url' => $first->file_materi ? url("/api/file/materi/{$first->id}") : null,
                 'mapel' => [
                     'id' => $first->pengampuKelas?->guruMapel?->mapel?->id,
                     'nama_mapel' => $first->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
@@ -112,6 +119,9 @@ class MateriController extends Controller
     public function guruOptions(Request $request)
     {
         $guruId = $request->user()?->guru?->id;
+        if (!$guruId) {
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
+        }
 
         $pengampuKelases = PengampuKelas::with(['guruMapel.mapel', 'kelas'])
             ->whereHas('guruMapel', function ($q) use ($guruId) {
@@ -171,6 +181,9 @@ class MateriController extends Controller
     public function guruShow(Request $request, string $id_grub_materi)
     {
         $guruId = $request->user()?->guru?->id;
+        if (!$guruId) {
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
+        }
 
         $materis = Materi::where('id_grub_materi', $id_grub_materi)
             ->with(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.kelas'])
@@ -201,7 +214,7 @@ class MateriController extends Controller
             'deskripsi' => $first->deskripsi,
             'url_youtube' => $first->url_youtube,
             'file_materi' => $first->file_materi,
-            'file_url' => $first->file_materi ? asset('storage/' . $first->file_materi) : null,
+            'file_url' => $first->file_materi ? url("/api/file/materi/{$first->id}") : null,
             'mapel' => [
                 'id' => $first->pengampuKelas?->guruMapel?->mapel?->id,
                 'nama_mapel' => $first->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
@@ -218,13 +231,16 @@ class MateriController extends Controller
     public function guruStore(Request $request)
     {
         $guruId = $request->user()?->guru?->id;
+        if (!$guruId) {
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
+        }
 
         $validator = Validator::make($request->all(), [
             'judul' => ['required', 'string', 'max:200'],
             'mapel_id' => ['required', 'integer', 'exists:mapels,id'],
             'tingkatan' => ['required', 'in:7,8,9'],
             'pengampu_kelas_ids' => ['required', 'array', 'min:1'],
-            'pengampu_kelas_ids.*' => ['required', 'integer', 'exists:pengampu_kelas,id'],
+            'pengampu_kelas_ids.*' => ['required', 'integer', 'distinct', 'exists:pengampu_kelas,id'],
             'deskripsi' => ['nullable', 'string', 'max:1000'],
             'file_materi' => ['required', 'file', 'mimes:pdf,ppt,pptx', 'max:10240'],
             'url_youtube' => ['nullable', 'url', 'max:2048'],
@@ -275,13 +291,14 @@ class MateriController extends Controller
             ]);
         }
 
-        $path = $request->file('file_materi')->store('materi_files', 'public');
+        $path = $request->file('file_materi')->store('materi_files', 'local');
         $idGrubMateri = (string) Str::uuid();
+        $firstCreated = null;
 
         try {
-            DB::transaction(function () use ($validated, $judul, $validPengampu, $path, $idGrubMateri) {
+            DB::transaction(function () use ($validated, $judul, $validPengampu, $path, $idGrubMateri, &$firstCreated) {
                 foreach ($validPengampu as $pkId) {
-                    Materi::create([
+                    $created = Materi::create([
                         'judul' => $judul,
                         'deskripsi' => $validated['deskripsi'] ?? null,
                         'file_materi' => $path,
@@ -289,11 +306,14 @@ class MateriController extends Controller
                         'pengampu_kelas_id' => $pkId,
                         'id_grub_materi' => $idGrubMateri,
                     ]);
+                    if (!$firstCreated) {
+                        $firstCreated = $created;
+                    }
                 }
             });
         } catch (\Throwable $e) {
-            if ($path && Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
+            if ($path && Storage::disk('local')->exists($path)) {
+                Storage::disk('local')->delete($path);
             }
             throw $e;
         }
@@ -304,7 +324,7 @@ class MateriController extends Controller
             if ($pk) {
                 $mapelId = $pk->guruMapel?->mapel_id;
                 $mapelNama = $pk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
-                $targetUrl = $mapelId ? route('siswa.materi.show', $mapelId) : route('siswa.materi');
+                $targetUrl = $mapelId ? route('siswa.mapel.show', $mapelId) : route('siswa.mapel');
                 Notifikasi::kirimKeKelas(
                     $pk->kelas_id,
                     "Materi Baru: {$judul}",
@@ -318,7 +338,7 @@ class MateriController extends Controller
 
         return $this->createdResponse([
             'id_grub_materi' => $idGrubMateri,
-            'file_url' => asset('storage/' . $path),
+            'file_url' => $firstCreated ? url("/api/file/materi/{$firstCreated->id}") : null,
         ], 'Materi berhasil ditambahkan ke ' . count($validPengampu) . ' kelas.');
     }
 
@@ -328,9 +348,12 @@ class MateriController extends Controller
     public function guruUpdate(Request $request, string $id_grub_materi)
     {
         $guruId = $request->user()?->guru?->id;
+        if (!$guruId) {
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
+        }
 
         $materis = Materi::where('id_grub_materi', $id_grub_materi)
-            ->with('pengampuKelas.guruMapel')
+            ->with(['pengampuKelas.guruMapel', 'pengampuKelas.kelas'])
             ->get();
 
         if ($materis->isEmpty()) {
@@ -347,7 +370,7 @@ class MateriController extends Controller
             'mapel_id' => ['nullable', 'integer', 'exists:mapels,id'],
             'tingkatan' => ['nullable', 'in:7,8,9'],
             'pengampu_kelas_ids' => ['nullable', 'array'],
-            'pengampu_kelas_ids.*' => ['required', 'integer', 'exists:pengampu_kelas,id'],
+            'pengampu_kelas_ids.*' => ['required', 'integer', 'distinct', 'exists:pengampu_kelas,id'],
             'deskripsi' => ['nullable', 'string', 'max:1000'],
             'file_materi' => ['nullable', 'file', 'mimes:pdf,ppt,pptx', 'max:10240'],
             'url_youtube' => ['nullable', 'url', 'max:2048'],
@@ -362,7 +385,8 @@ class MateriController extends Controller
 
         if (empty($submittedPengampuIds)) {
             $filePath = $firstMateri->file_materi;
-            if ($filePath && Storage::disk('public')->exists($filePath)) {
+            if ($filePath) {
+                Storage::disk('local')->delete($filePath);
                 Storage::disk('public')->delete($filePath);
             }
             Materi::where('id_grub_materi', $id_grub_materi)->delete();
@@ -413,7 +437,7 @@ class MateriController extends Controller
         $filePath = $oldFilePath;
 
         if ($request->hasFile('file_materi')) {
-            $newFilePath = $request->file('file_materi')->store('materi_files', 'public');
+            $newFilePath = $request->file('file_materi')->store('materi_files', 'local');
             $filePath = $newFilePath;
         }
 
@@ -453,13 +477,14 @@ class MateriController extends Controller
                 }
             });
         } catch (\Throwable $e) {
-            if ($newFilePath && Storage::disk('public')->exists($newFilePath)) {
-                Storage::disk('public')->delete($newFilePath);
+            if ($newFilePath && Storage::disk('local')->exists($newFilePath)) {
+                Storage::disk('local')->delete($newFilePath);
             }
             throw $e;
         }
 
-        if ($newFilePath && $oldFilePath && $oldFilePath !== $newFilePath && Storage::disk('public')->exists($oldFilePath)) {
+        if ($newFilePath && $oldFilePath && $oldFilePath !== $newFilePath) {
+            Storage::disk('local')->delete($oldFilePath);
             Storage::disk('public')->delete($oldFilePath);
         }
 
@@ -468,7 +493,7 @@ class MateriController extends Controller
             if ($pk) {
                 $mapelId = $pk->guruMapel?->mapel_id;
                 $mapelNama = $pk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
-                $targetUrl = $mapelId ? route('siswa.materi.show', $mapelId) : route('siswa.materi');
+                $targetUrl = $mapelId ? route('siswa.mapel.show', $mapelId) : route('siswa.mapel');
                 Notifikasi::kirimKeKelas(
                     $pk->kelas_id,
                     "Materi Baru: {$judul}",
@@ -480,9 +505,11 @@ class MateriController extends Controller
             }
         }
 
+        $updatedFirst = Materi::where('id_grub_materi', $id_grub_materi)->first();
+
         return $this->successResponse([
             'id_grub_materi' => $id_grub_materi,
-            'file_url' => $filePath ? asset('storage/' . $filePath) : null,
+            'file_url' => ($filePath && $updatedFirst) ? url("/api/file/materi/{$updatedFirst->id}") : null,
         ], 'Grup materi berhasil diperbarui.');
     }
 
@@ -492,6 +519,9 @@ class MateriController extends Controller
     public function guruDestroy(Request $request, string $id_grub_materi)
     {
         $guruId = $request->user()?->guru?->id;
+        if (!$guruId) {
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
+        }
 
         $materis = Materi::where('id_grub_materi', $id_grub_materi)
             ->with('pengampuKelas.guruMapel')
@@ -506,7 +536,8 @@ class MateriController extends Controller
             return $this->forbiddenResponse('Akses ditolak.');
         }
 
-        if ($firstMateri->file_materi && Storage::disk('public')->exists($firstMateri->file_materi)) {
+        if ($firstMateri->file_materi) {
+            Storage::disk('local')->delete($firstMateri->file_materi);
             Storage::disk('public')->delete($firstMateri->file_materi);
         }
 
@@ -521,7 +552,7 @@ class MateriController extends Controller
     public function siswaIndex(Request $request)
     {
         $siswa = $request->user()?->siswa;
-        $kelas = $siswa?->kelas ?? $siswa?->anggotaKelases()?->latest()?->first()?->kelas;
+        $kelas = $siswa?->kelas;
         $kelasId = $kelas?->id;
 
         if (!$kelasId) {
@@ -557,6 +588,7 @@ class MateriController extends Controller
             return [
                 'id' => $mapel->id,
                 'nama_mapel' => $mapel->nama_mapel,
+                'asset' => (int) ($mapel->asset ?? 0),
                 'total_materi' => $materisCount,
                 'total_kuis' => $kuisCount,
                 'guru' => $guruPengampu,
@@ -576,7 +608,7 @@ class MateriController extends Controller
         $anggotaKelas = $siswa?->anggotaKelases()
             ?->with('academicPeriod')
             ->where('academic_period_id', $activePeriod->id)
-            ->first() ?? $siswa?->anggotaKelases()?->with('academicPeriod')?->latest()?->first();
+            ->first();
         $kelas = $siswa?->kelas ?? $anggotaKelas?->kelas;
         $kelasId = $kelas?->id;
 
@@ -597,6 +629,11 @@ class MateriController extends Controller
             return $this->forbiddenResponse('Mata pelajaran ini tidak sesuai dengan agama Anda.');
         }
 
+        $hasMapelInKelas = $mapel->pengampuKelases()->where('kelas_id', $kelasId)->exists();
+        if (!$hasMapelInKelas) {
+            return $this->forbiddenResponse('Mata pelajaran ini tidak tersedia untuk kelas Anda.');
+        }
+
         $materis = Materi::with(['pengampuKelas.guruMapel.guru'])
             ->whereHas('pengampuKelas', function ($q) use ($kelasId, $mapelId) {
                 $q->where('kelas_id', $kelasId)
@@ -614,7 +651,7 @@ class MateriController extends Controller
                     'deskripsi' => $item->deskripsi,
                     'url_youtube' => $item->url_youtube,
                     'file_materi' => $item->file_materi,
-                    'file_url' => $item->file_materi ? asset('storage/' . $item->file_materi) : null,
+                    'file_url' => $item->file_materi ? url("/api/file/materi/{$item->id}") : null,
                     'guru' => $item->pengampuKelas?->guruMapel?->guru?->nama,
                     'created_at' => $item->created_at,
                 ];
@@ -643,7 +680,7 @@ class MateriController extends Controller
                     'deskripsi' => $t->deskripsi,
                     'tipe' => $t->tipe,
                     'deadline' => $t->deadline,
-                    'file_url' => $t->file_lampiran ? asset('storage/' . $t->file_lampiran) : null,
+                    'file_url' => $t->file_lampiran ? url("/api/file/tugas/{$t->id}") : null,
                     'guru' => $t->pengampuKelas?->guruMapel?->guru?->nama,
                     'is_submitted' => $nilai !== null,
                     'nilai' => $nilai?->nilai,
@@ -651,10 +688,12 @@ class MateriController extends Controller
                 ];
             });
 
-        // Ujian pada mapel ini (filter peserta_khusus untuk remidi/susulan)
+        // Ujian pada mapel ini (selaras dengan UjianController@siswaIndex)
         $siswaId = $siswa?->id;
         $ujians = \App\Models\Ujian::with([
             'pengampuKelas.guruMapel.guru',
+            'pengampuKelas.guruMapel.mapel',
+            'pengampuKelas.kelas',
             'seleksiUjians' => function ($q) use ($siswaId) {
                 if ($siswaId) {
                     $q->where('siswa_id', $siswaId);
@@ -662,39 +701,57 @@ class MateriController extends Controller
             },
             'seleksiUjians.nilais',
         ])
+            ->withCount('soals')
             ->whereIn('status', ['scheduled', 'published', 'completed'])
-            ->where(function ($query) use ($siswaId) {
-                $query->where(function ($q) {
-                    $q->where('jenis_ujian', 'reguler')->orWhereNull('jenis_ujian');
-                });
-                if ($siswaId) {
-                    $query->orWhere(function ($q) use ($siswaId) {
-                        $q->whereIn('jenis_ujian', ['remidi', 'susulan'])
-                          ->whereJsonContains('peserta_khusus', (int) $siswaId);
-                    });
-                }
-            })
             ->whereHas('pengampuKelas', function ($q) use ($kelasId, $mapelId) {
                 $q->where('kelas_id', $kelasId)
                   ->whereHas('guruMapel', fn ($gq) => $gq->where('mapel_id', $mapelId));
             })
-            ->latest('deadline')
+            ->latest('waktu_mulai')
             ->get()
-            ->map(function ($u) {
+            ->filter(function ($u) use ($siswaId) {
+                $pesertaKhusus = is_array($u->peserta_khusus)
+                    ? array_map('intval', $u->peserta_khusus)
+                    : [];
+
+                if (in_array($u->jenis_ujian, ['remidi', 'susulan'], true) || !empty($pesertaKhusus)) {
+                    return $siswaId && in_array((int) $siswaId, $pesertaKhusus, true);
+                }
+
+                return true;
+            })
+            ->values()
+            ->map(function ($u) use ($mapel, $kelas) {
+                $u->sinkronisasiStatus();
                 $sesi = $u->seleksiUjians->first();
                 $nilai = $sesi?->nilais?->first();
+                $sudahDikerjakan = $nilai !== null || ($sesi && $sesi->status === 'selesai');
+                $skorTampil = $nilai?->nilai ?? ($sesi && $sesi->status === 'selesai' ? $sesi->nilai_akhir : null);
+
                 return [
                     'id' => $u->id,
                     'judul' => $u->judul,
+                    'kisi_kisi' => $u->kisi_kisi,
                     'jenis_ujian' => $u->jenis_ujian ?? 'reguler',
+                    'durasi_menit' => (int) ($u->durasi_menit ?? 60),
+                    'total_soal' => (int) ($u->soals_count ?? 0),
+                    'kkm' => (float) ($u->kkm ?? 75),
+                    'tampilkan_nilai' => (bool) $u->tampilkan_nilai,
+                    'sesi' => (int) ($u->sesi ?? 1),
                     'status' => $u->status,
-                    'durasi_menit' => $u->durasi_menit,
-                    'kkm' => $u->kkm,
-                    'waktu_mulai' => $u->waktu_mulai,
-                    'deadline' => $u->deadline,
+                    'status_label' => $u->status_label,
+                    'waktu_mulai' => $u->waktu_mulai?->toIso8601String(),
+                    'waktu_mulai_sesi' => $u->waktu_mulai_sesi?->toIso8601String(),
+                    'deadline' => $u->deadline?->toIso8601String(),
+                    'mapel' => $u->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? $mapel->nama_mapel,
+                    'kelas' => $u->pengampuKelas?->kelas?->nama_kelas ?? $kelas?->nama_kelas,
                     'guru' => $u->pengampuKelas?->guruMapel?->guru?->nama,
-                    'sudah_dikerjakan' => $nilai !== null || ($sesi && $sesi->status === 'selesai'),
-                    'nilai' => $nilai?->nilai ?? $sesi?->nilai_akhir,
+                    'sudah_mulai' => $sesi !== null,
+                    'sudah_dikerjakan' => $sudahDikerjakan,
+                    'status_sesi' => $sesi?->status,
+                    'waktu_selesai' => $sesi?->waktu_selesai,
+                    'nilai' => $u->tampilkan_nilai ? $skorTampil : null,
+                    'nilai_siswa' => $u->tampilkan_nilai ? $skorTampil : null,
                 ];
             });
 
@@ -703,6 +760,7 @@ class MateriController extends Controller
                 'id' => $mapel->id,
                 'nama_mapel' => $mapel->nama_mapel,
                 'tipe_mapel' => $mapel->tipe_mapel,
+                'asset' => (int) ($mapel->asset ?? 0),
                 'nama_kelas' => $kelas?->nama_kelas,
                 'tingkatan' => $kelas?->tingkatan,
                 'semester' => $semester,

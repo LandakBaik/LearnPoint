@@ -17,224 +17,457 @@
 
     $adaPengerjaan = $anggotaGrup->sum(fn($item) => $item->seleksiUjians->count()) > 0;
 
-    // Tombol Edit hanya muncul jika status BUKAN published dan BUKAN completed (serta belum ada pengerjaan)
     // Tombol Edit tampil untuk draft, scheduled (0 peserta), unpublished (Edit Bobot), dan completed (Edit Bobot)
     $bisaEdit = $ujian->bolehDiedit();
     $labelTombolEdit = $ujian->hanyaBisaEditBobot() ? 'Edit Bobot Soal' : 'Edit Ujian';
+
+    $jumlahSoal = $ujian->soals->count();
+    $jumlahSingle = $ujian->soals->where('tipe_soal', 'single_choice')->count();
+    $jumlahMultiple = $ujian->soals->where('tipe_soal', 'multiple_choice')->count();
+    $jumlahEssay = $ujian->soals->where('tipe_soal', 'essay')->count();
+    $jumlahMatching = $ujian->soals->where('tipe_soal', 'matching')->count();
+    $totalBobot = round($ujian->soals->sum('bobot'), 2);
+
+    $kelasLabelRingkas = $daftarKelas->isNotEmpty()
+        ? 'Kelas ' . $daftarKelas->implode(', ')
+        : '-';
+    $judulAman = str_replace(["\r", "\n"], ' ', addslashes($ujian->judul));
+    $kelasAman = str_replace(["\r", "\n"], ' ', addslashes($kelasLabelRingkas));
+
+    $statusBadgeClass = match ($ujian->status) {
+        'published' => 'bg-emerald-50 text-emerald-700 border-emerald-200/70',
+        'scheduled' => 'bg-amber-50 text-amber-700 border-amber-200/70',
+        'completed' => 'bg-slate-100 text-slate-600 border-slate-200',
+        'draft' => 'bg-blue-50 text-blue-600 border-blue-200/70',
+        'unpublished' => 'bg-rose-50 text-rose-600 border-rose-200/70',
+        default => 'bg-slate-100 text-slate-600 border-slate-200',
+    };
+
+    $statusIconBoxClass = match ($ujian->status) {
+        'published' => 'bg-emerald-50 text-emerald-600 border-emerald-200/60',
+        'scheduled' => 'bg-amber-50 text-amber-600 border-amber-200/60',
+        'completed' => 'bg-slate-100 text-slate-600 border-slate-200/60',
+        'draft' => 'bg-blue-50 text-blue-600 border-blue-100/80',
+        'unpublished' => 'bg-rose-50 text-rose-600 border-rose-200/60',
+        default => 'bg-slate-100 text-slate-600 border-slate-200/60',
+    };
 @endphp
 
-<div class="max-w-7xl mx-auto space-y-6">
+<div x-data="detailUjianModal()" class="max-w-7xl mx-auto space-y-6">
 
-    {{-- HEADER --}}
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    {{-- =========================================================
+        NOTIFIKASI VALIDASI SERVER (Khusus $errors dari withErrors)
+    ========================================================== --}}
+    @if ($errors->any())
+        <div x-data="{ tampil: true }" x-show="tampil" x-transition
+            class="flex items-start justify-between gap-3 px-5 py-3.5 rounded-2xl bg-rose-50 border border-rose-200/80 text-rose-800 text-xs sm:text-sm shadow-xs">
+            <div class="flex items-start gap-2.5">
+                <svg class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div class="space-y-1">
+                    @if ($errors->count() === 1)
+                        <p class="font-medium leading-relaxed">{{ $errors->first() }}</p>
+                    @else
+                        <p class="font-semibold">Terdapat beberapa kesalahan validasi:</p>
+                        <ul class="list-disc list-inside text-xs space-y-0.5 text-rose-700">
+                            @foreach ($errors->all() as $err)
+                                <li>{{ $err }}</li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+            </div>
+            <button type="button" @click="tampil = false"
+                class="text-rose-500 hover:text-rose-700 p-0.5 rounded-lg transition cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    @endif
 
-        <div>
-            <div class="flex items-center gap-3 mb-2">
-                <a
-                    href="{{ route('guru.ujian.index') }}"
-                    class="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-blue-600 transition"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                    Kembali ke Daftar Ujian
+    {{-- =========================================================
+        HEADER HALAMAN
+    ========================================================== --}}
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+
+        <div class="space-y-1">
+            <div class="mb-2">
+                <a href="{{ route('guru.ujian.index') }}"
+                    class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    <span>Kembali ke Daftar Ujian</span>
                 </a>
             </div>
 
-            <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
                 {{ $ujian->judul }}
             </h1>
 
-            <p class="text-gray-500 mt-1 text-sm">
+            <p class="text-sm text-slate-500 leading-relaxed font-normal">
                 Detail pengaturan instrumen ujian dan butir evaluasi.
             </p>
         </div>
 
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap items-center gap-2.5 shrink-0">
 
-            {{-- Hapus tombol Edit jika status adalah published (Publikasi) atau completed (Selesai) --}}
-            @if($bisaEdit)
-                <a
-                    href="{{ route('guru.ujian.edit', $ujian) }}"
-                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition shadow-sm"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            @if ($ujian->status === 'published')
+                <a href="{{ route('guru.ujian.monitoring', $ujian->id) }}"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 text-xs font-semibold transition-all duration-200 shadow-xs hover:shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Monitoring Live</span>
+                </a>
+
+                <button type="button"
+                    @click="bukaModal({
+                        jenis: 'tarik',
+                        judul: '{{ $judulAman }}',
+                        soal: {{ $jumlahSoal }},
+                        kelas: '{{ $kelasAman }}',
+                        url: '{{ route('guru.ujian.unpublish', $ujian->id) }}'
+                    })"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 text-xs font-semibold transition-all duration-200 shadow-xs hover:shadow-sm cursor-pointer">
+                    <span>Tarik Publikasi</span>
+                </button>
+            @endif
+
+            {{-- Tombol Edit tampil sesuai logika $ujian->bolehDiedit() --}}
+            @if ($bisaEdit)
+                <a href="{{ route('guru.ujian.edit', $ujian) }}"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition-all duration-200 shadow-xs hover:shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
                     <span>{{ $labelTombolEdit }}</span>
                 </a>
             @endif
 
-            @if($ujian->status === 'draft')
-
-                <form
-                    action="{{ route('guru.ujian.publish', $ujian) }}"
-                    method="POST"
-                    onsubmit="return confirm('Publikasikan ujian ini sekarang untuk semua kelas target?')"
-                >
-                    @csrf
-                    <input type="hidden" name="tipe_publikasi" value="langsung">
-
-                    <button
-                        type="submit"
-                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition shadow-sm cursor-pointer"
-                    >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                        <span>Publikasikan</span>
-                    </button>
-                </form>
-
+            @if ($ujian->status === 'draft')
+                <button type="button"
+                    @click="bukaModal({
+                        jenis: 'publikasi',
+                        judul: '{{ $judulAman }}',
+                        soal: {{ $jumlahSoal }},
+                        kelas: '{{ $kelasAman }}',
+                        url: '{{ route('guru.ujian.publish', $ujian) }}'
+                    })"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-all duration-200 shadow-xs hover:shadow-sm cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Publikasikan</span>
+                </button>
             @endif
 
         </div>
     </div>
 
 
-    {{-- INFORMASI UTAMA --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    {{-- =========================================================
+        4 KARTU INFORMASI UTAMA
+    ========================================================== --}}
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
-        {{-- STATUS --}}
-        <div class="bg-white rounded-2xl shadow-xs border border-gray-100 p-5">
-            <p class="text-sm text-gray-500 mb-2">Status</p>
-            <span
-                class="inline-flex px-3 py-1 rounded-full text-xs font-bold
-                @if($ujian->status === 'draft')
-                    bg-gray-100 text-gray-700 border border-gray-200
-                @elseif($ujian->status === 'scheduled')
-                    bg-amber-50 text-amber-700 border border-amber-200
-                @elseif($ujian->status === 'published')
-                    bg-emerald-50 text-emerald-700 border border-emerald-200
-                @elseif($ujian->status === 'completed')
-                    bg-slate-100 text-slate-700 border border-slate-200
-                @else
-                    bg-rose-50 text-rose-700 border border-rose-200
-                @endif"
-            >
-                {{ $ujian->status_label ?? ucfirst($ujian->status) }}
-            </span>
+        {{-- STATUS UJIAN --}}
+        <div
+            class="group bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md hover:border-slate-300/80 transition-all duration-200 flex flex-col justify-between gap-4">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Status Ujian</span>
+                <div
+                    class="w-9 h-9 rounded-xl border shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform {{ $statusIconBoxClass }}">
+                    @if ($ujian->status === 'published' || $ujian->status === 'completed')
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                    @elseif ($ujian->status === 'scheduled')
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    @elseif ($ujian->status === 'unpublished')
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                    @else
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    @endif
+                </div>
+            </div>
+            <div>
+                <span
+                    class="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border shadow-2xs before:content-[''] before:inline-block before:w-1.5 before:h-1.5 before:rounded-full before:bg-current {{ $statusBadgeClass }}">
+                    {{ $ujian->status_label ?? ucfirst($ujian->status) }}
+                </span>
+            </div>
         </div>
 
         {{-- MATA PELAJARAN --}}
-        <div class="bg-white rounded-2xl shadow-xs border border-gray-100 p-5">
-            <p class="text-sm text-gray-500 mb-2">Mata Pelajaran</p>
-            <p class="font-bold text-gray-800">
+        <div
+            class="group bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 flex flex-col justify-between gap-4">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Mata Pelajaran</span>
+                <div
+                    class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100/80 shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                </div>
+            </div>
+            <p class="text-lg font-extrabold text-slate-900 leading-tight truncate"
+                title="{{ $ujian->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? $ujian->mapel?->nama_mapel ?? '-' }}">
                 {{ $ujian->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? $ujian->mapel?->nama_mapel ?? '-' }}
             </p>
         </div>
 
-        {{-- KELAS TARGET (MENAMPILKAN SEMUA KELAS DALAM GRUP UJIAN) --}}
-        <div class="bg-white rounded-2xl shadow-xs border border-gray-100 p-5">
-            <div class="flex items-center justify-between mb-2">
-                <p class="text-sm text-gray-500">Target Kelas</p>
-                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
-                    {{ $daftarKelas->count() }} Kelas
-                </span>
+        {{-- TARGET KELAS --}}
+        <div
+            class="group bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200 flex flex-col justify-between gap-4">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Target Kelas</span>
+                <div
+                    class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100/80 shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </div>
             </div>
-            @if($daftarKelas->isNotEmpty())
-                <div class="flex flex-wrap gap-1.5">
-                    @foreach($daftarKelas as $namaKls)
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-gray-800 border border-slate-200">
-                            {{ $namaKls }}
+            <div class="flex flex-wrap items-center gap-1.5">
+                @if ($daftarKelas->isNotEmpty())
+                    @foreach ($daftarKelas as $namaKls)
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-600 border border-blue-100/80 whitespace-nowrap">
+                            {{ str_starts_with(strtolower($namaKls), 'kelas') ? $namaKls : 'Kelas ' . $namaKls }}
                         </span>
                     @endforeach
-                </div>
-            @else
-                <p class="font-bold text-gray-800">-</p>
-            @endif
+                    <span
+                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200/70 whitespace-nowrap">
+                        {{ $daftarKelas->count() }} Kelas
+                    </span>
+                @else
+                    <p class="text-sm font-bold text-slate-800">-</p>
+                @endif
+            </div>
         </div>
 
         {{-- JUMLAH SOAL --}}
-        <div class="bg-white rounded-2xl shadow-xs border border-gray-100 p-5">
-            <p class="text-sm text-gray-500 mb-2">Jumlah Soal</p>
-            <p class="text-2xl font-black text-gray-800">
-                {{ $ujian->soals->count() }}
-            </p>
+        <div
+            class="group bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md hover:border-amber-200 transition-all duration-200 flex flex-col justify-between gap-4">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Jumlah Soal</span>
+                <div
+                    class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-200/60 shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                </div>
+            </div>
+            <div class="flex items-baseline gap-1.5">
+                <span class="text-2xl font-extrabold text-slate-900 leading-tight">{{ $jumlahSoal }}</span>
+                <span class="text-xs text-slate-400 font-medium">Butir Soal</span>
+            </div>
         </div>
 
-    </div>
+    </section>
 
 
-    {{-- DETAIL PENGATURAN --}}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    {{-- =========================================================
+        DETAIL PENGATURAN (KIRI: INFORMASI + KISI-KISI | KANAN: KOMPOSISI)
+    ========================================================== --}}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
-        {{-- INFORMASI UJIAN --}}
-        <div class="lg:col-span-2 bg-white rounded-2xl shadow-xs border border-gray-100">
+        {{-- KOLOM KIRI (2/3): INFORMASI UJIAN & KISI-KISI --}}
+        <div class="lg:col-span-2 space-y-6">
 
-            <div class="p-6 border-b border-gray-100">
-                <h2 class="text-lg font-bold text-gray-800">Informasi Ujian</h2>
+            {{-- KARTU INFORMASI UJIAN --}}
+            <div
+                class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <h2 class="text-base font-bold text-slate-900 tracking-tight">Informasi Ujian</h2>
+                    <span class="text-slate-400" title="Ringkasan jadwal dan pengaturan ujian">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </span>
+                </div>
+
+                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+
+                    {{-- Durasi --}}
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor"
+                                stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Durasi</span>
+                        </p>
+                        <p class="text-sm font-bold text-slate-900 mt-1.5">{{ $ujian->durasi_menit }} menit</p>
+                    </div>
+
+                    {{-- KKM --}}
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor"
+                                stroke-width="1.8" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="9" />
+                                <circle cx="12" cy="12" r="4" />
+                            </svg>
+                            <span>KKM</span>
+                        </p>
+                        <p class="text-sm font-bold text-slate-900 mt-1.5">{{ $ujian->kkm }}</p>
+                    </div>
+
+                    {{-- Waktu Mulai --}}
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor"
+                                stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>Waktu Mulai</span>
+                        </p>
+                        <p class="text-sm font-bold text-slate-900 mt-1.5">
+                            {{ $ujian->waktu_mulai ? \Carbon\Carbon::parse($ujian->waktu_mulai)->isoFormat('D MMMM Y, HH:mm') . ' WIB' : 'Belum dijadwalkan' }}
+                        </p>
+                    </div>
+
+                    {{-- Deadline --}}
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor"
+                                stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                            </svg>
+                            <span>Deadline</span>
+                        </p>
+                        <p class="text-sm font-bold text-slate-900 mt-1.5">
+                            {{ $ujian->deadline ? \Carbon\Carbon::parse($ujian->deadline)->isoFormat('D MMMM Y, HH:mm') . ' WIB' : 'Belum ditentukan' }}
+                        </p>
+                    </div>
+
+                    {{-- Dibuat --}}
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor"
+                                stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span>Dibuat</span>
+                        </p>
+                        <p class="text-sm font-bold text-slate-900 mt-1.5">
+                            {{ $ujian->created_at ? $ujian->created_at->isoFormat('D MMM Y, HH:mm') : '-' }}
+                        </p>
+                    </div>
+
+                    {{-- Dipublikasi --}}
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor"
+                                stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                            </svg>
+                            <span>Dipublikasi</span>
+                        </p>
+                        <p class="text-sm font-bold text-slate-900 mt-1.5">
+                            {{ $ujian->dipublikasi_at ? \Carbon\Carbon::parse($ujian->dipublikasi_at)->isoFormat('D MMM Y, HH:mm') : '-' }}
+                        </p>
+                    </div>
+
+                </div>
             </div>
 
-            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-
-                <div>
-                    <p class="text-sm text-gray-500">Durasi</p>
-                    <p class="font-semibold text-gray-800 mt-1">{{ $ujian->durasi_menit }} menit</p>
+            {{-- KARTU KISI-KISI UJIAN --}}
+            @if ($ujian->kisi_kisi)
+                <div
+                    class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                        <h2 class="text-base font-bold text-slate-900 tracking-tight">Kisi-kisi Ujian</h2>
+                        <span class="text-slate-400" title="Kompetensi atau topik materi yang diujikan">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="p-6">
+                        <div
+                            class="rounded-xl bg-slate-50/70 border border-slate-200/80 px-4 py-3.5 text-sm text-slate-700 whitespace-pre-line leading-relaxed">
+                            {{ $ujian->kisi_kisi }}
+                        </div>
+                    </div>
                 </div>
-
-                <div>
-                    <p class="text-sm text-gray-500">KKM</p>
-                    <p class="font-semibold text-gray-800 mt-1">{{ $ujian->kkm }}</p>
-                </div>
-
-                <div>
-                    <p class="text-sm text-gray-500">Waktu Mulai</p>
-                    <p class="font-semibold text-gray-800 mt-1">
-                        {{ $ujian->waktu_mulai ? \Carbon\Carbon::parse($ujian->waktu_mulai)->isoFormat('D MMMM Y, HH:mm') . ' WIB' : 'Belum dijadwalkan' }}
-                    </p>
-                </div>
-
-                <div>
-                    <p class="text-sm text-gray-500">Deadline</p>
-                    <p class="font-semibold text-gray-800 mt-1">
-                        {{ $ujian->deadline ? \Carbon\Carbon::parse($ujian->deadline)->isoFormat('D MMMM Y, HH:mm') . ' WIB' : 'Belum ditentukan' }}
-                    </p>
-                </div>
-
-                <div>
-                    <p class="text-sm text-gray-500">Dibuat</p>
-                    <p class="font-semibold text-gray-800 mt-1">
-                        {{ $ujian->created_at ? $ujian->created_at->isoFormat('D MMM Y, HH:mm') : '-' }}
-                    </p>
-                </div>
-
-                <div>
-                    <p class="text-sm text-gray-500">Dipublikasi</p>
-                    <p class="font-semibold text-gray-800 mt-1">
-                        {{ $ujian->dipublikasi_at ? \Carbon\Carbon::parse($ujian->dipublikasi_at)->isoFormat('D MMM Y, HH:mm') : '-' }}
-                    </p>
-                </div>
-
-            </div>
+            @endif
 
         </div>
 
+        {{-- KOLOM KANAN (1/3): KOMPOSISI SOAL --}}
+        <div
+            class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
 
-        {{-- RINGKASAN SOAL --}}
-        <div class="bg-white rounded-2xl shadow-xs border border-gray-100">
-
-            <div class="p-6 border-b border-gray-100">
-                <h2 class="text-lg font-bold text-gray-800">Komposisi Soal</h2>
+            <div class="px-6 py-4 border-b border-slate-100">
+                <h2 class="text-base font-bold text-slate-900 tracking-tight">Komposisi Soal</h2>
             </div>
 
             <div class="p-6 space-y-4">
-                <div class="flex items-center justify-between">
-                    <span class="text-sm text-gray-600">Pilihan Ganda Biasa</span>
-                    <span class="font-bold text-gray-800">{{ $ujian->soals->where('tipe_soal', 'single_choice')->count() }}</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-sm text-gray-600">Pilihan Ganda Kompleks</span>
-                    <span class="font-bold text-gray-800">{{ $ujian->soals->where('tipe_soal', 'multiple_choice')->count() }}</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-sm text-gray-600">Essay</span>
-                    <span class="font-bold text-gray-800">{{ $ujian->soals->where('tipe_soal', 'essay')->count() }}</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-sm text-gray-600">Menjodohkan</span>
-                    <span class="font-bold text-gray-800">{{ $ujian->soals->where('tipe_soal', 'matching')->count() }}</span>
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-sm text-slate-600">Pilihan Ganda Biasa</span>
+                    <span
+                        class="inline-flex items-center justify-center min-w-[32px] px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $jumlahSingle > 0 ? 'bg-blue-50 text-blue-600 border-blue-200/70' : 'bg-slate-50 text-slate-400 border-slate-200/70' }}">
+                        {{ $jumlahSingle }}
+                    </span>
                 </div>
 
-                <div class="border-t border-gray-100 pt-4 flex justify-between items-center">
-                    <span class="font-bold text-gray-700">Total Bobot</span>
-                    <span class="font-black text-blue-600 text-lg">
-                        {{ round($ujian->soals->sum('bobot'), 2) }} / 100
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-sm text-slate-600">Pilihan Ganda Kompleks</span>
+                    <span
+                        class="inline-flex items-center justify-center min-w-[32px] px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $jumlahMultiple > 0 ? 'bg-blue-50 text-blue-600 border-blue-200/70' : 'bg-slate-50 text-slate-400 border-slate-200/70' }}">
+                        {{ $jumlahMultiple }}
                     </span>
+                </div>
+
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-sm text-slate-600">Essay</span>
+                    <span
+                        class="inline-flex items-center justify-center min-w-[32px] px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $jumlahEssay > 0 ? 'bg-blue-50 text-blue-600 border-blue-200/70' : 'bg-slate-50 text-slate-400 border-slate-200/70' }}">
+                        {{ $jumlahEssay }}
+                    </span>
+                </div>
+
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-sm text-slate-600">Menjodohkan</span>
+                    <span
+                        class="inline-flex items-center justify-center min-w-[32px] px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $jumlahMatching > 0 ? 'bg-blue-50 text-blue-600 border-blue-200/70' : 'bg-slate-50 text-slate-400 border-slate-200/70' }}">
+                        {{ $jumlahMatching }}
+                    </span>
+                </div>
+
+                <div class="pt-2">
+                    <div
+                        class="px-4 py-3.5 rounded-xl border flex items-center justify-between {{ $totalBobot > 100.01 ? 'bg-rose-50/70 border-rose-200 text-rose-700' : 'bg-blue-50/70 border-blue-200/80 text-blue-700' }}">
+                        <span class="text-sm font-bold">Total Bobot</span>
+                        <span class="text-base font-extrabold tracking-tight">
+                            {{ $totalBobot }} / 100
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -243,32 +476,19 @@
     </div>
 
 
-    {{-- KISI-KISI --}}
-    @if($ujian->kisi_kisi)
-        <div class="bg-white rounded-2xl shadow-xs border border-gray-100">
-            <div class="p-6 border-b border-gray-100">
-                <h2 class="text-lg font-bold text-gray-800">Kisi-kisi Ujian</h2>
-            </div>
-            <div class="p-6">
-                <p class="text-gray-700 whitespace-pre-line leading-relaxed text-sm">
-                    {{ $ujian->kisi_kisi }}
-                </p>
-            </div>
-        </div>
-    @endif
+    {{-- =========================================================
+        DAFTAR SOAL (TETAP SAMA SEPERTI KODE ASLI)
+    ========================================================== --}}
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80">
 
-
-    {{-- DAFTAR SOAL --}}
-    <div class="bg-white rounded-2xl shadow-xs border border-gray-100">
-
-        <div class="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-                <h2 class="text-lg font-bold text-gray-800">Daftar Butir Soal</h2>
-                <p class="text-xs text-gray-500 mt-0.5">
+                <h2 class="text-base font-bold text-slate-900">Daftar Butir Soal</h2>
+                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
                     Periksa kembali butir soal dan kebenaran kunci jawaban sebelum ujian diikuti siswa.
                 </p>
             </div>
-            <span class="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">
+            <span class="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/70 px-2.5 py-1 rounded-full shadow-2xs">
                 {{ $ujian->soals->count() }} Butir Soal
             </span>
         </div>
@@ -351,7 +571,7 @@
                     @endif
 
                     {{-- OPSI JAWABAN (PILIHAN GANDA) --}}
-                    @if(is_array($soal->pilihan) && count($soal->pilihan))
+                    @if(in_array($soal->tipe_soal, ['single_choice', 'multiple_choice']) && is_array($soal->pilihan) && count($soal->pilihan))
                         <div class="space-y-2 pt-1">
                             @foreach($soal->pilihan as $key => $pilihan)
                                 @php
@@ -446,6 +666,146 @@
         </div>
     </div>
 
+    {{-- =========================================================
+        MODAL KONFIRMASI SERAGAM (PUBLIKASI & TARIK PUBLIKASI)
+    ========================================================== --}}
+    <div x-show="modal.terbuka" x-cloak x-transition.opacity @keydown.escape.window="modal.terbuka = false"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/45 backdrop-blur-[2px]">
+        <div @click.away="modal.terbuka = false"
+            class="bg-white rounded-2xl max-w-lg w-full border border-slate-200/80 shadow-2xl overflow-hidden">
+
+            <form :action="modal.url" method="POST">
+                @csrf
+                <template x-if="modal.jenis === 'publikasi'">
+                    <input type="hidden" name="tipe_publikasi" value="langsung">
+                </template>
+
+                <div class="p-6 space-y-5">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <span class="text-[11px] font-bold uppercase tracking-wider block"
+                                :class="temaModal.kickerClass" x-text="temaModal.kicker"></span>
+                            <h3 class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight mt-1"
+                                x-text="modal.judul"></h3>
+                            <p class="text-xs text-slate-500 mt-1 leading-relaxed" x-text="temaModal.subtitle"></p>
+                        </div>
+                        <button type="button" @click="modal.terbuka = false"
+                            class="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition cursor-pointer">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    {{-- Info Bar Ujian --}}
+                    <div
+                        class="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor"
+                                stroke-width="1.8" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span class="text-xs font-bold text-slate-800 truncate" x-text="modal.judul"></span>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span
+                                class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-200/70 text-slate-600"
+                                x-text="modal.soal + ' Soal'"></span>
+                            <span
+                                class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-600 border border-blue-100/80"
+                                x-text="modal.kelas"></span>
+                        </div>
+                    </div>
+
+                    {{-- Callout Box --}}
+                    <div class="flex items-start gap-2.5 p-3.5 rounded-xl border text-xs leading-relaxed"
+                        :class="temaModal.calloutClass">
+                        <template x-if="modal.jenis === 'tarik'">
+                            <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </template>
+                        <template x-if="modal.jenis === 'publikasi'">
+                            <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </template>
+                        <span x-text="temaModal.calloutText"></span>
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 bg-slate-50/70 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                    <button type="button" @click="modal.terbuka = false"
+                        class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200/80 transition-colors cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit"
+                        class="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold text-white transition-colors shadow-xs cursor-pointer"
+                        :class="temaModal.btnClass">
+                        <span x-text="temaModal.btnLabel"></span>
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
 </div>
+
+<script>
+    function detailUjianModal() {
+        return {
+            modal: {
+                terbuka: false,
+                jenis: 'tarik',
+                judul: '',
+                soal: 0,
+                kelas: '',
+                url: '',
+            },
+
+            bukaModal(payload) {
+                this.modal = {
+                    terbuka: true,
+                    jenis: payload.jenis || 'tarik',
+                    judul: payload.judul || '',
+                    soal: payload.soal || 0,
+                    kelas: payload.kelas || '-',
+                    url: payload.url || '',
+                };
+            },
+
+            get temaModal() {
+                if (this.modal.jenis === 'publikasi') {
+                    return {
+                        kicker: 'Publikasi Ujian',
+                        kickerClass: 'text-emerald-700',
+                        subtitle: 'Publikasikan ujian ini sekarang untuk semua kelas target?',
+                        calloutClass: 'bg-emerald-50/80 border-emerald-200 text-emerald-800',
+                        calloutText: `Ujian akan langsung aktif dan dapat diakses pada dasbor siswa ${this.modal.kelas} segera setelah dipublikasikan.`,
+                        btnClass: 'bg-emerald-600 hover:bg-emerald-700',
+                        btnLabel: 'Ya, Publikasikan Sekarang',
+                    };
+                }
+
+                return {
+                    kicker: 'Tarik Publikasi Ujian ?',
+                    kickerClass: 'text-red-700',
+                    subtitle: 'Apakah Anda yakin ingin menarik publikasi ujian ini dari akses siswa sekarang?',
+                    calloutClass: 'bg-rose-50/90 border-rose-200 text-red-700',
+                    calloutText: 'Siswa yang belum selesai akan dikeluarkan dari lembar ujian. Nilai siswa yang sudah selesai tetap tersimpan aman.',
+                    btnClass: 'bg-red-700 hover:bg-red-800',
+                    btnLabel: 'Ya, Tarik Publikasi',
+                };
+            }
+        };
+    }
+</script>
 
 @endsection

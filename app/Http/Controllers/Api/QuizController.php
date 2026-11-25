@@ -49,7 +49,7 @@ class QuizController extends Controller
             return $this->notFoundResponse('Profil guru tidak ditemukan.');
         }
 
-        $perPage = (int) $request->query('per_page', 15);
+        $perPage = max(1, min(100, (int) $request->query('per_page', 15)));
         $quizzes = $this->quizService
             ->buildGuruQuizzesQuery((int) $guruId, $request, ['soals', 'nilais'])
             ->latest()
@@ -147,6 +147,7 @@ class QuizController extends Controller
             'judul'                => $quiz->judul,
             'deskripsi'            => $quiz->deskripsi,
             'status'               => $quiz->status,
+            'asset'                => (int) ($quiz->asset ?? 0),
             'kesulitan_aktif'      => $activeDifficulties,
             'waktu_mulai'          => $quiz->waktu_mulai?->format('Y-m-d H:i:s'),
             'waktu_selesai'        => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
@@ -182,6 +183,7 @@ class QuizController extends Controller
             'waktu_selesai'        => ['nullable', 'date', 'after:waktu_mulai'],
             'acak_jawaban'         => ['nullable', 'boolean'],
             'status'               => ['nullable', 'string', 'in:draft,published'],
+            'asset'                => ['nullable', 'integer', 'min:0', 'max:255'],
         ]);
 
         if ($validator->fails()) {
@@ -224,6 +226,7 @@ class QuizController extends Controller
                 'waktu_selesai'     => $validated['waktu_selesai'] ?? null,
                 'acak_jawaban'      => $request->boolean('acak_jawaban'),
                 'status'            => $validated['status'] ?? 'draft',
+                'asset'             => (int) ($validated['asset'] ?? 0),
                 'level'             => 'Level 1',
                 'kesulitan'         => $orderedDifficulties[0] ?? 'Mudah',
             ]);
@@ -270,6 +273,7 @@ class QuizController extends Controller
             'waktu_selesai'     => ['nullable', 'date', 'after:waktu_mulai'],
             'acak_jawaban'      => ['nullable', 'boolean'],
             'status'            => ['nullable', 'string', 'in:draft,published'],
+            'asset'             => ['nullable', 'integer', 'min:0', 'max:255'],
         ]);
 
         if ($validator->fails()) {
@@ -303,6 +307,7 @@ class QuizController extends Controller
             'waktu_selesai'     => $validated['waktu_selesai'] ?? null,
             'acak_jawaban'      => $request->boolean('acak_jawaban'),
             'status'            => $targetStatus,
+            'asset'             => array_key_exists('asset', $validated) ? (int) $validated['asset'] : (int) ($quiz->asset ?? 0),
         ]);
 
         if ($wasDraft && $targetStatus === 'published') {
@@ -697,9 +702,11 @@ class QuizController extends Controller
                 'id'              => $quiz->id,
                 'judul'           => $quiz->judul,
                 'deskripsi'       => $quiz->deskripsi,
+                'asset'           => (int) ($quiz->asset ?? 0),
                 'kesulitan_aktif' => $quiz->kesulitan_aktif_array,
                 'mapel_id'        => $quiz->pengampuKelas?->guruMapel?->mapel_id,
                 'mapel'           => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+                'mapel_asset'     => (int) ($quiz->pengampuKelas?->guruMapel?->mapel?->asset ?? 0),
                 'guru'            => $quiz->pengampuKelas?->guruMapel?->guru?->nama,
                 'total_soal'      => $quiz->soals_count,
                 'waktu_mulai'     => $quiz->waktu_mulai?->format('Y-m-d H:i:s'),
@@ -718,7 +725,9 @@ class QuizController extends Controller
 
         // Jika klien meminta mode petualangan (with_planets=1), sertakan planets & leaderboard
         if ($request->boolean('with_planets')) {
-            $dbMapels = Mapel::forSiswa($siswa)->get();
+            $dbMapels = Mapel::forSiswa($siswa)
+                ->whereHas('pengampuKelases', fn ($q) => $q->where('kelas_id', $kelasId))
+                ->get();
             $planets = $this->adventureService->buildPlanetsCollection($allQuizzes, $dbMapels);
             $topThree = $this->adventureService->getTopThreeLeaderboard();
             $leaderboard = $this->adventureService->getSectorLeaderboard($siswa);
@@ -827,11 +836,13 @@ class QuizController extends Controller
             'id'                 => $quiz->id,
             'judul'              => $quiz->judul,
             'deskripsi'          => $quiz->deskripsi,
+            'asset'              => (int) ($quiz->asset ?? 0),
             'kesulitan_aktif'    => $quiz->kesulitan_aktif_array,
             'waktu_mulai'        => $quiz->waktu_mulai?->format('Y-m-d H:i:s'),
             'waktu_selesai'      => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
             'acak_jawaban'       => (bool) $quiz->acak_jawaban,
             'mapel'              => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+            'mapel_asset'        => (int) ($quiz->pengampuKelas?->guruMapel?->mapel?->asset ?? 0),
             'guru'               => $quiz->pengampuKelas?->guruMapel?->guru?->nama,
             'soal_counts_by_arc' => $soalCountsByArc,
             'levels'             => $levelsInfo,
@@ -895,23 +906,38 @@ class QuizController extends Controller
             return $this->forbiddenResponse('Waktu pengerjaan kuis telah berakhir.');
         }
 
-        $query = $quiz->soals();
+        $quiz->loadMissing('soals');
+        $journey = $this->adventureService->buildQuizAdventureJourney($quiz, $siswa);
 
-        if ($request->filled('arc')) {
-            $query->where('kesulitan', $request->arc);
+        if ($journey['is_all_completed']) {
+            return $this->errorResponse('Anda telah menyelesaikan seluruh level pada kuis ini.', 400);
         }
 
-        if ($request->filled('level')) {
-            $lvlInput = $request->level;
-            $levelNum = $this->quizService->parseLevelNumber($lvlInput);
-            if ($levelNum >= 1 && $levelNum <= Quiz::MAX_LEVEL) {
-                $query->where('level', 'Level ' . $levelNum);
-            } else {
-                $query->where('level', $lvlInput);
-            }
+        $targetLevel = $this->adventureService->resolveTargetLevel(
+            collect($journey['levels']),
+            $request->query('arc'),
+            $this->quizService->parseLevelNumber($request->query('level', '0')),
+            (int) $request->query('step', 0),
+            true
+        );
+
+        if (!$targetLevel) {
+            return $this->notFoundResponse('Level kuis tidak ditemukan.');
         }
 
-        $soalsRaw = $query->orderBy('urutan')->get();
+        if ($targetLevel['status'] === 'terkunci') {
+            return $this->forbiddenResponse("Selesaikan level sebelumnya terlebih dahulu untuk membuka {$targetLevel['full_nama']}.");
+        }
+
+        if ($targetLevel['status'] === 'selesai') {
+            return $this->errorResponse("{$targetLevel['full_nama']} sudah selesai dikerjakan dan tidak dapat dikerjakan ulang.", 400);
+        }
+
+        $soalsRaw = $quiz->soals()
+            ->whereIn('id', $targetLevel['soal_ids'])
+            ->orderBy('urutan')
+            ->orderBy('id')
+            ->get();
 
         $savedAnswers = Menjawab::where('siswa_id', $siswa->id)
             ->whereIn('soal_id', $soalsRaw->pluck('id'))
@@ -921,16 +947,6 @@ class QuizController extends Controller
         $soals = $soalsRaw->map(function ($s) use ($quiz, $savedAnswers) {
             $pilihan = $this->quizService->getShuffledOptionsForSoal($quiz, $s);
 
-            $kunci = $s->kunci_jawaban;
-            if (is_array($kunci)) {
-                $kunci = $kunci[0] ?? 'a';
-            } elseif (is_string($kunci)) {
-                $decoded = json_decode($kunci, true);
-                if (is_array($decoded)) {
-                    $kunci = $decoded[0] ?? 'a';
-                }
-            }
-
             return [
                 'id'            => $s->id,
                 'urutan'        => $s->urutan,
@@ -939,7 +955,6 @@ class QuizController extends Controller
                 'tipe_soal'     => $s->tipe_soal,
                 'pertanyaan'    => $s->pertanyaan,
                 'pilihan'       => $pilihan,
-                'kunci_jawaban' => strtolower(trim((string) $kunci)),
                 'saved_answer'  => $savedAnswers[$s->id] ?? null,
                 'gambar_url'    => $s->gambar ? asset('storage/' . $s->gambar) : null,
                 'bobot'         => $s->bobot,
@@ -983,6 +998,10 @@ class QuizController extends Controller
 
         if ($alreadyCompleted) {
             return $this->forbiddenResponse('Kuis ini sudah selesai dikerjakan dan tidak dapat diubah lagi.');
+        }
+
+        if ($quiz->waktu_mulai && now()->lessThan($quiz->waktu_mulai)) {
+            return $this->forbiddenResponse('Kuis belum dimulai.');
         }
 
         if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai->copy()->addMinutes(2))) {
@@ -1039,6 +1058,10 @@ class QuizController extends Controller
             ]);
         }
 
+        if ($quiz->waktu_mulai && now()->lessThan($quiz->waktu_mulai)) {
+            return $this->forbiddenResponse('Kuis belum dimulai.');
+        }
+
         if ($quiz->waktu_selesai && now()->greaterThan($quiz->waktu_selesai->copy()->addMinutes(2))) {
             return $this->forbiddenResponse('Waktu pengumpulan kuis telah kedaluwarsa.');
         }
@@ -1057,24 +1080,33 @@ class QuizController extends Controller
 
         $quiz->load('soals');
         $allQuizSoals = $quiz->soals;
+        $journeyBefore = $this->adventureService->buildQuizAdventureJourney($quiz, $siswa);
 
-        // Tentukan apakah submit ini hanya untuk level tertentu atau seluruh kuis
-        $soalsToProcess = $allQuizSoals;
-        $targetLevel = null;
-
-        if ($request->filled('arc') || $request->filled('level') || $request->filled('step')) {
-            $journeyBefore = $this->adventureService->buildQuizAdventureJourney($quiz, $siswa);
-            $targetLevel = $this->adventureService->resolveTargetLevel(
-                collect($journeyBefore['levels']),
-                $request->input('arc'),
-                $this->quizService->parseLevelNumber($request->input('level', '0')),
-                (int) $request->input('step', 0),
-                false
-            );
-            if ($targetLevel && !empty($targetLevel['soals'])) {
-                $soalsToProcess = $targetLevel['soals'];
-            }
+        if ($journeyBefore['is_all_completed']) {
+            return $this->errorResponse('Kuis ini sudah selesai dikerjakan dan tidak dapat dikerjakan ulang.', 400);
         }
+
+        $targetLevel = $this->adventureService->resolveTargetLevel(
+            collect($journeyBefore['levels']),
+            $request->input('arc'),
+            $this->quizService->parseLevelNumber($request->input('level', '0')),
+            (int) $request->input('step', 0),
+            true
+        );
+
+        if (!$targetLevel || empty($targetLevel['soals'])) {
+            return $this->notFoundResponse('Level kuis tidak ditemukan.');
+        }
+
+        if ($targetLevel['status'] === 'terkunci') {
+            return $this->forbiddenResponse("Selesaikan level sebelumnya terlebih dahulu untuk membuka {$targetLevel['full_nama']}.");
+        }
+
+        if ($targetLevel['status'] === 'selesai') {
+            return $this->errorResponse("{$targetLevel['full_nama']} sudah selesai dikerjakan dan tidak dapat dikerjakan ulang.", 400);
+        }
+
+        $soalsToProcess = $targetLevel['soals'];
 
         $jumlahBenar = 0;
         $jumlahSalah = 0;
@@ -1086,6 +1118,7 @@ class QuizController extends Controller
                 $existingAns = Menjawab::with('power')
                     ->where('soal_id', $soal->id)
                     ->where('siswa_id', $siswa->id)
+                    ->lockForUpdate()
                     ->first();
 
                 $jawabanUser = $submittedAnswers[$soal->id] ?? $submittedAnswers[(string) $soal->id] ?? null;
@@ -1226,9 +1259,14 @@ class QuizController extends Controller
             return $this->forbiddenResponse('Akses ditolak.');
         }
 
+        if ($quiz->status !== 'published') {
+            return $this->forbiddenResponse('Kuis belum dipublikasikan.');
+        }
+
         $quiz->load(['pengampuKelas.guruMapel.mapel', 'pengampuKelas.guruMapel.guru', 'soals']);
         $journey = $this->adventureService->buildQuizAdventureJourney($quiz, $siswa);
         $nilai = $journey['nilai'];
+        $isQuizCompleted = $journey['is_all_completed'] || ($nilai && $nilai->status === 'selesai');
 
         $reqArc = $request->query('arc');
         $reqLevelNum = $this->quizService->parseLevelNumber($request->query('level', '0'));
@@ -1245,8 +1283,15 @@ class QuizController extends Controller
             );
         }
 
-        if (!$nilai && !$currentLevel && $journey['completed_levels'] === 0) {
-            return $this->notFoundResponse('Anda belum menyelesaikan kuis ini.');
+        if ($currentLevel && $currentLevel['status'] !== 'selesai' && !$isQuizCompleted) {
+            return $this->forbiddenResponse('Anda belum menyelesaikan level tersebut.');
+        }
+
+        if (!$currentLevel && !$isQuizCompleted) {
+            $currentLevel = collect($journey['levels'])->where('status', 'selesai')->last();
+            if (!$currentLevel) {
+                return $this->notFoundResponse('Anda belum menyelesaikan kuis ini.');
+            }
         }
 
         $soalsQuery = $quiz->soals()->with(['menjawabs' => fn ($q) => $q->with('power')->where('siswa_id', $siswa->id)]);
@@ -1317,6 +1362,10 @@ class QuizController extends Controller
             return $this->forbiddenResponse('Akses ditolak.');
         }
 
+        if ($quiz->status !== 'published') {
+            return $this->forbiddenResponse('Kuis belum dipublikasikan.');
+        }
+
         $quiz->load([
             'pengampuKelas.guruMapel.mapel',
             'pengampuKelas.guruMapel.guru',
@@ -1326,6 +1375,10 @@ class QuizController extends Controller
 
         $journey = $this->adventureService->buildQuizAdventureJourney($quiz, $siswa);
         $nilai = $journey['nilai'];
+
+        if (!$journey['is_all_completed'] && (!$nilai || $nilai->status !== 'selesai')) {
+            return $this->forbiddenResponse('Selesaikan seluruh level kuis terlebih dahulu untuk melihat hasil petualangan lengkap.');
+        }
 
         $allSoalsRaw = $quiz->soals()
             ->with(['menjawabs' => fn ($q) => $q->with('power')->where('siswa_id', $siswa->id)])

@@ -4,7 +4,7 @@
 
 @section('content')
 
-    <div x-data="ujianForm()" class="space-y-6">
+    <div x-data="ujianForm()" class="max-w-7xl mx-auto space-y-6">
 
         {{-- ========================================================= --}}
         {{-- HEADER --}}
@@ -13,7 +13,7 @@
 
             <div>
                 <a href="{{ route('guru.ujian.index') }}"
-                    class="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-teal-700 mb-2">
+                    class="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600 transition mb-2">
                     ← Kembali ke Ujian
                 </a>
 
@@ -67,9 +67,9 @@
                         <input type="text" name="judul" x-ref="inputJudul" value="{{ old('judul') }}" maxlength="100"
                             placeholder="Contoh: Ujian Tengah Semester IPA Kelas VIII"
                             oninput="this.value = this.value.replace(/[^\p{L}\p{N} ]/gu, '')"
-                            class="w-full border border-gray-300 rounded-xl px-4 py-3
-                                 focus:ring-2 focus:ring-teal-500
-                                 focus:border-teal-500">
+                            class="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none transition
+                                 focus:ring-2 focus:ring-blue-500/25
+                                 focus:border-blue-500">
 
                         <p class="text-xs text-gray-400 mt-1">
                             Maksimal 100 karakter (huruf, angka, dan spasi).
@@ -78,9 +78,8 @@
                     </div>
 
 
-
                     {{-- MAPEL + TINGKATAN + KELAS --}}
-                    <div class="md:col-span-2" x-data="targetKelasForm()" id="section-target-kelas">
+                    <div class="md:col-span-2" id="section-target-kelas">
 
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
                             Mata Pelajaran & Target Kelas
@@ -96,8 +95,8 @@
                                 </label>
 
                                 <select name="mapel_id" x-model="selectedMapel" @change="ubahMapel()"
-                                    class="w-full border border-gray-300 rounded-xl px-4 py-3
-                                           focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                                    class="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none transition
+                                           focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500">
 
                                     <option value="">-- Pilih Mata Pelajaran --</option>
 
@@ -117,9 +116,9 @@
 
                                 <select x-model="selectedTingkatan" @change="ubahTingkatan()"
                                     :disabled="!selectedMapel || daftarTingkatan.length === 0"
-                                    class="w-full border border-gray-300 rounded-xl px-4 py-3
+                                    class="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none transition
                                            disabled:bg-gray-100 disabled:text-gray-400
-                                           focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                                           focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500">
 
                                     <option value="">-- Pilih Tingkatan --</option>
 
@@ -144,7 +143,7 @@
                                         3. Pilih Kelas
                                     </label>
 
-                                    <span x-show="kelasTerlihat.length > 0" class="text-xs font-semibold text-teal-700"
+                                    <span x-show="kelasTerlihat.length > 0" class="text-xs font-semibold text-blue-600"
                                         x-text="kelasDipilih.length + ' kelas dipilih'">
                                     </span>
 
@@ -178,14 +177,15 @@
 
                                         <label
                                             class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg
-                                                   hover:bg-teal-50 cursor-pointer transition"
+                                                   hover:bg-blue-50/70 hover:border-blue-300 cursor-pointer transition"
                                             :class="kelasDipilih.includes(String(kelas.pengampu_kelas_id)) ?
-                                                'border-teal-500 bg-teal-50' :
+                                                'border-blue-500 bg-blue-50' :
                                                 'bg-white'">
 
                                             <input type="checkbox" name="pengampu_kelas_id[]"
                                                 :value="String(kelas.pengampu_kelas_id)" x-model="kelasDipilih"
-                                                class="w-4 h-4 text-teal-700 rounded focus:ring-teal-500">
+                                                @change="sinkronkanSesiKelas()"
+                                                class="w-4 h-4 text-blue-600 accent-blue-600 rounded focus:ring-blue-500">
 
                                             <span class="text-sm text-gray-700" x-text="kelas.nama_kelas">
                                             </span>
@@ -209,13 +209,13 @@
                             </div>
 
                             {{-- RINGKASAN KELAS --}}
-                            <div x-show="kelasDipilih.length > 0" class="p-4 bg-teal-50 border border-teal-100 rounded-xl">
+                            <div x-show="kelasDipilih.length > 0" class="p-4 bg-blue-50 border border-blue-100 rounded-xl">
 
-                                <p class="text-sm font-semibold text-teal-800">
+                                <p class="text-sm font-semibold text-blue-800">
                                     Target ujian
                                 </p>
 
-                                <p class="text-sm text-teal-700 mt-1"
+                                <p class="text-sm text-blue-700 mt-1"
                                     x-text="kelasDipilih.length + ' kelas telah dipilih.'">
                                 </p>
 
@@ -243,7 +243,6 @@
                     </div>
 
 
-
                     {{-- DURASI --}}
                     <div>
 
@@ -255,16 +254,17 @@
                         <div class="relative">
 
                             <input type="text" name="durasi_menit" x-ref="inputDurasi"
-                                value="{{ old('durasi_menit', 60) }}" inputmode="numeric" maxlength="3"
+                                x-model="durasiMenit" @input="sinkronkanJamSesi()"
+                                inputmode="numeric" maxlength="3"
                                 oninput="
                                     this.value = this.value.replace(/[^0-9]/g, '').slice(0, 3);
                                     if (this.value !== '' && Number(this.value) > 999) {
                                         this.value = '999';
                                     }
                                 "
-                                class="w-full border border-gray-300 rounded-xl px-4 py-3 pr-20
-                                 focus:ring-2 focus:ring-teal-500
-                                 focus:border-teal-500">
+                                class="w-full border border-gray-300 rounded-xl px-4 py-3 pr-20 outline-none transition
+                                 focus:ring-2 focus:ring-blue-500/25
+                                 focus:border-blue-500">
                             <span class="absolute right-4 top-3 text-sm text-gray-400">
                                 menit
                             </span>
@@ -291,9 +291,9 @@
                         <input type="text" name="kkm" x-ref="inputKkm" value="{{ old('kkm', 75) }}"
                             inputmode="numeric" maxlength="2"
                             oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 2);"
-                            class="w-full border border-gray-300 rounded-xl px-4 py-3
-                         focus:ring-2 focus:ring-teal-500
-                         focus:border-teal-500">
+                            class="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none transition
+                         focus:ring-2 focus:ring-blue-500/25
+                         focus:border-blue-500">
 
                         <p class="text-xs text-gray-400 mt-1">
                             Nilai KKM 0–99.
@@ -336,10 +336,10 @@
                         </label>
 
                         <input type="datetime-local" name="waktu_mulai" x-ref="inputWaktuMulai"
-                            value="{{ old('waktu_mulai') }}"
-                            class="w-full border border-gray-300 rounded-xl px-4 py-3
-                               focus:ring-2 focus:ring-teal-500
-                               focus:border-teal-500">
+                            x-model="waktuMulai" @change="sinkronkanSesiKelas(); sinkronkanJamSesi();"
+                            class="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none transition
+                               focus:ring-2 focus:ring-blue-500/25
+                               focus:border-blue-500">
                         @error('waktu_mulai')
                             <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
                         @enderror
@@ -359,13 +359,120 @@
 
                         <input type="datetime-local" name="deadline" x-ref="inputDeadline"
                             value="{{ old('deadline') }}"
-                            class="w-full border border-gray-300 rounded-xl px-4 py-3
-                               focus:ring-2 focus:ring-teal-500
-                               focus:border-teal-500">
+                            class="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none transition
+                               focus:ring-2 focus:ring-blue-500/25
+                               focus:border-blue-500">
                         @error('deadline')
                             <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
                         @enderror
 
+                    </div>
+
+                    {{-- ================================================= --}}
+                    {{-- PEMBAGIAN SESI & KODE MASUK (TOKEN) OTOMATIS SAAT DIJADWALKAN --}}
+                    {{-- ================================================= --}}
+                    <div class="md:col-span-2">
+                        {{-- Petunjuk jika jadwal atau kelas belum diisi --}}
+                        <div x-show="kelasDipilih.length === 0 || !waktuMulai"
+                            class="p-4 rounded-2xl bg-slate-50 border border-dashed border-slate-300 text-xs text-slate-500 flex items-center gap-2.5">
+                            <span class="text-base">🔑</span>
+                            <span>
+                                Pilih minimal 1 kelas target dan isi <strong>Waktu Mulai</strong> di atas untuk mengatur pembagian <strong>Sesi Ujian</strong> dan menampilkan <strong>Kode Masuk (Token)</strong> masing-masing sesi.
+                            </span>
+                        </div>
+
+                        {{-- Panel Sesi & Kode Masuk Aktif --}}
+                        <div x-show="kelasDipilih.length > 0 && waktuMulai" x-cloak
+                            class="rounded-2xl border border-blue-200 bg-blue-50/40 p-5 space-y-5">
+
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-blue-100">
+                                <div>
+                                    <h3 class="text-sm font-extrabold text-blue-950 flex items-center gap-2">
+                                        <span>🔑</span> Pembagian Sesi Kelas & Kode Masuk (Token)
+                                    </h3>
+                                    <p class="text-xs text-blue-700/80 mt-0.5">
+                                        Atur sesi untuk tiap kelas. Setiap sesi langsung memiliki kode masuk unik yang otomatis tersimpan saat ujian disimpan.
+                                    </p>
+                                </div>
+                                <span class="text-xs font-bold px-3 py-1 rounded-full bg-blue-100 text-blue-800 self-start sm:self-auto"
+                                    x-text="ringkasanSesiAktif.length + ' Sesi Aktif'"></span>
+                            </div>
+
+                            {{-- A. Pilih Sesi per Kelas --}}
+                            <div class="space-y-2.5">
+                                <p class="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    1. Tentukan Sesi Masing-Masing Kelas
+                                </p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    <template x-for="kelas in detailKelasDipilih" :key="kelas.pengampu_kelas_id">
+                                        <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-white border border-blue-100 shadow-2xs">
+                                            <span class="text-sm font-bold text-gray-800 truncate"
+                                                x-text="'Kelas ' + kelas.nama_kelas"></span>
+
+                                            <select :name="`sesi_kelas[${kelas.pengampu_kelas_id}]`"
+                                                x-model.number="sesiKelas[String(kelas.pengampu_kelas_id)]"
+                                                @change="pastikanTokenSesi($event.target.value); sinkronkanJamSesi();"
+                                                class="px-3 py-1.5 rounded-lg border border-blue-200 text-xs font-bold text-blue-700 bg-blue-50/60 focus:ring-2 focus:ring-blue-500/25 outline-none cursor-pointer">
+                                                <option value="1">Sesi 1</option>
+                                                <option value="2">Sesi 2</option>
+                                                <option value="3">Sesi 3</option>
+                                                <option value="4">Sesi 4</option>
+                                                <option value="5">Sesi 5</option>
+                                            </select>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            {{-- B. Daftar Kode Masuk (Token) & Jam Mulai per Sesi --}}
+                            <div class="space-y-2.5 pt-2 border-t border-blue-100">
+                                <p class="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    2. Kode Masuk & Jadwal per Sesi
+                                </p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                                    <template x-for="item in ringkasanSesiAktif" :key="item.sesi">
+                                        <div class="rounded-xl bg-white border border-blue-200/80 p-4 space-y-3 shadow-2xs">
+                                            <div class="flex items-start justify-between gap-2">
+                                                <div>
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold bg-blue-600 text-white">
+                                                        SESI <span class="ml-1" x-text="item.sesi"></span>
+                                                    </span>
+                                                    <p class="text-xs font-semibold text-gray-700 mt-1.5">
+                                                        Kelas: <span class="text-blue-700 font-bold" x-text="item.kelasList.join(', ')"></span>
+                                                    </p>
+                                                </div>
+
+                                                <div class="text-right">
+                                                    <span class="block text-[10px] font-bold uppercase text-gray-400">Kode Masuk</span>
+                                                    <span class="inline-block mt-0.5 font-mono text-base font-black tracking-widest text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg select-all"
+                                                        x-text="tokenSesi[item.sesi]"></span>
+                                                    <input type="hidden" :name="`token_sesi[${item.sesi}]`" :value="tokenSesi[item.sesi]">
+                                                </div>
+                                            </div>
+
+                                            <div class="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
+                                                <label class="text-[11px] font-semibold text-gray-600">Jam Mulai:</label>
+                                                <input type="time" :name="`jam_sesi[${item.sesi}]`"
+                                                    x-model="jamSesi[item.sesi]"
+                                                    class="text-xs font-mono font-bold text-gray-800 border border-gray-300 rounded-lg px-2 py-1 focus:border-blue-500 outline-none">
+                                            </div>
+
+                                            <div class="flex items-center gap-2">
+                                                <button type="button" @click="salinKode(tokenSesi[item.sesi])"
+                                                    class="flex-1 py-1.5 px-2 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-lg text-[11px] font-bold transition cursor-pointer">
+                                                    📋 Salin Kode
+                                                </button>
+                                                <button type="button" @click="acakTokenSesi(item.sesi)"
+                                                    class="flex-1 py-1.5 px-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[11px] font-bold transition cursor-pointer">
+                                                    🔄 Acak Kode
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
 
 
@@ -381,9 +488,9 @@
 
                         <textarea name="kisi_kisi" rows="4" maxlength="500"
                             placeholder="Tuliskan kisi-kisi atau kompetensi yang akan diujikan..."
-                            class="w-full border border-gray-300 rounded-xl px-4 py-3
-                               focus:ring-2 focus:ring-teal-500
-                               focus:border-teal-500">{{ old('kisi_kisi') }}</textarea>
+                            class="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none transition
+                               focus:ring-2 focus:ring-blue-500/25
+                               focus:border-blue-500">{{ old('kisi_kisi') }}</textarea>
 
                         <p class="text-xs text-gray-400 mt-1">
                             Maksimal 500 karakter.
@@ -407,7 +514,7 @@
                             <h2 class="text-lg font-bold text-gray-800">
                                 Soal Ujian
                                 <span
-                                    class="text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-lg ml-2"
+                                    class="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg ml-2"
                                     x-text="questions.length + ' Soal (Minimal 2 Soal)'"></span>
                             </h2>
 
@@ -422,8 +529,8 @@
                         {{-- TAMBAH SOAL --}}
                         <button type="button" @click="addQuestion()"
                             class="inline-flex items-center justify-center gap-2
-                               px-5 py-3 bg-teal-700 hover:bg-teal-800
-                               text-white rounded-xl font-semibold transition cursor-pointer">
+                               px-5 py-3 bg-blue-600 hover:bg-blue-700
+                               text-white rounded-xl font-semibold transition shadow-xs cursor-pointer">
 
                             <span class="text-lg">+</span>
 
@@ -440,12 +547,10 @@
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
 
-                        {{-- ================================================= --}}
-                        {{-- DAFTAR SOAL (DENGAN INDIKATOR VALIDASI) --}}
-                        {{-- ================================================= --}}
+                        {{-- DAFTAR SOAL --}}
                         <div class="lg:col-span-3 xl:col-span-2">
 
-                            <div class="bg-gray-50 rounded-2xl border border-gray-200 p-4">
+                            <div class="bg-slate-50/80 rounded-2xl border border-slate-200 p-4">
 
                                 <h3 class="font-semibold text-gray-700 mb-3">
                                     Daftar Soal
@@ -458,9 +563,9 @@
                                         <button type="button" @click="selectedQuestion = index"
                                             class="w-full text-left px-3.5 py-3 rounded-xl border transition cursor-pointer"
                                             :class="selectedQuestion === index ?
-                                                'bg-teal-700 text-white border-teal-700 shadow-xs' :
+                                                'bg-blue-600 text-white border-blue-600 shadow-xs' :
                                                 (isQuestionComplete(question) ?
-                                                    'bg-white text-gray-700 border-gray-200 hover:border-teal-400' :
+                                                    'bg-white text-gray-700 border-gray-200 hover:border-blue-400' :
                                                     'bg-amber-50/70 text-gray-800 border-amber-300 hover:border-amber-400'
                                                     )">
 
@@ -471,7 +576,6 @@
                                                         Soal <span x-text="index + 1"></span>
                                                     </span>
 
-                                                    {{-- Badge Indikator Belum Lengkap / Lengkap --}}
                                                     <template x-if="!isQuestionComplete(question)">
                                                         <span
                                                             class="w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-black inline-flex items-center justify-center"
@@ -508,9 +612,7 @@
                         </div>
 
 
-                        {{-- ================================================= --}}
                         {{-- EDITOR SOAL --}}
-                        {{-- ================================================= --}}
                         <div class="lg:col-span-9 xl:col-span-10 min-w-0">
 
                             <template x-for="(question, index) in questions" :key="question.id">
@@ -534,18 +636,16 @@
                                         </div>
 
                                         <div
-                                            class="text-sm text-gray-500 bg-teal-50 border border-teal-200 px-3.5 py-1.5 rounded-xl">
+                                            class="text-sm text-gray-500 bg-blue-50 border border-blue-200 px-3.5 py-1.5 rounded-xl">
                                             Bobot soal:
-                                            <span class="font-bold text-teal-800"
+                                            <span class="font-bold text-blue-700"
                                                 x-text="question.bobot + ' Poin'"></span>
                                         </div>
 
                                     </div>
 
 
-                                    {{-- ================================================= --}}
                                     {{-- TIPE SOAL --}}
-                                    {{-- ================================================= --}}
                                     <div class="mb-5">
 
                                         <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -559,34 +659,21 @@
                                                         ? []
                                                         : '';
                                             "
-                                            class="w-full border border-gray-300 rounded-xl px-4 py-3
-                                                   focus:ring-2 focus:ring-teal-500
-                                                   focus:border-teal-500">
+                                            class="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none transition
+                                                   focus:ring-2 focus:ring-blue-500/25
+                                                   focus:border-blue-500">
 
-                                            <option value="single_choice">
-                                                Pilihan Ganda
-                                            </option>
-
-                                            <option value="multiple_choice">
-                                                Pilihan Ganda Kompleks
-                                            </option>
-
-                                            <option value="essay">
-                                                Essay
-                                            </option>
-
-                                            <option value="matching">
-                                                Menjodohkan
-                                            </option>
+                                            <option value="single_choice">Pilihan Ganda</option>
+                                            <option value="multiple_choice">Pilihan Ganda Kompleks</option>
+                                            <option value="essay">Essay</option>
+                                            <option value="matching">Menjodohkan</option>
 
                                         </select>
 
                                     </div>
 
 
-                                    {{-- ================================================= --}}
                                     {{-- PERTANYAAN --}}
-                                    {{-- ================================================= --}}
                                     <div class="mb-5">
 
                                         <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -595,9 +682,9 @@
 
                                         <textarea :name="`soals[${index}][pertanyaan]`" :id="`textarea-pertanyaan-${index}`" x-model="question.pertanyaan"
                                             rows="5" maxlength="500" placeholder="Tulis pertanyaan soal..."
-                                            class="w-full border border-gray-300 rounded-xl px-4 py-3
-                                               focus:ring-2 focus:ring-teal-500
-                                               focus:border-teal-500"></textarea>
+                                            class="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none transition
+                                               focus:ring-2 focus:ring-blue-500/25
+                                               focus:border-blue-500"></textarea>
 
                                         <p class="text-xs text-gray-400 mt-1">
                                             Maksimal 500 karakter.
@@ -606,16 +693,12 @@
                                     </div>
 
 
-                                    {{-- ================================================= --}}
-                                    {{-- GAMBAR SOAL (VALIDASI FORMAT & UKURAN KETAT) --}}
-                                    {{-- ================================================= --}}
+                                    {{-- GAMBAR SOAL --}}
                                     <div class="mb-5">
 
                                         <label class="block text-sm font-semibold text-gray-700 mb-2">
                                             Gambar Soal
-                                            <span class="text-gray-400 font-normal">
-                                                (opsional)
-                                            </span>
+                                            <span class="text-gray-400 font-normal">(opsional)</span>
                                         </label>
 
                                         <input type="file" :name="`soals[${index}][gambar]`"
@@ -623,20 +706,18 @@
                                             accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif"
                                             class="w-full border border-gray-300 rounded-xl px-4 py-3
                                                    file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0
-                                                   file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700
-                                                   hover:file:bg-teal-100 cursor-pointer">
+                                                   file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700
+                                                   hover:file:bg-blue-100 cursor-pointer">
 
                                         <p class="text-xs text-gray-400 mt-1">
                                             Format JPG, PNG, WEBP, atau GIF. Maksimal 2 MB.
                                         </p>
 
-                                        {{-- Pesan Error Validasi File Gambar --}}
                                         <template x-if="question.error_gambar">
                                             <p class="text-xs font-semibold text-red-600 mt-1.5 flex items-center gap-1"
                                                 x-text="question.error_gambar"></p>
                                         </template>
 
-                                        {{-- PREVIEW GAMBAR LANGSUNG --}}
                                         <template x-if="question.preview_gambar">
                                             <div class="mt-3 relative inline-block">
                                                 <div class="border border-gray-200 rounded-xl p-2 bg-gray-50 shadow-xs">
@@ -645,7 +726,7 @@
                                                 </div>
 
                                                 <div class="mt-2 flex items-center gap-2">
-                                                    <span class="text-xs text-emerald-700 font-medium"
+                                                    <span class="text-xs text-blue-700 font-medium"
                                                         x-text="question.nama_file_gambar"></span>
                                                     <button type="button" @click="removeImage(index, question.id)"
                                                         class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-semibold transition border border-red-200 cursor-pointer"
@@ -665,13 +746,8 @@
                                     </div>
 
 
-                                    {{-- ================================================= --}}
                                     {{-- PILIHAN GANDA --}}
-                                    {{-- ================================================= --}}
-                                    <div x-show="
-                                        question.tipe_soal === 'single_choice'
-                                        || question.tipe_soal === 'multiple_choice'
-                                    "
+                                    <div x-show="question.tipe_soal === 'single_choice' || question.tipe_soal === 'multiple_choice'"
                                         class="mb-5">
 
                                         <div class="flex items-center justify-between mb-3">
@@ -682,7 +758,7 @@
 
                                             <button type="button" @click="addOption(index)"
                                                 x-show="question.pilihan.length < 6"
-                                                class="text-sm text-teal-700 hover:text-teal-900 font-semibold cursor-pointer">
+                                                class="text-sm text-blue-600 hover:text-blue-800 font-semibold cursor-pointer">
                                                 + Tambah Pilihan
                                             </button>
 
@@ -696,36 +772,28 @@
 
                                                 <div class="flex items-center gap-3">
 
-                                                    {{-- RADIO --}}
                                                     <template x-if="question.tipe_soal === 'single_choice'">
-
                                                         <input type="radio" :name="`soals[${index}][kunci_jawaban]`"
                                                             :value="String(optionIndex)" x-model="question.kunci_jawaban"
-                                                            class="w-4 h-4 text-teal-700 cursor-pointer">
-
+                                                            class="w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer">
                                                     </template>
 
-
-                                                    {{-- CHECKBOX PILIHAN GANDA KOMPLEKS --}}
                                                     <template x-if="question.tipe_soal === 'multiple_choice'">
                                                         <input type="checkbox" :name="`soals[${index}][kunci_jawaban][]`"
                                                             :value="String(optionIndex)" x-model="question.kunci_jawaban"
-                                                            class="w-4 h-4 text-teal-700 cursor-pointer">
+                                                            class="w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer">
                                                     </template>
 
-
-                                                    {{-- TEKS PILIHAN --}}
                                                     <input type="text"
+                                                        :id="`input-pilihan-${index}-${optionIndex}`"
                                                         :name="`soals[${index}][pilihan][${optionIndex}]`"
                                                         x-model="question.pilihan[optionIndex]"
                                                         :placeholder="`Pilihan ${String.fromCharCode(65 + optionIndex)}`"
                                                         maxlength="200"
-                                                        class="flex-1 min-w-0 border border-gray-300 rounded-xl px-4 py-3
-                                                           focus:ring-2 focus:ring-teal-500
-                                                           focus:border-teal-500">
+                                                        class="flex-1 min-w-0 border border-gray-300 rounded-xl px-4 py-3 outline-none transition
+                                                           focus:ring-2 focus:ring-blue-500/25
+                                                           focus:border-blue-500">
 
-
-                                                    {{-- HAPUS PILIHAN --}}
                                                     <button type="button" @click="removeOption(index, optionIndex)"
                                                         class="px-3 py-2 text-red-500 hover:bg-red-50
                                                            rounded-lg text-lg font-bold cursor-pointer"
@@ -746,9 +814,7 @@
                                     </div>
 
 
-                                    {{-- ================================================= --}}
-                                    {{-- ESSAY & RUBRIK ESSAY (OPSIONAL) --}}
-                                    {{-- ================================================= --}}
+                                    {{-- ESSAY & RUBRIK ESSAY --}}
                                     <div x-show="question.tipe_soal === 'essay'" class="mb-5 space-y-4">
 
                                         <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
@@ -761,15 +827,14 @@
                                         <div>
                                             <label class="block text-sm font-semibold text-gray-700 mb-2">
                                                 Rubrik / Kunci Jawaban Essay
-                                                <span class="text-gray-400 font-normal">(opsional — boleh
-                                                    dikosongkan)</span>
+                                                <span class="text-gray-400 font-normal">(opsional — boleh dikosongkan)</span>
                                             </label>
 
                                             <textarea :name="question.tipe_soal === 'essay' ? `soals[${index}][kunci_jawaban]` : null"
                                                 x-model="question.rubrik_essay" rows="4" maxlength="1000"
-                                                placeholder="Tuliskan kata kunci jawaban, langkah penyelesaian, atau pedoman penskoran untuk memudahkan saat mengoreksi essay..."
-                                                class="w-full border border-gray-300 rounded-xl px-4 py-3
-                                                       focus:ring-2 focus:ring-teal-500 focus:border-teal-500"></textarea>
+                                                placeholder="Tuliskan kata kunci jawaban, langkah penyelesaian, atau pedoman penskoran..."
+                                                class="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none transition
+                                                       focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500"></textarea>
 
                                             <p class="text-xs text-gray-400 mt-1">
                                                 Rubrik ini hanya tampil di halaman koreksi guru sebagai acuan pemberian skor
@@ -780,29 +845,21 @@
                                     </div>
 
 
-                                    {{-- ================================================= --}}
                                     {{-- MATCHING --}}
-                                    {{-- ================================================= --}}
                                     <div x-show="question.tipe_soal === 'matching'" class="mb-5">
 
                                         <div class="bg-purple-50 border border-purple-100 rounded-xl p-4">
-
                                             <p class="text-sm text-purple-700">
-                                                Tipe menjodohkan dapat menggunakan data pasangan
-                                                pada bagian pilihan jawaban.
+                                                Tipe menjodohkan dapat menggunakan data pasangan pada bagian pilihan jawaban.
                                             </p>
-
                                         </div>
 
                                     </div>
 
 
-                                    {{-- ================================================= --}}
-                                    {{-- TINGKAT KESULITAN & BOBOT OTOMATIS --}}
-                                    {{-- ================================================= --}}
+                                    {{-- TINGKAT KESULITAN & BOBOT OTOMATIS (TANPA OPSI TIDAK VALID) --}}
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                                        {{-- TINGKAT KESULITAN --}}
                                         <div>
                                             <label class="block text-sm font-semibold text-gray-700 mb-2">
                                                 Tingkat Kesulitan
@@ -810,9 +867,8 @@
 
                                             <select :name="`soals[${index}][kesulitan]`" x-model.number="question.kesulitan"
                                                 @change="hitungBobotOtomatis()"
-                                                class="w-full border border-gray-300 rounded-xl px-4 py-3
-                                                       focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
-                                                <option value="0">Tidak Valid / Dianulir (Poin: 0)</option>
+                                                class="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none transition
+                                                       focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500">
                                                 <option value="1">Mudah (Poin: 1)</option>
                                                 <option value="2">Menengah (Poin: 2)</option>
                                                 <option value="3">Susah (Poin: 3)</option>
@@ -823,7 +879,6 @@
                                             </p>
                                         </div>
 
-                                        {{-- BOBOT HASIL HITUNG (READ-ONLY) --}}
                                         <div>
                                             <label class="block text-sm font-semibold text-gray-700 mb-2">
                                                 Bobot Poin (Otomatis)
@@ -838,15 +893,13 @@
                                                 </span>
                                             </div>
 
-                                            <p class="text-xs text-teal-600 font-medium mt-1">
+                                            <p class="text-xs text-blue-600 font-medium mt-1">
                                                 ✓ Dihitung otomatis agar total tepat 100.
                                             </p>
                                         </div>
 
                                     </div>
 
-
-                                    {{-- URUTAN --}}
                                     <input type="hidden" :name="`soals[${index}][urutan]`" :value="index + 1">
 
                                 </div>
@@ -859,19 +912,12 @@
 
                     {{-- RINGKASAN TOTAL BOBOT --}}
                     <div class="mt-6 p-4 rounded-xl border"
-                        :class="totalBobot > 100 ?
-                            'bg-red-50 border-red-200' :
-                            'bg-teal-50 border-teal-200'">
+                        :class="totalBobot > 100 ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'">
 
                         <div class="flex justify-between items-center gap-3">
-
-                            <span class="text-sm font-semibold text-gray-700">
-                                Total Bobot Seluruh Soal
-                            </span>
-
-                            <span class="font-bold text-lg" :class="totalBobot > 100 ? 'text-red-600' : 'text-teal-700'"
+                            <span class="text-sm font-semibold text-gray-700">Total Bobot Seluruh Soal</span>
+                            <span class="font-bold text-lg" :class="totalBobot > 100 ? 'text-red-600' : 'text-blue-700'"
                                 x-text="totalBobot + ' / 100'"></span>
-
                         </div>
 
                         <p class="text-xs mt-1" :class="totalBobot > 100 ? 'text-red-600' : 'text-gray-500'"
@@ -883,9 +929,7 @@
                     </div>
 
 
-                    {{-- ================================================= --}}
                     {{-- TOMBOL AKSI UJIAN --}}
-                    {{-- ================================================= --}}
                     <div
                         class="w-full flex flex-row flex-wrap justify-end items-center
                            gap-3 mt-6 pt-6 border-t border-gray-100">
@@ -897,19 +941,17 @@
                             Simpan Draft Ujian
                         </button>
 
-
                         <button type="submit" name="action" value="schedule" @click="submitAction = 'schedule'"
-                            class="px-5 py-3 rounded-xl bg-yellow-500
-                               hover:bg-yellow-600 text-white
-                               font-semibold transition cursor-pointer">
+                            class="px-5 py-3 rounded-xl bg-amber-500
+                               hover:bg-amber-600 text-white
+                               font-semibold transition shadow-xs cursor-pointer">
                             Jadwalkan Ujian
                         </button>
 
-
                         <button type="submit" name="action" value="publish" @click="submitAction = 'publish'"
-                            class="px-5 py-3 rounded-xl bg-teal-700
-                               hover:bg-teal-800 text-white
-                               font-semibold transition cursor-pointer">
+                            class="px-5 py-3 rounded-xl bg-blue-600
+                               hover:bg-blue-700 text-white
+                               font-semibold transition shadow-xs cursor-pointer">
                             Publikasi Ujian Sekarang
                         </button>
 
@@ -921,54 +963,386 @@
 
         </div>
 
+        {{-- ========================================================= --}}
+        {{-- MODAL ALERT VALIDASI & KONFIRMASI (SESUAI DESAIN) --}}
+        {{-- ========================================================= --}}
+        <div x-show="modalAlert.open" x-cloak x-transition.opacity @keydown.escape.window="closeModal()"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/45 backdrop-blur-[2px]">
+            <div @click.away="closeModal()"
+                class="bg-white rounded-2xl max-w-md sm:max-w-lg w-full border border-slate-200/80 shadow-2xl overflow-hidden">
+
+                <div class="p-6 space-y-4">
+                    {{-- Header Modal --}}
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1.5"
+                                :class="modalAlert.variant === 'danger' ? 'text-rose-600' : 'text-blue-600'">
+                                <template x-if="modalAlert.showDot">
+                                    <span class="w-1.5 h-1.5 rounded-full"
+                                        :class="modalAlert.variant === 'danger' ? 'bg-rose-600' : 'bg-blue-600'"></span>
+                                </template>
+                                <span x-text="modalAlert.kicker"></span>
+                            </p>
+                            <h3 class="text-xl font-extrabold text-slate-900 tracking-tight mt-1.5 leading-snug"
+                                x-text="modalAlert.title"></h3>
+                            <p x-show="modalAlert.subtitle"
+                                class="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed"
+                                x-text="modalAlert.subtitle"></p>
+                        </div>
+
+                        <button type="button" @click="closeModal()"
+                            class="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition cursor-pointer shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    {{-- Info Butir Soal (Khusus Validasi / Hapus Butir Soal) --}}
+                    <template x-if="modalAlert.soalInfo">
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50/90 border border-slate-200/70">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div
+                                    class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100/80 flex items-center justify-center shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-xs sm:text-sm font-bold text-slate-900"
+                                        x-text="'Soal Nomor ' + modalAlert.soalInfo.nomor"></p>
+                                    <p class="text-[11px] text-slate-500 mt-0.5 truncate"
+                                        x-text="'Tipe Soal: ' + modalAlert.soalInfo.tipe + ' • Bobot: ' + modalAlert.soalInfo.bobot + ' Poin'">
+                                    </p>
+                                </div>
+                            </div>
+
+                            <template x-if="modalAlert.soalInfo.badge">
+                                <span
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-600 border border-blue-200/70 shrink-0">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2"
+                                        viewBox="0 0 24 24">
+                                        <circle cx="12" cy="12" r="7" />
+                                        <circle cx="12" cy="12" r="2" />
+                                    </svg>
+                                    <span x-text="modalAlert.soalInfo.badge"></span>
+                                </span>
+                            </template>
+                        </div>
+                    </template>
+
+                    {{-- Callout Box Peringatan --}}
+                    <div class="flex items-start gap-3 p-4 rounded-xl border text-xs sm:text-[13px] leading-relaxed"
+                        :class="modalAlert.variant === 'danger'
+                            ? 'bg-rose-50/90 border-rose-200 text-rose-800'
+                            : 'bg-amber-50/85 border-amber-200/90 text-amber-900'">
+                        <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+                            :class="modalAlert.variant === 'danger' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100/80 text-amber-600'">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <div class="space-y-1">
+                            <template x-if="modalAlert.inlineCallout">
+                                <p>
+                                    <strong x-text="modalAlert.calloutTitle"></strong>
+                                    <span x-text="' ' + modalAlert.calloutBody"></span>
+                                </p>
+                            </template>
+                            <template x-if="!modalAlert.inlineCallout">
+                                <div>
+                                    <p class="font-bold" x-text="modalAlert.calloutTitle"></p>
+                                    <p x-show="modalAlert.calloutBody" class="opacity-90 mt-0.5"
+                                        x-text="modalAlert.calloutBody"></p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    {{-- Langkah Perbaikan (Opsional) --}}
+                    <template x-if="modalAlert.steps && modalAlert.steps.length > 0">
+                        <div class="p-4 rounded-xl bg-slate-50/80 border border-slate-200/70 space-y-2.5">
+                            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500"
+                                x-text="modalAlert.stepsTitle"></p>
+                            <div class="space-y-2">
+                                <template x-for="(step, sIdx) in modalAlert.steps" :key="sIdx">
+                                    <div class="flex items-start gap-2.5 text-xs text-slate-700 leading-relaxed">
+                                        <span
+                                            class="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5"
+                                            x-text="sIdx + 1"></span>
+                                        <span x-html="step"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                {{-- Footer Modal --}}
+                <div class="px-6 py-4 bg-slate-50/70 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                    <button type="button" @click="closeModal()"
+                        class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200/80 transition cursor-pointer"
+                        x-text="modalAlert.cancelText">
+                    </button>
+
+                    <button type="button" @click="handleModalAction()"
+                        class="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold text-white transition shadow-xs cursor-pointer"
+                        :class="modalAlert.variant === 'danger'
+                            ? 'bg-rose-600 hover:bg-rose-700'
+                            : 'bg-blue-600 hover:bg-blue-700'">
+                        <template x-if="modalAlert.actionIcon === 'pencil'">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </template>
+                        <template x-if="modalAlert.actionIcon === 'trash'">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </template>
+                        <span x-text="modalAlert.actionText"></span>
+                        <template x-if="modalAlert.actionIcon === 'arrow'">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </template>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
     </div>
 
 
     {{-- ============================================================= --}}
     {{-- JAVASCRIPT --}}
     {{-- ============================================================= --}}
-
     <script>
         function ujianForm() {
-
             return {
                 submitAction: 'draft',
+
+                // State Modal Validasi & Konfirmasi
+                modalAlert: {
+                    open: false,
+                    variant: 'warning',
+                    showDot: true,
+                    kicker: '',
+                    title: '',
+                    subtitle: '',
+                    soalInfo: null,
+                    inlineCallout: false,
+                    calloutTitle: '',
+                    calloutBody: '',
+                    stepsTitle: 'LANGKAH PERBAIKAN CEPAT:',
+                    steps: [],
+                    cancelText: 'Tutup',
+                    actionText: 'Mengerti',
+                    actionIcon: 'arrow',
+                    onAction: null,
+                },
+
+                openModal(cfg) {
+                    this.modalAlert = {
+                        open: true,
+                        variant: cfg.variant || 'warning',
+                        showDot: cfg.showDot !== undefined ? cfg.showDot : true,
+                        kicker: cfg.kicker || 'VALIDASI INSTRUMEN UJIAN',
+                        title: cfg.title || 'Periksa Kembali Isian',
+                        subtitle: cfg.subtitle || '',
+                        soalInfo: cfg.soalInfo || null,
+                        inlineCallout: cfg.inlineCallout || false,
+                        calloutTitle: cfg.calloutTitle || '',
+                        calloutBody: cfg.calloutBody || '',
+                        stepsTitle: cfg.stepsTitle || 'LANGKAH PERBAIKAN CEPAT:',
+                        steps: cfg.steps || [],
+                        cancelText: cfg.cancelText || 'Tutup',
+                        actionText: cfg.actionText || 'Mengerti',
+                        actionIcon: cfg.actionIcon !== undefined ? cfg.actionIcon : 'arrow',
+                        onAction: cfg.onAction || null,
+                    };
+                },
+
+                closeModal() {
+                    this.modalAlert.open = false;
+                },
+
+                handleModalAction() {
+                    const cb = this.modalAlert.onAction;
+                    this.modalAlert.open = false;
+                    if (typeof cb === 'function') {
+                        this.$nextTick(() => cb());
+                    }
+                },
+
+                typeLabel(type) {
+                    return {
+                        single_choice: 'Pilihan Ganda',
+                        multiple_choice: 'Pilihan Ganda Kompleks',
+                        essay: 'Essay',
+                        matching: 'Menjodohkan',
+                    }[type] ?? type;
+                },
+
+                // State Target Kelas & Mapel (terintegrasi dengan Sesi)
+                mapelList: @js($dataMapel),
+                selectedMapel: @js(old('mapel_id', '')),
+                selectedTingkatan: '',
+                kelasDipilih: @js(array_map('strval', (array) old('pengampu_kelas_id', []))),
+
+                // State Jadwal, Sesi & Kode Masuk (Token)
+                waktuMulai: @js(old('waktu_mulai', '')),
+                durasiMenit: @js((int) old('durasi_menit', 60)),
+                sesiKelas: @js(old('sesi_kelas', [])),
+                tokenSesi: @js(old('token_sesi', [])),
+                jamSesi: @js(old('jam_sesi', [])),
+
+                get mapelAktif() {
+                    return this.mapelList.find(m => String(m.id) === String(this.selectedMapel)) || null;
+                },
+                get daftarTingkatan() {
+                    return this.mapelAktif?.tingkatan || [];
+                },
+                get tingkatanAktif() {
+                    return this.daftarTingkatan.find(t => t.nama === this.selectedTingkatan) || null;
+                },
+                get kelasTerlihat() {
+                    return this.tingkatanAktif?.kelas || [];
+                },
+                get detailKelasDipilih() {
+                    return this.kelasTerlihat.filter(k =>
+                        this.kelasDipilih.includes(String(k.pengampu_kelas_id))
+                    );
+                },
+                get ringkasanSesiAktif() {
+                    const mapSesi = {};
+                    this.detailKelasDipilih.forEach(k => {
+                        const idStr = String(k.pengampu_kelas_id);
+                        const noSesi = Number(this.sesiKelas[idStr] || 1);
+                        if (!mapSesi[noSesi]) {
+                            mapSesi[noSesi] = { sesi: noSesi, kelasList: [] };
+                        }
+                        mapSesi[noSesi].kelasList.push(k.nama_kelas);
+                    });
+
+                    return Object.values(mapSesi).sort((a, b) => a.sesi - b.sesi);
+                },
+
+                ubahMapel() {
+                    this.selectedTingkatan = '';
+                    this.kelasDipilih = [];
+                },
+                ubahTingkatan() {
+                    this.kelasDipilih = [];
+                },
+
+                buatKodeAcak(nomorSesi) {
+                    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                    let rnd = '';
+                    for (let i = 0; i < 4; i++) {
+                        rnd += chars.charAt(Math.floor(Math.random() * chars.length));
+                    }
+                    return `S${nomorSesi}-${rnd}`;
+                },
+
+                pastikanTokenSesi(nomorSesi) {
+                    const s = Number(nomorSesi || 1);
+                    if (!this.tokenSesi[s]) {
+                        this.tokenSesi[s] = this.buatKodeAcak(s);
+                    }
+                },
+
+                acakTokenSesi(nomorSesi) {
+                    this.tokenSesi[nomorSesi] = this.buatKodeAcak(nomorSesi);
+                },
+
+                // Notifikasi berhasil tetap menggunakan alert asli
+                salinKode(kode) {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(kode);
+                    } else {
+                        const el = document.createElement('textarea');
+                        el.value = kode;
+                        el.style.position = 'fixed';
+                        el.style.opacity = '0';
+                        document.body.appendChild(el);
+                        el.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(el);
+                    }
+
+                    this.openModal({
+                        kicker: 'SALIN KODE MASUK',
+                        title: 'Kode Masuk Berhasil Disalin!',
+                        subtitle: 'Kode sesi ujian telah tersimpan ke clipboard perangkat Anda.',
+                        calloutTitle: `Kode masuk ${kode} berhasil disalin ke clipboard!`,
+                        calloutBody: 'Silakan bagikan kode ini kepada siswa pada sesi yang sesuai saat ujian dimulai.',
+                        cancelText: 'Tutup',
+                        actionText: 'Mengerti',
+                        actionIcon: 'none',
+                    });
+                },
+
+                sinkronkanSesiKelas() {
+                    this.kelasDipilih.forEach(id => {
+                        const key = String(id);
+                        if (!this.sesiKelas[key]) {
+                            this.sesiKelas[key] = 1;
+                        }
+                        this.pastikanTokenSesi(this.sesiKelas[key]);
+                    });
+                    this.sinkronkanJamSesi();
+                },
+
+                sinkronkanJamSesi() {
+                    if (!this.waktuMulai) return;
+                    const baseDate = new Date(this.waktuMulai);
+                    if (isNaN(baseDate.getTime())) return;
+
+                    const durasi = Math.max(1, Number(this.durasiMenit) || 60);
+
+                    this.ringkasanSesiAktif.forEach(item => {
+                        this.pastikanTokenSesi(item.sesi);
+                        const d = new Date(baseDate.getTime() + (item.sesi - 1) * durasi * 60000);
+                        const hh = String(d.getHours()).padStart(2, '0');
+                        const mm = String(d.getMinutes()).padStart(2, '0');
+                        this.jamSesi[item.sesi] = `${hh}:${mm}`;
+                    });
+                },
 
                 selectedQuestion: (() => {
                     const errorKeys = @js(array_keys($errors->getMessages()));
                     const firstSoalError = @js($errors->first('soals'));
 
-                    const fieldError = errorKeys.find(key =>
-                        /^soals\.\d+/.test(key)
-                    );
-
+                    const fieldError = errorKeys.find(key => /^soals\.\d+/.test(key));
                     if (fieldError) {
                         const match = fieldError.match(/^soals\.(\d+)/);
-                        if (match) {
-                            return Number(match[1]);
-                        }
+                        if (match) return Number(match[1]);
                     }
 
-                    const messageMatch = String(firstSoalError || '').match(
-                        /soal(?: pilihan tunggal)? nomor\s+(\d+)/i
-                    );
-
-                    if (messageMatch) {
-                        return Number(messageMatch[1]) - 1;
-                    }
+                    const messageMatch = String(firstSoalError || '').match(/soal(?: pilihan tunggal)? nomor\s+(\d+)/i);
+                    if (messageMatch) return Number(messageMatch[1]) - 1;
 
                     return 0;
                 })(),
 
                 get totalBobot() {
-                    const sum = this.questions.reduce((total, question) => {
-                        const bobot = Number(question.bobot) || 0;
-                        return total + bobot;
-                    }, 0);
+                    const sum = this.questions.reduce((total, question) => total + (Number(question.bobot) || 0), 0);
                     return Number(sum.toFixed(2));
                 },
 
-                // Cek kelengkapan 1 butir soal secara realtime untuk indikator di Daftar Soal
                 isQuestionComplete(q) {
                     if (!q.pertanyaan || q.pertanyaan.trim() === '') return false;
 
@@ -979,76 +1353,156 @@
                         }
                         const kunci = Array.isArray(q.kunci_jawaban) ?
                             q.kunci_jawaban :
-                            (q.kunci_jawaban !== '' && q.kunci_jawaban !== null && q.kunci_jawaban !== undefined ? [q
-                                .kunci_jawaban
-                            ] : []);
+                            (q.kunci_jawaban !== '' && q.kunci_jawaban !== null && q.kunci_jawaban !== undefined ? [q.kunci_jawaban] : []);
                         if (kunci.length === 0) return false;
                     }
-
                     return true;
                 },
 
-                // =========================================================
-                // VALIDASI LENGKAP DI CLIENT-SIDE SEBELUM SUBMIT
-                // Mencegah reload ke server agar gambar & aktivitas tidak pernah hilang
-                // =========================================================
                 validateForm(event) {
                     const actionDipilih = event.submitter?.value || this.submitAction || 'draft';
 
-                    // 1. Validasi Judul Ujian
+                    // 1. Judul Ujian Wajib Diisi
                     const inputJudul = this.$refs.inputJudul;
                     if (!inputJudul || !inputJudul.value.trim()) {
                         event.preventDefault();
-                        alert('Judul Ujian wajib diisi terlebih dahulu!');
-                        inputJudul?.focus();
-                        return;
-                    }
-
-                    // 2. Validasi Target Kelas (pengampu_kelas_id[])
-                    const checkedKelas = document.querySelectorAll('input[name="pengampu_kelas_id[]"]:checked');
-                    if (checkedKelas.length === 0) {
-                        event.preventDefault();
-                        alert(
-                            'Target Kelas belum dipilih!\nSilakan pilih Mata Pelajaran, Tingkatan, dan centang minimal 1 Kelas terlebih dahulu.');
-                        document.getElementById('section-target-kelas')?.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center'
+                        this.openModal({
+                            showDot: false,
+                            kicker: 'VALIDASI INSTRUMEN UJIAN',
+                            title: 'Judul Ujian Wajib Diisi',
+                            subtitle: 'Lengkapi judul instrumen ujian sebelum melanjutkan proses penyimpanan atau penerbitan.',
+                            inlineCallout: true,
+                            calloutTitle: 'Kolom Judul Ujian tidak boleh kosong.',
+                            calloutBody: 'Masukkan nama atau topik ujian yang jelas agar mudah diidentifikasi oleh guru pengampu dan peserta didik.',
+                            cancelText: 'Tutup',
+                            actionText: 'Mengerti & Lengkapi',
+                            actionIcon: 'pencil',
+                            onAction: () => {
+                                inputJudul?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                inputJudul?.focus();
+                            }
                         });
                         return;
                     }
 
-                    // 3. Validasi Durasi & KKM
+                    // 2. Target Kelas Belum Dipilih
+                    if (this.kelasDipilih.length === 0) {
+                        event.preventDefault();
+                        this.openModal({
+                            showDot: false,
+                            kicker: 'VALIDASI TARGET KELAS',
+                            title: 'Target Kelas Belum Dipilih!',
+                            subtitle: 'Silakan lengkapi konfigurasi target peserta sebelum menyimpan atau menerbitkan ujian.',
+                            calloutTitle: 'Silakan pilih Mata Pelajaran, Tingkatan, dan centang minimal 1 Kelas terlebih dahulu.',
+                            stepsTitle: 'LANGKAH YANG DIPERLUKAN:',
+                            steps: [
+                                '<strong>Pilih Mata Pelajaran</strong> <span class="text-slate-400">(misal: Matematika / IPA)</span>',
+                                '<strong>Pilih Tingkatan Kelas</strong> <span class="text-slate-400">(misal: Kelas 7, 8, atau 9)</span>',
+                                '<strong>Centang Minimal 1 Rombel / Kelas Target</strong> <span class="text-slate-400">(misal: 7-A, 7-B)</span>',
+                            ],
+                            cancelText: 'Batal',
+                            actionText: 'Pilih Kelas Sekarang',
+                            actionIcon: 'arrow',
+                            onAction: () => {
+                                document.getElementById('section-target-kelas')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                        });
+                        return;
+                    }
+
+                    // 3. Durasi Ujian
                     const durasiVal = Number(this.$refs.inputDurasi?.value || 0);
                     if (!durasiVal || durasiVal < 1 || durasiVal > 999) {
                         event.preventDefault();
-                        alert('Durasi Ujian harus diisi antara 1 sampai 999 menit!');
-                        this.$refs.inputDurasi?.focus();
+                        this.openModal({
+                            kicker: 'VALIDASI PENGATURAN UJIAN',
+                            title: 'Durasi Ujian Tidak Valid!',
+                            subtitle: 'Tentukan lama waktu pengerjaan ujian sebelum menyimpan instrumen.',
+                            calloutTitle: 'Durasi Ujian harus diisi antara 1 sampai 999 menit!',
+                            calloutBody: 'Pastikan kolom durasi berisi angka yang valid agar timer pengerjaan siswa berjalan akurat.',
+                            cancelText: 'Tutup',
+                            actionText: 'Atur Durasi',
+                            actionIcon: 'arrow',
+                            onAction: () => {
+                                this.$refs.inputDurasi?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                this.$refs.inputDurasi?.focus();
+                            }
+                        });
                         return;
                     }
 
+                    // 4. Nilai KKM
                     const kkmRaw = this.$refs.inputKkm?.value;
                     if (kkmRaw === '' || Number(kkmRaw) < 0 || Number(kkmRaw) > 99) {
                         event.preventDefault();
-                        alert('Nilai KKM harus diisi antara 0 sampai 99!');
-                        this.$refs.inputKkm?.focus();
+                        this.openModal({
+                            kicker: 'VALIDASI PENGATURAN UJIAN',
+                            title: 'Nilai KKM Tidak Valid!',
+                            subtitle: 'Tentukan batas ketuntasan minimal siswa sebelum melanjutkan proses penyimpanan.',
+                            calloutTitle: 'Nilai KKM harus diisi antara 0 sampai 99!',
+                            calloutBody: 'Nilai KKM digunakan sebagai acuan ketuntasan hasil evaluasi dan rekomendasi remidi.',
+                            cancelText: 'Tutup',
+                            actionText: 'Atur Nilai KKM',
+                            actionIcon: 'arrow',
+                            onAction: () => {
+                                this.$refs.inputKkm?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                this.$refs.inputKkm?.focus();
+                            }
+                        });
                         return;
                     }
 
-                    // 4. Validasi Jadwal (Waktu Mulai & Deadline) saat klik Jadwalkan atau jika salah satu diisi
+                    // 5. Jadwal (Waktu Mulai & Deadline)
                     const waktuMulaiVal = this.$refs.inputWaktuMulai?.value || '';
                     const deadlineVal = this.$refs.inputDeadline?.value || '';
 
                     if (actionDipilih === 'schedule') {
                         if (!waktuMulaiVal) {
                             event.preventDefault();
-                            alert('Untuk menjadwalkan ujian, kolom "Waktu Mulai" wajib diisi!');
-                            this.$refs.inputWaktuMulai?.focus();
+                            this.openModal({
+                                kicker: 'VALIDASI JADWAL UJIAN',
+                                title: 'Waktu Mulai Belum Diisi!',
+                                subtitle: 'Silakan tentukan jadwal waktu mulai sebelum menjadwalkan atau mengaktifkan ujian.',
+                                calloutTitle: 'Untuk menjadwalkan ujian, kolom "Waktu Mulai" wajib diisi!',
+                                calloutBody: 'Sistem membutuhkan waktu mulai yang spesifik agar token ujian dapat diaktifkan dan dikerjakan siswa sesuai sesi yang ditentukan.',
+                                stepsTitle: 'LANGKAH PERBAIKAN CEPAT:',
+                                steps: [
+                                    'Klik tombol <strong>"Atur Waktu Mulai"</strong> di bawah.',
+                                    'Pilih tanggal dan jam pelaksanaan ujian pada kolom input.',
+                                    'Pastikan batas akhir (<em>deadline</em>) lebih lama dari waktu mulai.',
+                                ],
+                                cancelText: 'Tutup',
+                                actionText: 'Atur Waktu Mulai',
+                                actionIcon: 'arrow',
+                                onAction: () => {
+                                    this.$refs.inputWaktuMulai?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    this.$refs.inputWaktuMulai?.focus();
+                                }
+                            });
                             return;
                         }
                         if (!deadlineVal) {
                             event.preventDefault();
-                            alert('Untuk menjadwalkan ujian, kolom "Deadline" wajib diisi!');
-                            this.$refs.inputDeadline?.focus();
+                            this.openModal({
+                                kicker: 'VALIDASI JADWAL UJIAN',
+                                title: 'Deadline Belum Diisi!',
+                                subtitle: 'Silakan tentukan batas akhir pengerjaan sebelum menjadwalkan ujian.',
+                                calloutTitle: 'Untuk menjadwalkan ujian, kolom "Deadline" wajib diisi!',
+                                calloutBody: 'Sistem membutuhkan batas akhir yang jelas agar sesi ujian otomatis ditutup setelah waktu berakhir.',
+                                stepsTitle: 'LANGKAH PERBAIKAN CEPAT:',
+                                steps: [
+                                    'Klik tombol <strong>"Atur Deadline"</strong> di bawah.',
+                                    'Pilih tanggal dan jam batas akhir pengerjaan pada kolom input.',
+                                    'Pastikan waktu deadline lebih akhir daripada waktu mulai.',
+                                ],
+                                cancelText: 'Tutup',
+                                actionText: 'Atur Deadline',
+                                actionIcon: 'arrow',
+                                onAction: () => {
+                                    this.$refs.inputDeadline?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    this.$refs.inputDeadline?.focus();
+                                }
+                            });
                             return;
                         }
                     }
@@ -1056,53 +1510,91 @@
                     if (waktuMulaiVal && deadlineVal) {
                         if (new Date(deadlineVal) <= new Date(waktuMulaiVal)) {
                             event.preventDefault();
-                            alert('Waktu Deadline harus lebih akhir daripada Waktu Mulai!');
-                            this.$refs.inputDeadline?.focus();
+                            this.openModal({
+                                kicker: 'VALIDASI JADWAL UJIAN',
+                                title: 'Rentang Jadwal Tidak Valid!',
+                                subtitle: 'Periksa kembali perbandingan antara Waktu Mulai dan Deadline ujian.',
+                                calloutTitle: 'Waktu Deadline harus lebih akhir daripada Waktu Mulai!',
+                                calloutBody: 'Sesuaikan tanggal atau jam batas akhir agar siswa memiliki waktu pengerjaan yang valid.',
+                                cancelText: 'Tutup',
+                                actionText: 'Perbaiki Deadline',
+                                actionIcon: 'arrow',
+                                onAction: () => {
+                                    this.$refs.inputDeadline?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    this.$refs.inputDeadline?.focus();
+                                }
+                            });
                             return;
                         }
                     }
 
-                    // 5. Validasi Minimal 2 Soal
+                    // 6. Minimal 2 Soal
                     if (this.questions.length < 2) {
                         event.preventDefault();
-                        alert(
-                            `Ujian minimal harus memiliki 2 soal!\nSaat ini baru terdapat ${this.questions.length} soal. Silakan klik tombol "+ Tambah Soal".`);
-                        document.getElementById('section-editor-soal')?.scrollIntoView({
-                            behavior: 'smooth'
+                        this.openModal({
+                            kicker: 'VALIDASI BUTIR SOAL',
+                            title: 'Jumlah Soal Belum Mencukupi!',
+                            subtitle: 'Tambahkan butir soal sebelum menyimpan atau menerbitkan ujian.',
+                            calloutTitle: 'Ujian minimal harus memiliki 2 soal!',
+                            calloutBody: `Saat ini baru terdapat ${this.questions.length} soal. Silakan klik tombol "+ Tambah Soal" pada bagian Editor Soal.`,
+                            cancelText: 'Tutup',
+                            actionText: 'Ke Editor Soal',
+                            actionIcon: 'arrow',
+                            onAction: () => {
+                                document.getElementById('section-editor-soal')?.scrollIntoView({ behavior: 'smooth' });
+                            }
                         });
                         return;
                     }
 
-                    const adaSoalValid = this.questions.some(q => Number(q.kesulitan) > 0 && Number(q.bobot) > 0);
-                    if (!adaSoalValid || this.totalBobot <= 0) {
-                        event.preventDefault();
-                        alert('Minimal harus ada 1 soal yang valid (bukan berstatus "Tidak Valid")!');
-                        return;
-                    }
-
-
-                    // 6. Validasi Total Bobot Soal
+                    // 7. Total Bobot Maksimal 100
                     if (this.totalBobot > 100.5) {
                         event.preventDefault();
-                        alert(
-                            'Total bobot soal melebihi 100 poin!\n' +
-                            'Total saat ini: ' + this.totalBobot + ' poin.'
-                        );
+                        this.openModal({
+                            kicker: 'VALIDASI BOBOT SOAL',
+                            title: 'Total Bobot Melebihi 100 Poin!',
+                            subtitle: 'Periksa kembali pembagian bobot seluruh butir soal ujian.',
+                            calloutTitle: 'Total bobot soal melebihi 100 poin!',
+                            calloutBody: `Total saat ini adalah ${this.totalBobot} poin. Sesuaikan tingkat kesulitan soal agar total bobot kembali pas 100 poin.`,
+                            cancelText: 'Tutup',
+                            actionText: 'Periksa Soal',
+                            actionIcon: 'arrow',
+                            onAction: () => {
+                                document.getElementById('section-editor-soal')?.scrollIntoView({ behavior: 'smooth' });
+                            }
+                        });
                         return;
                     }
 
-                    // 7. Validasi Kelengkapan Setiap Butir Soal (Otomatis pindah ke soal yang belum lengkap)
+                    // 8. Kelengkapan Setiap Butir Soal
                     for (let i = 0; i < this.questions.length; i++) {
                         const q = this.questions[i];
                         const nomor = i + 1;
+                        const infoSoal = {
+                            nomor,
+                            tipe: this.typeLabel(q.tipe_soal),
+                            bobot: q.bobot || 0,
+                            badge: 'Fokus Otomatis',
+                        };
 
                         if (!q.pertanyaan || q.pertanyaan.trim() === '') {
                             event.preventDefault();
                             this.selectedQuestion = i;
-                            alert(
-                                `Pertanyaan pada Soal nomor ${nomor} belum diisi!\nLayar telah diarahkan ke Soal nomor ${nomor}.`);
-                            this.$nextTick(() => {
-                                document.getElementById(`textarea-pertanyaan-${i}`)?.focus();
+                            this.openModal({
+                                kicker: 'VALIDASI BUTIR SOAL',
+                                title: 'Pertanyaan Soal Belum Diisi!',
+                                subtitle: 'Lengkapi teks pertanyaan dan opsi jawaban sebelum menyimpan instrumen ujian.',
+                                soalInfo: infoSoal,
+                                calloutTitle: `Pertanyaan pada Soal nomor ${nomor} belum diisi!`,
+                                calloutBody: `Layar telah otomatis diarahkan ke editor Soal nomor ${nomor} agar Anda dapat langsung mengetikkan pertanyaan.`,
+                                cancelText: 'Tutup',
+                                actionText: `Isi Soal Nomor ${nomor}`,
+                                actionIcon: 'arrow',
+                                onAction: () => {
+                                    const el = document.getElementById(`textarea-pertanyaan-${i}`);
+                                    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    el?.focus();
+                                }
                             });
                             return;
                         }
@@ -1111,7 +1603,20 @@
                             if (!q.pilihan || q.pilihan.length < 2) {
                                 event.preventDefault();
                                 this.selectedQuestion = i;
-                                alert(`Soal nomor ${nomor} minimal harus memiliki 2 pilihan jawaban!`);
+                                this.openModal({
+                                    kicker: 'VALIDASI BUTIR SOAL',
+                                    title: 'Pilihan Jawaban Kurang!',
+                                    subtitle: 'Soal pilihan ganda membutuhkan minimal 2 opsi jawaban.',
+                                    soalInfo: infoSoal,
+                                    calloutTitle: `Soal nomor ${nomor} minimal harus memiliki 2 pilihan jawaban!`,
+                                    calloutBody: 'Silakan tambahkan opsi jawaban melalui tombol "+ Tambah Pilihan".',
+                                    cancelText: 'Tutup',
+                                    actionText: `Lengkapi Soal Nomor ${nomor}`,
+                                    actionIcon: 'arrow',
+                                    onAction: () => {
+                                        document.getElementById('section-editor-soal')?.scrollIntoView({ behavior: 'smooth' });
+                                    }
+                                });
                                 return;
                             }
 
@@ -1120,30 +1625,54 @@
                                     event.preventDefault();
                                     this.selectedQuestion = i;
                                     const huruf = String.fromCharCode(65 + p);
-                                    alert(
-                                        `Pilihan ${huruf} pada Soal nomor ${nomor} belum diisi!\nLayar telah diarahkan ke Soal nomor ${nomor}.`);
+                                    this.openModal({
+                                        kicker: 'VALIDASI BUTIR SOAL',
+                                        title: `Pilihan ${huruf} Belum Diisi!`,
+                                        subtitle: 'Pastikan seluruh kolom opsi jawaban terisi sebelum menyimpan instrumen ujian.',
+                                        soalInfo: infoSoal,
+                                        calloutTitle: `Pilihan ${huruf} pada Soal nomor ${nomor} belum diisi!`,
+                                        calloutBody: `Layar telah otomatis diarahkan ke editor Soal nomor ${nomor} agar Anda dapat mengisi Pilihan ${huruf} atau menghapus opsi yang tidak diperlukan.`,
+                                        cancelText: 'Tutup',
+                                        actionText: `Isi Pilihan ${huruf}`,
+                                        actionIcon: 'arrow',
+                                        onAction: () => {
+                                            const el = document.getElementById(`input-pilihan-${i}-${p}`);
+                                            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            el?.focus();
+                                        }
+                                    });
                                     return;
                                 }
                             }
 
                             const kunci = Array.isArray(q.kunci_jawaban) ?
                                 q.kunci_jawaban :
-                                (q.kunci_jawaban !== '' && q.kunci_jawaban !== null && q.kunci_jawaban !== undefined ? [q
-                                    .kunci_jawaban
-                                ] : []);
+                                (q.kunci_jawaban !== '' && q.kunci_jawaban !== null && q.kunci_jawaban !== undefined ? [q.kunci_jawaban] : []);
 
                             if (kunci.length === 0) {
                                 event.preventDefault();
                                 this.selectedQuestion = i;
-                                alert(
-                                    `Kunci jawaban pada Soal nomor ${nomor} belum dipilih!\nSilakan centang/pilih jawaban yang benar pada Soal nomor ${nomor}.`);
+                                this.openModal({
+                                    kicker: 'VALIDASI BUTIR SOAL',
+                                    title: 'Kunci Jawaban Belum Dipilih!',
+                                    subtitle: 'Setiap soal pilihan ganda wajib memiliki kunci jawaban untuk penilaian otomatis.',
+                                    soalInfo: infoSoal,
+                                    calloutTitle: `Kunci jawaban pada Soal nomor ${nomor} belum dipilih!`,
+                                    calloutBody: `Silakan pilih atau centang jawaban yang benar di sebelah kiri opsi pada Soal nomor ${nomor}.`,
+                                    cancelText: 'Tutup',
+                                    actionText: `Pilih Kunci Soal ${nomor}`,
+                                    actionIcon: 'arrow',
+                                    onAction: () => {
+                                        const el = document.getElementById(`input-pilihan-${i}-0`);
+                                        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    }
+                                });
                                 return;
                             }
                         }
                     }
                 },
 
-                // Default dimulai dengan 2 soal agar langsung memenuhi syarat minimal 2 soal
                 questions: (() => {
                     const oldQuestions = @js(old('soals', []));
 
@@ -1181,14 +1710,11 @@
                         id: Date.now() + index + Math.random(),
                         tipe_soal: question.tipe_soal || 'single_choice',
                         pertanyaan: question.pertanyaan || '',
-                        pilihan: Array.isArray(question.pilihan) ?
-                            question.pilihan : ['', '', '', ''],
+                        pilihan: Array.isArray(question.pilihan) ? question.pilihan : ['', '', '', ''],
                         kunci_jawaban: question.kunci_jawaban ?? '',
                         rubrik_essay: question.tipe_soal === 'essay' ?
-                            (Array.isArray(question.kunci_jawaban) ? (question.kunci_jawaban[0] || '') :
-                                (question.kunci_jawaban || '')) :
-                            '',
-                        kesulitan: Number(question.kesulitan) || 1,
+                            (Array.isArray(question.kunci_jawaban) ? (question.kunci_jawaban[0] || '') : (question.kunci_jawaban || '')) : '',
+                        kesulitan: Math.max(1, Number(question.kesulitan) || 1),
                         bobot: Number(question.bobot) || 50,
                         preview_gambar: null,
                         nama_file_gambar: '',
@@ -1198,14 +1724,31 @@
 
                 init() {
                     this.hitungBobotOtomatis();
+
+                    // Pulihkan tingkatan jika kembali dari validasi old()
+                    if (this.selectedMapel && this.kelasDipilih.length > 0 && this.mapelAktif) {
+                        const tingkat = this.mapelAktif.tingkatan.find(item =>
+                            item.kelas.some(kelas => this.kelasDipilih.includes(String(kelas.pengampu_kelas_id)))
+                        );
+                        if (tingkat) {
+                            this.selectedTingkatan = tingkat.nama;
+                        }
+                    }
+
+                    this.sinkronkanSesiKelas();
                 },
 
-                // =========================================================
-                // TAMBAH SOAL (OTOMATIS REKALKULASI BOBOT SEPERTI DI EDIT)
-                // =========================================================
                 addQuestion() {
                     if (this.questions.length >= 100) {
-                        alert('Maksimal 100 soal dalam satu ujian.');
+                        this.openModal({
+                            kicker: 'BATAS BUTIR SOAL',
+                            title: 'Batas Maksimal Soal Tercapai',
+                            subtitle: 'Satu instrumen ujian dibatasi hingga 100 butir soal.',
+                            calloutTitle: 'Maksimal 100 soal dalam satu ujian.',
+                            cancelText: 'Tutup',
+                            actionText: 'Mengerti',
+                            actionIcon: 'none',
+                        });
                         return;
                     }
 
@@ -1227,43 +1770,23 @@
                     this.hitungBobotOtomatis();
                 },
 
-                // Cek apakah soal sudah memiliki isian sebelum dihapus
                 isQuestionFilled(q) {
                     if (q.pertanyaan && q.pertanyaan.trim() !== '') return true;
                     if (q.preview_gambar) return true;
                     if (q.rubrik_essay && q.rubrik_essay.trim() !== '') return true;
 
                     if (q.tipe_soal === 'single_choice' || q.tipe_soal === 'multiple_choice') {
-                        if (Array.isArray(q.pilihan) && q.pilihan.some(p => String(p || '').trim() !== '')) {
-                            return true;
-                        }
+                        if (Array.isArray(q.pilihan) && q.pilihan.some(p => String(p || '').trim() !== '')) return true;
                         const hasKunci = Array.isArray(q.kunci_jawaban) ?
                             q.kunci_jawaban.length > 0 :
                             (q.kunci_jawaban !== '' && q.kunci_jawaban !== null && q.kunci_jawaban !== undefined);
                         if (hasKunci) return true;
                     }
-
                     return false;
                 },
 
-                // =========================================================
-                // HAPUS SOAL (DENGAN KONFIRMASI JIKA SOAL SUDAH TERISI)
-                // =========================================================
-                removeQuestion(index) {
-                    if (this.questions.length <= 2) {
-                        alert('Minimal harus ada 2 soal dalam satu ujian.');
-                        return;
-                    }
-
+                executeRemoveQuestion(index) {
                     const targetQuestion = this.questions[index];
-                    if (this.isQuestionFilled(targetQuestion)) {
-                        if (!confirm(
-                                `Soal nomor ${index + 1} sudah memiliki isian. Apakah Anda yakin ingin menghapus soal ini?`
-                                )) {
-                            return;
-                        }
-                    }
-
                     if (targetQuestion?.preview_gambar) {
                         URL.revokeObjectURL(targetQuestion.preview_gambar);
                     }
@@ -1277,46 +1800,60 @@
                     this.hitungBobotOtomatis();
                 },
 
-                // =========================================================
-                // HITUNG BOBOT OTOMATIS BERDASARKAN TINGKAT KESULITAN (TOTAL 100)
-                // =========================================================
+                removeQuestion(index) {
+                    if (this.questions.length <= 2) {
+                        this.openModal({
+                            kicker: 'BATAS BUTIR SOAL',
+                            title: 'Soal Tidak Dapat Dihapus',
+                            subtitle: 'Setiap instrumen ujian wajib memiliki minimal 2 butir soal.',
+                            calloutTitle: 'Minimal harus ada 2 soal dalam satu ujian.',
+                            cancelText: 'Tutup',
+                            actionText: 'Mengerti',
+                            actionIcon: 'none',
+                        });
+                        return;
+                    }
+
+                    const targetQuestion = this.questions[index];
+                    if (this.isQuestionFilled(targetQuestion)) {
+                        this.openModal({
+                            variant: 'danger',
+                            kicker: 'KONFIRMASI HAPUS SOAL',
+                            title: `Hapus Soal Nomor ${index + 1}?`,
+                            subtitle: 'Soal ini sudah memiliki isian pertanyaan, gambar, atau pilihan jawaban.',
+                            soalInfo: {
+                                nomor: index + 1,
+                                tipe: this.typeLabel(targetQuestion.tipe_soal),
+                                bobot: targetQuestion.bobot || 0,
+                                badge: null,
+                            },
+                            calloutTitle: `Soal nomor ${index + 1} sudah memiliki isian.`,
+                            calloutBody: 'Jika dihapus, seluruh isian pada soal ini akan hilang dan bobot soal lainnya akan dihitung ulang otomatis.',
+                            cancelText: 'Batal',
+                            actionText: 'Ya, Hapus Soal',
+                            actionIcon: 'trash',
+                            onAction: () => this.executeRemoveQuestion(index),
+                        });
+                        return;
+                    }
+
+                    this.executeRemoveQuestion(index);
+                },
+
                 hitungBobotOtomatis() {
                     const totalSoal = this.questions.length;
                     if (totalSoal === 0) return;
 
                     const totalPoinKesulitan = this.questions.reduce((sum, q) => {
-                        const k = q.kesulitan !== undefined && q.kesulitan !== null && q.kesulitan !== ''
-                            ? Number(q.kesulitan)
-                            : 1;
-                        return sum + Math.max(0, k);
+                        return sum + Math.max(1, Number(q.kesulitan) || 1);
                     }, 0);
-
-                    if (totalPoinKesulitan <= 0) {
-                        this.questions.forEach(q => {
-                            q.bobot = 0;
-                        });
-                        return;
-                    }
-
-                    // Cari indeks soal VALID terakhir (kesulitan > 0) untuk menampung sisa pembulatan 100.00
-                    let lastValidIndex = -1;
-                    this.questions.forEach((q, idx) => {
-                        const k = q.kesulitan !== undefined && q.kesulitan !== null && q.kesulitan !== ''
-                            ? Number(q.kesulitan)
-                            : 1;
-                        if (k > 0) lastValidIndex = idx;
-                    });
 
                     let totalBobotTerbagi = 0;
 
                     this.questions.forEach((question, index) => {
-                        const kesulitan = question.kesulitan !== undefined && question.kesulitan !== null && question.kesulitan !== ''
-                            ? Number(question.kesulitan)
-                            : 1;
+                        const kesulitan = Math.max(1, Number(question.kesulitan) || 1);
 
-                        if (kesulitan <= 0) {
-                            question.bobot = 0;
-                        } else if (index === lastValidIndex) {
+                        if (index === totalSoal - 1) {
                             question.bobot = Number((100 - totalBobotTerbagi).toFixed(2));
                         } else {
                             const porsi = Number(((kesulitan / totalPoinKesulitan) * 100).toFixed(2));
@@ -1325,9 +1862,7 @@
                         }
                     });
                 },
-                // =========================================================
-                // VALIDASI FILE GAMBAR (HANYA JPG, PNG, WEBP, GIF & MAKS 2MB)
-                // =========================================================
+
                 handleImageUpload(event, index) {
                     const file = event.target.files[0];
                     this.questions[index].error_gambar = '';
@@ -1345,23 +1880,39 @@
                     if (!allowedTypes.includes(file.type) || !allowedExtensions.includes(fileExtension)) {
                         const msg = 'Format file tidak didukung! Hanya diperbolehkan JPG, PNG, WEBP, atau GIF.';
                         this.questions[index].error_gambar = msg;
-                        alert(msg);
                         event.target.value = '';
                         this.questions[index].preview_gambar = null;
                         this.questions[index].nama_file_gambar = '';
+                        this.openModal({
+                            kicker: 'VALIDASI GAMBAR SOAL',
+                            title: 'Format Gambar Tidak Didukung!',
+                            subtitle: 'Pilih file gambar dengan format yang diizinkan oleh sistem.',
+                            calloutTitle: 'Format file tidak didukung!',
+                            calloutBody: 'Hanya diperbolehkan mengunggah gambar berformat JPG, PNG, WEBP, atau GIF.',
+                            cancelText: 'Tutup',
+                            actionText: 'Mengerti',
+                            actionIcon: 'none',
+                        });
                         return;
                     }
 
-                    const maxSizeBytes = 2 * 1024 * 1024; // 2 MB
-                    if (file.size > maxSizeBytes) {
+                    if (file.size > 2 * 1024 * 1024) {
                         const ukuranMb = (file.size / (1024 * 1024)).toFixed(2);
-                        const msg =
-                            `Ukuran gambar terlalu besar (${ukuranMb} MB)! Maksimal ukuran yang diperbolehkan adalah 2 MB.`;
+                        const msg = `Ukuran gambar terlalu besar (${ukuranMb} MB)! Maksimal ukuran yang diperbolehkan adalah 2 MB.`;
                         this.questions[index].error_gambar = msg;
-                        alert(msg);
                         event.target.value = '';
                         this.questions[index].preview_gambar = null;
                         this.questions[index].nama_file_gambar = '';
+                        this.openModal({
+                            kicker: 'VALIDASI GAMBAR SOAL',
+                            title: 'Ukuran Gambar Terlalu Besar!',
+                            subtitle: 'Kompres ukuran gambar terlebih dahulu sebelum mengunggah ke soal.',
+                            calloutTitle: `Ukuran gambar terlalu besar (${ukuranMb} MB)!`,
+                            calloutBody: 'Maksimal ukuran file gambar yang diperbolehkan adalah 2 MB.',
+                            cancelText: 'Tutup',
+                            actionText: 'Mengerti',
+                            actionIcon: 'none',
+                        });
                         return;
                     }
 
@@ -1381,18 +1932,21 @@
                     this.questions[index].nama_file_gambar = '';
                     this.questions[index].error_gambar = '';
                     const input = document.getElementById('input-gambar-' + questionId);
-                    if (input) {
-                        input.value = '';
-                    }
+                    if (input) input.value = '';
                 },
 
-                // =========================================================
-                // TAMBAH & HAPUS PILIHAN JAWABAN
-                // =========================================================
                 removeOption(questionIndex, optionIndex) {
                     const question = this.questions[questionIndex];
                     if (question.pilihan.length <= 2) {
-                        alert('Minimal harus ada 2 pilihan jawaban.');
+                        this.openModal({
+                            kicker: 'VALIDASI PILIHAN JAWABAN',
+                            title: 'Minimal 2 Pilihan Jawaban',
+                            subtitle: 'Opsi jawaban tidak dapat dikurangi lagi.',
+                            calloutTitle: 'Minimal harus ada 2 pilihan jawaban.',
+                            cancelText: 'Tutup',
+                            actionText: 'Mengerti',
+                            actionIcon: 'none',
+                        });
                         return;
                     }
                     question.pilihan.splice(optionIndex, 1);
@@ -1413,87 +1967,18 @@
                 addOption(questionIndex) {
                     const question = this.questions[questionIndex];
                     if (question.pilihan.length >= 6) {
-                        alert('Maksimal 6 pilihan jawaban, yaitu A sampai F.');
+                        this.openModal({
+                            kicker: 'VALIDASI PILIHAN JAWABAN',
+                            title: 'Batas Pilihan Jawaban Tercapai',
+                            subtitle: 'Setiap soal dibatasi maksimal 6 opsi jawaban.',
+                            calloutTitle: 'Maksimal 6 pilihan jawaban, yaitu A sampai F.',
+                            cancelText: 'Tutup',
+                            actionText: 'Mengerti',
+                            actionIcon: 'none',
+                        });
                         return;
                     }
                     question.pilihan.push('');
-                }
-
-            };
-
-        }
-
-        function targetKelasForm() {
-            return {
-                mapelList: @js($dataMapel),
-
-                selectedMapel: @js(old('mapel_id', '')),
-
-                selectedTingkatan: '',
-
-                kelasDipilih: @js(array_map('strval', (array) old('pengampu_kelas_id', []))),
-
-                get mapelAktif() {
-                    return this.mapelList.find(
-                        mapel => String(mapel.id) === String(this.selectedMapel)
-                    ) || null;
-                },
-
-                get daftarTingkatan() {
-                    return this.mapelAktif?.tingkatan || [];
-                },
-
-                get tingkatanAktif() {
-                    return this.daftarTingkatan.find(
-                        tingkat => tingkat.nama === this.selectedTingkatan
-                    ) || null;
-                },
-
-                get kelasTerlihat() {
-                    return this.tingkatanAktif?.kelas || [];
-                },
-
-                init() {
-                    if (this.selectedMapel && this.kelasDipilih.length > 0) {
-                        const mapel = this.mapelAktif;
-
-                        if (!mapel) {
-                            this.selectedMapel = '';
-                            this.kelasDipilih = [];
-                            return;
-                        }
-
-                        const tingkat = mapel.tingkatan.find(item =>
-                            item.kelas.some(kelas =>
-                                this.kelasDipilih.includes(
-                                    String(kelas.pengampu_kelas_id)
-                                )
-                            )
-                        );
-
-                        if (tingkat) {
-                            this.selectedTingkatan = tingkat.nama;
-
-                            const idValid = tingkat.kelas.map(kelas =>
-                                String(kelas.pengampu_kelas_id)
-                            );
-
-                            this.kelasDipilih = this.kelasDipilih.filter(id =>
-                                idValid.includes(id)
-                            );
-                        } else {
-                            this.kelasDipilih = [];
-                        }
-                    }
-                },
-
-                ubahMapel() {
-                    this.selectedTingkatan = '';
-                    this.kelasDipilih = [];
-                },
-
-                ubahTingkatan() {
-                    this.kelasDipilih = [];
                 }
             };
         }

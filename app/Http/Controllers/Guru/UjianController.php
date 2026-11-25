@@ -374,7 +374,7 @@ class UjianController extends Controller
             'soals.*.pilihan' => ['nullable', 'array', 'max:6'],
             'soals.*.kunci_jawaban' => ['nullable'],
             'soals.*.bobot' => ['required', 'numeric', 'min:0', 'max:100'],
-            'soals.*.kesulitan' => ['nullable', 'in:0,1,2,3'],
+            'soals.*.kesulitan' => ['nullable', 'in:1,2,3'],
             'soals.*.urutan' => ['nullable', 'integer', 'min:1'],
             'soals.*.gambar' => [
                 'nullable',
@@ -595,27 +595,35 @@ class UjianController extends Controller
                 ];
             }
 
-            // Map input sesi per kelas (default Sesi 1 jika tidak dipilih)
+            // Map input sesi, token, dan jam sesi dari form create
             $sesiInput = $request->input('sesi_kelas', []);
+            $tokenInput = $request->input('token_sesi', []);
+            $jamSesiInput = $request->input('jam_sesi', []);
             $tokenPerSesi = [];
             $unlockCodeGrup = strtoupper(Str::random(6));
 
             // Buat satu ujian untuk setiap kelas
             foreach ($pengampuKelases as $pengampuKelas) {
-                $nomorSesi = (int) ($sesiInput[$pengampuKelas->id] ?? 1);
-                if ($nomorSesi < 1) {
-                    $nomorSesi = 1;
-                }
+                $nomorSesi = max(1, (int) ($sesiInput[$pengampuKelas->id] ?? 1));
 
-                // Buat 1 token unik untuk setiap Nomor Sesi
+                // Gunakan token dari form jika ada, jika kosong buat otomatis
                 if (!isset($tokenPerSesi[$nomorSesi])) {
-                    $tokenPerSesi[$nomorSesi] = 'S' . $nomorSesi . '-' . strtoupper(Str::random(4));
+                    $tokenDariForm = strtoupper(trim((string) ($tokenInput[$nomorSesi] ?? '')));
+                    $tokenPerSesi[$nomorSesi] = $tokenDariForm !== ''
+                        ? Str::limit($tokenDariForm, 20, '')
+                        : ('S' . $nomorSesi . '-' . strtoupper(Str::random(4)));
                 }
 
-                // Hitung waktu mulai sesi otomatis berurutan sesuai durasi ujian
-                $waktuMulaiSesi = $waktuMulai
-                    ? $waktuMulai->copy()->addMinutes(($nomorSesi - 1) * (int) $validated['durasi_menit'])
-                    : null;
+                // Hitung waktu mulai sesi: pakai jam_sesi manual jika diisi, jika tidak berurutan sesuai durasi
+                $waktuMulaiSesi = null;
+                if ($waktuMulai) {
+                    $jamManual = trim((string) ($jamSesiInput[$nomorSesi] ?? ''));
+                    if ($jamManual !== '' && preg_match('/^\d{2}:\d{2}$/', $jamManual)) {
+                        $waktuMulaiSesi = Carbon::parse($waktuMulai->format('Y-m-d') . ' ' . $jamManual);
+                    } else {
+                        $waktuMulaiSesi = $waktuMulai->copy()->addMinutes(($nomorSesi - 1) * (int) $validated['durasi_menit']);
+                    }
+                }
 
                 $ujian = Ujian::create([
                     'id_grup_ujian' => $grupUjianId,
@@ -643,7 +651,7 @@ class UjianController extends Controller
                         'pilihan' => $dataSoal['pilihan'],
                         'kunci_jawaban' => $dataSoal['kunci_jawaban'],
                         'gambar' => $dataSoal['gambar'],
-                        'kesulitan' => $dataSoal['kesulitan'],
+                        'kesulitan' => max(1, (int) $dataSoal['kesulitan']),
                         'bobot' => $dataSoal['bobot'],
                         'urutan' => $dataSoal['urutan'],
                         'ujian_id' => $ujian->id,
@@ -801,6 +809,28 @@ class UjianController extends Controller
 
         $modeJadwalkan = request()->query('aksi') === 'jadwalkan';
 
+        // Siapkan data sesi, token, dan jam sesi awal untuk form edit
+        $sesiKelasAwal = $grupUjians
+            ->mapWithKeys(fn($item) => [(string) $item->pengampu_kelas_id => (int) ($item->sesi ?: 1)])
+            ->all();
+
+        $tokenSesiAwal = $grupUjians
+            ->groupBy(fn($item) => (int) ($item->sesi ?: 1))
+            ->map(fn($items) => $items->pluck('token')->filter()->first())
+            ->filter()
+            ->all();
+
+        $jamSesiAwal = $grupUjians
+            ->groupBy(fn($item) => (int) ($item->sesi ?: 1))
+            ->map(function ($items) {
+                $mulai = $items->first()?->waktu_mulai_sesi;
+                return $mulai ? Carbon::parse($mulai)->format('H:i') : null;
+            })
+            ->filter()
+            ->all();
+
+        $modeJadwalkan = request()->query('aksi') === 'jadwalkan';
+
         return view('guru.kelola_ujian.edit', compact(
             'ujian',
             'pengampuKelases',
@@ -808,7 +838,10 @@ class UjianController extends Controller
             'soalData',
             'modeJadwalkan',
             'dataMapel',
-            'modeEditBobot'
+            'modeEditBobot',
+            'sesiKelasAwal',
+            'tokenSesiAwal',
+            'jamSesiAwal'
         ));
     }
 
@@ -845,7 +878,7 @@ class UjianController extends Controller
         if ($ujian->hanyaBisaEditBobot()) {
             $validatedBobot = $request->validate([
                 'soals' => ['required', 'array', 'min:1'],
-                'soals.*.kesulitan' => ['required', 'in:0,1,2,3'],
+                'soals.*.kesulitan' => ['required', 'in:1,2,3'],
                 'soals.*.bobot' => ['required', 'numeric', 'min:0', 'max:100'],
                 'soals.*.urutan' => ['nullable', 'integer', 'min:1'],
             ]);
@@ -998,8 +1031,21 @@ class UjianController extends Controller
         }
 
         $kelasIds = is_array($request->pengampu_kelas_id)
-            ? array_map('intval', $request->pengampu_kelas_id)
+            ? array_values(array_unique(array_map('intval', $request->pengampu_kelas_id)))
             : [(int) $request->pengampu_kelas_id];
+
+        $guruId = auth()->user()?->guru?->id;
+        $validKelasIds = PengampuKelas::whereIn('id', $kelasIds)
+            ->whereHas('guruMapel', fn ($q) => $q->where('guru_id', $guruId))
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if (count($validKelasIds) !== count($kelasIds) || empty($validKelasIds)) {
+            return back()->withInput()->withErrors([
+                'pengampu_kelas_id' => 'Anda tidak memiliki hak akses pada salah satu kelas yang dipilih.',
+            ]);
+        }
 
         DB::transaction(function () use ($request, $validated, $grup, $kelasIds, $status, $ujian) {
             $grupUjianId = $ujian->id_grup_ujian ?: (string) Str::uuid();
@@ -1057,15 +1103,64 @@ class UjianController extends Controller
 
             $existingKelasIds = $grup->pluck('pengampu_kelas_id')->toArray();
 
+            // Ambil pengaturan sesi, token, dan jam sesi dari form edit
+            $sesiInput = $request->input('sesi_kelas', []);
+            $tokenInput = $request->input('token_sesi', []);
+            $jamSesiInput = $request->input('jam_sesi', []);
+            $tokenPerSesi = [];
+            $unlockCodeGrup = $ujian->unlock_code ?: strtoupper(Str::random(6));
+            $waktuMulaiCarbon = !empty($validated['waktu_mulai']) ? Carbon::parse($validated['waktu_mulai']) : null;
+
+            $hitungSesiDanToken = function (int $pengampuId, ?Ujian $existingUjian = null) use (
+                $sesiInput,
+                $tokenInput,
+                $jamSesiInput,
+                &$tokenPerSesi,
+                $waktuMulaiCarbon,
+                $validated
+            ) {
+                $nomorSesi = max(1, (int) ($sesiInput[$pengampuId] ?? ($existingUjian?->sesi ?? 1)));
+
+                if (!isset($tokenPerSesi[$nomorSesi])) {
+                    $tokenForm = strtoupper(trim((string) ($tokenInput[$nomorSesi] ?? '')));
+                    $tokenLama = ($existingUjian && (int) $existingUjian->sesi === $nomorSesi) ? $existingUjian->token : null;
+                    $tokenPerSesi[$nomorSesi] = $tokenForm !== ''
+                        ? Str::limit($tokenForm, 20, '')
+                        : ($tokenLama ?: ('S' . $nomorSesi . '-' . strtoupper(Str::random(4))));
+                }
+
+                $waktuMulaiSesi = null;
+                if ($waktuMulaiCarbon) {
+                    $jamManual = trim((string) ($jamSesiInput[$nomorSesi] ?? ''));
+                    if ($jamManual !== '' && preg_match('/^\d{2}:\d{2}$/', $jamManual)) {
+                        $waktuMulaiSesi = Carbon::parse($waktuMulaiCarbon->format('Y-m-d') . ' ' . $jamManual);
+                    } else {
+                        $waktuMulaiSesi = $waktuMulaiCarbon->copy()->addMinutes(($nomorSesi - 1) * (int) $validated['durasi_menit']);
+                    }
+                }
+
+                return [
+                    'sesi' => $nomorSesi,
+                    'token' => $tokenPerSesi[$nomorSesi],
+                    'waktu_mulai_sesi' => $waktuMulaiSesi,
+                ];
+            };
+
             foreach ($grup as $anggota) {
                 if (in_array($anggota->pengampu_kelas_id, $kelasIds)) {
+                    $infoSesi = $hitungSesiDanToken((int) $anggota->pengampu_kelas_id, $anggota);
+
                     $anggota->update([
                         'id_grup_ujian' => $grupUjianId,
                         'judul' => $validated['judul'],
                         'kisi_kisi' => $validated['kisi_kisi'] ?? null,
+                        'sesi' => $infoSesi['sesi'],
+                        'token' => $infoSesi['token'],
+                        'unlock_code' => $anggota->unlock_code ?: $unlockCodeGrup,
                         'durasi_menit' => $validated['durasi_menit'],
                         'kkm' => (float) $validated['kkm'],
                         'waktu_mulai' => $validated['waktu_mulai'] ?? null,
+                        'waktu_mulai_sesi' => $infoSesi['waktu_mulai_sesi'],
                         'tampilkan_nilai' => $request->boolean('tampilkan_nilai'),
                         'deadline' => $validated['deadline'] ?? null,
                         'status' => $status,
@@ -1079,6 +1174,7 @@ class UjianController extends Controller
                     $usedSoalIds = [];
 
                     foreach ($dataSoals as $idx => $soalItem) {
+                        $soalItem['kesulitan'] = max(1, (int) $soalItem['kesulitan']);
                         $existing = $existingSoals->get($idx);
                         if ($existing) {
                             $existing->update($soalItem);
@@ -1089,7 +1185,6 @@ class UjianController extends Controller
                         }
                     }
 
-                    // Hapus soal berlebih jika jumlah soal dikurangi saat masih draft/scheduled
                     $anggota->soals()->whereNotIn('id', $usedSoalIds)->delete();
                 } else {
                     $anggota->soals()->delete();
@@ -1099,21 +1194,28 @@ class UjianController extends Controller
 
             $newKelasIds = array_diff($kelasIds, $existingKelasIds);
             foreach ($newKelasIds as $newPengampuId) {
+                $infoSesi = $hitungSesiDanToken((int) $newPengampuId, null);
+
                 $baru = Ujian::create([
                     'id_grup_ujian' => $grupUjianId,
                     'judul' => $validated['judul'],
                     'kisi_kisi' => $validated['kisi_kisi'] ?? null,
                     'pengampu_kelas_id' => $newPengampuId,
+                    'sesi' => $infoSesi['sesi'],
+                    'token' => $infoSesi['token'],
+                    'unlock_code' => $unlockCodeGrup,
                     'durasi_menit' => $validated['durasi_menit'],
                     'kkm' => (float) $validated['kkm'],
                     'tampilkan_nilai' => $request->boolean('tampilkan_nilai'),
                     'waktu_mulai' => $validated['waktu_mulai'] ?? null,
+                    'waktu_mulai_sesi' => $infoSesi['waktu_mulai_sesi'],
                     'deadline' => $validated['deadline'] ?? null,
                     'status' => $status,
                     'dipublikasi_at' => $status === 'published' ? now() : null,
                 ]);
 
                 foreach ($dataSoals as $soalItem) {
+                    $soalItem['kesulitan'] = max(1, (int) $soalItem['kesulitan']);
                     $baru->soals()->create($soalItem);
                 }
             }
@@ -1451,9 +1553,11 @@ class UjianController extends Controller
             }
         });
 
-        // Hapus file gambar jika transaksi database berhasil.
+        // Hapus file gambar hanya jika tidak lagi dipakai oleh soal duplikat/remidi lain.
         foreach ($gambarSoal as $gambar) {
-            Storage::disk('public')->delete($gambar);
+            if (!Soal::where('gambar', $gambar)->exists()) {
+                Storage::disk('public')->delete($gambar);
+            }
         }
 
         return redirect()
@@ -1467,6 +1571,9 @@ class UjianController extends Controller
     public function monitoring(Ujian $ujian)
     {
         $this->authorizeGuruUjian($ujian);
+
+        $ujian->sinkronisasiStatus();
+        $isSelesai = $ujian->status === 'completed';
 
         $ujian->load([
             'pengampuKelas.guruMapel.mapel',
@@ -1523,7 +1630,7 @@ class UjianController extends Controller
 
         $totalSoal = $ujian->soals->count();
 
-        return view('guru.kelola_ujian.monitoring', compact('ujian', 'totalSoal', 'grupUjians', 'daftarSesi', 'unlockCode'));
+        return view('guru.kelola_ujian.monitoring', compact('ujian', 'totalSoal', 'grupUjians', 'daftarSesi', 'unlockCode', 'isSelesai'));
     }
 
     /**
@@ -1559,7 +1666,7 @@ class UjianController extends Controller
             $user = $siswa?->user;
 
             $nama = $user->name ?? $siswa?->nama_lengkap ?? $siswa?->nama ?? ('Siswa #' . $sesi->siswa_id);
-            $nisn = $siswa?->nisn ?? $user?->username ?? '-';
+            $nisn = $siswa?->nis ?? $siswa?->nisn ?? $user?->username ?? '-';
             $namaKelas = $ujianSiswa?->pengampuKelas?->kelas?->nama_kelas ?? '-';
             $nomorSesi = $ujianSiswa?->sesi ?? 1;
 
@@ -1591,6 +1698,7 @@ class UjianController extends Controller
             return [
                 'seleksi_id' => $sesi->id,
                 'ujian_id' => $sesi->ujian_id,
+                'siswa_id' => $sesi->siswa_id,
                 'nama' => $nama,
                 'nisn' => $nisn,
                 'kelas' => $namaKelas,
@@ -1601,6 +1709,8 @@ class UjianController extends Controller
                 'progres_persen' => $progresPersen,
                 'sisa_detik' => (int) floor($sisaDetik),
                 'total_pelanggaran' => (int) ($sesi->pelanggaran_count ?? 0),
+                'nilai_akhir' => $sudahSelesai ? round((float) $sesi->nilai_akhir, 2) : null,
+                'waktu_selesai' => $sesi->waktu_selesai ? Carbon::parse($sesi->waktu_selesai)->format('d M Y, H:i') : null,
             ];
         });
 
@@ -1610,6 +1720,7 @@ class UjianController extends Controller
             'selesai' => $pesertaList->where('status', 'selesai')->count(),
             'terkunci' => $pesertaList->where('status', 'terkunci')->count(),
             'pelanggaran' => $pesertaList->where('total_pelanggaran', '>', 0)->count(),
+            'total_kejadian_pelanggaran' => (int) $pesertaList->sum('total_pelanggaran'),
         ];
 
         return response()->json([
@@ -1619,18 +1730,27 @@ class UjianController extends Controller
     }
 
     /**
-     * Membuka kunci sesi siswa yang terblokir browser/perangkat.
+     * Membuka kunci sesi siswa yang terblokir browser/perangkat
+     * TANPA mereset total pelanggaran_count.
      */
     public function unlockPeserta(Ujian $ujian, SeleksiUjian $seleksi)
     {
         $this->authorizeGuruUjian($ujian);
 
+        $ujianIds = $ujian->id_grup_ujian
+            ? Ujian::where('id_grup_ujian', $ujian->id_grup_ujian)->pluck('id')->map(fn ($id) => (int) $id)->all()
+            : [(int) $ujian->id];
+        abort_unless(in_array((int) $seleksi->ujian_id, $ujianIds, true), 403, 'Sesi peserta tidak termasuk dalam ujian ini.');
+
         $seleksi->update([
             'status' => 'sedang_mengerjakan',
-            'pelanggaran_count' => 0,
         ]);
 
-        return response()->json(['status' => 'success', 'message' => 'Sesi siswa berhasil dibuka kembali.']);
+        return response()->json([
+            'status'            => 'success',
+            'pelanggaran_count' => (int) ($seleksi->pelanggaran_count ?? 0),
+            'message'           => 'Sesi siswa berhasil dibuka kembali. Riwayat pelanggaran tetap tercatat.',
+        ]);
     }
 
     /**
@@ -1643,13 +1763,19 @@ class UjianController extends Controller
         // Ambil data sesi (baik jika terkirim sebagai ID maupun Model Binding)
         $seleksi = $seleksi instanceof SeleksiUjian ? $seleksi : SeleksiUjian::findOrFail($seleksi);
 
+        $ujianIds = $ujian->id_grup_ujian
+            ? Ujian::where('id_grup_ujian', $ujian->id_grup_ujian)->pluck('id')->map(fn ($id) => (int) $id)->all()
+            : [(int) $ujian->id];
+        abort_unless(in_array((int) $seleksi->ujian_id, $ujianIds, true), 403, 'Sesi peserta tidak termasuk dalam ujian ini.');
+
         if ($seleksi->status === 'selesai') {
             return response()->json(['status' => 'success', 'message' => 'Ujian siswa sudah selesai.'], 200);
         }
 
-        return DB::transaction(function () use ($ujian, $seleksi) {
+        return DB::transaction(function () use ($seleksi) {
             $siswaId = $seleksi->siswa_id;
-            $soals = $ujian->soals;
+            $ujianPeserta = Ujian::with('soals')->findOrFail($seleksi->ujian_id);
+            $soals = $ujianPeserta->soals;
             $soalIds = $soals->pluck('id');
 
             $jawabanSiswa = Menjawab::where('siswa_id', $siswaId)
@@ -1762,14 +1888,13 @@ class UjianController extends Controller
             // 1. Hapus rekap nilai sementara agar status "Selesai" di dashboard siswa hilang
             Nilai::where('seleksi_ujian_id', $seleksi->id)->delete();
 
-            // 2. Kembalikan status seleksi_ujians ke sedang_mengerjakan
-            // CATATAN: Data di tabel `menjawabs` TIDAK dihapus sehingga seluruh progres jawaban tetap utuh.
+            // 2. Kembalikan status ke sedang_mengerjakan TANPA mereset pelanggaran_count
+            // Data di tabel `menjawabs` juga tetap dipertahankan.
             $seleksi->update([
-                'status' => 'sedang_mengerjakan',
+                'status'        => 'sedang_mengerjakan',
                 'waktu_selesai' => null,
-                'nilai_awal' => 0,
-                'nilai_akhir' => 0,
-                'pelanggaran_count' => 0,
+                'nilai_awal'    => 0,
+                'nilai_akhir'   => 0,
             ]);
         });
 
@@ -2018,7 +2143,7 @@ class UjianController extends Controller
                 'ujian_id' => $ujianSiswa?->id ?? $ujian->id,
                 'seleksi_id' => $sesi?->id,
                 'nama' => $siswa->user->name ?? $siswa->nama_lengkap ?? $siswa->nama ?? ('Siswa #' . $siswa->id),
-                'nisn' => $siswa->nisn ?? '-',
+                'nisn' => $siswa->nis ?? $siswa->nisn ?? $siswa->user?->username ?? '-',
                 'kelas' => $namaKelasSiswa, // [UBAHAN 3] Pakai variabel $namaKelasSiswa
                 'sudah_selesai' => $sudahSelesai,
                 'pg_benar' => $pgBenar,
@@ -2213,7 +2338,7 @@ class UjianController extends Controller
                 })
                 ->get()
                 ->unique('id')
-                ->sortBy(fn($s) => strtolower($s->user->name ?? $s->nama_lengkap ?? $s->nama ?? ''))
+                ->sortBy(fn($s) => strtolower($s->user->name ?? $s->nama_siswa ?? ''))
                 ->values();
 
             // Fallback: jika di anggota_kelases belum ada yang cocok dengan semester tsb, tarik berdasarkan kelas_id saja
@@ -2225,7 +2350,7 @@ class UjianController extends Controller
                     })
                     ->get()
                     ->unique('id')
-                    ->sortBy(fn($s) => strtolower($s->user->name ?? $s->nama_lengkap ?? $s->nama ?? ''))
+                    ->sortBy(fn($s) => strtolower($s->user->name ?? $s->nama_siswa ?? ''))
                     ->values();
             }
 
@@ -2341,7 +2466,7 @@ class UjianController extends Controller
                 return [
                     'siswa_id' => $siswa->id,
                     'nama' => $siswa->user->name ?? $siswa->nama_lengkap ?? $siswa->nama ?? ('Siswa #' . $siswa->id),
-                    'nisn' => $siswa->nisn ?? '-',
+                    'nisn' => $siswa->nis ?? $siswa->nisn ?? $siswa->user?->username ?? '-',
                     'nilai_per_ujian' => $nilaiPerUjian,
                     'rata_rata' => $rataRata,
                 ];
@@ -2420,7 +2545,7 @@ class UjianController extends Controller
                     return [
                         'siswa_id' => $siswa->id,
                         'nama' => $siswa->user->name ?? $siswa->nama_lengkap ?? $siswa->nama ?? ('Siswa #' . $siswa->id),
-                        'nisn' => $siswa->nisn ?? '-',
+                        'nisn' => $siswa->nis ?? $siswa->nisn ?? $siswa->user?->username ?? '-',
                         'sudah_selesai' => $sudahSelesai,
                         'pg_benar' => $pgBenar,
                         'pg_salah' => $pgSalah,
@@ -2516,7 +2641,7 @@ class UjianController extends Controller
                     'siswa_id' => $sesi->siswa_id,
                     'ujian_id' => $sesi->ujian_id,
                     'soal_id' => $soalKelasIni->id,
-                    'nama' => $siswa?->user?->name ?? $siswa?->nama_lengkap ?? ('Siswa #' . $sesi->siswa_id),
+                    'nama' => $siswa?->user?->name ?? $siswa?->nama_siswa ?? ('Siswa #' . $sesi->siswa_id),
                     'kelas' => $siswa?->anggotaKelases?->last()?->kelas?->nama_kelas ?? '-',
                     'jawaban_teks' => $jawab?->jawaban_dipilih ?? '',
                     'skor' => $jawab && !is_null($jawab->skor_essay) ? (float) $jawab->skor_essay : '',
@@ -2557,6 +2682,11 @@ class UjianController extends Controller
             'skor' => 'required|numeric|min:0',
             'catatan_guru' => 'nullable|string|max:500',
         ]);
+
+        $ujianIds = $ujian->id_grup_ujian
+            ? Ujian::where('id_grup_ujian', $ujian->id_grup_ujian)->pluck('id')->map(fn ($id) => (int) $id)->all()
+            : [(int) $ujian->id];
+        abort_unless(in_array((int) $validated['ujian_id'], $ujianIds, true), 403, 'Ujian tidak termasuk dalam grup ujian Anda.');
 
         $soal = Soal::where('ujian_id', $validated['ujian_id'])->findOrFail($validated['soal_id']);
         $bobotMaks = (float) ($soal->bobot ?? 100);
@@ -2661,21 +2791,29 @@ class UjianController extends Controller
 
         $siswaList = Siswa::with('anggotaKelases')->whereIn('id', $siswaIdsTerpilih)->get();
 
-        // Kelompokkan siswa terpilih berdasarkan kelas ujian induk masing-masing
+        // Kelompokkan siswa terpilih berdasarkan kelas ujian induk masing-masing (tolak siswa luar kelas ujian)
         $pesertaPerUjianInduk = [];
         foreach ($siswaList as $siswa) {
             $sesiInduk = $sesiIndukMap->get($siswa->id);
             if ($sesiInduk) {
                 $targetUjianInduk = $grupUjians->firstWhere('id', $sesiInduk->ujian_id);
             } else {
-                $kelasSiswaId = $siswa->anggotaKelases->last()?->kelas_id;
-                $targetUjianInduk = $grupUjians->firstWhere('pengampuKelas.kelas_id', $kelasSiswaId) ?? $grupUjians->first();
+                $kelasSiswaIds = $siswa->anggotaKelases->pluck('kelas_id')->filter()->map(fn ($id) => (int) $id)->all();
+                $targetUjianInduk = $grupUjians->first(
+                    fn ($u) => in_array((int) $u->pengampuKelas?->kelas_id, $kelasSiswaIds, true)
+                );
             }
 
             if ($targetUjianInduk) {
                 $pesertaPerUjianInduk[$targetUjianInduk->id]['ujian'] = $targetUjianInduk;
                 $pesertaPerUjianInduk[$targetUjianInduk->id]['siswa_ids'][] = $siswa->id;
             }
+        }
+
+        if (empty($pesertaPerUjianInduk)) {
+            return back()->withInput()->withErrors([
+                'siswa_ids' => 'Tidak ada siswa valid dari kelas peserta ujian ini.',
+            ]);
         }
 
         $ujianBaruPertama = null;
