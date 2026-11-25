@@ -30,6 +30,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Auth & Identity
     Route::get('/user', [AuthController::class, 'me']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::get('/auth/check', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Berkas Privat Terautentikasi (Materi, Lampiran Tugas, Jawaban Siswa)

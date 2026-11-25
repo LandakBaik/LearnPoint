@@ -39,11 +39,17 @@ class AuthController extends Controller
         }
 
         $deviceName = $request->input('device_name', 'Mobile App');
+
+        // Hapus token sebelumnya agar hanya satu sesi mobile yang aktif per akun
+        $revokedTokensCount = $user->tokens()->delete();
+
         $token = $user->createToken($deviceName)->plainTextToken;
 
         return $this->successResponse([
             'token' => $token,
             'token_type' => 'Bearer',
+            'device_name' => $deviceName,
+            'previous_session_revoked' => $revokedTokensCount > 0,
             'user'  => [
                 'id'       => $user->id,
                 'name'     => $user->name,
@@ -58,7 +64,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Get authenticated user profile.
+     * Get authenticated user profile & verify active session.
      */
     public function me(Request $request)
     {
@@ -73,7 +79,12 @@ class AuthController extends Controller
             return $this->forbiddenResponse('Akun Anda saat ini berstatus NONAKTIF. Silakan hubungi pihak administrator/sekolah.');
         }
 
+        $currentToken = method_exists($user, 'currentAccessToken') ? $user->currentAccessToken() : null;
+        $deviceName = $currentToken instanceof \Laravel\Sanctum\PersonalAccessToken ? $currentToken->name : null;
+
         return $this->successResponse([
+            'authenticated' => true,
+            'device_name'   => $deviceName,
             'user' => [
                 'id'       => $user->id,
                 'name'     => $user->name,

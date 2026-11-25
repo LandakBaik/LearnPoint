@@ -42,6 +42,11 @@ class LoginController extends Controller
 
             $request->session()->regenerate();
 
+            // Simpan session ID aktif terbaru agar sesi di perangkat sebelumnya menjadi tidak valid
+            $user->forceFill([
+                'current_session_id' => $request->session()->getId(),
+            ])->save();
+
             return redirect()->intended('/dashboard');
         }
 
@@ -54,12 +59,21 @@ class LoginController extends Controller
     // Logout
     public function logout(Request $request)
     {
+        $user = Auth::user();
+        $currentSessionId = $request->session()->getId();
+
+        if ($user && $user->current_session_id === $currentSessionId) {
+            $user->forceFill([
+                'current_session_id' => null,
+            ])->save();
+        }
+
         Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/login');
+        return redirect()->route('login');
     }
 }
 ?>
