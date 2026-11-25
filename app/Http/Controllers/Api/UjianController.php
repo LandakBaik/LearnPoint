@@ -952,11 +952,13 @@ class UjianController extends Controller
         }
 
         $seleksi->update([
-            'status'            => 'sedang_mengerjakan',
-            'pelanggaran_count' => 0,
+            'status' => 'sedang_mengerjakan',
         ]);
 
-        return $this->successResponse($seleksi, 'Sesi siswa berhasil dibuka kembali.');
+        return $this->successResponse(
+            $seleksi->fresh(),
+            'Sesi siswa berhasil dibuka kembali. Riwayat pelanggaran tetap tercatat.'
+        );
     }
 
     /**
@@ -2548,11 +2550,10 @@ class UjianController extends Controller
         }
 
         $sesi->update([
-            'status'            => 'sedang_mengerjakan',
-            'pelanggaran_count' => 0,
+            'status' => 'sedang_mengerjakan',
         ]);
 
-        return $this->successResponse($sesi, 'Blokir berhasil dibuka. Silakan lanjutkan pengerjaan ujian.');
+        return $this->successResponse($sesi->fresh(), 'Blokir berhasil dibuka. Silakan lanjutkan pengerjaan ujian.');
     }
 
     /**
