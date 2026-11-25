@@ -15,22 +15,6 @@
             </a>
         </div>
 
-        @if (isset($errors) && $errors->any())
-            <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm shadow-2xs">
-                <div class="font-bold flex items-center gap-2">
-                    <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span>Mohon periksa kembali form berikut:</span>
-                </div>
-                <ul class="list-disc list-inside mt-2 text-xs space-y-1">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
         <form action="{{ route('profile.update') }}" method="POST" class="bg-white p-6 sm:p-10 rounded-3xl border border-slate-200/80 shadow-sm space-y-8">
             @csrf
             @method('PUT')
@@ -196,20 +180,6 @@
                 Kembali
             </a>
         </div>
-
-        @if (isset($errors) && $errors->any())
-            <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm">
-                <div class="font-bold flex items-center gap-2">
-                    <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <span>Mohon periksa kembali form berikut:</span>
-                </div>
-                <ul class="list-disc list-inside mt-2 text-xs space-y-1">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
 
         <form action="{{ route('profile.update') }}" method="POST" class="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm space-y-6">
             @csrf

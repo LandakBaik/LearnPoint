@@ -101,31 +101,6 @@
         </div>
     </div>
 
-    {{-- NOTIFIKASI --}}
-    @if (session('success'))
-    <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-        {{ session('success') }}
-    </div>
-    @endif
-
-    @if (session('error'))
-    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
-        {{ session('error') }}
-    </div>
-    @endif
-
-    @if ($errors->any())
-    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-        <p class="font-bold">Terjadi kesalahan validasi:</p>
-        <ul class="mt-1 list-disc pl-5 text-xs">
-            @foreach ($errors->all() as $error)
-            <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
-    @endif
-
-
     {{-- RINGKASAN --}}
     <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
 

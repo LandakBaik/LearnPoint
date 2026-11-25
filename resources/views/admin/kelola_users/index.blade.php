@@ -70,43 +70,15 @@
         </div>
     </div>
 
-    <!-- Feedback Alerts -->
-    @if(session('success'))
-        <div class="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-3 shadow-2xs">
-            <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            </div>
-            <div class="flex-1">
-                <p class="font-bold">{{ session('success') }}</p>
-                @if(session('import_errors') && count(session('import_errors')) > 0)
-                    <div class="mt-2 text-xs text-rose-700 space-y-1 bg-white/70 p-2.5 rounded-xl border border-rose-200">
-                        <p class="font-bold">Catatan baris yang dilewati:</p>
-                        <ul class="list-disc pl-4 space-y-0.5">
-                            @foreach(session('import_errors') as $err)
-                                <li>{{ $err }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-            </div>
-        </div>
-    @endif
-
-    @if(session('warning'))
-        <div class="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-800 text-sm flex items-center gap-3 shadow-2xs">
-            <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-            </div>
-            <span>{{ session('warning') }}</span>
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="p-4 rounded-2xl bg-rose-50/80 border border-rose-200 text-rose-800 text-sm flex items-center gap-3 shadow-2xs">
-            <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </div>
-            <span>{{ session('error') }}</span>
+    <!-- Import Row Skip Log -->
+    @if(session('import_errors') && count(session('import_errors')) > 0)
+        <div class="p-4 rounded-2xl bg-rose-50/80 border border-rose-200 text-rose-800 text-xs space-y-1 shadow-2xs">
+            <p class="font-bold">Catatan baris yang dilewati saat impor:</p>
+            <ul class="list-disc pl-4 space-y-0.5">
+                @foreach(session('import_errors') as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
         </div>
     @endif
 

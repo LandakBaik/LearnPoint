@@ -87,23 +87,6 @@
         $persentaseBenar = $totalSoal > 0 ? round(($totalBenar / $totalSoal) * 100, 1) : 0;
     @endphp
 
-    {{-- Flash Alert Messages --}}
-    @if(session('success'))
-        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-between gap-3 shadow-xs no-print">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 text-sm font-bold shadow-xs">
-                    <i class="fa-solid fa-circle-check"></i>
-                </div>
-                <p class="text-xs sm:text-sm font-bold text-emerald-900 leading-snug">
-                    {{ session('success') }}
-                </p>
-            </div>
-            <button type="button" @click="$el.closest('div').remove()" class="text-emerald-500 hover:text-emerald-700 p-1">
-                <i class="fa-solid fa-xmark text-sm"></i>
-            </button>
-        </div>
-    @endif
-
     {{-- 2. HERO CELEBRATION CARD: HASIL GABUNGAN PETUALANGAN --}}
     <div class="relative overflow-hidden rounded-[32px] bg-white border border-slate-200/90 shadow-sm p-6 sm:p-8 md:p-10 text-center space-y-6 print-shadow-none">
         {{-- Background Aura Glow --}}

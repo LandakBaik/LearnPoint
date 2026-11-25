@@ -46,30 +46,6 @@
         </div>
     </div>
 
-    <!-- Alerts -->
-    @if(session('success'))
-        <div class="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-emerald-800 text-xs sm:text-sm flex items-center gap-3 shadow-2xs">
-            <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            </div>
-            <span class="font-bold">{{ session('success') }}</span>
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="p-4 rounded-2xl bg-rose-50/80 border border-rose-200 text-rose-800 text-xs sm:text-sm font-bold shadow-2xs">
-            {{ session('error') }}
-        </div>
-    @endif
-    @if($errors->any())
-        <div class="p-4 rounded-2xl bg-rose-50/80 border border-rose-200 text-rose-800 text-xs shadow-2xs">
-            <ul class="list-disc pl-5 space-y-1">
-                @foreach($errors->all() as $err)
-                    <li>{{ $err }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
     <!-- 4 Highlight Stat Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all">

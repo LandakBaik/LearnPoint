@@ -128,21 +128,6 @@
             </div>
         </section>
 
-        {{-- Notifikasi --}}
-        @if(session('success'))
-            <div class="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
-                <i class="fas fa-check-circle"></i>
-                {{ session('success') }}
-            </div>
-        @endif
-
-        @if(session('error'))
-            <div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800">
-                <i class="fas fa-exclamation-circle"></i>
-                {{ session('error') }}
-            </div>
-        @endif
-
         {{-- Ringkasan pengumpulan --}}
         <section>
             <div class="mb-3">

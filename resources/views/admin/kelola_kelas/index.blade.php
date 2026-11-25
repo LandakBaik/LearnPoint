@@ -70,16 +70,6 @@
         </div>
     </div>
 
-    <!-- Feedback Alerts -->
-    @if(session('success'))
-        <div class="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-3 shadow-2xs">
-            <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            </div>
-            <span class="font-bold">{{ session('success') }}</span>
-        </div>
-    @endif
-
     <!-- Filter & Search Card -->
     <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
         <form method="GET" action="{{ route('kelas.index') }}" class="grid grid-cols-1 sm:grid-cols-12 gap-3">

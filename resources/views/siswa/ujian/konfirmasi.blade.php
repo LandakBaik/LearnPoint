@@ -53,14 +53,6 @@
             </ul>
         </div>
 
-        {{-- Alert Error Validasi Token / Jadwal --}}
-        @if(session('error'))
-            <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2.5">
-                <span class="text-base">🚫</span>
-                <span>{{ session('error') }}</span>
-            </div>
-        @endif
-
         {{-- Form Input Token --}}
         <form action="{{ route('siswa.ujian.validasi-token', $ujian->id) }}" method="POST" class="space-y-4">
             @csrf

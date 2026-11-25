@@ -18,16 +18,6 @@
         </div>
     </div>
 
-    <!-- Alert Messages -->
-    @if(session('error'))
-        <div class="p-4 rounded-2xl bg-rose-50/80 border border-rose-200 text-rose-800 text-xs flex items-center gap-3 shadow-2xs">
-            <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </div>
-            <span>{{ session('error') }}</span>
-        </div>
-    @endif
-
     <!-- FORM INPUT MANUAL -->
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-6 sm:p-8">
         <form action="{{ route('users.store') }}" method="POST" class="space-y-6">

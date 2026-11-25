@@ -51,39 +51,6 @@
         </a>
     </div>
 
-    {{-- Alert Flash Messages --}}
-    @if(session('success'))
-        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-between gap-3 shadow-xs">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 text-sm font-bold shadow-xs">
-                    <i class="fa-solid fa-check"></i>
-                </div>
-                <p class="text-xs sm:text-sm font-bold text-emerald-900 leading-snug">
-                    {{ session('success') }}
-                </p>
-            </div>
-            <button type="button" @click="$el.closest('div').remove()" class="text-emerald-500 hover:text-emerald-700 p-1">
-                <i class="fa-solid fa-xmark text-sm"></i>
-            </button>
-        </div>
-    @endif
-
-    @if(session('warning') || session('error'))
-        <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center justify-between gap-3 shadow-xs">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 text-sm font-bold shadow-xs">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
-                <p class="text-xs sm:text-sm font-bold text-amber-900 leading-snug">
-                    {{ session('warning') ?? session('error') }}
-                </p>
-            </div>
-            <button type="button" @click="$el.closest('div').remove()" class="text-amber-500 hover:text-amber-700 p-1">
-                <i class="fa-solid fa-xmark text-sm"></i>
-            </button>
-        </div>
-    @endif
-
     {{-- 2. TOP BANNER CARD --}}
     <div class="bg-[#EFF5FF] border border-[#DCE9FE] rounded-3xl p-6 sm:p-7 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xs">
         {{-- Sisi Kiri: Icon + Judul + Deskripsi --}}

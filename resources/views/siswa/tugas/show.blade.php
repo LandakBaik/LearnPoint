@@ -38,30 +38,7 @@ $fileTerkirimExt = $fileTerkirim
         </a>
     </nav>
 
-    {{-- 2. Notifikasi Berhasil --}}
-    @if(session('success'))
-    <div class="max-w-3xl mx-auto w-full px-4 sm:px-0">
-        <div class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs font-semibold">
-            <i class="fa-solid fa-circle-check mr-1.5"></i>
-            {{ session('success') }}
-        </div>
-    </div>
-    @endif
-
-    {{-- 3. Notifikasi Error --}}
-    @if($errors->any())
-    <div class="max-w-3xl mx-auto w-full px-4 sm:px-0">
-        <div class="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs">
-            <p class="font-bold mb-1">Pengumpulan gagal.</p>
-
-            @foreach($errors->all() as $error)
-            <p>{{ $error }}</p>
-            @endforeach
-        </div>
-    </div>
-    @endif
-
-    {{-- 4. Konten Utama --}}
+    {{-- 2. Konten Utama --}}
     <div class="max-w-3xl mx-auto w-full px-4 sm:px-0 space-y-5">
 
         {{-- 5. Card Informasi Tugas --}}

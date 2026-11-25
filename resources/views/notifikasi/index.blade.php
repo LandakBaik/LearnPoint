@@ -17,18 +17,6 @@
         </div>
     @endif
 
-    <!-- Alert Flash Message -->
-    @if(session('success'))
-        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold flex items-center justify-between shadow-2xs">
-            <div class="flex items-center gap-2.5">
-                <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <span>{{ session('success') }}</span>
-            </div>
-        </div>
-    @endif
-
     <!-- BEGIN: Hero Banner -->
     <section class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white p-7 sm:p-9 shadow-md">
         <!-- Ambient Background Circles -->

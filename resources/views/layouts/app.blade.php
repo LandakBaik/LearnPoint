@@ -182,66 +182,6 @@
 
         <!-- Main Body -->
         <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#F8FAFC]">
-            <!-- Flash Message Warning / Success / CSV Errors / Validation Errors -->
-            @if(session('csv_errors'))
-                <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 shadow-xs">
-                    <div class="flex items-center gap-2 mb-2 font-bold text-rose-900 text-sm">
-                        <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span>{{ session('error') ?? 'Import CSV Dibatalkan' }}</span>
-                    </div>
-                    <ul class="list-disc list-inside text-xs font-mono space-y-1 text-rose-700 max-h-48 overflow-y-auto pl-1">
-                        @foreach(session('csv_errors') as $err)
-                            <li>{{ $err }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @elseif(isset($errors) && $errors->any())
-                <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 shadow-xs">
-                    <div class="flex items-center gap-2.5 mb-2 font-bold text-rose-900 text-sm">
-                        <div class="w-7 h-7 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
-                            <i class="fa-solid fa-triangle-exclamation text-xs"></i>
-                        </div>
-                        <span>Gagal Menyimpan Data (Terdapat {{ $errors->count() }} Kesalahan Input):</span>
-                    </div>
-                    <ul class="list-disc list-inside text-xs space-y-1 text-rose-700 pl-2">
-                        @foreach($errors->all() as $err)
-                            <li>{{ $err }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @elseif(session('error'))
-                <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start justify-between shadow-xs">
-                    <div class="flex items-center gap-3">
-                        <div class="w-7 h-7 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
-                            <i class="fa-solid fa-circle-xmark text-sm"></i>
-                        </div>
-                        <span class="text-sm font-semibold">{{ session('error') }}</span>
-                    </div>
-                </div>
-            @endif
-
-            @if(session('warning'))
-                <div class="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start justify-between shadow-xs">
-                    <div class="flex items-center gap-3">
-                        <div class="w-7 h-7 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-                            <i class="fa-solid fa-triangle-exclamation text-xs"></i>
-                        </div>
-                        <span class="text-sm font-semibold">{{ session('warning') }}</span>
-                    </div>
-                </div>
-            @endif
-
-            @if(session('success'))
-            <div class="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start justify-between shadow-xs">
-                <div class="flex items-center gap-3">
-                    <div class="w-7 h-7 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-                        <i class="fa-solid fa-circle-check text-sm"></i>
-                    </div>
-                    <span class="text-sm font-semibold">{{ session('success') }}</span>
-                </div>
-            </div>
-            @endif
-
             @yield('content')
         </main>
     </div>
@@ -314,15 +254,6 @@
                     title: 'Peringatan',
                     text: {!! json_encode(session('warning')) !!},
                     confirmButtonColor: '#f59e0b'
-                });
-            @endif
-
-            @if(isset($errors) && $errors->any() && !session('error') && !session('csv_errors'))
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Validasi Formulir Gagal',
-                    text: {!! json_encode($errors->first()) !!},
-                    confirmButtonColor: '#ef4444'
                 });
             @endif
  

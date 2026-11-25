@@ -13,40 +13,6 @@
 })">
 
     {{-- =========================================================
-        NOTIFIKASI VALIDASI SERVER (Khusus $errors dari withErrors)
-    ========================================================== --}}
-    @if ($errors->any())
-        <div x-data="{ tampil: true }" x-show="tampil" x-transition
-            class="flex items-start justify-between gap-3 px-5 py-3.5 rounded-2xl bg-rose-50 border border-rose-200/80 text-rose-800 text-xs sm:text-sm shadow-xs">
-            <div class="flex items-start gap-2.5">
-                <svg class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <div class="space-y-1">
-                    @if ($errors->count() === 1)
-                        <p class="font-medium leading-relaxed">{{ $errors->first() }}</p>
-                    @else
-                        <p class="font-semibold">Terdapat beberapa kesalahan validasi:</p>
-                        <ul class="list-disc list-inside text-xs space-y-0.5 text-rose-700">
-                            @foreach ($errors->all() as $err)
-                                <li>{{ $err }}</li>
-                            @endforeach
-                        </ul>
-                    @endif
-                </div>
-            </div>
-            <button type="button" @click="tampil = false"
-                class="text-rose-500 hover:text-rose-700 p-0.5 rounded-lg transition cursor-pointer">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-    @endif
-
-    {{-- =========================================================
         HEADER HALAMAN
     ========================================================== --}}
     <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-4">

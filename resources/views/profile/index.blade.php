@@ -28,17 +28,6 @@
             </a>
         </div>
 
-        @if (session('success'))
-            <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium flex items-center justify-between shadow-2xs">
-                <div class="flex items-center gap-2.5">
-                    <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span>{{ session('success') }}</span>
-                </div>
-            </div>
-        @endif
-
         <!-- BEGIN: ProfileHeroBanner -->
         <section class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#EBF4FF] via-[#EDF6FF] to-[#DCEEFE] p-7 md:p-9 border border-blue-100 shadow-sm">
             <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -235,15 +224,6 @@
             <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Profil Saya</h1>
             <p class="text-sm text-gray-500 mt-1">Kelola dan lihat informasi pribadi Anda.</p>
         </div>
-
-        @if (session('success'))
-            <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <span>{{ session('success') }}</span>
-                </div>
-            </div>
-        @endif
 
         @php
             $nuptkGuru = $user->nuptk ?? $user->guru?->nuptk ?? ($user->isGuru() ? $user->username : null);

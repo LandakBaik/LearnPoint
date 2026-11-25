@@ -75,25 +75,6 @@
         </div>
     </div>
 
-    <!-- Alert Messages -->
-    @if(session('success'))
-        <div class="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-3 shadow-2xs">
-            <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            </div>
-            <span class="font-bold">{{ session('success') }}</span>
-        </div>
-    @endif
-    @if(isset($errors) && $errors->any())
-        <div class="p-4 rounded-2xl bg-rose-50/80 border border-rose-200 text-rose-800 text-xs shadow-2xs">
-            <ul class="list-disc pl-5 space-y-1">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
     <!-- 3 Highlight Metric Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <!-- Wali Kelas Info -->

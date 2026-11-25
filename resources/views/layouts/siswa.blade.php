@@ -159,47 +159,6 @@
 
     <!-- BEGIN: MainContent -->
     <main class="max-w-[1440px] w-full mx-auto px-6 lg:px-12 py-7 space-y-6 flex-1">
-        @if(isset($errors) && $errors->any())
-            <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 shadow-xs">
-                <div class="flex items-center gap-2.5 mb-2 font-bold text-rose-900 text-sm">
-                    <div class="w-7 h-7 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
-                        <i class="fa-solid fa-triangle-exclamation text-xs"></i>
-                    </div>
-                    <span>Terdapat Kesalahan Input:</span>
-                </div>
-                <ul class="list-disc list-inside text-xs space-y-1 text-rose-700 pl-2">
-                    @foreach($errors->all() as $err)
-                        <li>{{ $err }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @elseif(session('error'))
-            <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-3 shadow-xs">
-                <div class="w-7 h-7 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
-                    <i class="fa-solid fa-circle-xmark text-sm"></i>
-                </div>
-                <span class="text-sm font-semibold">{{ session('error') }}</span>
-            </div>
-        @endif
-
-        @if(session('warning'))
-            <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start gap-3 shadow-xs">
-                <div class="w-7 h-7 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-                    <i class="fa-solid fa-triangle-exclamation text-xs"></i>
-                </div>
-                <span class="text-sm font-semibold">{{ session('warning') }}</span>
-            </div>
-        @endif
-
-        @if(session('success'))
-            <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start gap-3 shadow-xs">
-                <div class="w-7 h-7 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-                    <i class="fa-solid fa-circle-check text-sm"></i>
-                </div>
-                <span class="text-sm font-semibold">{{ session('success') }}</span>
-            </div>
-        @endif
-
         @yield('content')
     </main>
     <!-- END: MainContent -->

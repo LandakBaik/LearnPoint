@@ -313,24 +313,8 @@
         </div>
 
         {{-- =========================================================
-            VALIDATION ERRORS & MULTI-CLASS SYNC INFO
+            MULTI-CLASS SYNC INFO
         ========================================================== --}}
-        @if ($errors->any())
-            <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-sm shadow-xs">
-                <div class="font-bold flex items-center gap-2">
-                    <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span>Terjadi kesalahan validasi:</span>
-                </div>
-                <ul class="mt-1.5 list-disc list-inside text-xs text-rose-800 space-y-0.5">
-                    @foreach ($errors->all() as $err)
-                        <li>{{ $err }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
         @if(isset($groupQuizzes) && $groupQuizzes->count() > 1)
             <div class="p-4 rounded-2xl bg-indigo-50/80 border border-indigo-200 text-indigo-900 text-xs flex items-start gap-3 shadow-xs">
                 <svg class="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
