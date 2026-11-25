@@ -147,6 +147,7 @@ class QuizController extends Controller
             'judul'                => $quiz->judul,
             'deskripsi'            => $quiz->deskripsi,
             'status'               => $quiz->status,
+            'asset'                => (int) ($quiz->asset ?? 0),
             'kesulitan_aktif'      => $activeDifficulties,
             'waktu_mulai'          => $quiz->waktu_mulai?->format('Y-m-d H:i:s'),
             'waktu_selesai'        => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
@@ -182,6 +183,7 @@ class QuizController extends Controller
             'waktu_selesai'        => ['nullable', 'date', 'after:waktu_mulai'],
             'acak_jawaban'         => ['nullable', 'boolean'],
             'status'               => ['nullable', 'string', 'in:draft,published'],
+            'asset'                => ['nullable', 'integer', 'min:0', 'max:255'],
         ]);
 
         if ($validator->fails()) {
@@ -224,6 +226,7 @@ class QuizController extends Controller
                 'waktu_selesai'     => $validated['waktu_selesai'] ?? null,
                 'acak_jawaban'      => $request->boolean('acak_jawaban'),
                 'status'            => $validated['status'] ?? 'draft',
+                'asset'             => (int) ($validated['asset'] ?? 0),
                 'level'             => 'Level 1',
                 'kesulitan'         => $orderedDifficulties[0] ?? 'Mudah',
             ]);
@@ -270,6 +273,7 @@ class QuizController extends Controller
             'waktu_selesai'     => ['nullable', 'date', 'after:waktu_mulai'],
             'acak_jawaban'      => ['nullable', 'boolean'],
             'status'            => ['nullable', 'string', 'in:draft,published'],
+            'asset'             => ['nullable', 'integer', 'min:0', 'max:255'],
         ]);
 
         if ($validator->fails()) {
@@ -303,6 +307,7 @@ class QuizController extends Controller
             'waktu_selesai'     => $validated['waktu_selesai'] ?? null,
             'acak_jawaban'      => $request->boolean('acak_jawaban'),
             'status'            => $targetStatus,
+            'asset'             => array_key_exists('asset', $validated) ? (int) $validated['asset'] : (int) ($quiz->asset ?? 0),
         ]);
 
         if ($wasDraft && $targetStatus === 'published') {
@@ -697,9 +702,11 @@ class QuizController extends Controller
                 'id'              => $quiz->id,
                 'judul'           => $quiz->judul,
                 'deskripsi'       => $quiz->deskripsi,
+                'asset'           => (int) ($quiz->asset ?? 0),
                 'kesulitan_aktif' => $quiz->kesulitan_aktif_array,
                 'mapel_id'        => $quiz->pengampuKelas?->guruMapel?->mapel_id,
                 'mapel'           => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+                'mapel_asset'     => (int) ($quiz->pengampuKelas?->guruMapel?->mapel?->asset ?? 0),
                 'guru'            => $quiz->pengampuKelas?->guruMapel?->guru?->nama,
                 'total_soal'      => $quiz->soals_count,
                 'waktu_mulai'     => $quiz->waktu_mulai?->format('Y-m-d H:i:s'),
@@ -827,11 +834,13 @@ class QuizController extends Controller
             'id'                 => $quiz->id,
             'judul'              => $quiz->judul,
             'deskripsi'          => $quiz->deskripsi,
+            'asset'              => (int) ($quiz->asset ?? 0),
             'kesulitan_aktif'    => $quiz->kesulitan_aktif_array,
             'waktu_mulai'        => $quiz->waktu_mulai?->format('Y-m-d H:i:s'),
             'waktu_selesai'      => $quiz->waktu_selesai?->format('Y-m-d H:i:s'),
             'acak_jawaban'       => (bool) $quiz->acak_jawaban,
             'mapel'              => $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
+            'mapel_asset'        => (int) ($quiz->pengampuKelas?->guruMapel?->mapel?->asset ?? 0),
             'guru'               => $quiz->pengampuKelas?->guruMapel?->guru?->nama,
             'soal_counts_by_arc' => $soalCountsByArc,
             'levels'             => $levelsInfo,

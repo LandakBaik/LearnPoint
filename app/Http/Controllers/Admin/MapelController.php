@@ -58,12 +58,14 @@ class MapelController extends Controller
             'nama_mapel' => 'required|string|max:100|unique:mapels,nama_mapel',
             'kkm'        => 'required|integer|min:0|max:100',
             'tipe_mapel' => ['required', Rule::in(array_keys(Mapel::TIPE_MAPEL_OPTIONS))],
+            'asset'      => ['required', 'integer', Rule::in(array_keys(Mapel::PLANET_ASSET_OPTIONS))],
         ]);
 
         Mapel::create([
             'nama_mapel' => $validated['nama_mapel'],
             'kkm'        => $validated['kkm'],
             'tipe_mapel' => $validated['tipe_mapel'],
+            'asset'      => (int) $validated['asset'],
         ]);
 
         return redirect()->route('mapel.index')->with('success', 'Mata pelajaran berhasil ditambahkan!');
@@ -103,6 +105,7 @@ class MapelController extends Controller
             'nama_mapel'      => ['required', 'string', 'max:100', Rule::unique('mapels')->ignore($mapel->id)],
             'kkm'             => 'required|integer|min:0|max:100',
             'tipe_mapel'      => ['required', Rule::in(array_keys(Mapel::TIPE_MAPEL_OPTIONS))],
+            'asset'           => ['required', 'integer', Rule::in(array_keys(Mapel::PLANET_ASSET_OPTIONS))],
             'new_guru_id'     => 'nullable|exists:gurus,id',
             'new_kelas_ids'   => 'nullable|array',
             'new_kelas_ids.*' => 'exists:kelases,id',
@@ -113,6 +116,7 @@ class MapelController extends Controller
             'nama_mapel' => $validated['nama_mapel'],
             'kkm'        => $validated['kkm'],
             'tipe_mapel' => $validated['tipe_mapel'],
+            'asset'      => (int) $validated['asset'],
         ]);
 
         $newKelasIds = $request->input('new_kelas_ids', []);

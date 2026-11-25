@@ -49,6 +49,9 @@ class QuizController extends Controller
                 $mapelData[$mapel->id] = [
                     'id' => $mapel->id,
                     'nama' => $mapel->nama_mapel,
+                    'asset' => (int) ($mapel->asset ?? 0),
+                    'planet_label' => $mapel->planet_label,
+                    'scenes' => $mapel->planet_scenes,
                     'tingkatans' => [],
                 ];
             }
@@ -99,6 +102,7 @@ class QuizController extends Controller
             'waktu_selesai'        => ['nullable', 'date', 'after:waktu_mulai'],
             'acak_jawaban'         => ['nullable', 'boolean'],
             'status'               => ['nullable', 'string', 'in:draft,published'],
+            'asset'                => ['nullable', 'integer', 'min:0', 'max:255'],
         ], [
             'kesulitan_aktif.required'   => 'Pilih minimal satu tingkat kesulitan untuk petualangan kuis ini.',
             'kesulitan_aktif.min'        => 'Kuis petualangan harus memiliki minimal 1 tingkat kesulitan.',
@@ -140,6 +144,7 @@ class QuizController extends Controller
                 'waktu_selesai'     => $validated['waktu_selesai'] ?? null,
                 'acak_jawaban'      => $request->boolean('acak_jawaban'),
                 'status'            => $validated['status'] ?? 'draft',
+                'asset'             => (int) ($validated['asset'] ?? 0),
                 'level'             => 'Level 1',
                 'kesulitan'         => $orderedDifficulties[0] ?? 'Mudah',
             ]);
@@ -243,6 +248,7 @@ class QuizController extends Controller
             'waktu_selesai'     => ['nullable', 'date', 'after:waktu_mulai'],
             'acak_jawaban'      => ['nullable', 'boolean'],
             'status'            => ['nullable', 'string', 'in:draft,published'],
+            'asset'             => ['nullable', 'integer', 'min:0', 'max:255'],
         ], [
             'kesulitan_aktif.required'   => 'Pilih minimal satu tingkat kesulitan (Arc) untuk petualangan kuis ini.',
             'kesulitan_aktif.min'        => 'Kuis petualangan harus memiliki minimal 1 tingkat kesulitan.',
@@ -277,6 +283,7 @@ class QuizController extends Controller
             'waktu_selesai'     => $validated['waktu_selesai'] ?? null,
             'acak_jawaban'      => $request->boolean('acak_jawaban'),
             'status'            => $targetStatus,
+            'asset'             => array_key_exists('asset', $validated) ? (int) $validated['asset'] : (int) ($quiz->asset ?? 0),
         ]);
 
         if ($wasDraft && $targetStatus === 'published') {

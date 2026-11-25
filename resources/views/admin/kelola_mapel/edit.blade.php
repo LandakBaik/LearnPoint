@@ -67,15 +67,31 @@
                 </div>
 
                 <!-- Tipe Mapel -->
-                <div class="md:col-span-2">
+                <div>
                     <label for="tipe_mapel" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Tipe Mata Pelajaran <span class="text-rose-500">*</span></label>
                     <select id="tipe_mapel" name="tipe_mapel" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-semibold text-slate-800 transition-all">
                         @foreach(\App\Models\Mapel::TIPE_MAPEL_OPTIONS as $tipeKey => $tipeLabel)
                             <option value="{{ $tipeKey }}" {{ old('tipe_mapel', $mapel->tipe_mapel ?? 'teori') == $tipeKey ? 'selected' : '' }}>{{ $tipeLabel }}</option>
                         @endforeach
                     </select>
-                    <p class="text-[11px] text-slate-400 mt-1">Jika bertipe <strong>Agama</strong>, mata pelajaran, materi, tugas, kuis, dan ujiannya hanya tampil & direkap untuk siswa beragama tersebut.</p>
+                    <p class="text-[11px] text-slate-400 mt-1">Jika bertipe <strong>Agama</strong>, hanya tampil & direkap untuk siswa beragama tersebut.</p>
                     @error('tipe_mapel')
+                        <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Tema Planet Kuis (Asset Index planetGroups) -->
+                <div>
+                    <label for="asset" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Tema Planet Kuis Mobile (Asset) <span class="text-rose-500">*</span></label>
+                    <select id="asset" name="asset" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-semibold text-slate-800 transition-all">
+                        @foreach(\App\Models\Mapel::PLANET_ASSET_OPTIONS as $assetIdx => $planetOpt)
+                            <option value="{{ $assetIdx }}" {{ (int) old('asset', $mapel->asset ?? 0) === (int) $assetIdx ? 'selected' : '' }}>
+                                [Index {{ $assetIdx }}] {{ $planetOpt['nama'] }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="text-[11px] text-slate-400 mt-1">Cocok dengan index array <code>planetGroups[{{ (int) ($mapel->asset ?? 0) }}]</code> di aplikasi mobile.</p>
+                    @error('asset')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror
                 </div>

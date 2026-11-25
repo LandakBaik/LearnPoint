@@ -20,6 +20,9 @@
                     <span class="px-2.5 py-0.5 rounded-full text-xs font-bold {{ str_starts_with((string) $mapel->tipe_mapel, 'agama_') ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' : 'bg-blue-50 text-blue-700 border border-blue-200/80' }}">
                         {{ $mapel->tipe_label }}
                     </span>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $mapel->planet_info['badge_class'] }}">
+                        Asset #{{ (int) ($mapel->asset ?? 0) }} • {{ $mapel->planet_label }}
+                    </span>
                 </div>
                 <p class="text-xs text-slate-500 mt-0.5">Informasi kurikulum mata pelajaran dan daftar alokasi pengajar tiap kelas.</p>
             </div>

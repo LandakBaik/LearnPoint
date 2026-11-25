@@ -557,6 +557,7 @@ class MateriController extends Controller
             return [
                 'id' => $mapel->id,
                 'nama_mapel' => $mapel->nama_mapel,
+                'asset' => (int) ($mapel->asset ?? 0),
                 'total_materi' => $materisCount,
                 'total_kuis' => $kuisCount,
                 'guru' => $guruPengampu,
@@ -723,6 +724,7 @@ class MateriController extends Controller
                 'id' => $mapel->id,
                 'nama_mapel' => $mapel->nama_mapel,
                 'tipe_mapel' => $mapel->tipe_mapel,
+                'asset' => (int) ($mapel->asset ?? 0),
                 'nama_kelas' => $kelas?->nama_kelas,
                 'tingkatan' => $kelas?->tingkatan,
                 'semester' => $semester,
