@@ -33,7 +33,8 @@ class TugasController extends Controller
                 'pengampuKelas.kelas',
             ])
                 ->whereHas('pengampuKelas', function ($query) use ($kelasId, $siswa) {
-                    $query->where('kelas_id', $kelasId)
+                    $query->currentPeriod()
+                        ->where('kelas_id', $kelasId)
                         ->forSiswa($siswa);
                 })
                 ->latest()
@@ -333,19 +334,23 @@ class TugasController extends Controller
             });
 
             // Kirim notifikasi kepada guru
-            $guru = $tugas->pengampuKelas?->guruMapel?->guru;
+            $guruUser = $tugas->pengampuKelas?->guruMapel?->guru?->user;
 
-            if ($guru && $guru->user_id) {
+            if ($guruUser) {
+                $isLate = $status === 'telat';
+                $namaSiswa = $siswa->nama_siswa ?? Auth::user()->name;
+                $namaKelas = $tugas->pengampuKelas?->kelas?->nama_kelas ?? 'Kelas';
                 Notifikasi::kirim(
-                    $guru->user_id,
-                    'Tugas Pilihan Ganda Dikumpulkan',
-                    'Siswa telah mengumpulkan tugas pilihan ganda.',
-                    'tugas',
+                    $guruUser->id,
+                    ($isLate ? 'Pengumpulan Tugas Terlambat: ' : 'Tugas Pilihan Ganda Dikumpulkan: ') . $tugas->judul,
+                    "Siswa {$namaSiswa} ({$namaKelas}) telah mengumpulkan tugas pilihan ganda '{$tugas->judul}'.",
+                    $isLate ? 'tugas_terlambat' : 'tugas_dikumpulkan',
                     route('guru.tugas.show', $tugas->id),
                     $tugas->id,
                     [
                         'tugas_id' => $tugas->id,
                         'siswa_id' => $siswa->id,
+                        'is_late' => $isLate,
                     ]
                 );
             }
@@ -410,19 +415,23 @@ class TugasController extends Controller
         }
 
         // Kirim notifikasi kepada guru
-        $guru = $tugas->pengampuKelas?->guruMapel?->guru;
+        $guruUser = $tugas->pengampuKelas?->guruMapel?->guru?->user;
 
-        if ($guru && $guru->user_id) {
+        if ($guruUser) {
+            $isLate = $status === 'telat';
+            $namaSiswa = $siswa->nama_siswa ?? Auth::user()->name;
+            $namaKelas = $tugas->pengampuKelas?->kelas?->nama_kelas ?? 'Kelas';
             Notifikasi::kirim(
-                $guru->user_id,
-                'Tugas Upload Dikumpulkan',
-                'Siswa telah mengumpulkan tugas upload.',
-                'tugas',
+                $guruUser->id,
+                ($isLate ? 'Pengumpulan Tugas Terlambat: ' : 'Pengumpulan Tugas Masuk: ') . $tugas->judul,
+                "Siswa {$namaSiswa} ({$namaKelas}) telah mengumpulkan tugas '{$tugas->judul}'" . ($isLate ? ' melewati batas deadline.' : '.'),
+                $isLate ? 'tugas_terlambat' : 'tugas_dikumpulkan',
                 route('guru.tugas.show', $tugas->id),
                 $tugas->id,
                 [
                     'tugas_id' => $tugas->id,
                     'siswa_id' => $siswa->id,
+                    'is_late' => $isLate,
                 ]
             );
         }

@@ -132,14 +132,23 @@ class Inventory extends Model
      */
     public static function equipBanner(Siswa $siswa, string $bannerCode): bool
     {
-        $targetItem = Item::banners()->where('kode', $bannerCode)->first();
+        $targetItem = Item::banners()->where('is_active', true)->where('kode', $bannerCode)->first();
         if (!$targetItem) {
             return false;
         }
 
         return DB::transaction(function () use ($siswa, $targetItem, $bannerCode) {
+            // Lock seluruh baris banner milik siswa ini untuk mencegah race condition equip paralel
+            static::where('siswa_id', $siswa->id)
+                ->whereHas('item', function ($q) {
+                    $q->where('kategori', 'banner');
+                })
+                ->lockForUpdate()
+                ->get();
+
             $userBanner = static::where('siswa_id', $siswa->id)
                 ->where('item_id', $targetItem->id)
+                ->lockForUpdate()
                 ->first();
 
             // Jika belum tercatat di inventori tetapi ada di unlocked_banners, buat barisnya

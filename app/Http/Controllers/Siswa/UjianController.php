@@ -462,8 +462,9 @@ class UjianController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Ujian sudah diselesaikan dan jawaban tidak dapat diubah.'], 403);
         }
 
-        $batasAkhir = $ujian->batasAkhirSesi($sesi);
-        if ($batasAkhir && now()->greaterThan($batasAkhir->copy()->addMinutes(2))) {
+        $waktuMulaiSesi = Carbon::parse($ujian->waktu_mulai_sesi ?? $ujian->waktu_mulai ?? $sesi->waktu_mulai ?? now());
+        $batasAkhir = $waktuMulaiSesi->copy()->addMinutes((int) $ujian->durasi_menit);
+        if (now()->greaterThan($batasAkhir->copy()->addMinutes(2))) {
             return response()->json(['status' => 'error', 'message' => 'Waktu pengerjaan ujian telah berakhir.'], 403);
         }
 

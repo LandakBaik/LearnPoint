@@ -1553,9 +1553,11 @@ class UjianController extends Controller
             }
         });
 
-        // Hapus file gambar jika transaksi database berhasil.
+        // Hapus file gambar hanya jika tidak lagi dipakai oleh soal duplikat/remidi lain.
         foreach ($gambarSoal as $gambar) {
-            Storage::disk('public')->delete($gambar);
+            if (!Soal::where('gambar', $gambar)->exists()) {
+                Storage::disk('public')->delete($gambar);
+            }
         }
 
         return redirect()
@@ -1663,8 +1665,8 @@ class UjianController extends Controller
             $siswa = $sesi->siswa;
             $user = $siswa?->user;
 
-            $nama = $user->name ?? $siswa?->nama_lengkap ?? $siswa?->nama ?? ('Siswa #' . $sesi->siswa_id);
-            $nisn = $siswa?->nisn ?? $user?->username ?? '-';
+            $nama = $user->name ?? $siswa?->nama_siswa ?? ('Siswa #' . $sesi->siswa_id);
+            $nisn = $siswa?->nis ?? $user?->username ?? '-';
             $namaKelas = $ujianSiswa?->pengampuKelas?->kelas?->nama_kelas ?? '-';
             $nomorSesi = $ujianSiswa?->sesi ?? 1;
 
@@ -2137,8 +2139,8 @@ class UjianController extends Controller
                 'siswa_id' => $siswa->id,
                 'ujian_id' => $ujianSiswa?->id ?? $ujian->id,
                 'seleksi_id' => $sesi?->id,
-                'nama' => $siswa->user->name ?? $siswa->nama_lengkap ?? $siswa->nama ?? ('Siswa #' . $siswa->id),
-                'nisn' => $siswa->nisn ?? '-',
+                'nama' => $siswa->user->name ?? $siswa->nama_siswa ?? ('Siswa #' . $siswa->id),
+                'nisn' => $siswa->nis ?? '-',
                 'kelas' => $namaKelasSiswa, // [UBAHAN 3] Pakai variabel $namaKelasSiswa
                 'sudah_selesai' => $sudahSelesai,
                 'pg_benar' => $pgBenar,
@@ -2333,7 +2335,7 @@ class UjianController extends Controller
                 })
                 ->get()
                 ->unique('id')
-                ->sortBy(fn($s) => strtolower($s->user->name ?? $s->nama_lengkap ?? $s->nama ?? ''))
+                ->sortBy(fn($s) => strtolower($s->user->name ?? $s->nama_siswa ?? ''))
                 ->values();
 
             // Fallback: jika di anggota_kelases belum ada yang cocok dengan semester tsb, tarik berdasarkan kelas_id saja
@@ -2345,7 +2347,7 @@ class UjianController extends Controller
                     })
                     ->get()
                     ->unique('id')
-                    ->sortBy(fn($s) => strtolower($s->user->name ?? $s->nama_lengkap ?? $s->nama ?? ''))
+                    ->sortBy(fn($s) => strtolower($s->user->name ?? $s->nama_siswa ?? ''))
                     ->values();
             }
 
@@ -2460,8 +2462,8 @@ class UjianController extends Controller
 
                 return [
                     'siswa_id' => $siswa->id,
-                    'nama' => $siswa->user->name ?? $siswa->nama_lengkap ?? $siswa->nama ?? ('Siswa #' . $siswa->id),
-                    'nisn' => $siswa->nisn ?? '-',
+                    'nama' => $siswa->user->name ?? $siswa->nama_siswa ?? ('Siswa #' . $siswa->id),
+                    'nisn' => $siswa->nis ?? '-',
                     'nilai_per_ujian' => $nilaiPerUjian,
                     'rata_rata' => $rataRata,
                 ];
@@ -2539,8 +2541,8 @@ class UjianController extends Controller
 
                     return [
                         'siswa_id' => $siswa->id,
-                        'nama' => $siswa->user->name ?? $siswa->nama_lengkap ?? $siswa->nama ?? ('Siswa #' . $siswa->id),
-                        'nisn' => $siswa->nisn ?? '-',
+                        'nama' => $siswa->user->name ?? $siswa->nama_siswa ?? ('Siswa #' . $siswa->id),
+                        'nisn' => $siswa->nis ?? '-',
                         'sudah_selesai' => $sudahSelesai,
                         'pg_benar' => $pgBenar,
                         'pg_salah' => $pgSalah,
@@ -2636,7 +2638,7 @@ class UjianController extends Controller
                     'siswa_id' => $sesi->siswa_id,
                     'ujian_id' => $sesi->ujian_id,
                     'soal_id' => $soalKelasIni->id,
-                    'nama' => $siswa?->user?->name ?? $siswa?->nama_lengkap ?? ('Siswa #' . $sesi->siswa_id),
+                    'nama' => $siswa?->user?->name ?? $siswa?->nama_siswa ?? ('Siswa #' . $sesi->siswa_id),
                     'kelas' => $siswa?->anggotaKelases?->last()?->kelas?->nama_kelas ?? '-',
                     'jawaban_teks' => $jawab?->jawaban_dipilih ?? '',
                     'skor' => $jawab && !is_null($jawab->skor_essay) ? (float) $jawab->skor_essay : '',

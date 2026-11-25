@@ -79,8 +79,8 @@ class UserController extends Controller
             'password'  => 'required|string|min:8',
             'role'      => 'required|in:operator,guru,siswa,kepala_sekolah',
             'status'    => 'nullable|in:aktif,nonaktif',
-            'guru_id'   => 'nullable|exists:gurus,id',
-            'siswa_id'  => 'nullable|exists:siswas,id',
+            'guru_id'   => 'nullable|exists:gurus,id|unique:users,guru_id',
+            'siswa_id'  => 'nullable|exists:siswas,id|unique:users,siswa_id',
         ], [
             'name.regex'  => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
             'email.regex' => 'Format email harus valid dan wajib menyertakan simbol @ serta nama domain.',
@@ -88,7 +88,7 @@ class UserController extends Controller
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
-        $validated['status'] = 'aktif';
+        $validated['status'] = $validated['status'] ?? 'aktif';
 
         // Sesuaikan relasi jika role bukan guru atau siswa
         if ($validated['role'] !== 'guru') {
@@ -131,13 +131,22 @@ class UserController extends Controller
             'password'  => 'nullable|string|min:8',
             'role'      => 'required|in:operator,guru,siswa,kepala_sekolah',
             'status'    => 'nullable|in:aktif,nonaktif',
-            'guru_id'   => 'nullable|exists:gurus,id',
-            'siswa_id'  => 'nullable|exists:siswas,id',
+            'guru_id'   => ['nullable', 'exists:gurus,id', Rule::unique('users', 'guru_id')->ignore($user->id)],
+            'siswa_id'  => ['nullable', 'exists:siswas,id', Rule::unique('users', 'siswa_id')->ignore($user->id)],
         ], [
             'name.regex'  => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
             'email.regex' => 'Format email harus valid dan wajib menyertakan simbol @ serta nama domain.',
             'email.email' => 'Format email tidak valid.',
         ]);
+
+        if (Auth::id() === $user->id) {
+            if (($validated['status'] ?? $user->status) === 'nonaktif') {
+                return back()->withInput()->withErrors(['status' => 'Anda tidak dapat menonaktifkan akun Anda sendiri.']);
+            }
+            if ($validated['role'] !== $user->role) {
+                return back()->withInput()->withErrors(['role' => 'Anda tidak dapat mengubah peran akun Anda sendiri.']);
+            }
+        }
 
         if (!empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
@@ -153,6 +162,15 @@ class UserController extends Controller
         }
 
         $user->update($validated);
+
+        if (!empty($validated['status'])) {
+            if ($user->guru) {
+                $user->guru->update(['status' => $validated['status']]);
+            }
+            if ($user->siswa) {
+                $user->siswa->update(['status' => $validated['status']]);
+            }
+        }
 
         return redirect()->route('users.index')->with('success', 'Akun pengguna berhasil diperbarui!');
     }

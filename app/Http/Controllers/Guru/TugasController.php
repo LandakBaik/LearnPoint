@@ -708,12 +708,19 @@ class TugasController extends Controller
         );
 
         $fileLama = $tugas->file_lampiran;
+        $gambarSoals = $tugas->soals()->pluck('gambar')->filter()->all();
 
         DB::transaction(function () use ($tugas) {
             Soal::where('tugas_id', $tugas->id)->delete();
 
             $tugas->delete();
         });
+
+        foreach ($gambarSoals as $gambar) {
+            if (!Soal::where('gambar', $gambar)->exists() && Storage::disk('public')->exists($gambar)) {
+                Storage::disk('public')->delete($gambar);
+            }
+        }
 
         // Hapus file lampiran jika ada dan tidak dipakai tugas lain.
         if (
@@ -754,7 +761,7 @@ class TugasController extends Controller
 
         $pengumpulan->update([
             'nilai' => $data['nilai'],
-            'status' => 'selesai',
+            'status' => $pengumpulan->status === 'telat' ? 'telat' : 'selesai',
         ]);
 
         if ($pengumpulan->siswa?->user) {

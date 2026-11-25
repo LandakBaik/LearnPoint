@@ -112,22 +112,16 @@ class MapelController extends Controller
             'new_kelas_id'    => 'nullable|exists:kelases,id',
         ]);
 
-        $mapel->update([
-            'nama_mapel' => $validated['nama_mapel'],
-            'kkm'        => $validated['kkm'],
-            'tipe_mapel' => $validated['tipe_mapel'],
-            'asset'      => (int) $validated['asset'],
-        ]);
-
         $newKelasIds = $request->input('new_kelas_ids', []);
         if ($request->filled('new_kelas_id') && !in_array($request->new_kelas_id, $newKelasIds)) {
             $newKelasIds[] = $request->new_kelas_id;
         }
 
-        // Cek konflik guru lain pada kelas yang dipilih untuk mapel ini
+        // Cek konflik guru lain pada kelas yang dipilih untuk mapel ini (periode aktif) sebelum menyimpan
         if (!empty($validated['new_guru_id']) && !empty($newKelasIds)) {
             foreach ($newKelasIds as $kId) {
-                $existing = \App\Models\PengampuKelas::where('kelas_id', $kId)
+                $existing = \App\Models\PengampuKelas::currentPeriod()
+                    ->where('kelas_id', $kId)
                     ->whereHas('guruMapel', fn($q) => $q->where('mapel_id', $mapel->id))
                     ->with(['guruMapel.guru', 'kelas'])
                     ->first();
@@ -140,15 +134,25 @@ class MapelController extends Controller
                     ]);
                 }
             }
+        }
 
+        $mapel->update([
+            'nama_mapel' => $validated['nama_mapel'],
+            'kkm'        => $validated['kkm'],
+            'tipe_mapel' => $validated['tipe_mapel'],
+            'asset'      => (int) $validated['asset'],
+        ]);
+
+        if (!empty($validated['new_guru_id']) && !empty($newKelasIds)) {
             $gm = \App\Models\GuruMapel::firstOrCreate([
                 'guru_id'  => $validated['new_guru_id'],
                 'mapel_id' => $mapel->id,
             ]);
             foreach ($newKelasIds as $kId) {
                 \App\Models\PengampuKelas::firstOrCreate([
-                    'guru_mapel_id' => $gm->id,
-                    'kelas_id'      => $kId,
+                    'guru_mapel_id'      => $gm->id,
+                    'kelas_id'           => $kId,
+                    'academic_period_id' => \App\Models\AcademicPeriod::currentId(),
                 ]);
             }
         }

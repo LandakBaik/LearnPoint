@@ -253,12 +253,12 @@ class DashboardController extends Controller
         $tahunAjaran = $anggotaKelas?->academicPeriod?->tahun_ajaran ?? $activePeriod->tahun_ajaran;
         $semester = ucfirst($anggotaKelas?->academicPeriod?->semester ?? $activePeriod->semester);
 
-        // Ambil daftar mapel beserta relasi guru khusus untuk kelas siswa
+        // Ambil daftar mapel beserta relasi guru khusus untuk kelas siswa (periode aktif)
         if ($kelasId) {
-            $daftarMapel = Mapel::forSiswa($siswa)->whereHas('pengampuKelases', function ($query) use ($kelasId) {
-                $query->where('kelas_id', $kelasId);
-            })->with(['pengampuKelases' => function ($query) use ($kelasId) {
-                $query->where('kelas_id', $kelasId)->with(['guruMapel.guru', 'materis', 'tugases', 'ujians']);
+            $daftarMapel = Mapel::forSiswa($siswa)->whereHas('pengampuKelases', function ($query) use ($kelasId, $activePeriod) {
+                $query->currentPeriod($activePeriod->id)->where('kelas_id', $kelasId);
+            })->with(['pengampuKelases' => function ($query) use ($kelasId, $activePeriod) {
+                $query->currentPeriod($activePeriod->id)->where('kelas_id', $kelasId)->with(['guruMapel.guru', 'materis', 'tugases', 'ujians']);
             }])->get();
         } else {
             $daftarMapel = collect();
@@ -301,10 +301,23 @@ class DashboardController extends Controller
             ->first()
             : null;
 
-        // Hitung badge counts
-        $tugasMenantiCount = $kelasId ? Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))->where('deadline', '>=', now())->count() : 0;
+        // Hitung badge counts (selaras dengan API Dashboard)
+        $tugasMenantiCount = $kelasId ? Tugas::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))
+            ->whereDoesntHave('nilais', fn($q) => $q->where('siswa_id', $siswaId))
+            ->where('deadline', '>=', now())
+            ->count() : 0;
         $quizCount         = $kelasId ? Quiz::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))->where('status', 'published')->count() : 0;
-        $ujianCount        = $kelasId ? Ujian::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))->count() : 0;
+        $ujianCount        = $kelasId ? Ujian::whereHas('pengampuKelas', fn($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))
+            ->whereIn('status', ['published', 'scheduled', 'completed'])
+            ->where(function ($q) use ($siswaId) {
+                $q->where('jenis_ujian', 'reguler')
+                    ->orWhereNull('jenis_ujian')
+                    ->orWhere(function ($sq) use ($siswaId) {
+                        $sq->whereIn('jenis_ujian', ['remidi', 'susulan'])
+                            ->whereJsonContains('peserta_khusus', (int) $siswaId);
+                    });
+            })
+            ->count() : 0;
 
         // Quizzes Dipublikasikan untuk Kelas Siswa
         $quizzes = $kelasId
@@ -321,7 +334,7 @@ class DashboardController extends Controller
             ->get()
             : collect();
 
-        $unreadNotifCount = $user->notifikasi()->count() ?? 0;
+        $unreadNotifCount = $user->unreadNotifikasiCount();
 
         // =========================================================
         // STATISTIK SISWA (DATA RIIL & DINAMIS)

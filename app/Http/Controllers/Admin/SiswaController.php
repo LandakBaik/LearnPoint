@@ -237,7 +237,11 @@ class SiswaController extends Controller
         }
 
         if ($siswa->user) {
-            $siswa->user->update(['name' => $validated['nama_siswa']]);
+            $userUpdate = ['name' => $validated['nama_siswa']];
+            if (!empty($validated['status'])) {
+                $userUpdate['status'] = $validated['status'] === 'aktif' ? 'aktif' : 'nonaktif';
+            }
+            $siswa->user->update($userUpdate);
         }
 
         return redirect()->route('siswa.index')->with('success', 'Data siswa berhasil diperbarui!');

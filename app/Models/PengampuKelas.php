@@ -98,4 +98,13 @@ class PengampuKelas extends Model
     {
         return $query->whereHas('guruMapel.mapel', fn ($q) => $q->forSiswa($siswa));
     }
+
+    /**
+     * Filter pengampu kelas berdasarkan periode akademik aktif (atau periodId tertentu).
+     */
+    public function scopeCurrentPeriod($query, ?int $periodId = null)
+    {
+        $targetPeriodId = $periodId ?? AcademicPeriod::currentId();
+        return $targetPeriodId ? $query->where('pengampu_kelas.academic_period_id', $targetPeriodId) : $query;
+    }
 }

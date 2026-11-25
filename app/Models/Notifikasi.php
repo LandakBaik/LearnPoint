@@ -95,9 +95,19 @@ class Notifikasi extends Model
     /**
      * Helper kirim notifikasi massal ke semua siswa dalam satu kelas (bulk insert).
      */
-    public static function kirimKeKelas(int $kelasId, string $judul, string $pesan, string $tipe = 'info', ?string $url = null, ?int $idReferensi = null, ?array $data = null): int
+    public static function kirimKeKelas(int $kelasId, string $judul, string $pesan, string $tipe = 'info', ?string $url = null, ?int $idReferensi = null, ?array $data = null, ?string $targetAgama = null): int
     {
-        $userIds = User::whereHas('siswa.anggotaKelases', fn($q) => $q->where('kelas_id', $kelasId))
+        $periodId = AcademicPeriod::currentId();
+
+        $userIds = User::where('status', '!=', 'nonaktif')
+            ->whereHas('siswa', function ($sq) use ($kelasId, $periodId, $targetAgama) {
+                $sq->where('status', '!=', 'nonaktif')
+                    ->when(filled($targetAgama), fn ($aq) => $aq->where('agama', $targetAgama))
+                    ->whereHas('anggotaKelases', function ($ak) use ($kelasId, $periodId) {
+                        $ak->where('kelas_id', $kelasId)
+                            ->when($periodId, fn ($pq) => $pq->where('academic_period_id', $periodId));
+                    });
+            })
             ->pluck('id');
 
         if ($userIds->isEmpty()) {

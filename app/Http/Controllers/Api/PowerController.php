@@ -253,7 +253,7 @@ class PowerController extends Controller
         }
 
         try {
-            $result = DB::transaction(function () use ($siswa, $soal, $powerPreview) {
+            $result = DB::transaction(function () use ($quiz, $siswa, $soal, $powerPreview) {
                 $power = Power::where('id', $powerPreview->id)->lockForUpdate()->first();
                 if (!$power || !$power->is_active) {
                     return [

@@ -49,7 +49,7 @@ class QuizController extends Controller
             return $this->notFoundResponse('Profil guru tidak ditemukan.');
         }
 
-        $perPage = (int) $request->query('per_page', 15);
+        $perPage = max(1, min(100, (int) $request->query('per_page', 15)));
         $quizzes = $this->quizService
             ->buildGuruQuizzesQuery((int) $guruId, $request, ['soals', 'nilais'])
             ->latest()

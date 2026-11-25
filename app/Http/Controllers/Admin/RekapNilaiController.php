@@ -112,7 +112,7 @@ class RekapNilaiController extends Controller
             if ($data['mode'] === 'leger' && $data['legerMapels']->isNotEmpty()) {
                 $headerRow = ['No', 'Peringkat', 'NIS', 'Nama Siswa', 'Kelas'];
                 foreach ($data['legerMapels'] as $pk) {
-                    $headerRow[] = $pk->guruMapel->mapel->nama_mapel . ' (KKM ' . (int) ($pk->guruMapel->mapel->kkm ?? 75) . ')';
+                    $headerRow[] = ($pk->guruMapel?->mapel?->nama_mapel ?? 'Mapel') . ' (KKM ' . (int) ($pk->guruMapel?->mapel?->kkm ?? 75) . ')';
                 }
                 $headerRow[] = 'Rata-rata Akhir';
                 $headerRow[] = 'Predikat';

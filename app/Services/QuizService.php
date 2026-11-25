@@ -47,7 +47,8 @@ class QuizService
             return [];
         }
 
-        return PengampuKelas::whereIn('id', $ids)
+        return PengampuKelas::currentPeriod()
+            ->whereIn('id', $ids)
             ->whereHas('guruMapel', fn (Builder $q) => $q->where('guru_id', $guruId))
             ->pluck('id')
             ->all();
@@ -65,7 +66,10 @@ class QuizService
 
         $query = Quiz::with(array_unique(array_merge($defaultRelations, $withRelations)))
             ->withCount('soals')
-            ->whereHas('pengampuKelas.guruMapel', fn (Builder $q) => $q->where('guru_id', $guruId));
+            ->whereHas('pengampuKelas', function (Builder $q) use ($guruId) {
+                $q->currentPeriod()
+                    ->whereHas('guruMapel', fn (Builder $gq) => $gq->where('guru_id', $guruId));
+            });
 
         if ($request->filled('search')) {
             $query->where('judul', 'like', '%' . $request->search . '%');
@@ -76,7 +80,7 @@ class QuizService
         }
 
         if ($request->filled('kelas_id')) {
-            $query->whereHas('pengampuKelas', fn (Builder $q) => $q->where('kelas_id', $request->kelas_id));
+            $query->whereHas('pengampuKelas', fn (Builder $q) => $q->currentPeriod()->where('kelas_id', $request->kelas_id));
         }
 
         if ($request->filled('kesulitan')) {
@@ -91,14 +95,20 @@ class QuizService
      */
     public function getGuruQuizStatistics(int $guruId): array
     {
-        $baseGuruQuery = Quiz::whereHas('pengampuKelas.guruMapel', fn (Builder $q) => $q->where('guru_id', $guruId));
+        $baseGuruQuery = Quiz::whereHas('pengampuKelas', function (Builder $q) use ($guruId) {
+            $q->currentPeriod()
+                ->whereHas('guruMapel', fn (Builder $gq) => $gq->where('guru_id', $guruId));
+        });
 
         $totalKuis = (clone $baseGuruQuery)->count();
         $totalDraft = (clone $baseGuruQuery)->where(function (Builder $q) {
             $q->where('status', 'draft')->orWhereNull('status');
         })->count();
         $totalPublished = (clone $baseGuruQuery)->where('status', 'published')->count();
-        $totalSoal = Soal::whereHas('quiz.pengampuKelas.guruMapel', fn (Builder $q) => $q->where('guru_id', $guruId))->count();
+        $totalSoal = Soal::whereHas('quiz.pengampuKelas', function (Builder $q) use ($guruId) {
+            $q->currentPeriod()
+                ->whereHas('guruMapel', fn (Builder $gq) => $gq->where('guru_id', $guruId));
+        })->count();
 
         return [
             'total_kuis'      => $totalKuis,

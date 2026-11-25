@@ -260,7 +260,7 @@ class PowerController extends Controller
         }
 
         try {
-            $result = DB::transaction(function () use ($siswa, $soal, $powerPreview) {
+            $result = DB::transaction(function () use ($quiz, $siswa, $soal, $powerPreview) {
                 // 1. Lock Power master record dan cek status aktif
                 $power = Power::where('id', $powerPreview->id)->lockForUpdate()->first();
                 if (!$power || !$power->is_active) {

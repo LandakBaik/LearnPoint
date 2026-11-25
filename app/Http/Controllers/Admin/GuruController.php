@@ -118,8 +118,9 @@ class GuruController extends Controller
                     }
                     $seenPairs[$pairKey] = true;
 
-                    // Cek apakah mata pelajaran ini di kelas ini sudah diampu guru lain
-                    $existing = \App\Models\PengampuKelas::where('kelas_id', $kId)
+                    // Cek apakah mata pelajaran ini di kelas ini sudah diampu guru lain pada periode aktif
+                    $existing = \App\Models\PengampuKelas::currentPeriod()
+                        ->where('kelas_id', $kId)
                         ->whereHas('guruMapel', fn($q) => $q->where('mapel_id', $mapelId))
                         ->with(['guruMapel.guru', 'guruMapel.mapel', 'kelas'])
                         ->first();
@@ -175,8 +176,9 @@ class GuruController extends Controller
                             ]);
                             foreach ($kelasIds as $kId) {
                                 \App\Models\PengampuKelas::firstOrCreate([
-                                    'guru_mapel_id' => $gm->id,
-                                    'kelas_id'      => $kId,
+                                    'guru_mapel_id'      => $gm->id,
+                                    'kelas_id'           => $kId,
+                                    'academic_period_id' => \App\Models\AcademicPeriod::currentId(),
                                 ]);
                             }
                         }
@@ -264,10 +266,11 @@ class GuruController extends Controller
             $newKelasIds[] = $request->new_kelas_id;
         }
 
-        // Cek konflik guru lain pada mapel dan kelas yang dipilih
+        // Cek konflik guru lain pada mapel dan kelas yang dipilih (periode aktif)
         if (!empty($validated['new_mapel_id']) && !empty($newKelasIds)) {
             foreach ($newKelasIds as $kId) {
-                $existing = \App\Models\PengampuKelas::where('kelas_id', $kId)
+                $existing = \App\Models\PengampuKelas::currentPeriod()
+                    ->where('kelas_id', $kId)
                     ->whereHas('guruMapel', fn($q) => $q->where('mapel_id', $validated['new_mapel_id']))
                     ->with(['guruMapel.guru', 'guruMapel.mapel', 'kelas'])
                     ->first();
@@ -308,8 +311,9 @@ class GuruController extends Controller
                 ]);
                 foreach ($newKelasIds as $kId) {
                     \App\Models\PengampuKelas::firstOrCreate([
-                        'guru_mapel_id' => $gm->id,
-                        'kelas_id'      => $kId,
+                        'guru_mapel_id'      => $gm->id,
+                        'kelas_id'           => $kId,
+                        'academic_period_id' => \App\Models\AcademicPeriod::currentId(),
                     ]);
                 }
             }

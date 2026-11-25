@@ -152,7 +152,7 @@ class MapelController extends Controller
             ->get();
 
         $activeTab = $request->query('tab', 'materi');
-        $unreadNotifCount = $user ? $user->notifikasi()->count() : 0;
+        $unreadNotifCount = $user ? $user->unreadNotifikasiCount() : 0;
 
         // Statistik progress pengerjaan tugas & rata-rata nilai tugas siswa pada mapel ini
         $totalTugas = $tugases->count();

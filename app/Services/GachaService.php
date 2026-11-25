@@ -151,8 +151,8 @@ class GachaService
 
                         $wonBanner = [
                             'kode'            => 'all_owned_bonus',
-                            'nama'            => 'Bonus Kompensasi: 2X Score',
-                            'deskripsi'       => 'Seluruh Banner GIF telah kamu miliki! Kamu mendapatkan ekstra item 2X Score.',
+                            'nama'            => 'Bonus Kompensasi: ' . ($epicPower->nama ?? '2X Score'),
+                            'deskripsi'       => 'Seluruh Banner GIF telah kamu miliki! Kamu mendapatkan ekstra item ' . ($epicPower->nama ?? '2X Score') . '.',
                             'rarity'          => 'epic',
                             'is_compensation' => true,
                             'is_pity'         => $isPityTriggered,
@@ -199,12 +199,16 @@ class GachaService
      */
     protected function pickWeightedItem($items): Item
     {
-        $totalWeight = $items->sum('bobot_gacha') ?: 100;
-        $rand = random_int(1, (int) $totalWeight);
+        $totalWeight = (int) $items->sum(fn ($item) => max(1, (int) ($item->bobot_gacha ?: 20)));
+        if ($totalWeight <= 0) {
+            return $items->first();
+        }
+
+        $rand = random_int(1, $totalWeight);
 
         $current = 0;
         foreach ($items as $item) {
-            $weight = (int) ($item->bobot_gacha ?: 20);
+            $weight = max(1, (int) ($item->bobot_gacha ?: 20));
             $current += $weight;
             if ($rand <= $current) {
                 return $item;

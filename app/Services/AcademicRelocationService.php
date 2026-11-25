@@ -270,6 +270,9 @@ class AcademicRelocationService
         // Mode Pindah:
         $resetCount = 0;
         if (!$isSameClass) {
+            if ($aksi === 'pindah_aman') {
+                throw new \InvalidArgumentException('Pemindahan tugas lintas kelas tidak diizinkan dengan mode pindah_aman. Gunakan pindah_reset atau salin.');
+            }
             // Beda kelas -> bersihkan pengerjaan siswa dari kelas yang salah
             $resetCount = $this->resetTugasSubmissions($tugas);
         }
@@ -333,6 +336,9 @@ class AcademicRelocationService
         // Mode Pindah:
         $resetInfo = ['nilai_deleted' => 0, 'power_refunded' => 0];
         if (!$isSameClass) {
+            if ($aksi === 'pindah_aman') {
+                throw new \InvalidArgumentException('Pemindahan kuis lintas kelas tidak diizinkan dengan mode pindah_aman. Gunakan pindah_reset atau salin.');
+            }
             $resetInfo = $this->resetQuizSubmissions($quiz);
         }
 
@@ -396,6 +402,9 @@ class AcademicRelocationService
 
         $resetCount = 0;
         if (!$isSameClass) {
+            if ($aksi === 'pindah_aman') {
+                throw new \InvalidArgumentException('Pemindahan ujian lintas kelas tidak diizinkan dengan mode pindah_aman. Gunakan pindah_reset atau salin.');
+            }
             $resetCount = $this->resetUjianSubmissions($ujian);
         }
 
@@ -486,7 +495,8 @@ class AcademicRelocationService
         $count = $nilais->count();
 
         foreach ($nilais as $nilai) {
-            if ($nilai->file_jawaban && Storage::disk('public')->exists($nilai->file_jawaban)) {
+            if ($nilai->file_jawaban) {
+                Storage::disk('local')->delete($nilai->file_jawaban);
                 Storage::disk('public')->delete($nilai->file_jawaban);
             }
             $nilai->delete();

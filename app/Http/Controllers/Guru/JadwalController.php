@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class JadwalController extends Controller
@@ -21,7 +20,7 @@ class JadwalController extends Controller
 
         if ($guru) {
             $guruMapels = $guru->guruMapels()
-                ->with(['mapel', 'pengampuKelases.kelas'])
+                ->with(['mapel', 'pengampuKelases' => fn ($q) => $q->currentPeriod()->with('kelas')])
                 ->get();
 
             $jadwalUrl = $guru->jadwal_url;

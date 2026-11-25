@@ -39,7 +39,7 @@ class NotifikasiController extends Controller
             $query->whereIn('tipe', ['kuis_selesai', 'ujian_selesai', 'kuis_baru', 'ujian_baru']);
         }
 
-        $perPage = (int) $request->query('per_page', 15);
+        $perPage = max(1, min(100, (int) $request->query('per_page', 15)));
         $notifikasis = $query->paginate($perPage);
 
         // Badge Counts

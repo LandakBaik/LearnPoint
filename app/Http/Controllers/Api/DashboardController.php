@@ -101,7 +101,7 @@ class DashboardController extends Controller
                         'nama' => $item->siswa?->nama_siswa,
                         'nis'  => $item->siswa?->nis,
                     ],
-                    'file_jawaban_url' => $item->file_jawaban ? asset('storage/' . $item->file_jawaban) : null,
+                    'file_jawaban_url' => $item->file_jawaban ? url("/api/file/jawaban/{$item->id}") : null,
                     'submitted_at'     => $item->created_at,
                 ];
             });
@@ -312,7 +312,7 @@ class DashboardController extends Controller
                     'id_grub_materi' => $materi->id_grub_materi,
                     'judul'          => $materi->judul,
                     'deskripsi'      => $materi->deskripsi,
-                    'file_url'       => $materi->file_materi ? asset('storage/' . $materi->file_materi) : null,
+                    'file_url'       => $materi->file_materi ? url("/api/file/materi/{$materi->id}") : null,
                     'url_youtube'    => $materi->url_youtube,
                     'mapel'          => $materi->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
                     'guru'           => $materi->pengampuKelas?->guruMapel?->guru?->nama,

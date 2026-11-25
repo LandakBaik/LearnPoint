@@ -71,7 +71,7 @@ class TugasController extends Controller
                 'deadline'                   => $item->deadline,
                 'tipe'                       => $item->tipe,
                 'file_lampiran'              => $item->file_lampiran,
-                'file_url'                   => $item->file_lampiran ? asset('storage/' . $item->file_lampiran) : null,
+                'file_url'                   => $item->file_lampiran ? url("/api/file/tugas/{$item->id}") : null,
                 'is_deadline_passed'         => $deadlineCarbon ? $deadlineCarbon->isPast() : false,
                 'is_deadline_near'           => $deadlineCarbon ? ($deadlineCarbon->isFuture() && $deadlineCarbon->lessThanOrEqualTo(now()->addHours(24))) : false,
                 'pengampu_kelas_id'          => $item->pengampu_kelas_id,
@@ -116,6 +116,9 @@ class TugasController extends Controller
     public function guruOptions(Request $request)
     {
         $guruId = $request->user()?->guru?->id;
+        if (!$guruId) {
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
+        }
 
         $pengampuKelases = PengampuKelas::with([
             'guruMapel.mapel',
@@ -145,6 +148,9 @@ class TugasController extends Controller
     public function guruShow(Request $request, string $id)
     {
         $guruId = $request->user()?->guru?->id;
+        if (!$guruId) {
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
+        }
 
         $tugas = Tugas::with([
             'pengampuKelas.guruMapel.mapel',
@@ -207,7 +213,7 @@ class TugasController extends Controller
                 'submitted_at'     => $pengumpulan?->created_at,
                 'terlambat'        => (bool) $terlambat,
                 'file_jawaban'     => $pengumpulan?->file_jawaban,
-                'file_jawaban_url' => $pengumpulan && $pengumpulan->file_jawaban ? asset('storage/' . $pengumpulan->file_jawaban) : null,
+                'file_jawaban_url' => $pengumpulan && $pengumpulan->file_jawaban ? url("/api/file/jawaban/{$pengumpulan->id}") : null,
                 'nilai'            => $pengumpulan?->nilai,
                 'status'           => $pengumpulan?->status,
                 'status_filter'    => $statusFilter,
@@ -223,7 +229,7 @@ class TugasController extends Controller
                     'nis'  => $item->siswa?->nis,
                 ],
                 'file_jawaban'     => $item->file_jawaban,
-                'file_jawaban_url' => $item->file_jawaban ? asset('storage/' . $item->file_jawaban) : null,
+                'file_jawaban_url' => $item->file_jawaban ? url("/api/file/jawaban/{$item->id}") : null,
                 'nilai'            => $item->nilai,
                 'status'           => $item->status,
                 'submitted_at'     => $item->created_at,
@@ -251,7 +257,7 @@ class TugasController extends Controller
             'deadline'          => $tugas->deadline,
             'tipe'              => $tugas->tipe,
             'file_lampiran'     => $tugas->file_lampiran,
-            'file_url'          => $tugas->file_lampiran ? asset('storage/' . $tugas->file_lampiran) : null,
+            'file_url'          => $tugas->file_lampiran ? url("/api/file/tugas/{$tugas->id}") : null,
             'mapel'             => $tugas->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
             'kelas'             => $tugas->pengampuKelas?->kelas?->nama_kelas,
             'pengampu_kelas_id' => $tugas->pengampu_kelas_id,
@@ -544,6 +550,9 @@ class TugasController extends Controller
     public function guruStore(Request $request)
     {
         $guruId = $request->user()?->guru?->id;
+        if (!$guruId) {
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
+        }
 
         $validator = $this->buildTugasValidator($request, false);
         if ($validator->fails()) {
@@ -577,7 +586,7 @@ class TugasController extends Controller
 
         $filePath = null;
         if ($request->input('tipe') === 'upload' && $request->hasFile('file_tugas_input')) {
-            $filePath = $request->file('file_tugas_input')->store('lampiran_tugas', 'public');
+            $filePath = $request->file('file_tugas_input')->store('lampiran_tugas', 'local');
         }
 
         try {
@@ -603,8 +612,8 @@ class TugasController extends Controller
                 return $hasil;
             });
         } catch (\Throwable $e) {
-            if ($filePath && Storage::disk('public')->exists($filePath)) {
-                Storage::disk('public')->delete($filePath);
+            if ($filePath && Storage::disk('local')->exists($filePath)) {
+                Storage::disk('local')->delete($filePath);
             }
             throw $e;
         }
@@ -639,6 +648,9 @@ class TugasController extends Controller
     public function guruUpdate(Request $request, string $id)
     {
         $guruId = $request->user()?->guru?->id;
+        if (!$guruId) {
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
+        }
 
         $tugas = Tugas::with('pengampuKelas.guruMapel')->find($id);
 
@@ -668,7 +680,7 @@ class TugasController extends Controller
         $fileBaru = null;
 
         if ($request->input('tipe') === 'upload' && $request->hasFile('file_tugas_input')) {
-            $fileBaru = $request->file('file_tugas_input')->store('lampiran_tugas', 'public');
+            $fileBaru = $request->file('file_tugas_input')->store('lampiran_tugas', 'local');
         }
 
         $filePath = $fileBaru ?? ($request->input('tipe') === 'upload' ? $fileLama : null);
@@ -687,8 +699,8 @@ class TugasController extends Controller
                 $this->simpanSoal($tugas, $request);
             });
         } catch (\Throwable $e) {
-            if ($fileBaru && Storage::disk('public')->exists($fileBaru)) {
-                Storage::disk('public')->delete($fileBaru);
+            if ($fileBaru && Storage::disk('local')->exists($fileBaru)) {
+                Storage::disk('local')->delete($fileBaru);
             }
             throw $e;
         }
@@ -696,9 +708,9 @@ class TugasController extends Controller
         if (
             $fileLama &&
             $fileLama !== $filePath &&
-            !Tugas::where('file_lampiran', $fileLama)->exists() &&
-            Storage::disk('public')->exists($fileLama)
+            !Tugas::where('file_lampiran', $fileLama)->exists()
         ) {
+            Storage::disk('local')->delete($fileLama);
             Storage::disk('public')->delete($fileLama);
         }
 
@@ -711,6 +723,9 @@ class TugasController extends Controller
     public function guruDestroy(Request $request, string $id)
     {
         $guruId = $request->user()?->guru?->id;
+        if (!$guruId) {
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
+        }
 
         $tugas = Tugas::with(['pengampuKelas.guruMapel', 'soals'])->find($id);
         if (!$tugas) {
@@ -737,9 +752,9 @@ class TugasController extends Controller
 
         if (
             $fileLama &&
-            !Tugas::where('file_lampiran', $fileLama)->exists() &&
-            Storage::disk('public')->exists($fileLama)
+            !Tugas::where('file_lampiran', $fileLama)->exists()
         ) {
+            Storage::disk('local')->delete($fileLama);
             Storage::disk('public')->delete($fileLama);
         }
 
@@ -752,6 +767,9 @@ class TugasController extends Controller
     public function guruBerikanNilai(Request $request, string $id)
     {
         $guruId = $request->user()?->guru?->id;
+        if (!$guruId) {
+            return $this->notFoundResponse('Profil guru tidak ditemukan.');
+        }
 
         $validator = Validator::make($request->all(), [
             'nilai' => ['required', 'numeric', 'min:0', 'max:100'],
@@ -776,7 +794,7 @@ class TugasController extends Controller
 
         $pengumpulan->update([
             'nilai'  => $request->nilai,
-            'status' => 'selesai',
+            'status' => $pengumpulan->status === 'telat' ? 'telat' : 'selesai',
         ]);
 
         if ($pengumpulan->siswa?->user) {
@@ -842,13 +860,13 @@ class TugasController extends Controller
                     'tipe'               => $tugas->tipe,
                     'soals_count'        => $tugas->soals_count,
                     'file_lampiran'      => $tugas->file_lampiran,
-                    'file_url'           => $tugas->file_lampiran ? asset('storage/' . $tugas->file_lampiran) : null,
+                    'file_url'           => $tugas->file_lampiran ? url("/api/file/tugas/{$tugas->id}") : null,
                     'mapel'              => $tugas->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
                     'guru'               => $tugas->pengampuKelas?->guruMapel?->guru?->nama,
                     'is_submitted'       => $pengumpulan !== null,
                     'submission'         => $pengumpulan ? [
                         'id'               => $pengumpulan->id,
-                        'file_jawaban_url' => $pengumpulan->file_jawaban ? asset('storage/' . $pengumpulan->file_jawaban) : null,
+                        'file_jawaban_url' => $pengumpulan->file_jawaban ? url("/api/file/jawaban/{$pengumpulan->id}") : null,
                         'nilai'            => $pengumpulan->nilai,
                         'status'           => $pengumpulan->status,
                         'submitted_at'     => $pengumpulan->created_at,
@@ -945,7 +963,7 @@ class TugasController extends Controller
             'tipe'               => $tugas->tipe,
             'file_lampiran'      => $tugas->file_lampiran,
             'file_url'           => $tugas->file_lampiran
-                ? asset('storage/' . $tugas->file_lampiran)
+                ? url("/api/file/tugas/{$tugas->id}")
                 : null,
             'mapel'              => $tugas->pengampuKelas?->guruMapel?->mapel?->nama_mapel,
             'guru'               => $tugas->pengampuKelas?->guruMapel?->guru?->nama,
@@ -964,7 +982,7 @@ class TugasController extends Controller
             'submission'         => $pengumpulan ? [
                 'id'               => $pengumpulan->id,
                 'file_jawaban_url' => $pengumpulan->file_jawaban
-                    ? asset('storage/' . $pengumpulan->file_jawaban)
+                    ? url("/api/file/jawaban/{$pengumpulan->id}")
                     : null,
                 'nilai'            => $pengumpulan->nilai,
                 'status'           => $pengumpulan->status,
@@ -1133,7 +1151,7 @@ class TugasController extends Controller
             return $this->errorResponse('Tugas sudah dinilai dan tidak dapat diubah lagi.', 422);
         }
 
-        $filePath = $request->file('file_jawaban')->store('jawaban_tugas', 'public');
+        $filePath = $request->file('file_jawaban')->store('jawaban_tugas', 'local');
 
         $pengumpulan = Nilai::updateOrCreate(
             [
@@ -1147,7 +1165,8 @@ class TugasController extends Controller
             ]
         );
 
-        if ($pengumpulanLama && $pengumpulanLama->file_jawaban && $pengumpulanLama->file_jawaban !== $filePath && Storage::disk('public')->exists($pengumpulanLama->file_jawaban)) {
+        if ($pengumpulanLama && $pengumpulanLama->file_jawaban && $pengumpulanLama->file_jawaban !== $filePath) {
+            Storage::disk('local')->delete($pengumpulanLama->file_jawaban);
             Storage::disk('public')->delete($pengumpulanLama->file_jawaban);
         }
 
@@ -1173,7 +1192,7 @@ class TugasController extends Controller
 
         return $this->successResponse([
             'id'               => $pengumpulan->id,
-            'file_jawaban_url' => asset('storage/' . $filePath),
+            'file_jawaban_url' => url("/api/file/jawaban/{$pengumpulan->id}"),
             'status'           => $pengumpulan->status,
             'is_late'          => $isLate,
         ], 'Tugas berhasil dikumpulkan.');

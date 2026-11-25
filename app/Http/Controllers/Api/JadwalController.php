@@ -20,8 +20,8 @@ class JadwalController extends Controller
         }
 
         $guruMapels = $guru->guruMapels()
-            ->has('pengampuKelases')
-            ->with(['mapel', 'pengampuKelases.kelas'])
+            ->whereHas('pengampuKelases', fn ($q) => $q->currentPeriod())
+            ->with(['mapel', 'pengampuKelases' => fn ($q) => $q->currentPeriod()->with('kelas')])
             ->get()
             ->map(function ($gm) {
                 return [
@@ -68,6 +68,7 @@ class JadwalController extends Controller
         }
 
         $pengampuKelases = $kelas->pengampuKelases()
+            ->currentPeriod($activePeriod->id)
             ->forSiswa($siswa)
             ->with(['guruMapel.guru', 'guruMapel.mapel'])
             ->get()
