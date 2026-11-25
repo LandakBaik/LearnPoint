@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 // Shared & Auth Controllers
@@ -38,12 +39,18 @@ use App\Http\Controllers\Siswa\TugasController as SiswaTugasController;
 use App\Http\Controllers\Siswa\UjianController as SiswaUjianController;
 
 Route::get('/', function () {
+    if (Auth::check()) {
+        return redirect()->route('dashboard');
+    }
+
     return redirect()->route('login');
 });
 
 // Guest Routes
-Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [LoginController::class, 'login']);
+Route::middleware(['guest'])->group(function () {
+    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [LoginController::class, 'login']);
+});
 
 // Authenticated Routes
 Route::middleware(['auth'])->group(function () {
