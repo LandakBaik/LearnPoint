@@ -2480,18 +2480,13 @@ class UjianController extends Controller
      */
     public function siswaCatatPelanggaran(Request $request, Ujian $ujian)
     {
-        $siswa = $request->user()?->siswa;
-        if ($denied = $this->authorizeUjianSiswaApi($ujian, $siswa)) {
-            return $denied;
-        }
-
-        $siswaId = $siswa->id;
+        $siswaId = $request->user()?->siswa?->id;
 
         $sesi = SeleksiUjian::where('ujian_id', $ujian->id)
             ->where('siswa_id', $siswaId)
             ->first();
 
-        if (!$sesi || $sesi->status === 'selesai') {
+        if (!$sesi || in_array($sesi->status, ['selesai', 'terkunci'], true)) {
             return $this->successResponse(['status' => 'ignored']);
         }
 
@@ -2501,13 +2496,14 @@ class UjianController extends Controller
         $maxToleransi = 3;
         $isLocked = false;
 
+        // Mulai pelanggaran ke-3, 4, 5, 6, dst. langsung terkunci otomatis
         if ($sesi->pelanggaran_count >= $maxToleransi) {
             $sesi->update(['status' => 'terkunci']);
             $isLocked = true;
         }
 
         return $this->successResponse([
-            'pelanggaran_count' => $sesi->pelanggaran_count,
+            'pelanggaran_count' => (int) $sesi->pelanggaran_count,
             'max_toleransi'     => $maxToleransi,
             'is_locked'         => $isLocked,
         ]);

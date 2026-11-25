@@ -3,7 +3,8 @@
 @section('title', 'Laporan & Leger Nilai Ujian')
 
 @section('content')
-<div class="space-y-6">
+
+<div class="max-w-7xl mx-auto space-y-6">
 
     {{-- HEADER --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -12,7 +13,7 @@
                 &larr; Kembali ke Pusat Ujian
             </a>
             <h1 class="text-2xl font-black text-gray-900 mt-1">
-                📊 Laporan & Leger Nilai Ujian
+                 Laporan & Leger Nilai Ujian
             </h1>
             <p class="text-xs text-gray-500 mt-0.5">
                 Rekapitulasi nilai akhir ujian reguler, remidi (R), dan susulan (S) berdasarkan Tahun Ajaran & Semester.
@@ -126,7 +127,7 @@
         </form>
     </div>
 
-    {{-- QUALITY GATE WARNING BANNER --}}
+    {{-- QUALITY GATE WARNING BANNER
     @if($qualityGate['menunggu_essay'] > 0 || $qualityGate['belum_ujian'] > 0)
         <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-start gap-3">
@@ -149,7 +150,7 @@
                 </div>
             </div>
         </div>
-    @endif
+    @endif --}}
 
     {{-- =========================================================
         PREVIEW TABEL MODE 1: LEGER MAPEL (MULTI-UJIAN)

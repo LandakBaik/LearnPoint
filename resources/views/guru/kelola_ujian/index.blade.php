@@ -4,287 +4,228 @@
 
 @section('content')
 
-    <div x-data="kelolaIndexUjian()" class="space-y-6">
+    @php
+        $statusAktif = request('status', '');
+    @endphp
 
-        {{-- =========================================================
-            NOTIFIKASI FLASH (Success / Error)
-        ========================================================== --}}
-        @if (session('success'))
-            <div
-                class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-sm font-semibold flex items-center justify-between shadow-xs">
-                <span class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    {{ session('success') }}
-                </span>
-            </div>
-        @endif
+    <div x-data="kelolaIndexUjian()" class="space-y-6 max-w-7xl mx-auto">
 
-        @if (session('error') || $errors->has('hapus'))
-            <div
-                class="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-sm font-semibold flex items-center justify-between shadow-xs">
-                <span class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    {{ session('error') ?? $errors->first('hapus') }}
-                </span>
-            </div>
-        @endif
+        
 
         {{-- =========================================================
             HEADER HALAMAN
         ========================================================== --}}
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <div class="flex items-center gap-2.5">
-                    <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-                        Ujian & Evaluasi Siswa
-                    </h2>
-                    <span
-                        class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Aktif
-                    </span>
-                </div>
-                <p class="mt-1 text-sm text-gray-500">
+            <div class="space-y-1">
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                    Ujian &amp; Evaluasi Siswa
+                </h1>
+                <p class="text-sm text-slate-500 leading-relaxed font-normal">
                     Kelola pelaksanaan tes, bank soal, dan analisis pencapaian belajar siswa.
                 </p>
             </div>
 
             <div class="flex flex-wrap items-center gap-2.5 shrink-0">
                 <a href="{{ route('guru.ujian.laporan') }}"
-                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-sm font-bold transition shadow-xs">
-                    <span>📊</span>
-                    <span>Laporan & Leger PDF</span>
+                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 text-xs font-semibold transition-all duration-200 shadow-xs hover:shadow-sm">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="1.8"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Laporan &amp; Leger PDF</span>
                 </a>
 
                 <a href="{{ route('guru.ujian.create') }}"
-                    class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                    class="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-all duration-200 shadow-xs hover:shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
-                    Tambah Ujian Baru
+                    <span>Tambah Ujian Baru</span>
                 </a>
             </div>
         </div>
 
         {{-- =========================================================
-            HERO BANNER (CBT Sync Center)
+            KARTU STATISTIK (6 KOLOM)
         ========================================================== --}}
-        <div
-            class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 p-6 sm:p-8 text-white shadow-lg">
-            <div class="absolute -right-12 -top-12 w-64 h-64 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
-            <div class="absolute right-40 -bottom-16 w-56 h-56 rounded-full bg-indigo-500/20 blur-xl pointer-events-none">
-            </div>
-
-            <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div class="max-w-2xl space-y-3">
-                    <div
-                        class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-medium text-blue-100">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                        Live Sync CBT &bull; Terhubung ke {{ $daftarKelas->count() }} Kelas
-                    </div>
-
-                    <h3 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
-                        Pusat Ujian & Evaluasi Siswa
-                        <span>📄</span>
-                    </h3>
-
-                    <p class="text-sm text-blue-100 leading-relaxed font-normal">
-                        Kelola bank soal, jadwal pelaksanaan asesmen, dan pantau hasil evaluasi belajar siswa secara
-                        terpusat dan terstruktur.
-                    </p>
-                </div>
-
-                {{-- Status Ringkasan --}}
-                <div
-                    class="hidden md:flex flex-col items-start bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 min-w-[210px] text-white shadow-inner">
-                    <div class="flex items-center gap-2 text-xs font-semibold tracking-wider text-blue-100 uppercase">
-                        <svg class="w-4 h-4 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                        <span>Tingkat Kesiapan</span>
-                    </div>
-                    @php
-                        $persenSiap =
-                            $stats['total'] > 0
-                                ? round((($stats['published'] + $stats['completed']) / $stats['total']) * 100, 1)
-                                : 0;
-                    @endphp
-                    <div class="mt-2 text-3xl font-black tracking-tight">
-                        {{ $persenSiap }}%
-                    </div>
-                    <p class="mt-0.5 text-xs text-blue-200">
-                        Instrumen rilis & tuntas
-                    </p>
-                </div>
-            </div>
-        </div>
-
-
-        {{-- =========================================================
-            KARTU STATISTIK
-        ========================================================== --}}
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+        <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
 
             {{-- Total Ujian --}}
-            <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-xs hover:border-gray-200 transition">
-                <div class="flex items-center justify-between">
-                    <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a3 3 0 006 0M9 5h6" />
+            <a href="{{ route('guru.ujian.index', request()->except(['status', 'page'])) }}"
+                class="group rounded-2xl p-4 sm:p-5 transition-all duration-200 block {{ $statusAktif === '' ? 'bg-blue-50/40 border-2 border-blue-600 shadow-sm' : 'bg-white border border-slate-200/80 hover:border-blue-200 shadow-sm hover:shadow-md' }}">
+                <span
+                    class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $statusAktif === '' ? 'text-blue-700' : 'text-slate-500' }}">
+                    @if ($statusAktif === '')
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                    @endif
+                    Total Ujian
+                </span>
+                <div class="mt-2.5 flex items-center justify-between gap-2">
+                    <div id="stat-total" class="text-2xl font-extrabold text-slate-900 leading-tight">{{ $stats['total'] }}
+                    </div>
+                    <div
+                        class="w-9 h-9 rounded-xl bg-slate-100/90 text-slate-600 border border-slate-200/60 shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                     </div>
-                    <span class="text-[10px] font-semibold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md">Total</span>
                 </div>
-                <div class="mt-3">
-                    <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Total Ujian</p>
-                    <p id="stat-total" class="mt-1 text-2xl font-black text-gray-900">{{ $stats['total'] }}</p>
-                    <p class="mt-1 text-[11px] text-gray-500 flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Instrumen aktif
-                    </p>
-                </div>
-            </div>
+                <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">Instrumen terdaftar</p>
+            </a>
 
             {{-- Draft --}}
-            <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-xs hover:border-gray-200 transition">
-                <div class="flex items-center justify-between">
-                    <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+            <a href="{{ route('guru.ujian.index', array_merge(request()->except('page'), ['status' => 'draft'])) }}"
+                class="group rounded-2xl p-4 sm:p-5 transition-all duration-200 block {{ $statusAktif === 'draft' ? 'bg-blue-50/40 border-2 border-blue-600 shadow-sm' : 'bg-white border border-slate-200/80 hover:border-blue-200 shadow-sm hover:shadow-md' }}">
+                <span
+                    class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $statusAktif === 'draft' ? 'text-blue-700' : 'text-slate-500' }}">
+                    @if ($statusAktif === 'draft')
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                    @endif
+                    Draft
+                </span>
+                <div class="mt-2.5 flex items-center justify-between gap-2">
+                    <div id="stat-draft" class="text-2xl font-extrabold text-slate-900 leading-tight">{{ $stats['draft'] }}
+                    </div>
+                    <div
+                        class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100/80 shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                     </div>
-                    <span
-                        class="text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">Tindakan</span>
                 </div>
-                <div class="mt-3">
-                    <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Draft</p>
-                    <p id="stat-draft" class="mt-1 text-2xl font-black text-gray-900">{{ $stats['draft'] }}</p>
-                    <p class="mt-1 text-[11px] text-gray-500 flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Perlu selesai
-                    </p>
-                </div>
-            </div>
+                <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">Perlu dilengkapi</p>
+            </a>
 
             {{-- Terjadwal --}}
-            <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-xs hover:border-gray-200 transition">
-                <div class="flex items-center justify-between">
-                    <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <a href="{{ route('guru.ujian.index', array_merge(request()->except('page'), ['status' => 'scheduled'])) }}"
+                class="group rounded-2xl p-4 sm:p-5 transition-all duration-200 block {{ $statusAktif === 'scheduled' ? 'bg-amber-50/40 border-2 border-amber-500 shadow-sm' : 'bg-white border border-slate-200/80 hover:border-amber-200 shadow-sm hover:shadow-md' }}">
+                <span
+                    class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $statusAktif === 'scheduled' ? 'text-amber-700' : 'text-slate-500' }}">
+                    @if ($statusAktif === 'scheduled')
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    @endif
+                    Terjadwal
+                </span>
+                <div class="mt-2.5 flex items-center justify-between gap-2">
+                    <div id="stat-scheduled" class="text-2xl font-extrabold text-slate-900 leading-tight">
+                        {{ $stats['scheduled'] }}</div>
+                    <div
+                        class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-200/60 shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <span
-                        class="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">Jadwal</span>
                 </div>
-                <div class="mt-3">
-                    <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Terjadwal</p>
-                    <p id="stat-scheduled" class="mt-1 text-2xl font-black text-gray-900">{{ $stats['scheduled'] }}</p>
-                    <p class="mt-1 text-[11px] text-gray-500 flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Akan datang
-                    </p>
-                </div>
-            </div>
+                <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">Menunggu waktu</p>
+            </a>
 
             {{-- Dipublikasi --}}
-            <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-xs hover:border-gray-200 transition">
-                <div class="flex items-center justify-between">
-                    <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 13l4 4L19 7" />
+            <a href="{{ route('guru.ujian.index', array_merge(request()->except('page'), ['status' => 'published'])) }}"
+                class="group rounded-2xl p-4 sm:p-5 transition-all duration-200 block {{ $statusAktif === 'published' ? 'bg-emerald-50/40 border-2 border-emerald-500 shadow-sm' : 'bg-white border border-slate-200/80 hover:border-emerald-200 shadow-sm hover:shadow-md' }}">
+                <span
+                    class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $statusAktif === 'published' ? 'text-emerald-700' : 'text-slate-500' }}">
+                    @if ($statusAktif === 'published')
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    @endif
+                    Dipublikasi
+                </span>
+                <div class="mt-2.5 flex items-center justify-between gap-2">
+                    <div id="stat-published" class="text-2xl font-extrabold text-slate-900 leading-tight">
+                        {{ $stats['published'] }}</div>
+                    <div
+                        class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/60 shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
                         </svg>
                     </div>
-                    <span
-                        class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Rilis</span>
                 </div>
-                <div class="mt-3">
-                    <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Dipublikasi</p>
-                    <p id="stat-published" class="mt-1 text-2xl font-black text-gray-900">{{ $stats['published'] }}</p>
-                    <p class="mt-1 text-[11px] text-gray-500 flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Siap dikerjakan
-                    </p>
-                </div>
-            </div>
+                <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">Sedang berlangsung</p>
+            </a>
 
             {{-- Selesai --}}
-            <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-xs hover:border-gray-200 transition">
-                <div class="flex items-center justify-between">
-                    <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                d="M9 12l2 2 4-4m5 2a8 8 0 11-16 0 8 8 0 0116 0z" />
+            <a href="{{ route('guru.ujian.index', array_merge(request()->except('page'), ['status' => 'completed'])) }}"
+                class="group rounded-2xl p-4 sm:p-5 transition-all duration-200 block {{ $statusAktif === 'completed' ? 'bg-slate-100/70 border-2 border-slate-500 shadow-sm' : 'bg-white border border-slate-200/80 hover:border-slate-300 shadow-sm hover:shadow-md' }}">
+                <span
+                    class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $statusAktif === 'completed' ? 'text-slate-700' : 'text-slate-500' }}">
+                    @if ($statusAktif === 'completed')
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+                    @endif
+                    Selesai
+                </span>
+                <div class="mt-2.5 flex items-center justify-between gap-2">
+                    <div id="stat-completed" class="text-2xl font-extrabold text-slate-900 leading-tight">
+                        {{ $stats['completed'] }}</div>
+                    <div
+                        class="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 border border-slate-200/60 shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <span
-                        class="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">Tuntas</span>
                 </div>
-                <div class="mt-3">
-                    <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Selesai</p>
-                    <p id="stat-completed" class="mt-1 text-2xl font-black text-gray-900">{{ $stats['completed'] }}</p>
-                    <p class="mt-1 text-[11px] text-gray-500 flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> Sudah dievaluasi
-                    </p>
-                </div>
-            </div>
+                <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">Sudah dievaluasi</p>
+            </a>
 
-            {{-- Tidak Dipublikasi --}}
-            <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-xs hover:border-gray-200 transition">
-                <div class="flex items-center justify-between">
-                    <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                d="M6 18L18 6M6 6l12 12" />
+            {{-- Nonaktif / Tidak Dipublikasi --}}
+            <a href="{{ route('guru.ujian.index', array_merge(request()->except('page'), ['status' => 'unpublished'])) }}"
+                class="group rounded-2xl p-4 sm:p-5 transition-all duration-200 block {{ $statusAktif === 'unpublished' ? 'bg-rose-50/40 border-2 border-rose-500 shadow-sm' : 'bg-white border border-slate-200/80 hover:border-rose-200 shadow-sm hover:shadow-md' }}">
+                <span
+                    class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $statusAktif === 'unpublished' ? 'text-rose-700' : 'text-slate-500' }}">
+                    @if ($statusAktif === 'unpublished')
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                    @endif
+                    Nonaktif
+                </span>
+                <div class="mt-2.5 flex items-center justify-between gap-2">
+                    <div id="stat-unpublished" class="text-2xl font-extrabold text-slate-900 leading-tight">
+                        {{ $stats['unpublished'] }}</div>
+                    <div
+                        class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 border border-rose-200/60 shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                         </svg>
                     </div>
-                    <span class="text-[10px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md">Jeda</span>
                 </div>
-                <div class="mt-3">
-                    <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Nonaktif</p>
-                    <p id="stat-unpublished" class="mt-1 text-2xl font-black text-gray-900">{{ $stats['unpublished'] }}
-                    </p>
-                    <p class="mt-1 text-[11px] text-gray-500 flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> Ditarik sementara
-                    </p>
-                </div>
-            </div>
+                <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">Ditarik sementara</p>
+            </a>
 
-        </div>
-
+        </section>
 
         {{-- =========================================================
-            BAR FILTER & PENCARIAN
+            KARTU UTAMA: FILTER, BAR ARSIP, TABEL UJIAN, PAGINATION
         ========================================================== --}}
-        <div class="bg-white rounded-2xl border border-gray-100 p-4 shadow-xs">
-            <form method="GET" action="{{ route('guru.ujian.index') }}" class="space-y-3">
+        <div
+            class="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
 
-                {{-- Input Pencarian Utama --}}
-                <div class="relative">
-                    <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="m21 21-4.35-4.35m2.35-5.65a8 8 0 11-16 0 8 8 0 0116 0z" />
-                    </svg>
-                    <input type="text" name="search" value="{{ request('search') }}"
-                        placeholder="Cari judul ujian, topik asesmen, atau mata pelajaran..."
-                        class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm text-gray-800 placeholder-gray-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition">
-                </div>
+            {{-- BAR FILTER & PENCARIAN --}}
+            <div class="px-6 py-4 border-b border-slate-100 bg-white">
+                <form method="GET" action="{{ route('guru.ujian.index') }}"
+                    class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
 
-                {{-- Filter Pilihan & Tombol Submit --}}
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] gap-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2.5 flex-1">
+                        {{-- Input Pencarian --}}
+                        <div class="relative flex-1 max-w-md">
+                            <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
+                                fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="m21 21-4.35-4.35m2.35-5.65a8 8 0 11-16 0 8 8 0 0116 0z" />
+                            </svg>
+                            <input type="text" name="search" value="{{ request('search') }}"
+                                placeholder="Cari judul ujian, topik, mapel..."
+                                class="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-200/80 bg-slate-50/60 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition">
+                        </div>
 
-                    {{-- Status Dropdown --}}
-                    <div>
-                        <select id="filter-status" name="status"
-                            class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-xs font-medium text-gray-700 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition cursor-pointer">
+                        {{-- Dropdown Status --}}
+                        <select id="filter-status" name="status" onchange="this.form.submit()"
+                            class="px-3.5 py-2 rounded-xl border border-slate-200/80 bg-white text-xs font-medium text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition cursor-pointer">
                             <option value="">Semua Status</option>
-                            <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Draf</option>
+                            <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Draft</option>
                             <option value="scheduled" {{ request('status') === 'scheduled' ? 'selected' : '' }}>Terjadwal
                             </option>
                             <option value="published" {{ request('status') === 'published' ? 'selected' : '' }}>
@@ -294,12 +235,10 @@
                             <option value="unpublished" {{ request('status') === 'unpublished' ? 'selected' : '' }}>Tidak
                                 Dipublikasi</option>
                         </select>
-                    </div>
 
-                    {{-- Kelas Dropdown --}}
-                    <div>
-                        <select name="kelas_id"
-                            class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-xs font-medium text-gray-700 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition cursor-pointer">
+                        {{-- Dropdown Kelas --}}
+                        <select name="kelas_id" onchange="this.form.submit()"
+                            class="px-3.5 py-2 rounded-xl border border-slate-200/80 bg-white text-xs font-medium text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition cursor-pointer">
                             <option value="">Semua Kelas</option>
                             @foreach ($daftarKelas as $kelas)
                                 <option value="{{ $kelas->id }}"
@@ -308,549 +247,694 @@
                                 </option>
                             @endforeach
                         </select>
-                    </div>
 
-                    {{-- Tombol Terapkan --}}
-                    <div class="flex items-center gap-2">
                         <button type="submit"
-                            class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                            </svg>
+                            class="sm:hidden px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition cursor-pointer shadow-xs">
                             Terapkan Filter
                         </button>
 
                         @if (request()->hasAny(['search', 'status', 'kelas_id']))
                             <a href="{{ route('guru.ujian.index') }}"
-                                class="px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-gray-700 hover:bg-gray-50 text-xs font-medium transition"
-                                title="Reset Filter">
-                                Reset
+                                class="text-xs font-semibold text-slate-500 hover:text-blue-600 underline underline-offset-4 px-1.5 py-1 transition self-start sm:self-center">
+                                Reset Filter
                             </a>
                         @endif
                     </div>
 
-                </div>
-
-            </form>
-        </div>
-
-
-        {{-- =========================================================
-            DAFTAR UJIAN & FOLDER ARSIP (ALA WHATSAPP)
-        ========================================================== --}}
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
-
-            {{-- Card Header Dinamis (Daftar Utama vs Isi Folder Arsip) --}}
-            <div
-                class="px-6 py-4.5 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 bg-white">
-                <div x-show="!bukaFolderArsip">
-                    <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
-                        Daftar Ujian & Asesmen Aktif
-                        <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-                    </h3>
-                    <p class="text-xs text-gray-500 mt-0.5">
-                        Instrumen ujian aktif. Ujian yang telah selesai dapat dipindahkan ke folder Diarsipkan agar tampilan tetap bersih.
-                    </p>
-                </div>
-
-                <div x-show="bukaFolderArsip" x-cloak class="flex items-center gap-3">
-                    <button type="button" @click="bukaFolderArsip = false"
-                        class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
-                        title="Kembali ke Daftar Utama">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                    </button>
-                    <div>
-                        <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
-                            📁 Folder Ujian Diarsipkan
-                        </h3>
-                        <p class="text-xs text-gray-500 mt-0.5">
-                            Daftar ujian selesai yang disembunyikan dari halaman utama.
-                        </p>
+                    {{-- Info Total Kanan --}}
+                    <div class="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                        <span x-show="!bukaFolderArsip"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-xs text-slate-500">
+                            Total: <strong class="font-bold text-slate-800">{{ $ujians->total() }}</strong> ujian
+                        </span>
+                        <span x-show="bukaFolderArsip" x-cloak
+                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200/80 text-xs text-slate-600">
+                            Arsip: <strong
+                                class="font-bold text-slate-900">{{ isset($ujiansArsip) ? $ujiansArsip->count() : 0 }}</strong>
+                            ujian
+                        </span>
                     </div>
-                </div>
 
-                <div class="flex items-center gap-2">
-                    <span x-show="!bukaFolderArsip"
-                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
-                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                        {{ $ujians->total() }} Ujian di Daftar Utama
-                    </span>
-
-                    <span x-show="bukaFolderArsip" x-cloak
-                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                        {{ isset($ujiansArsip) ? $ujiansArsip->count() : 0 }} Ujian Diarsipkan
-                    </span>
-                </div>
+                </form>
             </div>
 
-            {{-- =========================================================
-                BAR FOLDER DIARSIPKAN ALA WHATSAPP (TAMPIL DI ATAS DAFTAR)
-            ========================================================== --}}
+            {{-- BAR FOLDER DIARSIPKAN (TAMPIL SAAT DI DAFTAR UTAMA) --}}
             @if (isset($ujiansArsip) && $ujiansArsip->count() > 0)
-                <div x-show="!bukaFolderArsip"
-                    @click="bukaFolderArsip = true"
-                    class="px-6 py-3.5 bg-slate-50/90 hover:bg-slate-100/90 border-b border-gray-200/80 flex items-center justify-between cursor-pointer transition group select-none">
-                    <div class="flex items-center gap-3.5">
-                        <div class="w-9 h-9 rounded-xl bg-slate-200/80 group-hover:bg-indigo-100 text-slate-600 group-hover:text-indigo-600 flex items-center justify-center transition">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <div x-show="!bukaFolderArsip" @click="bukaFolderArsip = true"
+                    class="px-6 py-3.5 bg-slate-50/70 hover:bg-slate-100/70 border-b border-slate-200/60 flex items-center justify-between gap-3 cursor-pointer transition group select-none">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-white border border-slate-200/80 text-slate-600 group-hover:text-blue-600 group-hover:border-blue-200 flex items-center justify-center shrink-0 shadow-xs transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                             </svg>
                         </div>
-                        <div>
-                            <p class="text-sm font-bold text-gray-800 group-hover:text-indigo-700 transition">
+                        <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 min-w-0">
+                            <span class="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-blue-600 transition">
                                 Diarsipkan
-                            </p>
-                            <p class="text-[11px] text-gray-500">
+                            </span>
+                            <span class="text-xs text-slate-400 truncate">
                                 Klik untuk melihat ujian selesai yang telah diarsipkan
-                            </p>
+                            </span>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-2">
-                        <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-700">
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="text-xs font-semibold text-slate-600 group-hover:text-blue-600 transition">
+                            Lihat Arsip
+                        </span>
+                        <span
+                            class="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-full text-[11px] font-bold bg-slate-200/80 text-slate-700">
                             {{ $ujiansArsip->count() }}
                         </span>
-                        <svg class="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition"
+                            fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                         </svg>
                     </div>
                 </div>
             @endif
 
-            {{-- =========================================================
-                VIEW 1: DAFTAR UJIAN UTAMA (TIDAK DIARSIPKAN)
-            ========================================================== --}}
-            <div x-show="!bukaFolderArsip" id="daftar-ujian" class="p-4 sm:p-6 space-y-4 bg-slate-50/50">
-                @forelse($ujians as $ujian)
-                    @php
-                        $namaMapel = $ujian->kelasDalamGrup
-                            ->map(fn($anggota) => $anggota->pengampuKelas?->guruMapel?->mapel?->nama_mapel)
-                            ->filter()
-                            ->unique()
-                            ->values();
-
-                        $namaKelas = $ujian->kelasDalamGrup
-                            ->map(fn($anggota) => $anggota->pengampuKelas?->kelas?->nama_kelas)
-                            ->filter()
-                            ->unique()
-                            ->values();
-
-                        $mapelName = $namaMapel->first() ?? 'Umum';
-
-                        $stripeColor = match ($ujian->status) {
-                            'published' => 'bg-emerald-500',
-                            'scheduled' => 'bg-amber-500',
-                            'completed' => 'bg-slate-400',
-                            'draft' => 'bg-amber-400',
-                            'unpublished' => 'bg-rose-500',
-                            default => 'bg-gray-300',
-                        };
-
-                        $badgeClass = match ($ujian->status) {
-                            'published' => 'text-emerald-700 bg-emerald-50 border-emerald-200/80',
-                            'scheduled' => 'text-amber-700 bg-amber-50 border-amber-200/80',
-                            'completed' => 'text-slate-700 bg-slate-100 border-slate-200/80',
-                            'draft' => 'text-gray-700 bg-gray-100 border-gray-200/80',
-                            'unpublished' => 'text-rose-700 bg-rose-50 border-rose-200/80',
-                            default => 'text-gray-700 bg-gray-100 border-gray-200/80',
-                        };
-
-                        $singkatanMapel = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $mapelName), 0, 3));
-                        $kodeIdUjian =
-                            'EX-' .
-                            date('Y') .
-                            '-' .
-                            ($singkatanMapel ?: 'UJN') .
-                            str_pad($ujian->id, 2, '0', STR_PAD_LEFT);
-
-                        $totalPeserta = isset($ujian->kelasDalamGrup)
-                            ? $ujian->kelasDalamGrup->sum('seleksi_ujians_count')
-                            : $ujian->seleksi_ujians_count ?? 0;
-                        $adaPengerjaan = $totalPeserta > 0;
-                    @endphp
-
-                    <div data-ujian-id="{{ $ujian->id }}" data-ujian-status="{{ $ujian->status }}"
-                        class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm relative flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-md transition duration-150">
-
-                        <div class="absolute left-0 top-4 bottom-4 w-1.5 rounded-r {{ $stripeColor }}"></div>
-
-                        <div class="flex-1 pl-3 min-w-0">
-                            <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500 mb-1.5">
-                                <span class="text-blue-600 bg-blue-50 px-2 py-0.5 rounded font-medium">
-                                    {{ $mapelName }}
-                                </span>
-                                <span>&bull;</span>
-                                <span>Kelas: {{ $namaKelas->isNotEmpty() ? $namaKelas->implode(', ') : '-' }}</span>
-                                <span>&bull;</span>
-                                <span class="text-gray-400 font-mono">ID: {{ $kodeIdUjian }}</span>
-                            </div>
-
-                            <h3 class="text-base font-semibold text-gray-900 mb-2 truncate" title="{{ $ujian->judul }}">
-                                {{ $ujian->judul }}
-                            </h3>
-
-                            <div class="flex flex-wrap items-center gap-4 text-xs text-gray-400">
-                                <span class="flex items-center gap-1.5 {{ !$ujian->waktu_mulai ? 'italic' : '' }}">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                    {{ $ujian->waktu_mulai ? $ujian->waktu_mulai->format('d M Y, H:i') . ' WIB' : 'Belum dijadwalkan' }}
-                                </span>
-
-                                <span class="flex items-center gap-1.5">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    {{ $ujian->durasi_menit }} menit
-                                </span>
-
-                                <span class="flex items-center gap-1.5">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    {{ $ujian->soals->count() }} Soal
-                                </span>
-                            </div>
-                        </div>
-
-                        <div
-                            class="flex flex-col items-start md:items-end justify-between self-stretch gap-3 shrink-0 pt-2 md:pt-0">
-
-                            <div>
-                                <span data-status-badge
-                                    class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border before:content-[''] before:inline-block before:w-1.5 before:h-1.5 before:rounded-full before:bg-current {{ $badgeClass }}">
-                                    {{ $ujian->status_label }}
-                                </span>
-                            </div>
-
-                            <div class="flex items-center justify-end gap-2 flex-wrap">
-
-                                {{-- 1. STATUS: PUBLISHED (SEDANG BERJALAN) --}}
-                                @if ($ujian->status === 'published')
-                                    <a href="{{ route('guru.ujian.monitoring', $ujian->id) }}"
-                                        class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
-                                        <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
-                                        Monitoring Live
-                                    </a>
-
-                                    <form action="{{ route('guru.ujian.unpublish', $ujian->id) }}" method="POST"
-                                        onsubmit="return confirm('PENTING: Tarik publikasi ujian ini?\n\nSiswa yang belum selesai akan dikeluarkan dari lembar ujian. Nilai siswa yang sudah selesai tetap tersimpan aman.')"
-                                        class="inline">
-                                        @csrf
-                                        <button type="submit"
-                                            class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer">
-                                            Tarik Publikasi
-                                        </button>
-                                    </form>
-
-                                    <a href="{{ route('guru.ujian.show', $ujian->id) }}"
-                                        class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
-                                        Detail
-                                    </a>
-
-                                {{-- 2. STATUS: COMPLETED (SELESAI NORMAL -> BISA DIARSIPKAN ALA WHATSAPP) --}}
-                                @elseif($ujian->status === 'completed')
-                                    <a href="{{ route('guru.ujian.show', $ujian->id) }}"
-                                        class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
-                                        Detail
-                                    </a>
-
-                                    <a href="{{ route('guru.ujian.rekap', $ujian->id) }}"
-                                        class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2"
-                                            viewBox="0 0 24 24">
-                                            <path
-                                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
-                                            </path>
-                                        </svg>
-                                        Rekap Nilai
-                                    </a>
-
-                                    <a href="{{ route('guru.ujian.monitoring', $ujian->id) }}"
-                                        class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                        </svg>
-                                        Hasil Monitoring
-                                    </a>
-
-                                    <form action="{{ route('guru.ujian.duplicate', $ujian->id) }}" method="POST"
-                                        onsubmit="return confirm('Duplikasi instrumen soal ke draf ujian baru?')"
-                                        class="inline">
-                                        @csrf
-                                        <button type="submit"
-                                            class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer">
-                                            Duplikat
-                                        </button>
-                                    </form>
-
-                                    {{-- Tombol Masukkan ke Folder Diarsipkan --}}
-                                    <form action="{{ route('guru.ujian.toggle-archive', $ujian->id) }}" method="POST"
-                                        class="inline">
-                                        @csrf
-                                        <button type="submit" title="Pindahkan ke Folder Diarsipkan"
-                                            class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-50 hover:bg-slate-200/80 text-slate-600 border border-slate-200 rounded-xl text-xs font-semibold transition cursor-pointer">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                                            </svg>
-                                            <span>Arsipkan</span>
-                                        </button>
-                                    </form>
-
-                                    <a href="{{ route('guru.ujian.edit', $ujian->id) }}"
-                                      class="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition">
-                                      Edit Bobot
-                                  </a>
-
-                                {{-- 3. STATUS: UNPUBLISHED (DITARIK / REM DARURAT) --}}
-                                @elseif($ujian->status === 'unpublished')
-                                    <form action="{{ route('guru.ujian.publish', $ujian->id) }}" method="POST"
-                                        onsubmit="return confirm('Publikasikan kembali ujian ini agar dapat dikerjakan siswa?')"
-                                        class="inline">
-                                        @csrf
-                                        <input type="hidden" name="tipe_publikasi" value="langsung">
-                                        <button type="submit"
-                                            class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer">
-                                            Publikasikan Lagi
-                                        </button>
-                                    </form>
-
-                                    <a href="{{ route('guru.ujian.show', $ujian->id) }}"
-                                        class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
-                                        Detail
-                                    </a>
-
-                                    <a href="{{ route('guru.ujian.edit', $ujian->id) }}"
-                                        class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold transition">
-                                        Edit bobot
-                                    </a>
-
-                                    @if ($adaPengerjaan)
-                                        <a href="{{ route('guru.ujian.rekap', $ujian->id) }}"
-                                            class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition">
-                                            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor"
-                                                stroke-width="2" viewBox="0 0 24 24">
-                                                <path
-                                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                                                </path>
-                                            </svg>
-                                            Rekap Sesi ({{ $totalPeserta }})
-                                        </a>
-                                    @endif
-
-                                {{-- 4. STATUS: SCHEDULED (TERJADWAL -> BISA DIEDIT SELAMA BELUM ADA PESERTA) --}}
-                                @elseif($ujian->status === 'scheduled')
-                                    @if (!$adaPengerjaan)
-                                        <a href="{{ route('guru.ujian.edit', $ujian->id) }}"
-                                            class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold transition">
-                                            Edit Soal
-                                        </a>
-                                    @endif
-
-                                    <form action="{{ route('guru.ujian.unpublish', $ujian->id) }}" method="POST"
-                                        onsubmit="return confirm('Batalkan jadwal ujian ini?')"
-                                        class="inline">
-                                        @csrf
-                                        <button type="submit"
-                                            class="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold transition cursor-pointer">
-                                            Batalkan Jadwal
-                                        </button>
-                                    </form>
-
-                                    <a href="{{ route('guru.ujian.show', $ujian->id) }}"
-                                        class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
-                                        Detail
-                                    </a>
-
-                                {{-- 5. STATUS: DRAFT --}}
-                                @else
-                                    <a href="{{ route('guru.ujian.show', $ujian->id) }}"
-                                        class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
-                                        Detail
-                                    </a>
-
-                                    <a href="{{ route('guru.ujian.edit', $ujian->id) }}"
-                                        class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
-                                        Edit Soal
-                                    </a>
-
-                                    <button type="button"
-                                        @click="bukaModalPublikasi({{ $ujian->id }}, '{{ addslashes($ujian->judul) }}', '{{ route('guru.ujian.publish', $ujian) }}', '{{ $ujian->waktu_mulai ? \Carbon\Carbon::parse($ujian->waktu_mulai)->format('Y-m-d\TH:i') : '' }}', '{{ $ujian->deadline ? \Carbon\Carbon::parse($ujian->deadline)->format('Y-m-d\TH:i') : '' }}')"
-                                        class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer">
-                                        Kelola Publikasi
-                                    </button>
-                                @endif
-
-                                {{-- TOMBOL HAPUS / DESTROY (Muncul jika belum ada siswa yang mengerjakan) --}}
-                                @if (!$adaPengerjaan && in_array($ujian->status, ['draft', 'scheduled', 'unpublished']))
-                                    <form action="{{ route('guru.ujian.destroy', $ujian->id) }}" method="POST"
-                                        onsubmit="return confirm('Yakin ingin menghapus ujian &quot;{{ addslashes($ujian->judul) }}&quot; beserta seluruh soalnya secara permanen?')"
-                                        class="inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" title="Hapus Ujian"
-                                            class="inline-flex items-center gap-1 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                            <span>Hapus</span>
-                                        </button>
-                                    </form>
-                                @endif
-                            </div>
-
-                        </div>
-
+            {{-- HEADER SAAT MEMBUKA FOLDER ARSIP --}}
+            <div x-show="bukaFolderArsip" x-cloak
+                class="px-6 py-4 bg-slate-50/70 border-b border-slate-200/60 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <button type="button" @click="bukaFolderArsip = false"
+                        class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white hover:bg-slate-100 border border-slate-200/80 text-slate-700 shadow-xs transition cursor-pointer"
+                        title="Kembali ke Daftar Utama">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                    </button>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 leading-tight">Folder Ujian Diarsipkan</h3>
+                        <p class="text-xs text-slate-400 font-normal mt-0.5">Daftar ujian selesai yang disembunyikan dari
+                            halaman utama.</p>
                     </div>
-                @empty
-                    {{-- Empty state daftar utama --}}
-                    <div class="px-6 py-16 text-center bg-white rounded-2xl border border-gray-200">
-                        <div
-                            class="w-16 h-16 mx-auto rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a3 3 0 006 0M9 5h6" />
-                            </svg>
-                        </div>
-                        <h3 class="mt-4 text-base font-bold text-gray-900">Daftar ujian utama bersih</h3>
-                        <p class="mt-1 text-sm text-gray-500 max-w-sm mx-auto">
-                            Belum ada ujian aktif, atau seluruh ujian selesai telah dipindahkan ke folder Diarsipkan.
-                        </p>
-                        <a href="{{ route('guru.ujian.create') }}"
-                            class="inline-flex items-center gap-2 mt-5 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition shadow-xs">
-                            + Tambah Ujian
-                        </a>
-                    </div>
-                @endforelse
+                </div>
+                <button type="button" @click="bukaFolderArsip = false"
+                    class="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50/80 px-3 py-1.5 rounded-lg border border-blue-100/60 transition-colors cursor-pointer">
+                    Kembali ke Daftar Aktif
+                </button>
             </div>
 
             {{-- =========================================================
-                VIEW 2: ISI FOLDER DIARSIPKAN (ALA WHATSAPP ARCHIVE)
+                VIEW 1: TABEL DAFTAR UJIAN UTAMA
             ========================================================== --}}
-            <div x-show="bukaFolderArsip" x-cloak class="p-4 sm:p-6 space-y-4 bg-slate-100/60">
-                @if (isset($ujiansArsip) && $ujiansArsip->count() > 0)
-                    @foreach ($ujiansArsip as $ujian)
-                        @php
-                            $namaMapel = $ujian->kelasDalamGrup
-                                ->map(fn($anggota) => $anggota->pengampuKelas?->guruMapel?->mapel?->nama_mapel)
-                                ->filter()
-                                ->unique()
-                                ->values();
+            <div x-show="!bukaFolderArsip" id="daftar-ujian" class="overflow-x-auto">
+                @if ($ujians->count() > 0)
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr
+                                class="bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/60">
+                                <th class="py-3.5 pl-6 pr-4">Judul Ujian</th>
+                                <th class="py-3.5 px-4 whitespace-nowrap">Status</th>
+                                <th class="py-3.5 px-4 whitespace-nowrap">Deadline</th>
+                                <th class="py-3.5 px-4">Kelas</th>
+                                <th class="py-3.5 pl-4 pr-6 text-right whitespace-nowrap">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-xs">
+                            @foreach ($ujians as $ujian)
+                                @php
+                                    $namaMapel = $ujian->kelasDalamGrup
+                                        ->map(fn($anggota) => $anggota->pengampuKelas?->guruMapel?->mapel?->nama_mapel)
+                                        ->filter()
+                                        ->unique()
+                                        ->values();
 
-                            $namaKelas = $ujian->kelasDalamGrup
-                                ->map(fn($anggota) => $anggota->pengampuKelas?->kelas?->nama_kelas)
-                                ->filter()
-                                ->unique()
-                                ->values();
+                                    $namaKelas = $ujian->kelasDalamGrup
+                                        ->map(fn($anggota) => $anggota->pengampuKelas?->kelas?->nama_kelas)
+                                        ->filter()
+                                        ->unique()
+                                        ->values();
 
-                            $mapelName = $namaMapel->first() ?? 'Umum';
-                            $singkatanMapel = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $mapelName), 0, 3));
-                            $kodeIdUjian = 'EX-' . date('Y') . '-' . ($singkatanMapel ?: 'UJN') . str_pad($ujian->id, 2, '0', STR_PAD_LEFT);
-                        @endphp
+                                    $mapelName = $namaMapel->first() ?? 'Umum';
+                                    $jumlahSoal = $ujian->soals->count();
+                                    $kelasLabelRingkas = $namaKelas->isNotEmpty()
+                                        ? 'Kelas ' . $namaKelas->implode(', ')
+                                        : '-';
 
-                        <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs relative flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div class="absolute left-0 top-4 bottom-4 w-1.5 rounded-r bg-slate-400"></div>
+                                    $badgeClass = match ($ujian->status) {
+                                        'published' => 'bg-emerald-50 text-emerald-700 border-emerald-200/70',
+                                        'scheduled' => 'bg-amber-50 text-amber-700 border-amber-200/70',
+                                        'completed' => 'bg-slate-100 text-slate-600 border-slate-200',
+                                        'draft' => 'bg-blue-50 text-blue-600 border-blue-200/70',
+                                        'unpublished' => 'bg-rose-50 text-rose-600 border-rose-200/70',
+                                        default => 'bg-slate-100 text-slate-600 border-slate-200',
+                                    };
 
-                            <div class="flex-1 pl-3 min-w-0">
-                                <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500 mb-1.5">
-                                    <span class="text-blue-600 bg-blue-50 px-2 py-0.5 rounded font-medium">
-                                        {{ $mapelName }}
-                                    </span>
-                                    <span>&bull;</span>
-                                    <span>Kelas: {{ $namaKelas->isNotEmpty() ? $namaKelas->implode(', ') : '-' }}</span>
-                                    <span>&bull;</span>
-                                    <span class="text-gray-400 font-mono">ID: {{ $kodeIdUjian }}</span>
-                                </div>
+                                    $totalPeserta = isset($ujian->kelasDalamGrup)
+                                        ? $ujian->kelasDalamGrup->sum('seleksi_ujians_count')
+                                        : $ujian->seleksi_ujians_count ?? 0;
+                                    $adaPengerjaan = $totalPeserta > 0;
 
-                                <h3 class="text-base font-semibold text-gray-900 mb-2 truncate">
-                                    {{ $ujian->judul }}
-                                </h3>
+                                    $judulAman = str_replace(["\r", "\n"], ' ', addslashes($ujian->judul));
+                                    $kelasAman = str_replace(["\r", "\n"], ' ', addslashes($kelasLabelRingkas));
+                                    $jadwalMulaiTeks = $ujian->waktu_mulai
+                                        ? $ujian->waktu_mulai->format('d M Y, H:i') . ' WIB'
+                                        : 'Belum dijadwalkan';
+                                @endphp
 
-                                <div class="flex flex-wrap items-center gap-4 text-xs text-gray-400">
-                                    <span>{{ $ujian->waktu_mulai ? $ujian->waktu_mulai->format('d M Y, H:i') . ' WIB' : 'Selesai' }}</span>
-                                    <span>&bull;</span>
-                                    <span>{{ $ujian->durasi_menit }} menit</span>
-                                    <span>&bull;</span>
-                                    <span>{{ $ujian->soals->count() }} Soal</span>
-                                </div>
-                            </div>
+                                <tr data-ujian-id="{{ $ujian->id }}" data-ujian-status="{{ $ujian->status }}"
+                                    class="hover:bg-slate-50/60 transition-colors">
 
-                            <div class="flex flex-col items-start md:items-end justify-between gap-3 shrink-0">
-                                <span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border text-slate-700 bg-slate-100 border-slate-200">
-                                    📁 Diarsipkan ({{ $ujian->status_label }})
-                                </span>
+                                    {{-- KOLOM 1: JUDUL UJIAN --}}
+                                    <td class="py-4 pl-6 pr-4 min-w-[230px]">
+                                        <div class="font-bold text-slate-900 text-xs sm:text-[13px] leading-snug"
+                                            title="{{ $ujian->judul }}">
+                                            {{ $ujian->judul }}
+                                        </div>
+                                        <div
+                                            class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-400 font-normal">
+                                            <span class="{{ !$ujian->waktu_mulai ? 'italic' : '' }}">
+                                                Mulai: {{ $jadwalMulaiTeks }}
+                                            </span>
+                                            <span class="text-slate-300">&bull;</span>
+                                            <span>{{ $jumlahSoal }} Soal</span>
+                                            <span class="text-slate-300">&bull;</span>
+                                            <span>{{ $ujian->durasi_menit }} mnt</span>
+                                        </div>
+                                    </td>
 
-                                <div class="flex items-center justify-end gap-2 flex-wrap">
-                                    <a href="{{ route('guru.ujian.show', $ujian->id) }}"
-                                        class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
-                                        Detail
-                                    </a>
+                                    {{-- KOLOM 2: STATUS --}}
+                                    <td class="py-4 px-4 whitespace-nowrap">
+                                        <span data-status-badge
+                                            class="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border shadow-2xs before:content-[''] before:inline-block before:w-1.5 before:h-1.5 before:rounded-full before:bg-current {{ $badgeClass }}">
+                                            {{ $ujian->status_label }}
+                                        </span>
+                                    </td>
 
-                                    <a href="{{ route('guru.ujian.rekap', $ujian->id) }}"
-                                        class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
-                                        Rekap Nilai
-                                    </a>
+                                    {{-- KOLOM 3: DEADLINE --}}
+                                    <td class="py-4 px-4 whitespace-nowrap text-xs">
+                                        @if ($ujian->deadline)
+                                            <span class="font-medium text-slate-700">
+                                                {{ $ujian->deadline->format('d M Y, H:i') }} WIB
+                                            </span>
+                                        @else
+                                            <span class="text-slate-400 italic">Belum diatur</span>
+                                        @endif
+                                    </td>
 
-                                    <a href="{{ route('guru.ujian.monitoring', $ujian->id) }}"
-                                        class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                        </svg>
-                                        Hasil Monitoring
-                                    </a>
+                                    {{-- KOLOM 4: KELAS --}}
+                                    <td class="py-4 px-4 min-w-[140px]">
+                                        <div class="flex flex-wrap items-center gap-1.5">
+                                            @forelse ($namaKelas as $kls)
+                                                <span
+                                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-600 border border-blue-100/80 whitespace-nowrap">
+                                                    {{ $namaKelas->count() > 2 ? $kls : 'Kelas ' . $kls }}
+                                                </span>
+                                            @empty
+                                                <span class="text-xs text-slate-400">-</span>
+                                            @endforelse
+                                        </div>
+                                    </td>
 
-                                    <form action="{{ route('guru.ujian.duplicate', $ujian->id) }}" method="POST"
-                                        onsubmit="return confirm('Duplikasi instrumen soal ke draf ujian baru?')"
-                                        class="inline">
-                                        @csrf
-                                        <button type="submit"
-                                            class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer">
-                                            Duplikat
-                                        </button>
-                                    </form>
+                                    {{-- KOLOM 5: AKSI --}}
+                                    <td class="py-4 pl-4 pr-6 whitespace-nowrap">
+                                        <div class="flex items-center justify-end gap-1.5">
 
-                                    {{-- Tombol Keluarkan dari Folder Arsip --}}
-                                    <form action="{{ route('guru.ujian.toggle-archive', $ujian->id) }}" method="POST" class="inline">
-                                        @csrf
-                                        <button type="submit"
-                                            class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition cursor-pointer">
-                                            <span>📤 Keluarkan dari Arsip</span>
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
+                                            {{-- 1. STATUS: PUBLISHED --}}
+                                            @if ($ujian->status === 'published')
+                                                <a href="{{ route('guru.ujian.monitoring', $ujian->id) }}"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 text-xs font-semibold transition-colors shadow-2xs">
+                                                    <span
+                                                        class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                    Monitoring Live
+                                                </a>
+
+                                                <button type="button"
+                                                    @click="bukaModalKonfirmasi({
+                                                        jenis: 'tarik',
+                                                        judul: '{{ $judulAman }}',
+                                                        soal: {{ $jumlahSoal }},
+                                                        kelas: '{{ $kelasAman }}',
+                                                        url: '{{ route('guru.ujian.unpublish', $ujian->id) }}',
+                                                        method: 'POST'
+                                                    })"
+                                                    class="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 text-xs font-semibold transition-colors shadow-2xs cursor-pointer">
+                                                    Tarik Publikasi
+                                                </button>
+
+                                                <a href="{{ route('guru.ujian.show', $ujian->id) }}" title="Lihat Detail"
+                                                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        stroke-width="1.8" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                </a>
+
+                                            {{-- 2. STATUS: COMPLETED --}}
+                                            @elseif ($ujian->status === 'completed')
+                                                <a href="{{ route('guru.ujian.rekap', $ujian->id) }}"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200/80 text-xs font-semibold transition-colors shadow-2xs">
+                                                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none"
+                                                        stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                                    </svg>
+                                                    Rekap Nilai
+                                                </a>
+
+                                                <a href="{{ route('guru.ujian.edit', $ujian->id) }}"
+                                                    class="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200/70 text-xs font-semibold transition-colors shadow-2xs">
+                                                    Ubah Bobot
+                                                </a>
+
+                                                <a href="{{ route('guru.ujian.show', $ujian->id) }}" title="Lihat Detail"
+                                                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        stroke-width="1.8" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                </a>
+
+                                                <a href="{{ route('guru.ujian.monitoring', $ujian->id) }}"
+                                                    title="Hasil Monitoring & Pelanggaran"
+                                                    class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        stroke-width="1.8" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                    </svg>
+                                                </a>
+
+                                                <button type="button" title="Duplikasi ke Draf"
+                                                    @click="bukaModalKonfirmasi({
+                                                        jenis: 'duplikat',
+                                                        judul: '{{ $judulAman }}',
+                                                        soal: {{ $jumlahSoal }},
+                                                        kelas: '{{ $kelasAman }}',
+                                                        url: '{{ route('guru.ujian.duplicate', $ujian->id) }}',
+                                                        method: 'POST'
+                                                    })"
+                                                    class="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        stroke-width="1.8" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                    </svg>
+                                                </button>
+
+                                                <button type="button" title="Arsipkan Ujian"
+                                                    @click="bukaModalKonfirmasi({
+                                                        jenis: 'arsipkan',
+                                                        judul: '{{ $judulAman }}',
+                                                        soal: {{ $jumlahSoal }},
+                                                        kelas: '{{ $kelasAman }}',
+                                                        url: '{{ route('guru.ujian.toggle-archive', $ujian->id) }}',
+                                                        method: 'POST'
+                                                    })"
+                                                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        stroke-width="1.8" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                                                    </svg>
+                                                </button>
+
+                                            {{-- 3. STATUS: UNPUBLISHED --}}
+                                            @elseif ($ujian->status === 'unpublished')
+                                                <button type="button"
+                                                    @click="bukaModalKonfirmasi({
+                                                        jenis: 'publikasi_ulang',
+                                                        judul: '{{ $judulAman }}',
+                                                        soal: {{ $jumlahSoal }},
+                                                        kelas: '{{ $kelasAman }}',
+                                                        url: '{{ route('guru.ujian.publish', $ujian->id) }}',
+                                                        method: 'POST',
+                                                        tipePublikasiHidden: 'langsung'
+                                                    })"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 text-xs font-semibold transition-colors shadow-2xs cursor-pointer">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                                        stroke-width="2" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                    </svg>
+                                                    Publikasi Lagi
+                                                </button>
+
+                                                <a href="{{ route('guru.ujian.edit', $ujian->id) }}"
+                                                    class="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200/70 text-xs font-semibold transition-colors shadow-2xs">
+                                                    Edit Bobot
+                                                </a>
+
+                                                <a href="{{ route('guru.ujian.show', $ujian->id) }}" title="Lihat Detail"
+                                                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        stroke-width="1.8" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                </a>
+
+                                                @if ($adaPengerjaan)
+                                                    <a href="{{ route('guru.ujian.rekap', $ujian->id) }}"
+                                                        title="Rekap Sesi ({{ $totalPeserta }} peserta)"
+                                                        class="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                            stroke-width="1.8" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                                        </svg>
+                                                    </a>
+                                                @endif
+
+                                            {{-- 4. STATUS: SCHEDULED --}}
+                                            @elseif ($ujian->status === 'scheduled')
+                                                <button type="button"
+                                                    @click="bukaModalKonfirmasi({
+                                                        jenis: 'batalkan_jadwal',
+                                                        judul: '{{ $judulAman }}',
+                                                        soal: {{ $jumlahSoal }},
+                                                        kelas: '{{ $kelasAman }}',
+                                                        jadwal: '{{ $jadwalMulaiTeks }}',
+                                                        url: '{{ route('guru.ujian.unpublish', $ujian->id) }}',
+                                                        method: 'POST'
+                                                    })"
+                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200/80 text-xs font-semibold transition-colors shadow-2xs cursor-pointer">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                                        stroke-width="2" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                    Batalkan Jadwal
+                                                </button>
+
+                                                @if (!$adaPengerjaan)
+                                                    <a href="{{ route('guru.ujian.edit', $ujian->id) }}"
+                                                        class="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200/70 text-xs font-semibold transition-colors shadow-2xs">
+                                                        Edit Soal
+                                                    </a>
+                                                @endif
+
+                                                <a href="{{ route('guru.ujian.show', $ujian->id) }}" title="Lihat Detail"
+                                                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        stroke-width="1.8" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                </a>
+
+                                            {{-- 5. STATUS: DRAFT --}}
+                                            @else
+                                                <a href="{{ route('guru.ujian.edit', $ujian->id) }}"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200/70 text-xs font-semibold transition-colors shadow-2xs">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                                        stroke-width="2" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                    </svg>
+                                                    Edit Soal
+                                                </a>
+
+                                                <button type="button"
+                                                    @click="bukaModalPublikasi({
+                                                        id: {{ $ujian->id }},
+                                                        judul: '{{ $judulAman }}',
+                                                        soal: {{ $jumlahSoal }},
+                                                        kelas: '{{ $kelasAman }}',
+                                                        url: '{{ route('guru.ujian.publish', $ujian) }}',
+                                                        mulai: '{{ $ujian->waktu_mulai ? \Carbon\Carbon::parse($ujian->waktu_mulai)->format('Y-m-d\TH:i') : '' }}',
+                                                        selesai: '{{ $ujian->deadline ? \Carbon\Carbon::parse($ujian->deadline)->format('Y-m-d\TH:i') : '' }}'
+                                                    })"
+                                                    class="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200/80 text-xs font-semibold transition-colors shadow-2xs cursor-pointer">
+                                                    Kelola Publikasi
+                                                </button>
+
+                                                <a href="{{ route('guru.ujian.show', $ujian->id) }}" title="Lihat Detail"
+                                                    class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        stroke-width="1.8" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                </a>
+                                            @endif
+
+                                            {{-- TOMBOL HAPUS (Untuk draft / scheduled / unpublished yang belum ada pengerjaan) --}}
+                                            @if (!$adaPengerjaan && in_array($ujian->status, ['draft', 'scheduled', 'unpublished']))
+                                                <button type="button" title="Hapus Ujian"
+                                                    @click="bukaModalKonfirmasi({
+                                                        jenis: 'hapus',
+                                                        judul: '{{ $judulAman }}',
+                                                        soal: {{ $jumlahSoal }},
+                                                        kelas: '{{ $kelasAman }}',
+                                                        url: '{{ route('guru.ujian.destroy', $ujian->id) }}',
+                                                        method: 'DELETE'
+                                                    })"
+                                                    class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                        stroke-width="1.8" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            @endif
+
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 @else
-                    <div class="px-6 py-14 text-center bg-white rounded-2xl border border-gray-200">
-                        <p class="text-sm font-bold text-gray-700">Folder Arsip masih kosong</p>
-                        <p class="text-xs text-gray-400 mt-1">Ujian berstatus Selesai yang Anda arsipkan akan tersimpan rapi di sini.</p>
+                    {{-- Empty State Daftar Utama --}}
+                    <div class="p-6">
+                        <div
+                            class="py-12 px-6 text-center text-slate-500 bg-slate-50/60 rounded-xl border border-dashed border-slate-200/80">
+                            <div
+                                class="w-12 h-12 mx-auto rounded-2xl bg-white text-blue-600 border border-slate-200/80 flex items-center justify-center shadow-xs">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a3 3 0 006 0M9 5h6" />
+                                </svg>
+                            </div>
+                            <h3 class="mt-3 text-sm font-bold text-slate-700">Daftar ujian utama bersih</h3>
+                            <p class="mt-1 text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                                Belum ada ujian yang sesuai filter, atau seluruh ujian selesai telah dipindahkan ke folder
+                                Diarsipkan.
+                            </p>
+                            <a href="{{ route('guru.ujian.create') }}"
+                                class="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors shadow-xs">
+                                + Tambah Ujian Baru
+                            </a>
+                        </div>
                     </div>
                 @endif
             </div>
 
-            {{-- Pagination & Footer List (Hanya untuk Daftar Utama) --}}
-            @if ($ujians->hasPages())
+            {{-- =========================================================
+                VIEW 2: TABEL FOLDER DIARSIPKAN
+            ========================================================== --}}
+            <div x-show="bukaFolderArsip" x-cloak class="overflow-x-auto">
+                @if (isset($ujiansArsip) && $ujiansArsip->count() > 0)
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr
+                                class="bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/60">
+                                <th class="py-3.5 pl-6 pr-4">Judul Ujian</th>
+                                <th class="py-3.5 px-4 whitespace-nowrap">Status</th>
+                                <th class="py-3.5 px-4 whitespace-nowrap">Deadline</th>
+                                <th class="py-3.5 px-4">Kelas</th>
+                                <th class="py-3.5 pl-4 pr-6 text-right whitespace-nowrap">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-xs">
+                            @foreach ($ujiansArsip as $ujian)
+                                @php
+                                    $namaKelas = $ujian->kelasDalamGrup
+                                        ->map(fn($anggota) => $anggota->pengampuKelas?->kelas?->nama_kelas)
+                                        ->filter()
+                                        ->unique()
+                                        ->values();
+                                    $jumlahSoal = $ujian->soals->count();
+                                    $kelasLabelRingkas = $namaKelas->isNotEmpty()
+                                        ? 'Kelas ' . $namaKelas->implode(', ')
+                                        : '-';
+                                    $judulAman = str_replace(["\r", "\n"], ' ', addslashes($ujian->judul));
+                                    $kelasAman = str_replace(["\r", "\n"], ' ', addslashes($kelasLabelRingkas));
+                                @endphp
+                                <tr class="hover:bg-slate-50/60 transition-colors">
+                                    <td class="py-4 pl-6 pr-4 min-w-[230px]">
+                                        <div class="font-bold text-slate-900 text-xs sm:text-[13px] leading-snug">
+                                            {{ $ujian->judul }}
+                                        </div>
+                                        <div
+                                            class="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-slate-400 font-normal">
+                                            <span>Mulai:
+                                                {{ $ujian->waktu_mulai ? $ujian->waktu_mulai->format('d M Y, H:i') . ' WIB' : 'Selesai' }}</span>
+                                            <span class="text-slate-300">&bull;</span>
+                                            <span>{{ $jumlahSoal }} Soal</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-4 px-4 whitespace-nowrap">
+                                        <span
+                                            class="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border shadow-2xs bg-slate-100 text-slate-600 border-slate-200 before:content-[''] before:inline-block before:w-1.5 before:h-1.5 before:rounded-full before:bg-current">
+                                            Diarsipkan ({{ $ujian->status_label }})
+                                        </span>
+                                    </td>
+                                    <td class="py-4 px-4 whitespace-nowrap text-xs font-medium text-slate-600">
+                                        {{ $ujian->deadline ? $ujian->deadline->format('d M Y, H:i') . ' WIB' : '-' }}
+                                    </td>
+                                    <td class="py-4 px-4">
+                                        <div class="flex flex-wrap items-center gap-1.5">
+                                            @forelse ($namaKelas as $kls)
+                                                <span
+                                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-600 border border-blue-100/80 whitespace-nowrap">
+                                                    {{ $namaKelas->count() > 2 ? $kls : 'Kelas ' . $kls }}
+                                                </span>
+                                            @empty
+                                                <span class="text-xs text-slate-400">-</span>
+                                            @endforelse
+                                        </div>
+                                    </td>
+                                    <td class="py-4 pl-4 pr-6 whitespace-nowrap">
+                                        <div class="flex items-center justify-end gap-1.5">
+                                            <a href="{{ route('guru.ujian.rekap', $ujian->id) }}"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200/80 text-xs font-semibold transition-colors shadow-2xs">
+                                                Rekap Nilai
+                                            </a>
+
+                                            <a href="{{ route('guru.ujian.edit', $ujian->id) }}"
+                                                class="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200/70 text-xs font-semibold transition-colors shadow-2xs">
+                                                Ubah Bobot
+                                            </a>
+
+                                            <a href="{{ route('guru.ujian.show', $ujian->id) }}" title="Lihat Detail"
+                                                class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    stroke-width="1.8" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </a>
+
+                                            <a href="{{ route('guru.ujian.monitoring', $ujian->id) }}"
+                                                title="Hasil Monitoring & Pelanggaran"
+                                                class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    stroke-width="1.8" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                            </a>
+
+                                            <button type="button" title="Duplikasi ke Draf"
+                                                @click="bukaModalKonfirmasi({
+                                                    jenis: 'duplikat',
+                                                    judul: '{{ $judulAman }}',
+                                                    soal: {{ $jumlahSoal }},
+                                                    kelas: '{{ $kelasAman }}',
+                                                    url: '{{ route('guru.ujian.duplicate', $ujian->id) }}',
+                                                    method: 'POST'
+                                                })"
+                                                class="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    stroke-width="1.8" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                </svg>
+                                            </button>
+
+                                            <button type="button" title="Keluarkan dari Arsip"
+                                                @click="bukaModalKonfirmasi({
+                                                    jenis: 'keluarkan_arsip',
+                                                    judul: '{{ $judulAman }}',
+                                                    soal: {{ $jumlahSoal }},
+                                                    kelas: '{{ $kelasAman }}',
+                                                    url: '{{ route('guru.ujian.toggle-archive', $ujian->id) }}',
+                                                    method: 'POST'
+                                                })"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200/80 text-xs font-semibold transition-colors shadow-2xs cursor-pointer">
+                                                Keluarkan
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @else
+                    <div class="p-6">
+                        <div
+                            class="py-10 px-6 text-center bg-slate-50/60 rounded-xl border border-dashed border-slate-200/80">
+                            <p class="text-sm font-bold text-slate-700">Folder Arsip masih kosong</p>
+                            <p class="text-xs text-slate-400 mt-1">Ujian berstatus Selesai yang Anda arsipkan akan
+                                tersimpan rapi di sini.</p>
+                        </div>
+                    </div>
+                @endif
+            </div>
+
+            {{-- FOOTER & PAGINATION --}}
+            @if ($ujians->total() > 0)
                 <div x-show="!bukaFolderArsip"
-                    class="px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
-                    <p class="text-xs text-gray-500">
-                        Menampilkan <span class="font-semibold text-gray-800">{{ $ujians->firstItem() ?? 0 }}</span>
-                        sampai <span class="font-semibold text-gray-800">{{ $ujians->lastItem() ?? 0 }}</span> dari <span
-                            class="font-semibold text-gray-800">{{ $ujians->total() }}</span> ujian aktif
+                    class="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white text-xs text-slate-500">
+                    <p>
+                        Menampilkan
+                        <span
+                            class="font-bold text-slate-800">{{ $ujians->firstItem() ?? 0 }}–{{ $ujians->lastItem() ?? 0 }}</span>
+                        dari
+                        <span class="font-bold text-slate-800">{{ $ujians->total() }}</span>
+                        ujian
                     </p>
-                    <div class="text-xs">
-                        {{ $ujians->links() }}
+
+                    <div class="flex items-center gap-1.5">
+                        @if ($ujians->onFirstPage())
+                            <span
+                                class="px-3 py-1.5 rounded-lg border border-slate-200/80 text-slate-300 cursor-not-allowed select-none">
+                                &lsaquo; Sebelumnya
+                            </span>
+                        @else
+                            <a href="{{ $ujians->previousPageUrl() }}"
+                                class="px-3 py-1.5 rounded-lg border border-slate-200/80 text-slate-600 hover:bg-slate-50 font-semibold transition-colors">
+                                &lsaquo; Sebelumnya
+                            </a>
+                        @endif
+
+                        @foreach ($ujians->getUrlRange(max(1, $ujians->currentPage() - 2), min($ujians->lastPage(), $ujians->currentPage() + 2)) as $page => $url)
+                            @if ($page == $ujians->currentPage())
+                                <span
+                                    class="w-8 h-8 inline-flex items-center justify-center rounded-lg bg-blue-600 text-white font-bold shadow-xs">
+                                    {{ $page }}
+                                </span>
+                            @else
+                                <a href="{{ $url }}"
+                                    class="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-slate-200/80 text-slate-600 hover:bg-slate-50 font-semibold transition-colors">
+                                    {{ $page }}
+                                </a>
+                            @endif
+                        @endforeach
+
+                        @if ($ujians->hasMorePages())
+                            <a href="{{ $ujians->nextPageUrl() }}"
+                                class="px-3 py-1.5 rounded-lg border border-slate-200/80 text-slate-600 hover:bg-slate-50 font-semibold transition-colors">
+                                Selanjutnya &rsaquo;
+                            </a>
+                        @else
+                            <span
+                                class="px-3 py-1.5 rounded-lg border border-slate-200/80 text-slate-300 cursor-not-allowed select-none">
+                                Selanjutnya &rsaquo;
+                            </span>
+                        @endif
                     </div>
                 </div>
             @endif
@@ -858,72 +942,373 @@
         </div>
 
         {{-- =========================================================
-            MODAL KONFIRMASI PUBLIKASI / ATUR JADWAL (ALPINE.JS)
+            MODAL 1: PENERBITAN UJIAN (KELOLA PUBLIKASI)
         ========================================================== --}}
-        <div x-show="modalTerbuka" x-cloak
-            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-xs">
+        <div x-show="modalTerbuka" x-cloak x-transition.opacity @keydown.escape.window="modalTerbuka = false"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/45 backdrop-blur-[2px]">
             <div @click.away="modalTerbuka = false"
-                class="bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full border border-gray-200 shadow-2xl space-y-5">
+                class="bg-white rounded-2xl max-w-lg w-full border border-slate-200/80 shadow-2xl overflow-hidden">
 
-                <div>
-                    <span class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Penerbitan Ujian</span>
-                    <h3 class="text-lg font-bold text-gray-900 mt-1" x-text="targetJudul"></h3>
-                    <p class="text-xs text-gray-500 mt-1">Tentukan bagaimana siswa mengakses instrumen ujian ini.</p>
-                </div>
-
-                <form :action="targetActionUrl" method="POST" class="space-y-4">
+                <form :action="targetActionUrl" method="POST" @submit="validasiPublikasi($event)" novalidate>
                     @csrf
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <label class="p-3.5 border rounded-2xl cursor-pointer transition text-center"
-                            :class="tipePublikasi === 'langsung' ?
-                                'border-emerald-500 bg-emerald-50/70 text-emerald-800 font-bold' :
-                                'border-gray-200 hover:bg-gray-50 text-gray-600 font-medium'">
-                            <input type="radio" name="tipe_publikasi" value="langsung" x-model="tipePublikasi"
-                                class="hidden">
-                            <span class="block text-sm">🚀 Terbitkan Sekarang</span>
-                            <span class="block text-[11px] font-normal text-gray-400 mt-0.5">Langsung aktif (Live)</span>
-                        </label>
-
-                        <label class="p-3.5 border rounded-2xl cursor-pointer transition text-center"
-                            :class="tipePublikasi === 'jadwal' ?
-                                'border-indigo-500 bg-indigo-50/70 text-indigo-800 font-bold' :
-                                'border-gray-200 hover:bg-gray-50 text-gray-600 font-medium'">
-                            <input type="radio" name="tipe_publikasi" value="jadwal" x-model="tipePublikasi"
-                                class="hidden">
-                            <span class="block text-sm">⏱ Atur Jadwal</span>
-                            <span class="block text-[11px] font-normal text-gray-400 mt-0.5">Tayang masa depan</span>
-                        </label>
-                    </div>
-
-                    {{-- Form Input Jadwal (Muncul jika opsi 'jadwal' dipilih) --}}
-                    <div x-show="tipePublikasi === 'jadwal'" class="space-y-3 pt-2">
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">
-                                Waktu Mulai Tayang <span class="text-red-500">*</span>
-                            </label>
-                            <input type="datetime-local" name="waktu_mulai" x-model="waktuMulai"
-                                :required="tipePublikasi === 'jadwal'"
-                                class="w-full text-xs px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500">
+                    <div class="p-6 space-y-5">
+                        {{-- Header --}}
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <span class="text-[11px] font-bold text-blue-600 uppercase tracking-wider block">
+                                    Penerbitan Ujian
+                                </span>
+                                <h3 class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight mt-1"
+                                    x-text="targetJudul"></h3>
+                                <p class="text-xs text-slate-500 leading-relaxed mt-1">
+                                    Tentukan bagaimana siswa mengakses instrumen ujian ini.
+                                </p>
+                            </div>
+                            <button type="button" @click="modalTerbuka = false"
+                                class="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition cursor-pointer">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">
-                                Batas Akhir / Deadline <span class="text-gray-400 font-normal">(Opsional)</span>
+                        {{-- Info Bar Ujian --}}
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor"
+                                    stroke-width="1.8" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span class="text-xs font-bold text-slate-800 truncate" x-text="targetJudul"></span>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span
+                                    class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-200/70 text-slate-600"
+                                    x-text="targetSoal + ' Soal'"></span>
+                                <span
+                                    class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-600 border border-blue-100/80"
+                                    x-text="targetKelas"></span>
+                            </div>
+                        </div>
+
+                        {{-- Opsi Radio Card --}}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            {{-- Terbitkan Sekarang --}}
+                            <label @click="publikasiError = ''"
+                                class="p-4 rounded-xl border cursor-pointer transition-all duration-200 flex flex-col justify-between gap-3"
+                                :class="tipePublikasi === 'langsung'
+                                    ? 'border-blue-600 bg-blue-50/40 ring-1 ring-blue-600 shadow-xs'
+                                    : 'border-slate-200/80 hover:border-slate-300 bg-white'">
+                                <input type="radio" name="tipe_publikasi" value="langsung" x-model="tipePublikasi"
+                                    class="hidden">
+                                <div class="flex items-start justify-between">
+                                    <div class="w-9 h-9 rounded-xl flex items-center justify-center border shadow-xs transition"
+                                        :class="tipePublikasi === 'langsung'
+                                            ? 'bg-blue-100/80 text-blue-600 border-blue-200/60'
+                                            : 'bg-slate-50 text-slate-500 border-slate-200/60'">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                                        </svg>
+                                    </div>
+                                    <span class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                                        :class="tipePublikasi === 'langsung' ? 'border-blue-600' : 'border-slate-300'">
+                                        <span x-show="tipePublikasi === 'langsung'"
+                                            class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                                    </span>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold"
+                                        :class="tipePublikasi === 'langsung' ? 'text-blue-900' : 'text-slate-800'">
+                                        Terbitkan Sekarang
+                                    </p>
+                                    <p class="text-xs mt-1 leading-relaxed"
+                                        :class="tipePublikasi === 'langsung' ? 'text-blue-600' : 'text-slate-500'">
+                                        Siswa dapat langsung mengerjakan ujian sekarang.
+                                    </p>
+                                </div>
                             </label>
-                            <input type="datetime-local" name="deadline" x-model="deadline"
-                                class="w-full text-xs px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500">
+
+                            {{-- Atur Jadwal --}}
+                            <label @click="publikasiError = ''"
+                                class="p-4 rounded-xl border cursor-pointer transition-all duration-200 flex flex-col justify-between gap-3"
+                                :class="tipePublikasi === 'jadwal'
+                                    ? 'border-blue-600 bg-blue-50/40 ring-1 ring-blue-600 shadow-xs'
+                                    : 'border-slate-200/80 hover:border-slate-300 bg-white'">
+                                <input type="radio" name="tipe_publikasi" value="jadwal" x-model="tipePublikasi"
+                                    class="hidden">
+                                <div class="flex items-start justify-between">
+                                    <div class="w-9 h-9 rounded-xl flex items-center justify-center border shadow-xs transition"
+                                        :class="tipePublikasi === 'jadwal'
+                                            ? 'bg-blue-100/80 text-blue-600 border-blue-200/60'
+                                            : 'bg-slate-50 text-slate-500 border-slate-200/60'">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    <span class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                                        :class="tipePublikasi === 'jadwal' ? 'border-blue-600' : 'border-slate-300'">
+                                        <span x-show="tipePublikasi === 'jadwal'"
+                                            class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                                    </span>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold"
+                                        :class="tipePublikasi === 'jadwal' ? 'text-blue-900' : 'text-slate-800'">
+                                        Atur Jadwal
+                                    </p>
+                                    <p class="text-xs mt-1 leading-relaxed"
+                                        :class="tipePublikasi === 'jadwal' ? 'text-blue-600' : 'text-slate-500'">
+                                        Tentukan tanggal mulai &amp; batas waktu pengerjaan.
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
+
+                        {{-- Info Callout Saat Terbitkan Sekarang --}}
+                        <div x-show="tipePublikasi === 'langsung'"
+                            class="flex items-start gap-2.5 p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/70 text-xs text-blue-800 leading-relaxed">
+                            <svg class="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" stroke="currentColor"
+                                stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>
+                                Ujian akan langsung tampil pada dasbor siswa <strong x-text="targetKelas"></strong> segera
+                                setelah disimpan.
+                            </span>
+                        </div>
+
+                        {{-- Form Input Jadwal Saat Atur Jadwal --}}
+                        <div x-show="tipePublikasi === 'jadwal'" class="space-y-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                        Waktu Mulai Tayang <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="datetime-local" name="waktu_mulai" x-model="waktuMulai"
+                                        @input="publikasiError = ''"
+                                        class="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-200/80 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition">
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                        Batas Akhir / Deadline <span class="text-slate-400 font-normal">(Opsional)</span>
+                                    </label>
+                                    <input type="datetime-local" name="deadline" x-model="deadline"
+                                        @input="publikasiError = ''"
+                                        class="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-200/80 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition">
+                                </div>
+                            </div>
+
+                            {{-- Pesan Validasi Inline --}}
+                            <div x-show="publikasiError" x-cloak
+                                class="flex items-start gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium">
+                                <svg class="w-4 h-4 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor"
+                                    stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <span x-text="publikasiError"></span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-gray-100">
+                    {{-- Footer Modal --}}
+                    <div class="px-6 py-4 bg-slate-50/70 border-t border-slate-100 flex items-center justify-end gap-2.5">
                         <button type="button" @click="modalTerbuka = false"
-                            class="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition">
+                            class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200/80 transition-colors cursor-pointer">
                             Batal
                         </button>
                         <button type="submit"
-                            class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-xs">
-                            Simpan & Publikasikan
+                            class="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>Simpan &amp; Publikasikan</span>
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+
+        {{-- =========================================================
+            MODAL 2: KONFIRMASI AKSI SERAGAM
+            (Hapus, Tarik Publikasi, Publikasi Ulang, Batalkan Jadwal, Duplikasi, Arsip)
+        ========================================================== --}}
+        <div x-show="konfirmasiModal.terbuka" x-cloak x-transition.opacity
+            @keydown.escape.window="konfirmasiModal.terbuka = false"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/45 backdrop-blur-[2px]">
+            <div @click.away="konfirmasiModal.terbuka = false"
+                class="bg-white rounded-2xl max-w-lg w-full border border-slate-200/80 shadow-2xl overflow-hidden">
+
+                <form :action="konfirmasiModal.url" method="POST">
+                    @csrf
+                    <template x-if="konfirmasiModal.method === 'DELETE'">
+                        <input type="hidden" name="_method" value="DELETE">
+                    </template>
+                    <template x-if="konfirmasiModal.tipePublikasiHidden">
+                        <input type="hidden" name="tipe_publikasi" :value="konfirmasiModal.tipePublikasiHidden">
+                    </template>
+
+                    <div class="p-6 space-y-5">
+                        {{-- Header --}}
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <span class="text-[11px] font-bold uppercase tracking-wider block"
+                                    :class="konfirmasiTema.kickerClass" x-text="konfirmasiTema.kicker"></span>
+                                <h3 class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight mt-1"
+                                    x-text="konfirmasiModal.judul"></h3>
+                                <p class="text-xs text-slate-500 mt-1 leading-relaxed" x-text="konfirmasiTema.subtitle">
+                                </p>
+                            </div>
+                            <button type="button" @click="konfirmasiModal.terbuka = false"
+                                class="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition cursor-pointer">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {{-- Info Bar Ujian --}}
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <template x-if="konfirmasiModal.jenis === 'batalkan_jadwal'">
+                                    <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor"
+                                        stroke-width="1.8" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </template>
+                                <template x-if="konfirmasiModal.jenis === 'duplikat'">
+                                    <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor"
+                                        stroke-width="1.8" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                </template>
+                                <template
+                                    x-if="konfirmasiModal.jenis !== 'batalkan_jadwal' && konfirmasiModal.jenis !== 'duplikat'">
+                                    <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor"
+                                        stroke-width="1.8" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </template>
+
+                                <div class="min-w-0">
+                                    <p class="text-xs font-bold text-slate-800 truncate" x-text="konfirmasiModal.judul">
+                                    </p>
+                                    <p x-show="konfirmasiModal.jadwal" class="text-[11px] text-slate-400"
+                                        x-text="konfirmasiModal.jadwal"></p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span
+                                    class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-200/70 text-slate-600"
+                                    x-text="konfirmasiModal.soal + ' Soal'"></span>
+                                <span
+                                    class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-600 border border-blue-100/80"
+                                    x-text="konfirmasiModal.kelas"></span>
+                            </div>
+                        </div>
+
+                        {{-- Callout Box Peringatan / Info --}}
+                        <div class="flex items-start gap-2.5 p-3.5 rounded-xl border text-xs leading-relaxed"
+                            :class="konfirmasiTema.calloutClass">
+                            <template x-if="konfirmasiTema.iconType === 'warning'">
+                                <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </template>
+                            <template x-if="konfirmasiTema.iconType === 'check'">
+                                <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </template>
+                            <template x-if="konfirmasiTema.iconType === 'info'">
+                                <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </template>
+
+                            <span x-text="konfirmasiTema.calloutText"></span>
+                        </div>
+                    </div>
+
+                    {{-- Footer Modal --}}
+                    <div class="px-6 py-4 bg-slate-50/70 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                        <button type="button" @click="konfirmasiModal.terbuka = false"
+                            class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200/80 transition-colors cursor-pointer">
+                            Batal
+                        </button>
+
+                        <button type="submit"
+                            class="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold text-white transition-colors shadow-xs cursor-pointer"
+                            :class="konfirmasiTema.btnClass">
+                            <template x-if="konfirmasiModal.jenis === 'hapus'">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </template>
+                            <template x-if="konfirmasiModal.jenis === 'tarik'">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                </svg>
+                            </template>
+                            <template x-if="konfirmasiModal.jenis === 'publikasi_ulang'">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                </svg>
+                            </template>
+                            <template x-if="konfirmasiModal.jenis === 'batalkan_jadwal'">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </template>
+                            <template x-if="konfirmasiModal.jenis === 'duplikat'">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                            </template>
+                            <template
+                                x-if="konfirmasiModal.jenis === 'arsipkan' || konfirmasiModal.jenis === 'keluarkan_arsip'">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                                </svg>
+                            </template>
+
+                            <span x-text="konfirmasiTema.btnLabel"></span>
                         </button>
                     </div>
                 </form>
@@ -940,22 +1325,156 @@
         function kelolaIndexUjian() {
             return {
                 bukaFolderArsip: false,
+
+                // State Modal Penerbitan Ujian
                 modalTerbuka: false,
                 targetId: null,
                 targetJudul: '',
+                targetSoal: 0,
+                targetKelas: '',
                 targetActionUrl: '',
                 tipePublikasi: 'langsung',
                 waktuMulai: '',
                 deadline: '',
+                publikasiError: '',
 
-                bukaModalPublikasi(id, judul, url, mulai, selesai) {
-                    this.targetId = id;
-                    this.targetJudul = judul;
-                    this.targetActionUrl = url;
-                    this.waktuMulai = mulai || '';
-                    this.deadline = selesai || '';
+                // State Modal Konfirmasi Universal
+                konfirmasiModal: {
+                    terbuka: false,
+                    jenis: 'hapus',
+                    judul: '',
+                    soal: 0,
+                    kelas: '',
+                    jadwal: '',
+                    url: '',
+                    method: 'POST',
+                    tipePublikasiHidden: '',
+                },
+
+                bukaModalPublikasi(payload) {
+                    this.targetId = payload.id;
+                    this.targetJudul = payload.judul || '';
+                    this.targetSoal = payload.soal || 0;
+                    this.targetKelas = payload.kelas || '-';
+                    this.targetActionUrl = payload.url || '';
+                    this.waktuMulai = payload.mulai || '';
+                    this.deadline = payload.selesai || '';
                     this.tipePublikasi = this.waktuMulai ? 'jadwal' : 'langsung';
+                    this.publikasiError = '';
                     this.modalTerbuka = true;
+                },
+
+                validasiPublikasi(event) {
+                    this.publikasiError = '';
+                    if (this.tipePublikasi === 'jadwal') {
+                        if (!this.waktuMulai) {
+                            event.preventDefault();
+                            this.publikasiError = 'Waktu Mulai Tayang wajib diisi saat memilih opsi Atur Jadwal.';
+                            return;
+                        }
+                        if (this.deadline && new Date(this.deadline) <= new Date(this.waktuMulai)) {
+                            event.preventDefault();
+                            this.publikasiError = 'Batas Akhir / Deadline harus lebih akhir daripada Waktu Mulai Tayang.';
+                            return;
+                        }
+                    }
+                },
+
+                bukaModalKonfirmasi(payload) {
+                    this.konfirmasiModal = {
+                        terbuka: true,
+                        jenis: payload.jenis || 'hapus',
+                        judul: payload.judul || '',
+                        soal: payload.soal || 0,
+                        kelas: payload.kelas || '-',
+                        jadwal: payload.jadwal || '',
+                        url: payload.url || '',
+                        method: payload.method || 'POST',
+                        tipePublikasiHidden: payload.tipePublikasiHidden || '',
+                    };
+                },
+
+                get konfirmasiTema() {
+                    const m = this.konfirmasiModal;
+                    switch (m.jenis) {
+                        case 'hapus':
+                            return {
+                                kicker: 'Hapus Ujian ?',
+                                kickerClass: 'text-rose-600',
+                                subtitle: `Yakin ingin menghapus ujian "${m.judul}" beserta seluruh butir soalnya secara permanen?`,
+                                iconType: 'warning',
+                                calloutClass: 'bg-rose-50/90 border-rose-200 text-rose-700',
+                                calloutText: 'Tindakan ini bersifat permanen dan tidak dapat dibatalkan. Seluruh soal, bobot penilaian, dan konfigurasi kelas pada ujian ini akan ikut terhapus.',
+                                btnClass: 'bg-rose-600 hover:bg-rose-700',
+                                btnLabel: 'Ya, Hapus Ujian',
+                            };
+                        case 'tarik':
+                            return {
+                                kicker: 'Tarik Publikasi Ujian ?',
+                                kickerClass: 'text-red-700',
+                                subtitle: 'Apakah Anda yakin ingin menarik publikasi ujian ini dari akses siswa sekarang?',
+                                iconType: 'warning',
+                                calloutClass: 'bg-rose-50/90 border-rose-200 text-red-700',
+                                calloutText: 'Siswa yang belum selesai akan dikeluarkan dari lembar ujian. Nilai siswa yang sudah selesai tetap tersimpan aman.',
+                                btnClass: 'bg-red-700 hover:bg-red-800',
+                                btnLabel: 'Ya, Tarik Publikasi',
+                            };
+                        case 'publikasi_ulang':
+                            return {
+                                kicker: 'Publikasi Ulang Ujian',
+                                kickerClass: 'text-emerald-700',
+                                subtitle: 'Publikasikan kembali ujian ini agar dapat dikerjakan siswa?',
+                                iconType: 'check',
+                                calloutClass: 'bg-emerald-50/80 border-emerald-200 text-emerald-800',
+                                calloutText: `Ujian akan kembali aktif dan dapat diakses oleh siswa ${m.kelas} sesuai jadwal serta batas waktu yang berlaku.`,
+                                btnClass: 'bg-emerald-600 hover:bg-emerald-700',
+                                btnLabel: 'Ya, Publikasikan Lagi',
+                            };
+                        case 'batalkan_jadwal':
+                            return {
+                                kicker: 'Batalkan Jadwal Ujian ?',
+                                kickerClass: 'text-amber-700',
+                                subtitle: 'Batalkan jadwal ujian ini?',
+                                iconType: 'warning',
+                                calloutClass: 'bg-amber-50/90 border-amber-200 text-amber-800',
+                                calloutText: 'Jadwal tayang ujian akan dibatalkan dan status ujian akan dinonaktifkan sehingga belum dapat diakses oleh siswa.',
+                                btnClass: 'bg-amber-600 hover:bg-amber-700',
+                                btnLabel: 'Ya, Batalkan Jadwal',
+                            };
+                        case 'duplikat':
+                            return {
+                                kicker: 'Duplikasi Instrumen Ujian',
+                                kickerClass: 'text-blue-600',
+                                subtitle: 'Duplikasi instrumen soal ke draf ujian baru?',
+                                iconType: 'info',
+                                calloutClass: 'bg-blue-50/70 border-blue-200 text-blue-700',
+                                calloutText: 'Seluruh butir soal, kunci jawaban, dan pengaturan bobot akan disalin menjadi draf ujian baru tanpa menyertakan riwayat nilai siswa.',
+                                btnClass: 'bg-blue-600 hover:bg-blue-700',
+                                btnLabel: 'Ya, Duplikasi ke Draf',
+                            };
+                        case 'arsipkan':
+                            return {
+                                kicker: 'Arsipkan Ujian',
+                                kickerClass: 'text-slate-600',
+                                subtitle: 'Pindahkan ujian selesai ini ke dalam Folder Diarsipkan?',
+                                iconType: 'info',
+                                calloutClass: 'bg-slate-50 border-slate-200 text-slate-700',
+                                calloutText: 'Ujian akan disembunyikan dari daftar utama agar tampilan tetap bersih. Data nilai dan hasil monitoring tetap tersimpan dan dapat dibuka kapan saja di Folder Arsip.',
+                                btnClass: 'bg-slate-700 hover:bg-slate-800',
+                                btnLabel: 'Ya, Arsipkan',
+                            };
+                        default:
+                            return {
+                                kicker: 'Keluarkan dari Arsip',
+                                kickerClass: 'text-amber-700',
+                                subtitle: 'Kembalikan ujian ini ke daftar utama?',
+                                iconType: 'info',
+                                calloutClass: 'bg-amber-50/80 border-amber-200 text-amber-800',
+                                calloutText: 'Ujian akan ditampilkan kembali di daftar utama Pusat Ujian.',
+                                btnClass: 'bg-amber-600 hover:bg-amber-700',
+                                btnLabel: 'Ya, Keluarkan',
+                            };
+                    }
                 }
             };
         }
@@ -965,11 +1484,11 @@
             const statusUrl = @json(route('guru.ujian.status-realtime'));
 
             const statusStyles = {
-                draft: 'bg-gray-100 text-gray-700 border-gray-200/80',
-                scheduled: 'bg-amber-50 text-amber-700 border-amber-200/80',
-                published: 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
-                completed: 'bg-slate-100 text-slate-700 border-slate-200/80',
-                unpublished: 'bg-rose-50 text-rose-700 border-rose-200/80',
+                draft: 'bg-blue-50 text-blue-600 border-blue-200/70',
+                scheduled: 'bg-amber-50 text-amber-700 border-amber-200/70',
+                published: 'bg-emerald-50 text-emerald-700 border-emerald-200/70',
+                completed: 'bg-slate-100 text-slate-600 border-slate-200',
+                unpublished: 'bg-rose-50 text-rose-600 border-rose-200/70',
             };
 
             const filterStatus = document.getElementById('filter-status');
@@ -977,11 +1496,11 @@
             function terapkanFilterStatus() {
                 const statusDipilih = filterStatus ? filterStatus.value : '';
 
-                document.querySelectorAll('[data-ujian-id]').forEach(function(kartu) {
-                    const statusKartu = kartu.dataset.ujianStatus;
+                document.querySelectorAll('[data-ujian-id]').forEach(function(baris) {
+                    const statusBaris = baris.dataset.ujianStatus;
 
-                    kartu.style.display =
-                        (!statusDipilih || statusKartu === statusDipilih) ?
+                    baris.style.display =
+                        (!statusDipilih || statusBaris === statusDipilih) ?
                         '' :
                         'none';
                 });
@@ -1019,16 +1538,16 @@
 
                     if (Array.isArray(data.ujians)) {
                         data.ujians.forEach(function(ujian) {
-                            const kartu = document.querySelector(`[data-ujian-id="${ujian.id}"]`);
-                            if (!kartu) return;
+                            const baris = document.querySelector(`[data-ujian-id="${ujian.id}"]`);
+                            if (!baris) return;
 
-                            kartu.dataset.ujianStatus = ujian.status;
+                            baris.dataset.ujianStatus = ujian.status;
 
-                            const badge = kartu.querySelector('[data-status-badge]');
+                            const badge = baris.querySelector('[data-status-badge]');
                             if (badge) {
                                 badge.textContent = ujian.status_label;
                                 badge.className =
-                                    'inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border before:content-[\'\'] before:inline-block before:w-1.5 before:h-1.5 before:rounded-full before:bg-current ' +
+                                    'inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border shadow-2xs before:content-[\'\'] before:inline-block before:w-1.5 before:h-1.5 before:rounded-full before:bg-current ' +
                                     (statusStyles[ujian.status] || statusStyles.draft);
                             }
                         });
@@ -1039,10 +1558,6 @@
                 } catch (error) {
                     console.error('Pembaruan status ujian realtime:', error);
                 }
-            }
-
-            if (filterStatus) {
-                filterStatus.addEventListener('change', terapkanFilterStatus);
             }
 
             terapkanFilterStatus();

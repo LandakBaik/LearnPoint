@@ -339,13 +339,13 @@
                     oleh pengawas.
                 </p>
 
-                <div class="my-4 p-3 bg-rose-50 rounded-2xl border border-rose-200">
+                <div class="my-4 p-3 bg-rose-50 rounded-2xl border border-rose-200 space-y-1">
                     <p class="text-xs font-bold text-rose-800">
                         Peringatan ke-<span class="text-sm font-black" x-text="pelanggaranCount"></span> dari <span
                             x-text="maxToleransi"></span>
                     </p>
-                    <p class="text-[11px] text-rose-600 mt-0.5">
-                        Jika mencapai <span x-text="maxToleransi"></span> kali, ujian akan <strong>TERKUNCI
+                    <p class="text-[11px] text-rose-600">
+                        Jika mencapai <span x-text="maxToleransi"></span> kali atau lebih, ujian akan langsung <strong>TERKUNCI
                             OTOMATIS</strong>.
                     </p>
                 </div>
