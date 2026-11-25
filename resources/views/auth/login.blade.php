@@ -1,171 +1,412 @@
-<!-- resources/views/auth/login.blade.php -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - LearnPoint</title>
-    
-    <!-- Tailwind CSS (CDN / Vite) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Alpine.js untuk fitur toggle password -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
-    <!-- Font Poppins -->
+    <title>Masuk - LearnPoint SMP</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container": "#e5eeff",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "secondary-fixed-dim": "#b4c5ff",
+                        "on-secondary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "primary-fixed": "#e1e0ff",
+                        "surface-tint": "#4242ed",
+                        "error-container": "#ffdad6",
+                        "surface": "#f8f9ff",
+                        "on-surface": "#0b1c30",
+                        "tertiary-container": "#00668b",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed-variant": "#251ed7",
+                        "inverse-primary": "#c0c1ff",
+                        "tertiary-fixed": "#c4e7ff",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#f8f9ff",
+                        "surface-container-high": "#dce9ff",
+                        "background": "#f8f9ff",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#e2e6f0",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "primary": "#261fd7",
+                        "on-secondary-fixed": "#00174b",
+                        "on-tertiary-fixed": "#001e2c",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-primary-container": "#d6d6ff",
+                        "primary-container": "#4343ee",
+                        "tertiary-fixed-dim": "#7bd0ff",
+                        "on-secondary-container": "#fefcff",
+                        "on-primary-fixed": "#06006c",
+                        "on-surface-variant": "#5a6578",
+                        "secondary-container": "#316bf3",
+                        "surface-dim": "#cbdbf5",
+                        "secondary": "#0051d5",
+                        "secondary-fixed": "#dbe1ff",
+                        "on-background": "#0b1c30",
+                        "tertiary": "#004d6a",
+                        "outline": "#8a94a6",
+                        "surface-container-low": "#f4f7fc",
+                        "surface-variant": "#edf2fb"
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        xs: '0 1px 2px 0 rgba(11, 28, 48, 0.05)',
+                    },
+                    backdropBlur: {
+                        xs: '2px',
+                    }
+                }
+            }
+        };
+    </script>
 
     <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
         body {
-            font-family: 'Poppins', sans-serif;
-            /* Ganti 'bg-doodle.png' dengan path gambar pola latar belakang Anda */
-            background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('{{ asset("images/background-login2.jpeg") }}');
-            background-repeat: repeat;
-            background-size: 400px;
+            overscroll-behavior: none;
+        }
+        [x-cloak] {
+            display: none !important;
+        }
+        ::-webkit-scrollbar {
+            display: none;
         }
     </style>
 </head>
-<body class="bg-gray-300 min-h-screen flex items-center justify-center p-4">
-
-    <!-- Card Login Container -->
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 sm:p-10 text-center relative z-10">
-        
-        <!-- Logo & Header -->
-        <div class="flex items-center justify-center gap-3 mb-6">
-            <!-- Icon Logo Buku -->
-            <div class="bg-indigo-600 text-white p-3 rounded-2xl shadow-md flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-            </div>
-            <div class="text-left">
-                <h1 class="text-2xl font-extrabold text-indigo-950 tracking-tight leading-tight">LearnPoint</h1>
-                <p class="text-xs font-semibold text-indigo-500 tracking-wider">E-LEARNING SMP</p>
-            </div>
-        </div>
-
-        <!-- Judul & Subtitle -->
-        <h2 class="text-2xl font-bold text-gray-900 mb-1">Selamat Datang</h2>
-        <p class="text-gray-400 text-xs sm:text-sm mb-6">Silakan masuk ke akun Anda untuk melanjutkan</p>
-
-        <!-- Form Login -->
-        <form 
-            method="POST" 
-            action="{{ route('login') }}" 
-            x-data="{ showPassword: false, isSubmitting: false }"
-            @submit="if (isSubmitting) { $event.preventDefault(); return; } isSubmitting = true;"
-            @pageshow.window="if ($event.persisted) isSubmitting = false"
-        >
-            @csrf
-
-            <!-- Username / Email -->
-            <div class="text-left mb-4">
-                <label for="login" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                    USERNAME / EMAIL
-                </label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
-                        <!-- Icon User -->
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                    </span>
-                    <input 
-                        type="text" 
-                        id="login" 
-                        name="login" 
-                        value="{{ old('login') }}"
-                        placeholder="Masukkan username atau email" 
-                        required 
-                        autofocus
-                        class="w-full pl-11 pr-4 py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 placeholder-gray-300"
-                    >
-                </div>
-                @error('login')
-                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <!-- Kata Sandi -->
-            <div class="text-left mb-4">
-                <label for="password" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                    KATA SANDI
-                </label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
-                        <!-- Icon Lock -->
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                    </span>
-                    <input 
-                        :type="showPassword ? 'text' : 'password'" 
-                        id="password" 
-                        name="password" 
-                        placeholder="••••••••••••" 
-                        required 
-                        class="w-full pl-11 pr-11 py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 placeholder-gray-300"
-                    >
-                    <!-- Toggle Show/Hide Password -->
-                    <button 
-                        type="button" 
-                        @click="showPassword = !showPassword" 
-                        class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 hover:text-gray-600 focus:outline-none"
-                    >
-                        <!-- Icon Eye -->
-                        <svg x-show="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        <!-- Icon Eye Off -->
-                        <svg x-show="showPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none;">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a10.033 10.033 0 013.682-.863c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21M3 3l18 18" />
-                        </svg>
-                    </button>
-                </div>
-                @error('password')
-                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <!-- Checkbox & Lupa Password -->
-            {{-- <div class="flex items-center justify-between text-xs sm:text-sm mb-6">
-                <label class="flex items-center text-gray-500 cursor-pointer">
-                    <input 
-                        type="checkbox" 
-                        @click="showPassword = !showPassword"
-                        class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 w-4 h-4"
-                    >
-                    <span class="ml-2 text-gray-600">Tampilkan Password</span>
-                </label>
-                @if (Route::has('password.request'))
-                    <a href="{{ route('password.request') }}" class="text-indigo-600 hover:text-indigo-800 font-medium hover:underline">
-                        Lupa Password?
-                    </a>
-                @endif
-            </div> --}}
-
-            <!-- Tombol Masuk -->
-            <button 
-                type="submit" 
-                :disabled="isSubmitting"
-                class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] disabled:bg-indigo-400 disabled:hover:bg-indigo-400 disabled:active:scale-100 disabled:cursor-not-allowed disabled:opacity-80 text-white font-medium py-3 rounded-xl shadow-lg shadow-indigo-200 transition duration-200 flex items-center justify-center gap-2"
-            >
-                <svg x-show="isSubmitting" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" style="display: none;">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span x-text="isSubmitting ? 'Memproses...' : 'Masuk'">Masuk</span>
-            </button>
-        </form>
-
-        <!-- Footer Copyright -->
-        <p class="text-xs text-gray-400 mt-8">
-            &copy; {{ date('Y') }} Hak Cipta Dilindungi. Sistem Informasi Aman.
-        </p>
-
+<body
+    x-data="{ showHelpModal: false }"
+    @keydown.escape.window="showHelpModal = false"
+    class="bg-background text-on-surface min-h-screen flex flex-col justify-between antialiased relative overflow-x-hidden selection:bg-primary/10 selection:text-primary"
+>
+    <!-- Animated GIF Background (Crisp & Unblurred) -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div
+            class="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-55"
+            style="background-image: url('{{ asset('images/latar-elearning-sekolah.gif') }}');"
+        ></div>
+        <!-- Subtle center radial highlight so the login card pops without muting perimeter doodles -->
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(248,249,255,0.45)_0%,rgba(248,249,255,0.08)_55%,rgba(248,249,255,0.18)_100%)]"></div>
     </div>
 
+    <!-- Minimal Top Header Bar -->
+    <header class="w-full relative z-10 px-5 sm:px-10 py-4 sm:py-5 flex items-center justify-between">
+        <div class="flex items-center gap-2.5 bg-white/85 backdrop-blur-md pl-2 pr-3.5 py-1.5 rounded-2xl border border-primary/10 shadow-[0_4px_16px_-4px_rgba(67,67,238,0.10)]">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shadow-md shadow-primary/25">
+                <span class="material-symbols-outlined text-[20px]">school</span>
+            </div>
+            <div class="flex flex-col">
+                <span class="font-bold text-[15px] tracking-tight text-on-surface leading-tight">LearnPoint</span>
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-primary">Portal Belajar SMP</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 text-[12px] font-medium text-on-surface-variant bg-white/85 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-primary/10 shadow-[0_4px_16px_-4px_rgba(67,67,238,0.08)]">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="hidden sm:inline">Tahun Ajaran {{ $tahunAjaran ?? '2025/2026' }}</span>
+            <span class="sm:hidden">{{ $tahunAjaran ?? '2025/2026' }}</span>
+        </div>
+    </header>
+
+    <!-- Main Center Content -->
+    <main class="relative z-10 flex-1 flex items-center justify-center px-4 sm:px-6 py-4 sm:py-8">
+        <div class="w-full max-w-[430px]">
+            <!-- Minimalist Card Container -->
+            <div class="bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-primary/12 shadow-[0_24px_60px_-14px_rgba(67,67,238,0.16),0_2px_8px_rgba(11,28,48,0.04)] p-7 sm:p-9 transition-all">
+                <!-- Header Text inside Card -->
+                <div class="text-center mb-7">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary-fixed/60 text-primary mb-4 border border-primary/15 shadow-xs">
+                        <span class="material-symbols-outlined text-[25px]">lock_open</span>
+                    </div>
+                    <h1 class="text-2xl sm:text-[26px] font-bold text-on-surface tracking-tight mb-1.5">
+                        Selamat Datang
+                    </h1>
+                    <p class="text-[13.5px] text-on-surface-variant leading-relaxed">
+                        Silakan masukkan kredensial untuk mengakses portal belajar.
+                    </p>
+                </div>
+
+                @if (session('status'))
+                    <div class="mb-5 flex items-start gap-2.5 rounded-xl bg-emerald-50 border border-emerald-200/80 px-3.5 py-3 text-xs text-emerald-800">
+                        <span class="material-symbols-outlined text-[18px] text-emerald-600 shrink-0 mt-0.5">check_circle</span>
+                        <p class="leading-relaxed">{{ session('status') }}</p>
+                    </div>
+                @endif
+
+                <!-- Form Elements -->
+                <form
+                    method="POST"
+                    action="{{ route('login') }}"
+                    class="space-y-4"
+                    x-data="{
+                        loginValue: @js(old('login', '')),
+                        rememberLogin: false,
+                        showPassword: false,
+                        isSubmitting: false,
+                        init() {
+                            try {
+                                const saved = localStorage.getItem('learnpoint_saved_login');
+                                if (saved) {
+                                    this.rememberLogin = true;
+                                    if (!this.loginValue) {
+                                        this.loginValue = saved;
+                                    }
+                                }
+                            } catch (e) {}
+                        },
+                        syncSavedLogin() {
+                            try {
+                                if (this.rememberLogin && this.loginValue.trim() !== '') {
+                                    localStorage.setItem('learnpoint_saved_login', this.loginValue.trim());
+                                } else {
+                                    localStorage.removeItem('learnpoint_saved_login');
+                                }
+                            } catch (e) {}
+                        },
+                        handleSubmit(event) {
+                            if (this.isSubmitting) {
+                                event.preventDefault();
+                                return;
+                            }
+                            this.syncSavedLogin();
+                            this.isSubmitting = true;
+                        }
+                    }"
+                    @submit="handleSubmit($event)"
+                    @pageshow.window="if ($event.persisted) isSubmitting = false"
+                >
+                    @csrf
+
+                    <!-- Identifier Input -->
+                    <div>
+                        <label class="block text-xs font-semibold text-on-surface-variant mb-1.5 uppercase tracking-wider" for="login">
+                            EMAIL ATAU USERNAME
+                        </label>
+                        <div class="relative flex items-center group">
+                            <span class="absolute left-3.5 material-symbols-outlined text-[20px] pointer-events-none transition-colors @error('login') text-error @else text-outline group-focus-within:text-primary @enderror">
+                                badge
+                            </span>
+                            <input
+                                id="login"
+                                name="login"
+                                type="text"
+                                x-model="loginValue"
+                                value="{{ old('login') }}"
+                                placeholder="Masukkan Email Anda"
+                                required
+                                autofocus
+                                autocomplete="username"
+                                class="w-full h-11 pl-11 pr-4 bg-surface-container-low/70 border rounded-xl text-sm text-on-surface placeholder:text-outline transition-all duration-150 focus:bg-white outline-none @error('login') border-error/80 focus:border-error focus:ring-2 focus:ring-error/15 @else border-outline-variant/80 focus:border-primary focus:ring-2 focus:ring-primary/10 @enderror"
+                            >
+                        </div>
+                        @error('login')
+                            <p class="mt-1.5 flex items-start gap-1.5 text-xs text-error leading-relaxed">
+                                <span class="material-symbols-outlined text-[15px] shrink-0 mt-0.5">error</span>
+                                <span>{{ $message }}</span>
+                            </p>
+                        @enderror
+                    </div>
+
+                    <!-- Password Input -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider" for="password">
+                                Kata Sandi
+                            </label>
+                            <!-- <button
+                                type="button"
+                                @click="showHelpModal = true"
+                                class="text-xs font-medium text-primary hover:text-primary-container transition-colors focus:outline-none"
+                            >
+                                Lupa sandi?
+                            </button> -->
+                        </div>
+                        <div class="relative flex items-center group">
+                            <span class="absolute left-3.5 material-symbols-outlined text-[20px] pointer-events-none transition-colors @error('password') text-error @else text-outline group-focus-within:text-primary @enderror">
+                                lock
+                            </span>
+                            <input
+                                id="password"
+                                name="password"
+                                :type="showPassword ? 'text' : 'password'"
+                                placeholder="Masukkan kata sandi"
+                                required
+                                autocomplete="current-password"
+                                class="w-full h-11 pl-11 pr-11 bg-surface-container-low/70 border rounded-xl text-sm text-on-surface placeholder:text-outline transition-all duration-150 focus:bg-white outline-none @error('password') border-error/80 focus:border-error focus:ring-2 focus:ring-error/15 @else border-outline-variant/80 focus:border-primary focus:ring-2 focus:ring-primary/10 @enderror"
+                            >
+                            <button
+                                type="button"
+                                @click="showPassword = !showPassword"
+                                aria-label="Tampilkan atau sembunyikan kata sandi"
+                                class="absolute right-3 text-outline hover:text-on-surface transition-colors p-1 flex items-center justify-center focus:outline-none"
+                            >
+                                <span class="material-symbols-outlined text-[19px]" x-text="showPassword ? 'visibility_off' : 'visibility'">visibility</span>
+                            </button>
+                        </div>
+                        @error('password')
+                            <p class="mt-1.5 flex items-start gap-1.5 text-xs text-error leading-relaxed">
+                                <span class="material-symbols-outlined text-[15px] shrink-0 mt-0.5">error</span>
+                                <span>{{ $message }}</span>
+                            </p>
+                        @enderror
+                    </div>
+
+                    <!-- Remember Email / Username Checkbox (localStorage only, no persistent session) -->
+                    <div class="flex items-center pt-1">
+                        <label class="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                                id="rememberLogin"
+                                type="checkbox"
+                                x-model="rememberLogin"
+                                @change="if (!rememberLogin) syncSavedLogin()"
+                                class="w-4 h-4 rounded text-primary focus:ring-primary/20 border-outline-variant/90 cursor-pointer accent-primary"
+                            >
+                            <span class="text-xs text-on-surface-variant font-normal">Ingat email / username di perangkat ini</span>
+                        </label>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button
+                        id="submitBtn"
+                        type="submit"
+                        :disabled="isSubmitting"
+                        class="w-full h-11 mt-3 bg-gradient-to-r from-primary to-primary-container hover:from-primary-container hover:to-secondary-container active:scale-[0.99] disabled:opacity-75 disabled:cursor-not-allowed disabled:active:scale-100 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2 shadow-[0_8px_20px_-4px_rgba(67,67,238,0.42)] transition-all duration-150"
+                    >
+                        <template x-if="!isSubmitting">
+                            <span class="inline-flex items-center gap-2">
+                                <span>Masuk</span>
+                                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+                            </span>
+                        </template>
+                        <template x-if="isSubmitting">
+                            <span class="inline-flex items-center gap-2">
+                                <span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                                <span>Memverifikasi...</span>
+                            </span>
+                        </template>
+                    </button>
+                </form>
+
+                <!-- Discreet Help Note (Strictly No Registration) -->
+                <div class="mt-7 pt-5 border-t border-outline-variant/50 text-center">
+                    <p class="text-xs text-on-surface-variant leading-relaxed">
+                        Belum memiliki akun? <span class="text-on-surface font-medium">Hubungi Administrator Sekolah / Tata Usaha.</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Quick Secondary Status Indicator -->
+            <div class="flex items-center justify-center mt-5">
+                <div class="inline-flex items-center gap-3.5 px-4 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-primary/10 shadow-[0_4px_16px_-4px_rgba(67,67,238,0.08)] text-[11.5px] text-on-surface-variant">
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Sistem Aktif &amp; Terhubung
+                    </span>
+                    <span class="text-outline-variant">&bull;</span>
+                    <button
+                        type="button"
+                        @click="showHelpModal = true"
+                        class="hover:text-primary transition-colors focus:outline-none font-medium"
+                    >
+                        Bantuan Akses
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Clean Floating Bottom Footer -->
+    <footer class="relative z-10 w-full px-5 sm:px-10 py-4">
+        <div class="w-full flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-md border border-primary/10 shadow-[0_4px_16px_-4px_rgba(67,67,238,0.08)] text-[11.5px] text-on-surface-variant">
+                <span>&copy; {{ date('Y') }} <span class="font-semibold text-on-surface">LearnPoint SMP</span></span>
+                <span class="text-outline-variant">&bull;</span>
+                <span>Portal E-Learning Terpadu</span>
+            </div>
+            <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/80 backdrop-blur-md border border-primary/10 shadow-[0_4px_16px_-4px_rgba(67,67,238,0.08)] text-[11px] font-medium text-on-surface-variant">
+                <span class="material-symbols-outlined text-[14px] text-primary">verified_user</span>
+                <span>Versi 1.0.0</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal Informasi Pemulihan Akun -->
+    <div
+        x-cloak
+        x-show="showHelpModal"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-on-surface/40 backdrop-blur-xs"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="helpModalTitle"
+    >
+        <div
+            @click.outside="showHelpModal = false"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 scale-95 translate-y-2"
+            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+            x-transition:leave-end="opacity-0 scale-95 translate-y-2"
+            class="w-full max-w-sm bg-white rounded-2xl border border-outline-variant/80 shadow-[0_24px_48px_-8px_rgba(67,67,238,0.18)] p-6 text-left"
+        >
+            <div class="flex items-start justify-between gap-3 mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-surface-container-low text-primary border border-outline-variant/60 flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-[22px]">support_agent</span>
+                    </div>
+                    <div>
+                        <h2 id="helpModalTitle" class="text-[15px] font-bold text-on-surface leading-tight">
+                            Informasi Pemulihan Akun
+                        </h2>
+                        <p class="text-[11.5px] text-on-surface-variant">Bantuan Akses Portal</p>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    @click="showHelpModal = false"
+                    aria-label="Tutup modal"
+                    class="text-outline hover:text-on-surface transition-colors p-1 rounded-lg hover:bg-surface-container-low"
+                >
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+
+            <p class="text-[13px] text-on-surface-variant leading-relaxed mb-5">
+                Untuk menjaga keamanan data akademik, kata sandi akun SMP hanya dapat diatur ulang melalui <span class="font-semibold text-on-surface">Administrator Dapodik / Ruang Tata Usaha</span> sekolah.
+            </p>
+
+            <button
+                type="button"
+                @click="showHelpModal = false"
+                class="w-full h-10 bg-primary hover:bg-primary-container active:scale-[0.99] text-white text-xs font-semibold rounded-xl transition-all duration-150 shadow-sm shadow-primary/25"
+            >
+                Mengerti
+            </button>
+        </div>
+    </div>
 </body>
 </html>

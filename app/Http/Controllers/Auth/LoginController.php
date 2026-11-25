@@ -2,15 +2,23 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\AcademicPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class LoginController extends Controller
 {
     // Menampilkan view login
     public function showLoginForm()
     {
-        return view('auth.login');
+        $tahunAjaran = Schema::hasTable('academic_periods')
+            ? AcademicPeriod::where('is_active', true)->value('tahun_ajaran')
+            : null;
+
+        return view('auth.login', [
+            'tahunAjaran' => $tahunAjaran ?: '2025/2026',
+        ]);
     }
 
     // Memproses otentikasi
@@ -25,8 +33,8 @@ class LoginController extends Controller
         // Cek apakah inputan berbentuk email atau username
         $fieldType = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
-        // Attempt login
-        if (Auth::attempt([$fieldType => $request->login, 'password' => $request->password], $request->boolean('remember'))) {
+        // Attempt login (tanpa remember cookie persisten agar selaras dengan kebijakan single-session)
+        if (Auth::attempt([$fieldType => $request->login, 'password' => $request->password], false)) {
             $user = Auth::user()->load(['guru', 'siswa']);
 
             // Periksa apakah akun user, guru, atau siswa dalam status aktif
