@@ -294,4 +294,32 @@ class SiswaStatistikDashboardTest extends TestCase
             ->assertJsonPath('data.evaluasi.rata_rata_semua', 80)
             ->assertJsonPath('data.evaluasi.kategori_nilai', 'Baik');
     }
+
+    public function test_statistik_api_returns_only_periods_owned_by_the_authenticated_student(): void
+    {
+        $fx = $this->createStudentFixture();
+
+        $response = $this->actingAs($fx['user'], 'sanctum')
+            ->getJson('/api/siswa/statistik');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.academic_period.id', $fx['period']->id)
+            ->assertJsonPath('data.academic_period.tahun_ajaran', '2026/2027')
+            ->assertJsonCount(1, 'data.available_periods')
+            ->assertJsonPath('data.available_periods.0.id', $fx['period']->id)
+            ->assertJsonPath('data.evaluasi.has_real_data', false);
+
+        $otherPeriod = AcademicPeriod::create([
+            'tahun_ajaran' => '2025/2026',
+            'semester' => 'genap',
+            'tanggal_mulai' => '2026-01-01',
+            'tanggal_selesai' => '2026-06-30',
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($fx['user'], 'sanctum')
+            ->getJson('/api/siswa/statistik?academic_period_id=' . $otherPeriod->id)
+            ->assertForbidden();
+    }
 }

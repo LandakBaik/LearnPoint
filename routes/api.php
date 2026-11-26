@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\PowerController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\RelokasiAktivitasController;
+use App\Http\Controllers\Api\StudentStatisticsController;
 use App\Http\Controllers\Api\TugasController;
 use App\Http\Controllers\Api\UjianController;
 use App\Http\Controllers\FileController;
@@ -147,6 +148,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Dashboard Siswa
         Route::get('/dashboard', [DashboardController::class, 'siswaDashboard']);
         Route::get('/beranda', [DashboardController::class, 'siswaDashboard']);
+        Route::get('/statistik', [StudentStatisticsController::class, 'index']);
 
         // Jadwal Kelas Siswa
         Route::get('/jadwal', [JadwalController::class, 'siswaIndex']);
