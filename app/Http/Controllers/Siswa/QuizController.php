@@ -147,6 +147,32 @@ class QuizController extends Controller
     }
 
     /**
+     * SISWA: Menampilkan halaman Leaderboard Kuis untuk satu tingkatan pada periode akademik aktif.
+     */
+    public function leaderboard(Request $request)
+    {
+        $siswa = auth()->user()?->siswa;
+        abort_unless($siswa, 403, 'Akses ditolak.');
+
+        $kelas = $this->quizService->getSiswaPrimaryKelas($siswa);
+        $mapelId = $request->filled('mapel_id') ? (int) $request->input('mapel_id') : null;
+        $data = $this->adventureService->getTingkatanLeaderboard($siswa, $mapelId);
+
+        return view('siswa.kuis.leaderboard', [
+            'siswa'         => $siswa,
+            'kelas'         => $kelas,
+            'tingkatan'     => $data['tingkatan'],
+            'periodeLabel'  => $data['periode_label'],
+            'mapels'        => $data['mapels'],
+            'selectedMapel' => $data['selected_mapel'],
+            'leaderboard'   => $data['leaderboard'],
+            'topThree'      => $data['top_three'],
+            'restRankings'  => $data['rest_rankings'],
+            'myRank'        => $data['my_rank'],
+        ]);
+    }
+
+    /**
      * SISWA: Menampilkan panduan dan penjelasan lengkap sistem Kuis Petualangan.
      */
     public function panduan()

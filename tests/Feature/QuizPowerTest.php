@@ -745,5 +745,141 @@ class QuizPowerTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.is_quiz_completed', true);
     }
+
+    public function test_leaderboard_kuis_menampilkan_siswa_satu_tingkatan_yang_sudah_menyelesaikan_kuis_beserta_filter_mapel(): void
+    {
+        // Siswa 1 menyelesaikan kuis dengan skor 90
+        Nilai::create([
+            'siswa_id' => $this->siswa->id,
+            'quiz_id'  => $this->quiz->id,
+            'nilai'    => 90,
+            'durasi'   => 120,
+            'status'   => 'selesai',
+        ]);
+
+        // Siswa di kelas berbeda tetapi tingkatan sama (Tingkatan 7) dengan banner space_hero
+        $guru7B = Guru::create([
+            'nuptk' => '9988776655443323',
+            'nama'  => 'Guru Wali 7B',
+        ]);
+
+        $kelas7B = Kelas::create([
+            'nama_kelas' => '7-B',
+            'tingkatan'  => 7,
+            'guru_id'    => $guru7B->id,
+        ]);
+
+        $siswa7B = Siswa::create([
+            'nis'             => '555003',
+            'nama_siswa'      => 'Juara Tingkatan 7B',
+            'alamat'          => 'Jl. Pendidikan No. 3',
+            'tanggal_lahir'   => '2011-07-12',
+            'jenis_kelamin'   => 'L',
+            'wali_murid'      => 'Wali 7B',
+            'nohp_wali'       => '081234567893',
+            'status'          => 'aktif',
+            'equipped_banner' => 'space_hero',
+        ]);
+
+        AnggotaKelas::create([
+            'siswa_id' => $siswa7B->id,
+            'kelas_id' => $kelas7B->id,
+        ]);
+
+        $pengampu7B = PengampuKelas::create([
+            'guru_mapel_id' => $this->quiz->pengampuKelas->guru_mapel_id,
+            'kelas_id'      => $kelas7B->id,
+        ]);
+
+        $quiz7B = Quiz::create([
+            'judul'             => 'Kuis 7B',
+            'pengampu_kelas_id' => $pengampu7B->id,
+            'status'            => 'published',
+            'kesulitan_aktif'   => ['Mudah'],
+        ]);
+
+        Nilai::create([
+            'siswa_id' => $siswa7B->id,
+            'quiz_id'  => $quiz7B->id,
+            'nilai'    => 100,
+            'durasi'   => 95,
+            'status'   => 'selesai',
+        ]);
+
+        // Siswa tingkatan berbeda (Tingkatan 8) tidak boleh masuk leaderboard Tingkatan 7
+        $guru8A = Guru::create([
+            'nuptk' => '9988776655443324',
+            'nama'  => 'Guru Wali 8A',
+        ]);
+
+        $kelas8A = Kelas::create([
+            'nama_kelas' => '8-A',
+            'tingkatan'  => 8,
+            'guru_id'    => $guru8A->id,
+        ]);
+
+        $siswa8A = Siswa::create([
+            'nis'           => '555004',
+            'nama_siswa'    => 'Siswa Kelas 8A',
+            'alamat'        => 'Jl. Pendidikan No. 4',
+            'tanggal_lahir' => '2010-07-12',
+            'jenis_kelamin' => 'P',
+            'wali_murid'    => 'Wali 8A',
+            'nohp_wali'     => '081234567894',
+            'status'        => 'aktif',
+        ]);
+
+        AnggotaKelas::create([
+            'siswa_id' => $siswa8A->id,
+            'kelas_id' => $kelas8A->id,
+        ]);
+
+        $pengampu8A = PengampuKelas::create([
+            'guru_mapel_id' => $this->quiz->pengampuKelas->guru_mapel_id,
+            'kelas_id'      => $kelas8A->id,
+        ]);
+
+        $quiz8A = Quiz::create([
+            'judul'             => 'Kuis 8A',
+            'pengampu_kelas_id' => $pengampu8A->id,
+            'status'            => 'published',
+            'kesulitan_aktif'   => ['Mudah'],
+        ]);
+
+        Nilai::create([
+            'siswa_id' => $siswa8A->id,
+            'quiz_id'  => $quiz8A->id,
+            'nilai'    => 100,
+            'durasi'   => 60,
+            'status'   => 'selesai',
+        ]);
+
+        // 1. Cek Halaman Web Leaderboard
+        $webResp = $this->actingAs($this->userSiswa)
+            ->get(route('siswa.kuis.leaderboard'));
+
+        $webResp->assertOk()
+            ->assertSee('Leaderboard Kuis')
+            ->assertSee('Juara Tingkatan 7B')
+            ->assertSee('Siswa Utama Power')
+            ->assertDontSee('Siswa Lain Power') // 0 XP tidak ditampilkan
+            ->assertDontSee('Siswa Kelas 8A');  // Beda tingkatan tidak ditampilkan
+
+        // 2. Cek API Leaderboard beserta filter mapel_id
+        $mapelId = $this->quiz->pengampuKelas->guruMapel->mapel_id;
+        $apiResp = $this->actingAs($this->userSiswa)
+            ->getJson("/api/siswa/kuis/leaderboard?mapel_id={$mapelId}");
+
+        $apiResp->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.selected_mapel.id', $mapelId)
+            ->assertJsonCount(2, 'data.leaderboard')
+            ->assertJsonPath('data.leaderboard.0.siswa_id', $siswa7B->id)
+            ->assertJsonPath('data.leaderboard.0.rank', 1)
+            ->assertJsonPath('data.leaderboard.0.active_banner.kode', 'space_hero')
+            ->assertJsonPath('data.leaderboard.1.siswa_id', $this->siswa->id)
+            ->assertJsonPath('data.leaderboard.1.rank', 2)
+            ->assertJsonPath('data.my_rank.rank', 2);
+    }
 }
 

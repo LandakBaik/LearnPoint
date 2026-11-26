@@ -162,6 +162,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         // Kuis Petualangan Siswa
         Route::get('/kuis', [QuizController::class, 'siswaIndex']);
+        Route::get('/kuis/leaderboard', [QuizController::class, 'siswaLeaderboard']);
         Route::get('/kuis/panduan', [QuizController::class, 'siswaPanduan']);
         Route::get('/kuis/{quiz}', [QuizController::class, 'siswaShow']);
         Route::get('/kuis/{quiz}/kerjakan', [QuizController::class, 'siswaKerjakan']);

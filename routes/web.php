@@ -222,6 +222,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Kuis Petualangan Siswa
         Route::get('/siswa/kuis', [SiswaQuizController::class, 'index'])->name('siswa.kuis');
+        Route::get('/siswa/kuis/leaderboard', [SiswaQuizController::class, 'leaderboard'])->name('siswa.kuis.leaderboard');
         Route::get('/siswa/kuis/panduan', [SiswaQuizController::class, 'panduan'])->name('siswa.kuis.panduan');
         Route::get('/siswa/kuis/{quiz}', [SiswaQuizController::class, 'show'])->name('siswa.kuis.show');
         Route::get('/siswa/kuis/{quiz}/kerjakan', [SiswaQuizController::class, 'kerjakan'])->name('siswa.kuis.kerjakan');
