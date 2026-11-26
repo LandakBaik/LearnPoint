@@ -76,6 +76,16 @@
             </div>
 
             <div class="flex items-center gap-2.5 flex-wrap">
+                {{-- Tombol Leaderboard Kuis --}}
+                <a 
+                    href="{{ route('siswa.kuis.leaderboard') }}"
+                    class="px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 hover:text-amber-600 font-bold text-xs flex items-center gap-2 border border-slate-200 transition shadow-2xs cursor-pointer"
+                    title="Lihat Peringkat Leaderboard Tingkatan"
+                >
+                    <i class="fa-solid fa-trophy text-amber-500 text-sm"></i>
+                    <span>Leaderboard</span>
+                </a>
+
                 {{-- Tombol Panduan Kuis --}}
                 <a 
                     href="{{ route('siswa.kuis.panduan') }}"
@@ -172,12 +182,15 @@
                         @include('siswa.kuis.partials.planet-icon', ['planet' => $selectedPlanet, 'size' => 'w-10 h-10 md:w-11 md:h-11'])
                     </div>
                     <div>
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 leading-tight">
                                 Planet {{ $selectedPlanet->nama }}
                             </h1>
                             <a href="{{ route('siswa.kuis') }}" class="text-xs px-2.5 py-1 rounded-lg bg-white/70 hover:bg-white text-blue-600 font-semibold border border-blue-100 transition shadow-2xs" title="Ganti Planet">
                                 <i class="fa-solid fa-rotate-left mr-1"></i> Ganti Planet
+                            </a>
+                            <a href="{{ route('siswa.kuis.leaderboard', ['mapel_id' => $selectedPlanet->id]) }}" class="text-xs px-2.5 py-1 rounded-lg bg-white/70 hover:bg-white text-amber-600 font-semibold border border-amber-200 transition shadow-2xs" title="Lihat Leaderboard Mapel Ini">
+                                <i class="fa-solid fa-trophy mr-1 text-amber-500"></i> Leaderboard
                             </a>
                         </div>
                         <p class="text-xs md:text-sm text-slate-600 font-medium mt-0.5">

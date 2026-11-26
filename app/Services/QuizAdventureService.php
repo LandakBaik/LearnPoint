@@ -2,12 +2,16 @@
 
 namespace App\Services;
 
+use App\Models\AcademicPeriod;
+use App\Models\AnggotaKelas;
+use App\Models\Kelas;
 use App\Models\Mapel;
 use App\Models\Menjawab;
 use App\Models\Nilai;
 use App\Models\Quiz;
 use App\Models\Siswa;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class QuizAdventureService
 {
@@ -515,6 +519,190 @@ class QuizAdventureService
 
             return (int) $a->id <=> (int) $b->id;
         })->values();
+    }
+
+    /**
+     * Membangun data Leaderboard satu tingkatan pada periode akademik aktif,
+     * lengkap dengan filter mata pelajaran dan Banner GIF aktif milik masing-masing siswa.
+     * Hanya menampilkan siswa yang telah menyelesaikan kuis (total_skor > 0).
+     */
+    public function getTingkatanLeaderboard(?Siswa $currentSiswa, ?int $mapelId = null): array
+    {
+        $activePeriod = AcademicPeriod::current();
+        $activePeriodId = $activePeriod->id;
+
+        $primaryKelas = $currentSiswa?->kelas;
+        if (!$primaryKelas && $currentSiswa && $activePeriodId) {
+            $anggota = AnggotaKelas::with('kelas')
+                ->where('siswa_id', $currentSiswa->id)
+                ->where('academic_period_id', $activePeriodId)
+                ->first();
+            $primaryKelas = $anggota?->kelas;
+        }
+
+        $tingkatan = $primaryKelas?->tingkatan;
+
+        if (!$tingkatan) {
+            return [
+                'tingkatan'      => null,
+                'periode_label'  => $activePeriod->label,
+                'mapels'         => collect(),
+                'selected_mapel' => null,
+                'leaderboard'    => collect(),
+                'top_three'      => collect(),
+                'rest_rankings'  => collect(),
+                'my_rank'        => null,
+            ];
+        }
+
+        // Ambil seluruh kelas yang memiliki tingkatan yang sama
+        $tingkatanKelasIds = Kelas::where('tingkatan', $tingkatan)
+            ->pluck('id')
+            ->all();
+
+        // Daftar mata pelajaran di tingkatan ini pada periode aktif (untuk tombol filter)
+        $availableMapels = Mapel::forSiswa($currentSiswa)
+            ->whereHas('pengampuKelases', function ($q) use ($tingkatanKelasIds, $activePeriodId) {
+                $q->whereIn('kelas_id', $tingkatanKelasIds);
+                if ($activePeriodId) {
+                    $q->where('academic_period_id', $activePeriodId);
+                }
+            })
+            ->orderBy('nama_mapel')
+            ->get();
+
+        $selectedMapel = $mapelId
+            ? $availableMapels->firstWhere('id', (int) $mapelId)
+            : null;
+
+        // Ambil seluruh siswa yang terdaftar di kelas-kelas tingkatan tersebut pada periode akademik aktif
+        $siswaKelasMap = [];
+        $anggotaRows = AnggotaKelas::with('kelas')
+            ->whereIn('kelas_id', $tingkatanKelasIds)
+            ->when($activePeriodId, fn ($q) => $q->where('academic_period_id', $activePeriodId))
+            ->get();
+
+        foreach ($anggotaRows as $ak) {
+            if ($ak->siswa_id && $ak->kelas) {
+                $siswaKelasMap[$ak->siswa_id] = $ak->kelas->nama_kelas;
+            }
+        }
+
+        $eligibleSiswaIds = array_keys($siswaKelasMap);
+
+        if (empty($eligibleSiswaIds)) {
+            return [
+                'tingkatan'      => $tingkatan,
+                'periode_label'  => $activePeriod->label,
+                'mapels'         => $availableMapels,
+                'selected_mapel' => $selectedMapel,
+                'leaderboard'    => collect(),
+                'top_three'      => collect(),
+                'rest_rankings'  => collect(),
+                'my_rank'        => null,
+            ];
+        }
+
+        // Query akumulasi nilai kuis selesai pada periode akademik aktif
+        // Hanya siswa dengan total_skor > 0 yang masuk ke leaderboard
+        $scoreQuery = Nilai::query()
+            ->join('quizzes', 'nilais.quiz_id', '=', 'quizzes.id')
+            ->join('pengampu_kelas', 'quizzes.pengampu_kelas_id', '=', 'pengampu_kelas.id')
+            ->join('guru_mapels', 'pengampu_kelas.guru_mapel_id', '=', 'guru_mapels.id')
+            ->whereNotNull('nilais.quiz_id')
+            ->where('nilais.status', 'selesai')
+            ->whereIn('nilais.siswa_id', $eligibleSiswaIds)
+            ->whereIn('pengampu_kelas.kelas_id', $tingkatanKelasIds);
+
+        if ($activePeriodId) {
+            $scoreQuery->where('pengampu_kelas.academic_period_id', $activePeriodId);
+        }
+
+        if ($selectedMapel) {
+            $scoreQuery->where('guru_mapels.mapel_id', $selectedMapel->id);
+        }
+
+        $rows = $scoreQuery
+            ->select(
+                'nilais.siswa_id',
+                DB::raw('SUM(nilais.nilai) as total_skor'),
+                DB::raw('COUNT(nilais.id) as total_kuis'),
+                DB::raw('COALESCE(SUM(nilais.durasi), 0) as total_durasi')
+            )
+            ->groupBy('nilais.siswa_id')
+            ->havingRaw('SUM(nilais.nilai) > 0')
+            ->orderByDesc('total_skor')
+            ->orderByDesc('total_kuis')
+            ->orderBy('total_durasi')
+            ->orderBy('nilais.siswa_id')
+            ->get();
+
+        $rankedSiswas = $rows->isNotEmpty()
+            ? Siswa::with(['user', 'inventories.item'])
+                ->whereIn('id', $rows->pluck('siswa_id'))
+                ->get()
+                ->keyBy('id')
+            : collect();
+
+        $leaderboard = collect();
+        $rankNumber = 1;
+
+        foreach ($rows as $row) {
+            $sModel = $rankedSiswas->get($row->siswa_id);
+            if (!$sModel) {
+                continue;
+            }
+
+            $name = $sModel->nama_siswa ?? $sModel->user?->name ?? 'Siswa';
+            $words = array_values(array_filter(explode(' ', trim($name))));
+            $initials = count($words) >= 2
+                ? strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1))
+                : strtoupper(substr($words[0] ?? 'S', 0, 2));
+
+            $activeBanner = $sModel->active_banner;
+            $gifUrl = !empty($activeBanner['gif_url']) ? asset($activeBanner['gif_url']) : null;
+            $totalSkor = (int) round((float) $row->total_skor);
+            $isMe = $currentSiswa && (int) $sModel->id === (int) $currentSiswa->id;
+
+            $leaderboard->push([
+                'rank'            => $rankNumber,
+                'siswa_id'        => (int) $sModel->id,
+                'nama'            => $name,
+                'initials'        => $initials,
+                'kelas'           => $siswaKelasMap[$sModel->id] ?? ($primaryKelas?->nama_kelas ?? '-'),
+                'total_skor'      => $totalSkor,
+                'skor_formatted'  => number_format($totalSkor, 0, ',', '.'),
+                'total_kuis'      => (int) $row->total_kuis,
+                'total_durasi'    => (int) $row->total_durasi,
+                'is_me'           => $isMe,
+                'active_banner'   => [
+                    'kode'    => $activeBanner['kode'] ?? 'default',
+                    'nama'    => $activeBanner['nama'] ?? 'Tema Bawaan',
+                    'gif_url' => $activeBanner['gif_url'] ?? null,
+                    'full_url'=> $gifUrl,
+                    'theme'   => $activeBanner['theme'] ?? 'light',
+                    'rarity'  => $activeBanner['rarity'] ?? 'common',
+                    'badge'   => $activeBanner['badge'] ?? 'Default',
+                ],
+            ]);
+
+            $rankNumber++;
+        }
+
+        $myRank = $currentSiswa
+            ? $leaderboard->firstWhere('siswa_id', (int) $currentSiswa->id)
+            : null;
+
+        return [
+            'tingkatan'      => $tingkatan,
+            'periode_label'  => $activePeriod->label,
+            'mapels'         => $availableMapels,
+            'selected_mapel' => $selectedMapel,
+            'leaderboard'    => $leaderboard,
+            'top_three'      => $leaderboard->take(3)->values(),
+            'rest_rankings'  => $leaderboard->slice(3)->values(),
+            'my_rank'        => $myRank,
+        ];
     }
 }
 
