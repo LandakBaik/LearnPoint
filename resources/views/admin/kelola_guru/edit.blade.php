@@ -40,8 +40,10 @@
                         name="nama" 
                         value="{{ old('nama', $guru->nama) }}" 
                         required 
+                        maxlength="100"
                         class="w-full px-4 py-2.5 rounded-xl border @error('nama') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
+                    <p class="text-xs text-gray-500 mt-1">Maksimal 100 karakter (huruf, spasi, koma, titik).</p>
                     @error('nama')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror

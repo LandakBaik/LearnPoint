@@ -54,6 +54,20 @@ class SiswaController extends Controller
             $query->where('agama', $request->agama);
         }
 
+        // Filter jenis kelamin (dari clickable stat card)
+        if ($request->filled('jenis_kelamin')) {
+            if ($request->jenis_kelamin === 'L') {
+                $query->whereIn('jenis_kelamin', ['L', 'Laki-laki']);
+            } elseif ($request->jenis_kelamin === 'P') {
+                $query->whereIn('jenis_kelamin', ['P', 'Perempuan']);
+            }
+        }
+
+        // Filter siswa yang sudah punya kelas (dari clickable stat card)
+        if ($request->filled('has_class') && $request->has_class == '1') {
+            $query->has('kelas');
+        }
+
         // Search
         if ($request->filled('search')) {
             $search = $request->search;
@@ -95,9 +109,9 @@ class SiswaController extends Controller
         $minDate = now()->subYears(16)->format('Y-m-d');
 
         $validated = $request->validate([
-            'nama_siswa'    => ['required', 'string', 'max:100','regex:/^[a-zA-Z\s\.,]+$/u'],
+            'nama_siswa'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
             'nis'           => 'required|numeric|digits_between:4,10|unique:siswas,nis',
-            'angkatan'      => 'nullable|integer|min:2000|max:2100',
+            'angkatan'      => ['nullable', 'date_format:Y', 'integer', 'min:1901', 'max:2155'],
             'alamat'        => 'required|string',
             'tanggal_lahir' => ['required', 'date', 'before_or_equal:' . $maxDate, 'after_or_equal:' . $minDate],
             'jenis_kelamin' => 'required|in:L,P',
@@ -107,7 +121,10 @@ class SiswaController extends Controller
             'kelas_id'      => 'nullable|exists:kelases,id',
         ], [
             'nama_siswa.required'           => 'Nama lengkap siswa wajib diisi.',
+            'nama_siswa.max'                => 'Nama lengkap siswa maksimal 100 karakter.',
             'nama_siswa.regex'              => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'angkatan.date_format'          => 'Angkatan harus berupa format tahun 4 digit (contoh: 2026).',
+            'wali_murid.max'                => 'Nama wali murid maksimal 100 karakter.',
             'nis.required'                  => 'NIS siswa wajib diisi.',
             'nis.numeric'                   => 'NIS siswa harus berupa angka.',
             'nis.digits_between'            => 'NIS siswa harus terdiri dari 4 hingga 10 digit angka.',
@@ -196,7 +213,7 @@ class SiswaController extends Controller
         $validated = $request->validate([
             'nama_siswa'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
             'nis'           => ['required', 'numeric', 'digits_between:4,10', Rule::unique('siswas')->ignore($siswa->id)],
-            'angkatan'      => 'nullable|integer|min:2000|max:2100',
+            'angkatan'      => ['nullable', 'date_format:Y', 'integer', 'min:1901', 'max:2155'],
             'status'        => 'nullable|in:aktif,nonaktif,lulus,pindah',
             'alamat'        => 'required|string',
             'tanggal_lahir' => ['required', 'date', 'before_or_equal:' . $maxDate, 'after_or_equal:' . $minDate],
@@ -207,7 +224,10 @@ class SiswaController extends Controller
             'kelas_id'      => 'nullable|exists:kelases,id',
         ], [
             'nama_siswa.required'           => 'Nama lengkap siswa wajib diisi.',
+            'nama_siswa.max'                => 'Nama lengkap siswa maksimal 100 karakter.',
             'nama_siswa.regex'              => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'angkatan.date_format'          => 'Angkatan harus berupa format tahun 4 digit (contoh: 2026).',
+            'wali_murid.max'                => 'Nama wali murid maksimal 100 karakter.',
             'nis.required'                  => 'NIS siswa wajib diisi.',
             'nis.numeric'                   => 'NIS siswa harus berupa angka.',
             'nis.digits_between'            => 'NIS siswa harus terdiri dari 4 hingga 10 digit angka.',

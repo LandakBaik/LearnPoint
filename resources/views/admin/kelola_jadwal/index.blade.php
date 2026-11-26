@@ -51,41 +51,55 @@
         </div>
     </div>
 
-    <!-- 2 Highlight Stat Metric Cards -->
+    <!-- 2 Highlight Stat Metric Cards (Clickable Tab Switchers) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <!-- Jadwal Kelas -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all flex items-center justify-between">
+        <button type="button"
+                @click="activeTab = 'kelas'"
+                :class="activeTab === 'kelas' ? 'bg-blue-50/40 border-2 border-blue-600 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-blue-200 shadow-2xs hover:shadow-xs'"
+                class="p-5 rounded-2xl transition-all duration-200 flex items-center justify-between text-left group w-full">
             <div>
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Jadwal Kelas (Siswa)</span>
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5"
+                      :class="activeTab === 'kelas' ? 'text-blue-700' : 'text-slate-400'">
+                    <span x-show="activeTab === 'kelas'" class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                    Jadwal Kelas (Siswa)
+                </span>
                 <div class="flex items-baseline gap-2 mt-1">
                     <span class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $kelases->whereNotNull('jadwal_url')->count() }}</span>
                     <span class="text-xs font-semibold text-slate-500">/ {{ $kelases->count() }} Terisi</span>
                 </div>
                 <div class="text-[11px] font-medium text-slate-400 mt-0.5">Foto jadwal kelas diunggah</div>
             </div>
-            <div class="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <div class="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h.01M9 16h.01M9 12h.01M9 8h.01M15 16h.01M15 12h.01M15 8h.01"/></svg>
             </div>
-        </div>
+        </button>
 
         <!-- Jadwal Guru -->
         @php
             $totalGm = $gurus->flatMap->guruMapels;
             $filledGm = $totalGm->whereNotNull('jadwal_url')->count();
         @endphp
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all flex items-center justify-between">
+        <button type="button"
+                @click="activeTab = 'guru'"
+                :class="activeTab === 'guru' ? 'bg-indigo-50/40 border-2 border-indigo-600 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-indigo-200 shadow-2xs hover:shadow-xs'"
+                class="p-5 rounded-2xl transition-all duration-200 flex items-center justify-between text-left group w-full">
             <div>
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Jadwal Mengajar Guru</span>
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5"
+                      :class="activeTab === 'guru' ? 'text-indigo-700' : 'text-slate-400'">
+                    <span x-show="activeTab === 'guru'" class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                    Jadwal Mengajar Guru
+                </span>
                 <div class="flex items-baseline gap-2 mt-1">
                     <span class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $filledGm }}</span>
                     <span class="text-xs font-semibold text-slate-500">/ {{ $totalGm->count() }} Mapel Terisi</span>
                 </div>
                 <div class="text-[11px] font-medium text-slate-400 mt-0.5">Dari {{ $gurus->count() }} guru pengampu</div>
             </div>
-            <div class="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+            <div class="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
             </div>
-        </div>
+        </button>
     </div>
 
     <!-- Navigation Tabs -->
@@ -365,10 +379,13 @@
     </div>
 
     <!-- ==================== MODAL UPLOAD FOTO ==================== -->
+    <template x-teleport="body">
     <div
         x-show="uploadModalOpen"
+        x-cloak
         style="display: none;"
-        class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+        class="fixed inset-0 !mt-0 z-[999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+        @keydown.escape.window="uploadModalOpen = false; filePreview = null"
         @click.self="uploadModalOpen = false; filePreview = null">
         <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl p-6 space-y-5 border border-slate-100">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -525,12 +542,16 @@
             </form>
         </div>
     </div>
+    </template>
 
     <!-- ==================== MODAL PREVIEW ZOOM FOTO ==================== -->
+    <template x-teleport="body">
     <div
         x-show="modalPreview"
+        x-cloak
         style="display: none;"
-        class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4"
+        class="fixed inset-0 !mt-0 z-[999] bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4"
+        @keydown.escape.window="modalPreview = false"
         @click.self="modalPreview = false">
         <div class="relative max-w-4xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden p-3 border border-slate-200">
             <div class="flex items-center justify-between p-3 border-b border-slate-100">
@@ -554,6 +575,7 @@
             </div>
         </div>
     </div>
+    </template>
 
 </div>
 

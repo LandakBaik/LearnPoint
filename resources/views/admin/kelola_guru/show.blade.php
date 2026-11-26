@@ -360,7 +360,7 @@
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                         </svg>
-                        <span>+ Tugaskan Kelas</span>
+                        <span>Tugaskan Kelas</span>
                     </button>
                 </div>
 
@@ -581,9 +581,12 @@
     </div>
 
     <!-- Modal Zoom Foto Interaktif -->
+    <template x-teleport="body">
     <div x-show="modalOpen" 
+         x-cloak
          style="display: none;"
-         class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 transition-all"
+         class="fixed inset-0 !mt-0 z-[999] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 transition-all"
+         @keydown.escape.window="modalOpen = false"
          @click.self="modalOpen = false">
         <div class="relative max-w-4xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden p-3 border border-slate-100">
             <div class="flex items-center justify-between p-3.5 border-b border-slate-100">
@@ -614,6 +617,7 @@
             </div>
         </div>
     </div>
+    </template>
 
     <!-- Modal Penugasan Mapel & Kelas -->
     <div x-show="assignModalOpen" 

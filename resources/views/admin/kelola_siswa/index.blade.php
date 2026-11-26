@@ -38,55 +38,84 @@
         </div>
     </div>
 
-    <!-- 4 Highlight Stat Cards -->
+    <!-- 4 Highlight Stat Cards (Clickable Filters) -->
+    @php
+        $jkAktif = (string) request('jenis_kelamin', '');
+        $hasClassAktif = (string) request('has_class', '');
+        $isAllSiswa = $jkAktif === '' && $hasClassAktif === '';
+    @endphp
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Total Siswa -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+        <a href="{{ route('siswa.index', request()->except(['page', 'jenis_kelamin', 'has_class'])) }}"
+           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $isAllSiswa ? 'bg-blue-50/40 border-2 border-blue-600 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-blue-200 shadow-2xs hover:shadow-xs' }}">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Siswa</span>
-                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $isAllSiswa ? 'text-blue-700' : 'text-slate-400' }}">
+                    @if($isAllSiswa)
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                    @endif
+                    Total Siswa
+                </span>
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $totalSiswa ?? $siswa->total() }}</div>
             <div class="text-[11px] font-medium text-slate-500 mt-1">Peserta didik terdaftar</div>
-        </div>
+        </a>
 
         <!-- Siswa Laki-Laki -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+        <a href="{{ route('siswa.index', array_merge(request()->except(['page', 'has_class']), ['jenis_kelamin' => 'L'])) }}"
+           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $jkAktif === 'L' ? 'bg-indigo-50/40 border-2 border-indigo-500 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-indigo-200 shadow-2xs hover:shadow-xs' }}">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Laki-Laki</span>
-                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $jkAktif === 'L' ? 'text-indigo-700' : 'text-slate-400' }}">
+                    @if($jkAktif === 'L')
+                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                    @endif
+                    Laki-Laki
+                </span>
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $countLakiLaki ?? 0 }}</div>
             <div class="text-[11px] font-medium text-slate-500 mt-1">Siswa putra</div>
-        </div>
+        </a>
 
         <!-- Siswa Perempuan -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+        <a href="{{ route('siswa.index', array_merge(request()->except(['page', 'has_class']), ['jenis_kelamin' => 'P'])) }}"
+           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $jkAktif === 'P' ? 'bg-pink-50/40 border-2 border-pink-500 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-pink-200 shadow-2xs hover:shadow-xs' }}">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Perempuan</span>
-                <div class="w-9 h-9 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $jkAktif === 'P' ? 'text-pink-700' : 'text-slate-400' }}">
+                    @if($jkAktif === 'P')
+                        <span class="w-1.5 h-1.5 rounded-full bg-pink-500"></span>
+                    @endif
+                    Perempuan
+                </span>
+                <div class="w-9 h-9 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $countPerempuan ?? 0 }}</div>
             <div class="text-[11px] font-medium text-slate-500 mt-1">Siswa putri</div>
-        </div>
+        </a>
 
         <!-- Terdaftar di Kelas -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+        <a href="{{ route('siswa.index', array_merge(request()->except(['page', 'jenis_kelamin']), ['has_class' => '1'])) }}"
+           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $hasClassAktif === '1' ? 'bg-emerald-50/40 border-2 border-emerald-500 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-emerald-200 shadow-2xs hover:shadow-xs' }}">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Punya Kelas</span>
-                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $hasClassAktif === '1' ? 'text-emerald-700' : 'text-slate-400' }}">
+                    @if($hasClassAktif === '1')
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    @endif
+                    Punya Kelas
+                </span>
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h.01M9 16h.01M9 12h.01M9 8h.01M15 16h.01M15 12h.01M15 8h.01"/></svg>
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $countHasClass ?? 0 }}</div>
             <div class="text-[11px] font-medium text-slate-500 mt-1">Dari {{ count($kelases) }} kelas aktif</div>
-        </div>
+        </a>
     </div>
 
     <!-- Filter & Search Card -->
@@ -316,7 +345,7 @@
         </div>
 
         @if($siswa->hasPages())
-            <div class="px-6 py-4 border-t border-slate-100">
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/30">
                 {{ $siswa->links() }}
             </div>
         @endif
@@ -324,7 +353,7 @@
 
     <!-- Modal Import CSV Siswa -->
     <div x-show="csvModalOpen" 
-         class="fixed inset-0 z-50 overflow-y-auto"
+         class="fixed inset-0 !mt-0 z-50 overflow-y-auto"
          style="display: none;">
         <div class="min-h-screen px-4 text-center flex items-center justify-center">
             <!-- Backdrop -->

@@ -22,7 +22,11 @@ class UserController extends Controller
 
         // Filter berdasarkan peran/role
         if ($request->filled('role')) {
-            $query->where('role', $request->role);
+            if ($request->role === 'admin_kepsek') {
+                $query->whereIn('role', ['operator', 'kepala_sekolah']);
+            } else {
+                $query->where('role', $request->role);
+            }
         }
 
         // Pencarian nama, username, email

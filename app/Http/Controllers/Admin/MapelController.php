@@ -32,6 +32,14 @@ class MapelController extends Controller
             $query->where('tipe_mapel', $request->tipe_mapel);
         }
 
+        if ($request->filled('filter')) {
+            if ($request->filter === 'punya_pengampu') {
+                $query->has('pengampuKelases');
+            } elseif ($request->filter === 'kkm_tinggi') {
+                $query->orderByDesc('kkm');
+            }
+        }
+
         $mapels = $query->latest()->paginate(10)->withQueryString();
 
         $totalMapel = Mapel::count();

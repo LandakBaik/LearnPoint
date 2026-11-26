@@ -31,9 +31,11 @@
                         name="nama_siswa" 
                         value="{{ old('nama_siswa') }}" 
                         required 
+                        maxlength="100"
                         placeholder="Contoh: Muhammad Rizky"
                         class="w-full px-4 py-2.5 rounded-xl border @error('nama_siswa') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
+                    <p class="text-xs text-gray-500 mt-1">Maksimal 100 karakter (huruf, spasi, koma, titik).</p>
                     @error('nama_siswa')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror
@@ -82,17 +84,26 @@
 
                 <div>
                     <label for="angkatan" class="block text-sm font-bold text-gray-700 mb-1">Angkatan (Tahun Masuk)</label>
-                    <input
-                        type="number"
-                        id="angkatan"
-                        name="angkatan"
-                        min="2000"
-                        max="2100"
-                        value="{{ old('angkatan', \App\Models\AcademicPeriod::defaultAngkatan()) }}"
-                        placeholder="Contoh: 2026"
-                        class="w-full px-4 py-2.5 rounded-xl border @error('angkatan') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    >
-                    <p class="text-xs text-gray-500 mt-1">Tahun siswa pertama kali masuk sekolah.</p>
+                    @php
+                        $selectedAngkatan = (int) old('angkatan', \App\Models\AcademicPeriod::defaultAngkatan());
+                        $maxYear = max((int) date('Y') + 5, $selectedAngkatan);
+                        $minYear = min(2000, $selectedAngkatan > 0 ? $selectedAngkatan : 2000);
+                    @endphp
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </div>
+                        <select
+                            id="angkatan"
+                            name="angkatan"
+                            class="w-full pl-10 pr-4 py-2.5 rounded-xl border @error('angkatan') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-gray-800"
+                        >
+                            @for($yr = $maxYear; $yr >= $minYear; $yr--)
+                                <option value="{{ $yr }}" {{ $selectedAngkatan === $yr ? 'selected' : '' }}>{{ $yr }}</option>
+                            @endfor
+                        </select>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Pilih tahun siswa pertama kali masuk sekolah (format tahun: YYYY).</p>
                     @error('angkatan')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror
@@ -154,9 +165,11 @@
                         name="wali_murid" 
                         value="{{ old('wali_murid') }}" 
                         required 
+                        maxlength="100"
                         placeholder="Contoh: Hendra Kusuma"
                         class="w-full px-4 py-2.5 rounded-xl border @error('wali_murid') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
+                    <p class="text-xs text-gray-400 mt-1">Maksimal 100 karakter.</p>
                     @error('wali_murid')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror

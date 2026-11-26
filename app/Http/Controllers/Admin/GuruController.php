@@ -42,6 +42,17 @@ class GuruController extends Controller
             });
         }
 
+        // Filter cepat dari stat card
+        if ($request->filled('filter')) {
+            if ($request->filter === 'wali_kelas') {
+                $query->has('kelas');
+            } elseif ($request->filter === 'pengampu') {
+                $query->has('pengampuKelases');
+            } elseif ($request->filter === 'aktif') {
+                $query->whereHas('user', fn($q) => $q->where('status', 'aktif'));
+            }
+        }
+
         $totalGuru = Guru::count();
         $countWaliKelas = Guru::has('kelas')->count();
         $countPengampu = Guru::has('pengampuKelases')->count();
@@ -89,6 +100,7 @@ class GuruController extends Controller
             'assignments.*.kelas_ids'   => 'nullable|array',
             'assignments.*.kelas_ids.*' => 'exists:kelases,id',
         ], [
+            'nama.max'            => 'Nama lengkap guru maksimal 100 karakter.',
             'nama.regex'          => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
             'nuptk.numeric'       => 'NUPTK guru harus berupa angka.',
             'nuptk.digits'        => 'NUPTK guru harus tepat 16 digit angka.',
@@ -253,6 +265,7 @@ class GuruController extends Controller
             'new_kelas_ids.*' => 'exists:kelases,id',
             'new_kelas_id'    => 'nullable|exists:kelases,id',
         ], [
+            'nama.max'            => 'Nama lengkap guru maksimal 100 karakter.',
             'nama.regex'          => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
             'nuptk.numeric'       => 'NUPTK guru harus berupa angka.',
             'nuptk.digits'        => 'NUPTK guru harus tepat 16 digit angka.',

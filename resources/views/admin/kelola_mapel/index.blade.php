@@ -19,43 +19,62 @@
         </div>
     </div>
 
-    <!-- 3 Highlight Stat Cards -->
+    <!-- 3 Highlight Stat Cards (Clickable Filters) -->
+    @php $mapelFilterAktif = (string) request('filter', ''); @endphp
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <!-- Total Mapel -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+        <a href="{{ route('mapel.index', request()->except(['page', 'filter'])) }}"
+           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $mapelFilterAktif === '' ? 'bg-blue-50/40 border-2 border-blue-600 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-blue-200 shadow-2xs hover:shadow-xs' }}">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Mapel</span>
-                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $mapelFilterAktif === '' ? 'text-blue-700' : 'text-slate-400' }}">
+                    @if($mapelFilterAktif === '')
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                    @endif
+                    Total Mapel
+                </span>
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $totalMapel ?? $mapels->total() }}</div>
             <div class="text-[11px] font-medium text-slate-500 mt-1">Kurikulum aktif</div>
-        </div>
+        </a>
 
         <!-- Rata-rata KKM -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+        <a href="{{ route('mapel.index', array_merge(request()->except('page'), ['filter' => 'kkm_tinggi'])) }}"
+           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $mapelFilterAktif === 'kkm_tinggi' ? 'bg-amber-50/40 border-2 border-amber-500 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-amber-200 shadow-2xs hover:shadow-xs' }}">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Rata-Rata KKM</span>
-                <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $mapelFilterAktif === 'kkm_tinggi' ? 'text-amber-700' : 'text-slate-400' }}">
+                    @if($mapelFilterAktif === 'kkm_tinggi')
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    @endif
+                    Rata-Rata KKM
+                </span>
+                <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $avgKkm ?? '75' }}</div>
-            <div class="text-[11px] font-medium text-slate-500 mt-1">Standar kelulusan</div>
-        </div>
+            <div class="text-[11px] font-medium text-slate-500 mt-1">Urutkan KKM tertinggi</div>
+        </a>
 
         <!-- Total Alokasi Mengajar -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+        <a href="{{ route('mapel.index', array_merge(request()->except('page'), ['filter' => 'punya_pengampu'])) }}"
+           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $mapelFilterAktif === 'punya_pengampu' ? 'bg-purple-50/40 border-2 border-purple-500 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-purple-200 shadow-2xs hover:shadow-xs' }}">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Penugasan</span>
-                <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $mapelFilterAktif === 'punya_pengampu' ? 'text-purple-700' : 'text-slate-400' }}">
+                    @if($mapelFilterAktif === 'punya_pengampu')
+                        <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                    @endif
+                    Total Penugasan
+                </span>
+                <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $totalAlokasi ?? 0 }}</div>
-            <div class="text-[11px] font-medium text-slate-500 mt-1">Alokasi guru & kelas</div>
-        </div>
+            <div class="text-[11px] font-medium text-slate-500 mt-1">Alokasi guru &amp; kelas</div>
+        </a>
     </div>
 
     <!-- Filter & Search Card -->

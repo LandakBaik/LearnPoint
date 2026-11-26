@@ -153,10 +153,13 @@
         @endif
 
         <!-- Zoom Modal -->
+        <template x-teleport="body">
         <div 
             x-show="modalOpen" 
+            x-cloak
             style="display: none;"
-            class="fixed inset-0 z-50 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center p-4"
+            class="fixed inset-0 !mt-0 z-[999] bg-gray-900/80 backdrop-blur-sm flex items-center justify-center p-4"
+            @keydown.escape.window="modalOpen = false"
             @click.self="modalOpen = false"
         >
             <div class="relative max-w-5xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden p-2">
@@ -177,6 +180,7 @@
                 </div>
             </div>
         </div>
+        </template>
     @else
         <!-- Empty State -->
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 sm:p-12 text-center">

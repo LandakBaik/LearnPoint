@@ -19,55 +19,80 @@
         </div>
     </div>
 
-    <!-- 4 Highlight Stat Cards -->
+    <!-- 4 Highlight Stat Cards (Clickable Filters) -->
+    @php $roleAktif = (string) request('role', ''); @endphp
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Total Akun -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+        <a href="{{ route('users.index', request()->except(['page', 'role'])) }}"
+           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $roleAktif === '' ? 'bg-blue-50/40 border-2 border-blue-600 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-blue-200 shadow-2xs hover:shadow-xs' }}">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Akun</span>
-                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $roleAktif === '' ? 'text-blue-700' : 'text-slate-400' }}">
+                    @if($roleAktif === '')
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                    @endif
+                    Total Akun
+                </span>
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $totalUsers }}</div>
             <div class="text-[11px] font-medium text-slate-500 mt-1">Terdaftar di sistem</div>
-        </div>
+        </a>
 
         <!-- Akun Guru -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+        <a href="{{ route('users.index', array_merge(request()->except('page'), ['role' => 'guru'])) }}"
+           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $roleAktif === 'guru' ? 'bg-emerald-50/40 border-2 border-emerald-500 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-emerald-200 shadow-2xs hover:shadow-xs' }}">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Guru</span>
-                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $roleAktif === 'guru' ? 'text-emerald-700' : 'text-slate-400' }}">
+                    @if($roleAktif === 'guru')
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    @endif
+                    Guru
+                </span>
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $countGuru ?? 0 }}</div>
             <div class="text-[11px] font-medium text-slate-500 mt-1">Tenaga pendidik</div>
-        </div>
+        </a>
 
         <!-- Akun Siswa -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+        <a href="{{ route('users.index', array_merge(request()->except('page'), ['role' => 'siswa'])) }}"
+           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $roleAktif === 'siswa' ? 'bg-indigo-50/40 border-2 border-indigo-500 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-indigo-200 shadow-2xs hover:shadow-xs' }}">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Siswa</span>
-                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $roleAktif === 'siswa' ? 'text-indigo-700' : 'text-slate-400' }}">
+                    @if($roleAktif === 'siswa')
+                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                    @endif
+                    Siswa
+                </span>
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $countSiswa ?? 0 }}</div>
             <div class="text-[11px] font-medium text-slate-500 mt-1">Peserta didik</div>
-        </div>
+        </a>
 
         <!-- Admin & Kepsek -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+        <a href="{{ route('users.index', array_merge(request()->except('page'), ['role' => 'admin_kepsek'])) }}"
+           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ in_array($roleAktif, ['admin_kepsek', 'operator', 'kepala_sekolah']) ? 'bg-purple-50/40 border-2 border-purple-500 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-purple-200 shadow-2xs hover:shadow-xs' }}">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Admin & Kepsek</span>
-                <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ in_array($roleAktif, ['admin_kepsek', 'operator', 'kepala_sekolah']) ? 'text-purple-700' : 'text-slate-400' }}">
+                    @if(in_array($roleAktif, ['admin_kepsek', 'operator', 'kepala_sekolah']))
+                        <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                    @endif
+                    Admin &amp; Kepsek
+                </span>
+                <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ ($countOperator ?? 0) + ($countKepalaSekolah ?? 0) }}</div>
             <div class="text-[11px] font-medium text-slate-500 mt-1">{{ $countOperator ?? 0 }} Admin, {{ $countKepalaSekolah ?? 0 }} Kepsek</div>
-        </div>
+        </a>
     </div>
 
     <!-- Import Row Skip Log -->
