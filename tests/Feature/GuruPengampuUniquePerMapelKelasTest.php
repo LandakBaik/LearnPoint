@@ -204,6 +204,8 @@ class GuruPengampuUniquePerMapelKelasTest extends TestCase
         $response = $this->actingAs($this->admin)->put(route('mapel.update', $this->mtk->id), [
             'nama_mapel'    => 'Matematika',
             'kkm'           => 75,
+            'tipe_mapel'    => 'teori',
+            'asset'         => 1,
             'new_guru_id'   => $rusdi->id,
             'new_kelas_ids' => [$this->kelas7A->id],
         ]);

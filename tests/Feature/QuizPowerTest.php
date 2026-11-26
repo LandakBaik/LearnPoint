@@ -273,9 +273,9 @@ class QuizPowerTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('data.remaining_qty', 1);
 
-        $this->assertDatabaseHas('siswa_powers', [
+        $this->assertDatabaseHas('inventories', [
             'siswa_id' => $this->siswa->id,
-            'power_id' => $power->id,
+            'item_id' => $power->id,
             'jumlah' => 1,
         ]);
     }
@@ -327,9 +327,9 @@ class QuizPowerTest extends TestCase
             ->assertJsonPath('success', false)
             ->assertJsonPath('code', 'POWER_EMPTY');
 
-        $this->assertDatabaseHas('siswa_powers', [
+        $this->assertDatabaseHas('inventories', [
             'siswa_id' => $this->siswa->id,
-            'power_id' => $power->id,
+            'item_id' => $power->id,
             'jumlah' => 0,
         ]);
     }
@@ -359,9 +359,9 @@ class QuizPowerTest extends TestCase
             ->assertJsonPath('code', 'POWER_INACTIVE');
 
         // Pastikan jumlah Power tidak berkurang
-        $this->assertDatabaseHas('siswa_powers', [
+        $this->assertDatabaseHas('inventories', [
             'siswa_id' => $this->siswa->id,
-            'power_id' => $power->id,
+            'item_id' => $power->id,
             'jumlah' => 3,
         ]);
     }
@@ -398,9 +398,9 @@ class QuizPowerTest extends TestCase
             ->assertJsonPath('code', 'QUIZ_COMPLETED');
 
         // Jumlah Power tetap utuh
-        $this->assertDatabaseHas('siswa_powers', [
+        $this->assertDatabaseHas('inventories', [
             'siswa_id' => $this->siswa->id,
-            'power_id' => $power->id,
+            'item_id' => $power->id,
             'jumlah' => 2,
         ]);
     }
@@ -444,7 +444,7 @@ class QuizPowerTest extends TestCase
             ->assertJsonPath('code', 'FORBIDDEN_ACCOUNT');
 
         // Pastikan kepemilikan Siswa Lain sama sekali tidak berkurang
-        $this->assertDatabaseHas('siswa_powers', [
+        $this->assertDatabaseHas('inventories', [
             'id' => $siswaLainPower->id,
             'siswa_id' => $this->siswaLain->id,
             'jumlah' => 5,
@@ -489,9 +489,9 @@ class QuizPowerTest extends TestCase
             ->assertJsonPath('code', 'EFFECT_ACTIVATION_FAILED');
 
         // Pastikan jumlah Power tidak berkurang (tetap 2) dan tidak tercatat di menjawabs
-        $this->assertDatabaseHas('siswa_powers', [
+        $this->assertDatabaseHas('inventories', [
             'siswa_id' => $this->siswa->id,
-            'power_id' => $powerRemove->id,
+            'item_id' => $powerRemove->id,
             'jumlah' => 2,
         ]);
 
@@ -621,15 +621,15 @@ class QuizPowerTest extends TestCase
             ->assertJsonPath('code', 'QUESTION_ALREADY_HAS_POWER');
 
         // Pastikan jumlah Lucky Clover hanya berkurang 1x (sisa 2) dan Double Side Knife tetap utuh (sisa 2)
-        $this->assertDatabaseHas('siswa_powers', [
+        $this->assertDatabaseHas('inventories', [
             'siswa_id' => $this->siswa->id,
-            'power_id' => $powerClover->id,
+            'item_id' => $powerClover->id,
             'jumlah' => 2,
         ]);
 
-        $this->assertDatabaseHas('siswa_powers', [
+        $this->assertDatabaseHas('inventories', [
             'siswa_id' => $this->siswa->id,
-            'power_id' => $powerKnife->id,
+            'item_id' => $powerKnife->id,
             'jumlah' => 2,
         ]);
     }
@@ -667,7 +667,7 @@ class QuizPowerTest extends TestCase
             ->assertJsonPath('code', 'POWER_EMPTY');
 
         $siswaPower = SiswaPower::where('siswa_id', $this->siswa->id)
-            ->where('power_id', $power->id)
+            ->where('item_id', $power->id)
             ->firstOrFail();
 
         $this->assertGreaterThanOrEqual(0, $siswaPower->jumlah);

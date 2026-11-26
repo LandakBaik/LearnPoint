@@ -47,7 +47,7 @@ class MateriCrudGuruTest extends TestCase
 
     public function test_guru_can_create_materi_for_multiple_classes(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $data = $this->createGuruWithClasses();
 
         $file = UploadedFile::fake()->create('materi1.pdf', 1000, 'application/pdf');
@@ -75,7 +75,7 @@ class MateriCrudGuruTest extends TestCase
         $this->assertEquals($materiA->id_grub_materi, $materiB->id_grub_materi);
         $this->assertEquals('Sistem Persamaan Linear', $materiA->judul);
 
-        Storage::disk('public')->assertExists($materiA->file_materi);
+        Storage::disk('local')->assertExists($materiA->file_materi);
     }
 
     public function test_guru_cannot_create_materi_with_invalid_file_or_missing_fields(): void
@@ -122,6 +122,8 @@ class MateriCrudGuruTest extends TestCase
         $updateResponse = $this->actingAs($data['user'])->put(route('guru.materi.update', $idGrub), [
             'judul' => 'Judul Baru',
             'deskripsi' => 'Deskripsi Baru',
+            'mapel_id' => $data['mapel']->id,
+            'tingkatan' => 7,
             'pengampu_kelas_ids' => [$data['pkA']->id, $data['pkB']->id],
         ]);
 
@@ -196,6 +198,8 @@ class MateriCrudGuruTest extends TestCase
         // 1. Lepas kelas B (sisa 1 kelas: kelas A)
         $response1 = $this->actingAs($data['user'])->put(route('guru.materi.update', $idGrub), [
             'judul' => 'Materi Multi Kelas',
+            'mapel_id' => $data['mapel']->id,
+            'tingkatan' => 7,
             'pengampu_kelas_ids' => [$data['pkA']->id],
         ]);
         $response1->assertRedirect(route('guru.materi'));
@@ -205,6 +209,8 @@ class MateriCrudGuruTest extends TestCase
         // 2. Lepas semua kelas (0 kelas) -> Otomatis hapus materi & file
         $response2 = $this->actingAs($data['user'])->put(route('guru.materi.update', $idGrub), [
             'judul' => 'Materi Multi Kelas',
+            'mapel_id' => $data['mapel']->id,
+            'tingkatan' => 7,
             'pengampu_kelas_ids' => [],
         ]);
         $response2->assertRedirect(route('guru.materi'));

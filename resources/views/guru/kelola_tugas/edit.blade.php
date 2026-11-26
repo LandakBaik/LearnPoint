@@ -1,11 +1,11 @@
-<!-- =========================================================
-     MODAL EDIT TUGAS
-     Tampilan disamakan dengan MODAL BUAT TUGAS BARU
-========================================================= -->
+@extends('layouts.app')
 
-<div
+@section('title', 'Edit Tugas')
+
+@section('content')
+<div class="space-y-6"
     x-data="{
-        showEditModal: false,
+        showEditModal: true,
         editData: {},
         jenisTugas: 'upload',
         hasFileEdit: false,
@@ -218,64 +218,34 @@
             }
         }
     }"
-    @open-edit-modal.window="bukaModal($event.detail)"
-    x-show="showEditModal"
-    x-cloak
-    style="display:none"
-    @keydown.escape.window="showEditModal = false"
-    class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
+    x-init="bukaModal(@json($tugas))"
+    class="space-y-6">
 
-    <!-- BACKDROP -->
-    <div
-        x-show="showEditModal"
-        x-transition.opacity
-        @click="showEditModal = false"
-        class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm">
+    <!-- HEADER: disamakan dengan halaman CREATE -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Edit Tugas</h1>
+            <p class="text-sm text-gray-500 mt-1">Perbarui judul, kelas, jenis tugas, serta batas waktu pengumpulan.</p>
+        </div>
+        <a href="{{ route('guru.tugas') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Kembali
+        </a>
     </div>
 
-    <!-- MODAL -->
-    <div
-        x-show="showEditModal"
-        x-transition
-        class="relative z-10 my-auto flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl">
 
-        <!-- HEADER -->
-        <div class="sticky top-0 z-20 flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 bg-white px-6 py-4">
+    <div class="w-full rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
 
-            <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 20h16M6 4h12a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2zM8 8h8M8 12h5" />
-                    </svg>
-                </div>
-
-                <div>
-                    <h3 class="text-lg font-bold tracking-tight text-slate-900">
-                        Edit Tugas
-                    </h3>
-                    <p class="mt-1 text-xs text-slate-500">
-                        Perbarui judul, kelas, jenis tugas, dan batas waktu.
-                    </p>
-                </div>
-            </div>
-
-            <button
-                type="button"
-                @click="showEditModal = false"
-                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
 
         <!-- FORM -->
         <form
-            :action="'/guru/tugas/' + editData.id"
+            action="{{ route('guru.tugas.update', $tugas->id) }}"
             method="POST"
             enctype="multipart/form-data"
             id="formEditTugas"
-            class="min-h-0 space-y-5 overflow-y-auto p-6 sm:p-7">
+            class="space-y-5 p-6 sm:p-8">
 
             @csrf
             @method('PUT')
@@ -437,7 +407,7 @@
 
                     <!-- KELAS -->
                     <div class="space-y-2">
-                        <label class="block text-xs font-semibold text-slate-7 00">
+                        <label class="block text-xs font-semibold text-slate-700">
                             Kelas <span class="text-red-500">*</span>
                         </label>
 
@@ -835,21 +805,18 @@
             <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
 
                 <!-- HAPUS TUGAS -->
-                <button
-                    type="button"
-                    @click="if(confirm('Yakin ingin menghapus tugas ini?')) document.getElementById('delete-form-' + editData.id)?.submit()"
-                    class="rounded-xl border border-red-100 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100">
-                    Hapus Tugas
-                </button>
+                <form action="{{ route('guru.tugas.destroy', $tugas->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus tugas ini?')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="rounded-xl border border-red-100 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100">Hapus Tugas</button>
+                </form>
 
                 <div class="flex flex-wrap gap-3">
                     <!-- BATAL -->
-                    <button
-                        type="button"
-                        @click="showEditModal = false"
+                    <a href="{{ route('guru.tugas') }}"
                         class="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
                         Batal
-                    </button>
+                    </a>
 
                     <!-- SIMPAN -->
                     <button
@@ -866,4 +833,225 @@
             </div>
         </form>
     </div>
-</div>
+    <script>
+        (function() {
+            const mapel = document.getElementById('editFilterMapel');
+            const tombol = document.getElementById('editBtnBukaKelas');
+            const dropdown = document.getElementById('editDropdownKelas');
+            const teksTombol = document.getElementById('editTeksPilihKelas');
+            const icon = document.getElementById('editIconKelas');
+            const tingkat = document.getElementById('editFilterTingkat');
+            const pilihSemua = document.getElementById('editPilihSemua');
+            const daftar = document.getElementById('editDaftarPengampu');
+            const pesanMapel = document.getElementById('editPesanPilihMapel');
+            const pesanKosong = document.getElementById('editPesanKelasKosong');
+            const jumlah = document.getElementById('editJumlahTerpilih');
+            const form = document.getElementById('formEditTugas');
+
+            if (!mapel || !tombol || !dropdown || !daftar || !form) return;
+
+            const semuaItem = Array.from(
+                daftar.querySelectorAll('.itemPengampuEdit')
+            );
+
+            const semuaCheckbox = Array.from(
+                daftar.querySelectorAll('.checkboxPengampuEdit')
+            );
+
+            // Buka/tutup daftar kelas
+            tombol.addEventListener('click', function() {
+                dropdown.classList.toggle('hidden');
+
+                if (icon) {
+                    icon.classList.toggle('rotate-180');
+                }
+            });
+
+            // Ambil kelas sesuai mapel
+            function itemSesuaiMapel() {
+                return semuaItem.filter(item =>
+                    item.dataset.mapel === mapel.value && mapel.value !== ''
+                );
+            }
+
+            // Isi filter tingkat
+            function isiTingkat(items) {
+                const nilaiTingkat = [...new Set(
+                    items.map(item => item.dataset.tingkat).filter(Boolean)
+                )].sort((a, b) => Number(a) - Number(b));
+
+                tingkat.innerHTML = '<option value="">Semua Tingkat</option>';
+
+                nilaiTingkat.forEach(nilai => {
+                    const option = document.createElement('option');
+                    option.value = nilai;
+                    option.textContent = 'Kelas ' + nilai;
+                    tingkat.appendChild(option);
+                });
+            }
+
+            // Update label jumlah kelas terpilih
+            function updateJumlah() {
+                const terpilih = semuaCheckbox.filter(cb => cb.checked);
+                const total = terpilih.length;
+
+                jumlah.textContent = total + ' kelas dipilih';
+
+                if (total === 0) {
+                    teksTombol.textContent = 'Pilih Kelas';
+                } else {
+                    const nama = terpilih.map(cb => {
+                        const span = cb.closest('.itemPengampuEdit')
+                            ?.querySelector('.namaKelasEdit');
+
+                        return span ? span.textContent.trim() : 'Kelas';
+                    });
+
+                    teksTombol.textContent = total <= 2 ?
+                        nama.join(', ') :
+                        nama.slice(0, 2).join(', ') + ' + ' + (total - 2) + ' lainnya';
+                }
+            }
+
+            // Filter tampilan kelas
+            function tampilkanKelas() {
+                const mapelId = mapel.value;
+                const tingkatId = tingkat.value;
+                let totalTampil = 0;
+
+                semuaItem.forEach(item => {
+                    const cocokMapel = item.dataset.mapel === mapelId;
+                    const cocokTingkat = tingkatId === '' ||
+                        item.dataset.tingkat === tingkatId;
+
+                    const tampil = mapelId !== '' && cocokMapel && cocokTingkat;
+
+                    item.classList.toggle('hidden', !tampil);
+
+                    if (tampil) totalTampil++;
+                });
+
+                pesanMapel.classList.toggle('hidden', mapelId !== '');
+
+                tingkat.classList.toggle('hidden', mapelId === '');
+                pilihSemua.closest('label').classList.toggle('hidden', mapelId === '');
+
+                pesanKosong.classList.toggle(
+                    'hidden',
+                    mapelId === '' || totalTampil > 0
+                );
+
+                const itemTampil = semuaItem.filter(item =>
+                    !item.classList.contains('hidden')
+                );
+
+                pilihSemua.checked = itemTampil.length > 0 &&
+                    itemTampil.every(item =>
+                        item.querySelector('.checkboxPengampuEdit').checked
+                    );
+
+                updateJumlah();
+            }
+
+            // Reset filter tanpa menghapus kelas yang sudah terpilih
+            window.resetFilterKelasEdit = function() {
+                tingkat.value = '';
+                isiTingkat(itemSesuaiMapel());
+                tampilkanKelas();
+            };
+
+            // Update label jumlah dari Alpine
+            window.updateJumlahEdit = updateJumlah;
+
+            // Set mapel berdasarkan ID kelas yang tersimpan
+            window.setMapelKelasEdit = function(ids) {
+                const selectedIds = (ids || []).map(String);
+
+                const selectedItems = semuaItem.filter(item => {
+                    const cb = item.querySelector('.checkboxPengampuEdit');
+                    return cb && selectedIds.includes(String(cb.value));
+                });
+
+                if (selectedItems.length > 0) {
+                    mapel.value = selectedItems[0].dataset.mapel || '';
+                }
+
+                isiTingkat(itemSesuaiMapel());
+                tampilkanKelas();
+            };
+
+            // Perubahan mapel
+            mapel.addEventListener('change', function() {
+                semuaCheckbox.forEach(cb => cb.checked = false);
+                tingkat.value = '';
+
+                isiTingkat(itemSesuaiMapel());
+                tampilkanKelas();
+            });
+
+            // Perubahan filter tingkat
+            tingkat.addEventListener('change', tampilkanKelas);
+
+            // Pilih semua kelas yang sedang tampil
+            pilihSemua.addEventListener('change', function() {
+                semuaItem.forEach(item => {
+                    if (!item.classList.contains('hidden')) {
+                        item.querySelector('.checkboxPengampuEdit').checked =
+                            pilihSemua.checked;
+                    }
+                });
+
+                updateJumlah();
+            });
+
+            // Checkbox satu per satu
+            semuaCheckbox.forEach(cb => {
+                cb.addEventListener('change', function() {
+                    updateJumlah();
+
+                    const itemTampil = semuaItem.filter(item =>
+                        !item.classList.contains('hidden')
+                    );
+
+                    pilihSemua.checked = itemTampil.length > 0 &&
+                        itemTampil.every(item =>
+                            item.querySelector('.checkboxPengampuEdit').checked
+                        );
+                });
+            });
+
+            // Validasi sebelum simpan
+            form.addEventListener('submit', function(event) {
+                const terpilih = semuaCheckbox.filter(cb => cb.checked);
+
+                if (!mapel.value) {
+                    event.preventDefault();
+                    alert('Silakan pilih mata pelajaran terlebih dahulu.');
+                    mapel.focus();
+                    return;
+                }
+
+                if (terpilih.length === 0) {
+                    event.preventDefault();
+                    alert('Silakan pilih minimal satu kelas.');
+                    dropdown.classList.remove('hidden');
+                    tombol.focus();
+                    return;
+                }
+
+                const bedaMapel = terpilih.some(cb =>
+                    cb.closest('.itemPengampuEdit').dataset.mapel !== mapel.value
+                );
+
+                if (bedaMapel) {
+                    event.preventDefault();
+                    alert('Kelas yang dipilih harus berasal dari mata pelajaran yang sama.');
+                }
+            });
+
+            // Awal
+            isiTingkat(itemSesuaiMapel());
+            tampilkanKelas();
+        })();
+    </script>
+    @endsection

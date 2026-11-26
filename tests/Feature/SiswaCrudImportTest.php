@@ -32,7 +32,7 @@ class SiswaCrudImportTest extends TestCase
     protected function siswaPayload(string $nis): array
     {
         return [
-            'nama_siswa' => 'Siswa Uji ' . $nis,
+            'nama_siswa' => 'Siswa Uji Pertama',
             'nis' => $nis,
             'alamat' => 'Jl. Pengujian No. 1',
             'tanggal_lahir' => '2012-05-14',
@@ -142,7 +142,7 @@ class SiswaCrudImportTest extends TestCase
         $lines = array_values(array_filter(preg_split('/\r\n|\n|\r/', trim($content))));
 
         $this->assertSame(
-            'nama_siswa,nis,alamat,tanggal_lahir,jenis_kelamin,wali_murid,nohp_wali,kelas',
+            'nama_siswa,nis,angkatan,alamat,tanggal_lahir,jenis_kelamin,agama,wali_murid,nohp_wali,kelas',
             $lines[0]
         );
         $this->assertStringEndsWith(',', $lines[1]);

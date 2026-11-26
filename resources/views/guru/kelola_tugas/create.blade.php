@@ -1,32 +1,50 @@
-<!-- MODAL BUAT TUGAS BARU -->
-<div x-show="showModal" x-cloak style="display:none" @keydown.escape.window="showModal=false" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
-    <!-- BACKDROP -->
-    <div x-show="showModal" x-transition.opacity @click="showModal=false" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm"></div>
+@extends('layouts.app')
 
-    <!-- MODAL -->
-    <div x-show="showModal" x-transition class="relative z-10 my-auto flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl">
-        <!-- HEADER -->
-        <div class="sticky top-0 z-20 flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 bg-white px-6 py-4">
-            <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 5v14m-7-7h14" />
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold tracking-tight text-slate-900">Buat Tugas Baru</h3>
-                    <p class="mt-1 text-xs text-slate-500">Tentukan judul, kelas, jenis tugas, dan batas waktu.</p>
-                </div>
-            </div>
-            <button type="button" @click="showModal=false" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
+@section('title', 'Tambah Tugas')
+
+@section('content')
+<div class="space-y-6" x-data="{
+    jenisTugas: 'upload',
+    daftarSoal: [{ pertanyaan: '', pilihan: { a: '', b: '', c: '', d: '', e: '' }, kunci_jawaban: '' }],
+    hasFile: false,
+    fileName: '',
+    fileSize: '',
+    handleFileChange(event) {
+        const file = event.target.files[0];
+        if (file) {
+            this.fileName = file.name;
+            this.fileSize = (file.size / (1024 * 1024)).toFixed(1) + ' MB • Siap diunggah';
+            this.hasFile = true;
+        } else {
+            this.hasFile = false;
+            this.fileName = '';
+            this.fileSize = '';
+        }
+    },
+    tambahSoal() {
+        this.daftarSoal.push({ pertanyaan: '', pilihan: { a: '', b: '', c: '', d: '', e: '' }, kunci_jawaban: '' });
+    },
+    hapusSoal(index) {
+        if (this.daftarSoal.length > 1) this.daftarSoal.splice(index, 1);
+    }
+}">
+    <!-- HEADER -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Tambah Tugas</h1>
+            <p class="text-sm text-gray-500 mt-1">Buat tugas baru dan tentukan judul, kelas, jenis tugas, serta batas waktu.</p>
         </div>
+        <a href="{{ route('guru.tugas') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Kembali
+        </a>
+    </div>
 
-        <!-- FORM -->
-        <form action="{{ route('guru.tugas.store') }}" method="POST" enctype="multipart/form-data" id="formBuatTugas" class="min-h-0 space-y-5 overflow-y-auto p-6 sm:p-7">
+
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <form action="{{ route('guru.tugas.store') }}" method="POST" enctype="multipart/form-data" id="formBuatTugas" class="space-y-6 p-6 sm:p-8">
             @csrf
             <input type="hidden" name="tipe" :value="jenisTugas">
 
@@ -292,7 +310,7 @@
 
             <!-- TOMBOL AKSI -->
             <div class="flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 pt-4">
-                <button type="button" @click="showModal=false" class="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Batal</button>
+                <a href="{{ route('guru.tugas') }}" class="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Batal</a>
                 <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-blue-200 transition hover:bg-blue-700 active:scale-[0.98]">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -303,181 +321,229 @@
         </form>
     </div>
 </div>
-
-<!-- SCRIPT FILTER MAPEL DAN KELAS -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const filterMapel = document.getElementById('filterMapel');
+        const btnBukaKelas = document.getElementById('btnBukaKelas');
+        const dropdownKelas = document.getElementById('dropdownKelas');
+        const teksPilihKelas = document.getElementById('teksPilihKelas');
+        const iconKelas = document.getElementById('iconKelas');
         const filterTingkat = document.getElementById('filterTingkat');
         const pilihSemua = document.getElementById('pilihSemua');
         const daftarPengampu = document.getElementById('daftarPengampu');
-        const jumlah = document.getElementById('jumlahTerpilih');
-        const pesanKelasKosong = document.getElementById('pesanKelasKosong');
         const pesanPilihMapel = document.getElementById('pesanPilihMapel');
-        const btnBukaKelas = document.getElementById('btnBukaKelas');
-        const dropdownKelas = document.getElementById('dropdownKelas');
-        const iconKelas = document.getElementById('iconKelas');
-        const teksPilihKelas = document.getElementById('teksPilihKelas');
+        const pesanKelasKosong = document.getElementById('pesanKelasKosong');
+        const jumlahTerpilih = document.getElementById('jumlahTerpilih');
+        const form = document.getElementById('formBuatTugas');
 
-        if (!filterMapel || !filterTingkat || !pilihSemua || !daftarPengampu || !jumlah || !btnBukaKelas || !dropdownKelas) return;
-
-        const items = Array.from(daftarPengampu.querySelectorAll('.item-pengampu'));
-
-        btnBukaKelas.addEventListener('click', function() {
-            dropdownKelas.classList.toggle('hidden');
-            iconKelas?.classList.toggle('rotate-180');
-        });
-
-        function updateJumlah() {
-            const terpilih = items.filter(item => item.querySelector('.checkbox-pengampu').checked);
-            jumlah.textContent = `${terpilih.length} kelas dipilih`;
-            teksPilihKelas.textContent = terpilih.length ? `${terpilih.length} kelas dipilih` : 'Pilih Kelas';
-
-            const terlihat = items.filter(item => item.style.display !== 'none');
-            const checkboxTerlihat = terlihat.map(item => item.querySelector('.checkbox-pengampu'));
-            const jumlahTerlihat = checkboxTerlihat.filter(cb => cb.checked).length;
-
-            pilihSemua.checked = checkboxTerlihat.length > 0 && jumlahTerlihat === checkboxTerlihat.length;
-            pilihSemua.indeterminate = jumlahTerlihat > 0 && jumlahTerlihat < checkboxTerlihat.length;
+        if (!filterMapel || !btnBukaKelas || !dropdownKelas || !form) {
+            console.error('Elemen pemilih kelas tidak ditemukan.');
+            return;
         }
 
-        function updateTingkat() {
-            filterTingkat.innerHTML = '<option value="">Semua Tingkat</option>';
-            const mapelTerpilih = String(filterMapel.value);
-            const tingkatan = [...new Set(items.filter(item => String(item.dataset.mapel) === mapelTerpilih).map(item => item.dataset.tingkat).filter(tingkat => tingkat !== ''))].sort((a, b) => Number(a) - Number(b));
+        const semuaItem = Array.from(
+            daftarPengampu.querySelectorAll('.item-pengampu')
+        );
 
-            tingkatan.forEach(tingkat => {
+        const semuaCheckbox = Array.from(
+            daftarPengampu.querySelectorAll('.checkbox-pengampu')
+        );
+
+        // Membuka dan menutup dropdown kelas
+        btnBukaKelas.addEventListener('click', function() {
+            dropdownKelas.classList.toggle('hidden');
+
+            if (iconKelas) {
+                iconKelas.classList.toggle('rotate-180');
+            }
+        });
+
+        // Mengambil kelas berdasarkan mata pelajaran yang dipilih
+        function getItemMapel() {
+            const mapelId = filterMapel.value;
+
+            return semuaItem.filter(item => {
+                return item.dataset.mapel === mapelId && mapelId !== '';
+            });
+        }
+
+        // Mengisi pilihan tingkat berdasarkan kelas dari mapel terpilih
+        function isiFilterTingkat(items) {
+            const tingkat = [
+                ...new Set(
+                    items
+                    .map(item => item.dataset.tingkat)
+                    .filter(value => value !== '')
+                )
+            ].sort((a, b) => Number(a) - Number(b));
+
+            filterTingkat.innerHTML = '<option value="">Semua Tingkat</option>';
+
+            tingkat.forEach(value => {
                 const option = document.createElement('option');
-                option.value = tingkat;
-                option.textContent = `Tingkat ${tingkat}`;
+                option.value = value;
+                option.textContent = 'Kelas ' + value;
                 filterTingkat.appendChild(option);
             });
         }
 
-        function filterDaftar() {
-            const mapelTerpilih = String(filterMapel.value);
-            const tingkatTerpilih = filterTingkat.value;
+        // Memperbarui tampilan checkbox kelas
+        function tampilkanKelas() {
+            const mapelId = filterMapel.value;
+            const tingkatId = filterTingkat.value;
+
+            const itemMapel = getItemMapel();
+
+            pesanPilihMapel.classList.toggle('hidden', mapelId !== '');
+
+            if (mapelId === '') {
+                filterTingkat.classList.add('hidden');
+                pilihSemua.closest('label').classList.add('hidden');
+            } else {
+                filterTingkat.classList.remove('hidden');
+                pilihSemua.closest('label').classList.remove('hidden');
+            }
+
             let jumlahTampil = 0;
 
-            if (pesanPilihMapel) pesanPilihMapel.classList.toggle('hidden', mapelTerpilih !== '');
+            semuaItem.forEach(item => {
+                const sesuaiMapel = item.dataset.mapel === mapelId;
+                const sesuaiTingkat = tingkatId === '' ||
+                    item.dataset.tingkat === tingkatId;
 
-            items.forEach(item => {
-                const checkbox = item.querySelector('.checkbox-pengampu');
-                const cocokMapel = mapelTerpilih !== '' && String(item.dataset.mapel) === mapelTerpilih;
-                const cocokTingkat = tingkatTerpilih === '' || item.dataset.tingkat === tingkatTerpilih;
-                const tampil = cocokMapel && cocokTingkat;
+                const tampil = mapelId !== '' && sesuaiMapel && sesuaiTingkat;
 
-                item.style.display = tampil ? 'flex' : 'none';
-                if (tampil) jumlahTampil++;
-                if (!cocokMapel) checkbox.checked = false;
-            });
+                item.classList.toggle('hidden', !tampil);
 
-            if (pesanKelasKosong) pesanKelasKosong.classList.toggle('hidden', mapelTerpilih === '' || jumlahTampil > 0);
-            updateJumlah();
-        }
-
-        filterMapel.addEventListener('change', function() {
-            filterTingkat.value = '';
-            const mapelDipilih = this.value !== '';
-            filterTingkat.disabled = !mapelDipilih;
-            pilihSemua.disabled = !mapelDipilih;
-            updateTingkat();
-            filterDaftar();
-
-            if (mapelDipilih) {
-                dropdownKelas.classList.remove('hidden');
-                iconKelas?.classList.add('rotate-180');
-            }
-        });
-
-        filterTingkat.addEventListener('change', filterDaftar);
-
-        pilihSemua.addEventListener('change', function() {
-            items.forEach(item => {
-                if (item.style.display !== 'none') item.querySelector('.checkbox-pengampu').checked = this.checked;
-            });
-            updateJumlah();
-        });
-
-        items.forEach(item => {
-            item.querySelector('.checkbox-pengampu').addEventListener('change', updateJumlah);
-            item.style.display = 'none';
-        });
-
-        filterTingkat.disabled = true;
-        pilihSemua.disabled = true;
-        pesanPilihMapel?.classList.remove('hidden');
-        pesanKelasKosong?.classList.add('hidden');
-        updateJumlah();
-    });
-</script>
-
-<!-- VALIDASI FORM TUGAS -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('formBuatTugas');
-        if (!form) return;
-
-        function waktuSekarang() {
-            const now = new Date();
-            const pad = angka => String(angka).padStart(2, '0');
-            return now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + 'T' + pad(now.getHours()) + ':' + pad(now.getMinutes());
-        }
-
-        form.addEventListener('focusin', function(event) {
-            if (event.target?.id === 'deadline') event.target.min = waktuSekarang();
-        });
-
-        form.addEventListener('change', function(event) {
-            if (event.target?.id !== 'deadline') return;
-            const input = event.target;
-            input.min = waktuSekarang();
-            const error = document.getElementById('deadlineError');
-
-            if (input.value && input.value < input.min) {
-                input.value = '';
-                if (error) {
-                    error.textContent = 'Deadline tidak boleh lebih awal dari waktu sekarang.';
-                    error.classList.remove('hidden');
+                if (tampil) {
+                    jumlahTampil++;
                 }
-                input.classList.add('border-red-500');
+            });
+
+            pesanKelasKosong.classList.toggle(
+                'hidden',
+                mapelId === '' || jumlahTampil > 0
+            );
+
+            // Pilih semua hanya untuk kelas yang sedang ditampilkan
+            pilihSemua.checked = jumlahTampil > 0 &&
+                semuaItem
+                .filter(item => !item.classList.contains('hidden'))
+                .every(item => item.querySelector('input').checked);
+
+            perbaruiJumlah();
+        }
+
+        // Menghitung kelas terpilih dan memperbarui label tombol
+        function perbaruiJumlah() {
+            const checkboxTerpilih = semuaCheckbox.filter(cb => cb.checked);
+
+            const jumlah = checkboxTerpilih.length;
+
+            jumlahTerpilih.textContent = jumlah + ' kelas dipilih';
+
+            if (jumlah === 0) {
+                teksPilihKelas.textContent = 'Pilih Kelas';
+                teksPilihKelas.classList.add('text-slate-500');
+                teksPilihKelas.classList.remove('text-blue-700');
             } else {
-                error?.classList.add('hidden');
-                input.classList.remove('border-red-500');
+                const namaKelas = checkboxTerpilih.map(cb => {
+                    return cb.closest('.item-pengampu')
+                        .querySelector('span.ml-2\\.5')
+                        ?.textContent.trim() || 'Kelas';
+                });
+
+                teksPilihKelas.textContent = namaKelas.length <= 2 ?
+                    namaKelas.join(', ') :
+                    namaKelas.slice(0, 2).join(', ') +
+                    ' + ' + (namaKelas.length - 2) + ' lainnya';
+
+                teksPilihKelas.classList.remove('text-slate-500');
+                teksPilihKelas.classList.add('text-blue-700');
             }
+        }
+
+        // Perubahan mata pelajaran
+        filterMapel.addEventListener('change', function() {
+            // Reset pilihan kelas sebelumnya saat mapel berubah
+            semuaCheckbox.forEach(cb => cb.checked = false);
+
+            filterTingkat.value = '';
+
+            isiFilterTingkat(getItemMapel());
+            tampilkanKelas();
         });
 
-        form.addEventListener('submit', function(event) {
-            const kelasDipilih = form.querySelectorAll('input[name="pengampu_kelas_id[]"]:checked');
+        // Filter berdasarkan tingkat
+        filterTingkat.addEventListener('change', function() {
+            tampilkanKelas();
+        });
 
-            if (!kelasDipilih.length) {
-                event.preventDefault();
-                alert('Silakan pilih minimal satu kelas terlebih dahulu.');
-                document.getElementById('dropdownKelas')?.classList.remove('hidden');
-                document.getElementById('btnBukaKelas')?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center'
+        // Pilih semua kelas yang terlihat
+        pilihSemua.addEventListener('change', function() {
+            const itemTerlihat = semuaItem.filter(item => {
+                return !item.classList.contains('hidden');
+            });
+
+            itemTerlihat.forEach(item => {
+                item.querySelector('.checkbox-pengampu').checked = pilihSemua.checked;
+            });
+
+            perbaruiJumlah();
+        });
+
+        // Ketika checkbox kelas dipilih satu per satu
+        semuaCheckbox.forEach(cb => {
+            cb.addEventListener('change', function() {
+                perbaruiJumlah();
+
+                const itemTerlihat = semuaItem.filter(item => {
+                    return !item.classList.contains('hidden');
                 });
+
+                pilihSemua.checked = itemTerlihat.length > 0 &&
+                    itemTerlihat.every(item => {
+                        return item.querySelector('.checkbox-pengampu').checked;
+                    });
+            });
+        });
+
+        // Validasi sebelum tugas disimpan
+        form.addEventListener('submit', function(event) {
+            const mapelId = filterMapel.value;
+
+            const kelasTerpilih = semuaCheckbox.filter(cb => cb.checked);
+
+            if (!mapelId) {
+                event.preventDefault();
+                alert('Silakan pilih mata pelajaran terlebih dahulu.');
+                filterMapel.focus();
                 return;
             }
 
-            const deadlineInput = document.getElementById('deadline');
-            const deadlineError = document.getElementById('deadlineError');
+            if (kelasTerpilih.length === 0) {
+                event.preventDefault();
+                alert('Silakan pilih minimal satu kelas.');
+                dropdownKelas.classList.remove('hidden');
+                filterTingkat.classList.remove('hidden');
+                btnBukaKelas.focus();
+                return;
+            }
 
-            if (deadlineInput) {
-                const minDeadline = waktuSekarang();
-                deadlineInput.min = minDeadline;
+            // Memastikan kelas yang dipilih berasal dari mapel yang sama
+            const kelasTidakSesuai = kelasTerpilih.some(cb => {
+                return cb.closest('.item-pengampu').dataset.mapel !== mapelId;
+            });
 
-                if (!deadlineInput.value || deadlineInput.value < minDeadline) {
-                    event.preventDefault();
-                    if (deadlineError) {
-                        deadlineError.textContent = 'Silakan pilih deadline setelah waktu sekarang.';
-                        deadlineError.classList.remove('hidden');
-                    }
-                    deadlineInput.classList.add('border-red-500');
-                    deadlineInput.focus();
-                }
+            if (kelasTidakSesuai) {
+                event.preventDefault();
+                alert('Kelas yang dipilih harus berasal dari mata pelajaran yang sama.');
             }
         });
+
+        // Inisialisasi awal
+        isiFilterTingkat(getItemMapel());
+        tampilkanKelas();
     });
 </script>
+@endsection

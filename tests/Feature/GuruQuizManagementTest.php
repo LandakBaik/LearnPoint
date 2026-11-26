@@ -62,7 +62,6 @@ class GuruQuizManagementTest extends TestCase
         $kelas2 = Kelas::create([
             'nama_kelas' => '7B',
             'tingkatan'  => 7,
-            'guru_id'    => $this->guru->id,
         ]);
 
         $guruMapel = GuruMapel::create([
