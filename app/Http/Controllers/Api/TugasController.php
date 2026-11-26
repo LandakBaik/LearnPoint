@@ -485,7 +485,9 @@ class TugasController extends Controller
         $bobotPerSoal = 100 / $totalSoal;
         $soalIdsDipertahankan = [];
 
-        foreach (array_values($daftarSoal) as $index => $item) {
+        $urutan = 0;
+        foreach ($daftarSoal as $originalKey => $item) {
+            $urutan++;
             $pilihan = $item['pilihan'] ?? [];
             $dataPilihan = [];
 
@@ -500,7 +502,7 @@ class TugasController extends Controller
                 : null;
 
             $gambarPath = $soal?->gambar;
-            $gambarBaru = $request->file("soal.$index.gambar");
+            $gambarBaru = $request->file("soal.$originalKey.gambar");
 
             if ($gambarBaru) {
                 $gambarPath = $gambarBaru->store('gambar_soal', 'public');
@@ -513,7 +515,7 @@ class TugasController extends Controller
                 'kunci_jawaban' => strtolower($item['kunci_jawaban']),
                 'gambar'        => $gambarPath,
                 'bobot'         => $bobotPerSoal,
-                'urutan'        => $index + 1,
+                'urutan'        => $urutan,
                 'quiz_id'       => null,
                 'tugas_id'      => $tugas->id,
                 'ujian_id'      => null,
@@ -1059,8 +1061,16 @@ class TugasController extends Controller
             $bobotBenar = 0;
             $jumlahBenar = 0;
             $pengumpulan = null;
+            $duplicateSubmit = false;
 
-            DB::transaction(function () use ($soals, $jawaban, $siswa, $tugas, $status, &$totalBobot, &$bobotBenar, &$jumlahBenar, &$pengumpulan) {
+            DB::transaction(function () use ($soals, $jawaban, $siswa, $tugas, $status, &$totalBobot, &$bobotBenar, &$jumlahBenar, &$pengumpulan, &$duplicateSubmit) {
+                \App\Models\Siswa::whereKey($siswa->id)->lockForUpdate()->first();
+
+                if (Nilai::where('siswa_id', $siswa->id)->where('tugas_id', $tugas->id)->exists()) {
+                    $duplicateSubmit = true;
+                    return;
+                }
+
                 foreach ($soals as $soal) {
                     $jawabanDipilih = strtolower(trim((string) $jawaban[$soal->id]));
                     $kunci = $soal->kunci_jawaban;
@@ -1078,12 +1088,16 @@ class TugasController extends Controller
                         $jumlahBenar++;
                     }
 
-                    Menjawab::create([
-                        'soal_id'         => $soal->id,
-                        'siswa_id'        => $siswa->id,
-                        'jawaban_dipilih' => $jawabanDipilih,
-                        'benar'           => $benar,
-                    ]);
+                    Menjawab::updateOrCreate(
+                        [
+                            'soal_id'  => $soal->id,
+                            'siswa_id' => $siswa->id,
+                        ],
+                        [
+                            'jawaban_dipilih' => $jawabanDipilih,
+                            'benar'           => $benar,
+                        ]
+                    );
                 }
 
                 $nilaiAkhir = $totalBobot > 0 ? round(($bobotBenar / $totalBobot) * 100, 2) : 0;
@@ -1097,6 +1111,10 @@ class TugasController extends Controller
                     'durasi'       => null,
                 ]);
             });
+
+            if ($duplicateSubmit) {
+                return $this->errorResponse('Kamu sudah mengumpulkan tugas ini dan tidak dapat mengubah jawaban.', 422);
+            }
 
             // Pastikan data pengumpulan berhasil dibuat.
             if (!$pengumpulan instanceof Nilai) {

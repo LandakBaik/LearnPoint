@@ -43,8 +43,9 @@ class GuruMapelController extends Controller
         $conflictClasses = [];
 
         foreach ($kelasIds as $kelasId) {
-            // Cek apakah di kelas ini mapel tersebut sudah diampu oleh guru (guru ini atau guru lain)
-            $existing = PengampuKelas::where('kelas_id', $kelasId)
+            // Cek apakah di kelas ini (pada periode aktif) mapel tersebut sudah diampu oleh guru
+            $existing = PengampuKelas::currentPeriod()
+                ->where('kelas_id', $kelasId)
                 ->whereHas('guruMapel', function ($q) use ($validated) {
                     $q->where('mapel_id', $validated['mapel_id']);
                 })

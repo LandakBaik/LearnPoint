@@ -268,9 +268,10 @@ class TugasController extends Controller
                     ->withInput();
             }
 
-            // Hitung nilai dan simpan jawaban
+            // Hitung nilai dan simpan jawaban secara atomik (cegah duplikasi submit paralel)
             $totalBobot = 0;
             $bobotBenar = 0;
+            $duplicateSubmit = false;
 
             DB::transaction(function () use (
                 $soals,
@@ -279,8 +280,16 @@ class TugasController extends Controller
                 $tugas,
                 $status,
                 &$totalBobot,
-                &$bobotBenar
+                &$bobotBenar,
+                &$duplicateSubmit
             ) {
+                \App\Models\Siswa::whereKey($siswa->id)->lockForUpdate()->first();
+
+                if (Nilai::where('siswa_id', $siswa->id)->where('tugas_id', $tugas->id)->exists()) {
+                    $duplicateSubmit = true;
+                    return;
+                }
+
                 foreach ($soals as $soal) {
 
                     $jawabanDipilih = strtolower(
@@ -309,12 +318,16 @@ class TugasController extends Controller
                     }
 
                     // Simpan jawaban ke tabel menjawabs
-                    Menjawab::create([
-                        'soal_id' => $soal->id,
-                        'siswa_id' => $siswa->id,
-                        'jawaban_dipilih' => $jawabanDipilih,
-                        'benar' => $benar,
-                    ]);
+                    Menjawab::updateOrCreate(
+                        [
+                            'soal_id' => $soal->id,
+                            'siswa_id' => $siswa->id,
+                        ],
+                        [
+                            'jawaban_dipilih' => $jawabanDipilih,
+                            'benar' => $benar,
+                        ]
+                    );
                 }
 
                 // Hitung nilai akhir
@@ -332,6 +345,13 @@ class TugasController extends Controller
                     'durasi' => null,
                 ]);
             });
+
+            if ($duplicateSubmit) {
+                return back()->with(
+                    'error',
+                    'Kamu sudah mengumpulkan tugas ini dan tidak dapat mengubah jawaban.'
+                );
+            }
 
             // Kirim notifikasi kepada guru
             $guruUser = $tugas->pengampuKelas?->guruMapel?->guru?->user;

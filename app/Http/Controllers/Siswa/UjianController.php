@@ -471,7 +471,15 @@ class UjianController extends Controller
         $soal = Soal::where('ujian_id', $ujian->id)->findOrFail($request->soal_id);
 
         $rawJawaban = $request->jawaban;
-        $jawabanString = is_array($rawJawaban) ? implode(',', $rawJawaban) : (string) $rawJawaban;
+        if ($soal->tipe_soal === 'multiple_choice') {
+            $cleanJawabanList = is_array($rawJawaban)
+                ? array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim((string) $v)), $rawJawaban))))
+                : array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim($v)), explode(',', (string) $rawJawaban)))));
+            sort($cleanJawabanList);
+            $jawabanString = implode(',', $cleanJawabanList);
+        } else {
+            $jawabanString = is_array($rawJawaban) ? implode(',', $rawJawaban) : (string) $rawJawaban;
+        }
 
         // Cek status benar untuk keperluan indikator
         $kunci = $soal->kunci_jawaban;
@@ -479,15 +487,11 @@ class UjianController extends Controller
 
         if ($soal->tipe_soal === 'multiple_choice') {
             $cleanKunci = is_array($kunci)
-                ? array_map('strtolower', $kunci)
-                : array_filter(explode(',', strtolower((string) $kunci)));
-            $cleanJawaban = is_array($rawJawaban)
-                ? array_map('strtolower', $rawJawaban)
-                : array_filter(explode(',', strtolower((string) $rawJawaban)));
+                ? array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim((string) $v)), $kunci))))
+                : array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim($v)), explode(',', (string) $kunci)))));
 
             sort($cleanKunci);
-            sort($cleanJawaban);
-            $isBenar = ($cleanKunci === $cleanJawaban);
+            $isBenar = ($cleanKunci === $cleanJawabanList);
         } else {
             $isBenar = (strtolower(trim($jawabanString)) === strtolower(trim(is_array($kunci) ? ($kunci[0] ?? '') : (string) $kunci)));
         }
@@ -659,10 +663,10 @@ class UjianController extends Controller
                 // 1. PENILAIAN PILIHAN GANDA KOMPLEKS (PROPORSIONAL)
                 if ($soal->tipe_soal === 'multiple_choice') {
                     $cleanKunci = is_array($kunci)
-                        ? array_map('strtolower', array_map('trim', $kunci))
-                        : array_filter(array_map('strtolower', array_map('trim', explode(',', (string) $kunci))));
+                        ? array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim((string) $v)), $kunci))))
+                        : array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim($v)), explode(',', (string) $kunci)))));
 
-                    $jawabanSiswaArr = array_filter(array_map('strtolower', array_map('trim', explode(',', (string) $jawab->jawaban_dipilih))));
+                    $jawabanSiswaArr = array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim($v)), explode(',', (string) $jawab->jawaban_dipilih)))));
 
                     $totalKunci = count($cleanKunci);
                     if ($totalKunci > 0) {
@@ -672,11 +676,11 @@ class UjianController extends Controller
                         // Penalti jika mencentang pilihan yang salah
                         $salahPilihan = count(array_diff($jawabanSiswaArr, $cleanKunci));
 
-                        // Hitung skor bersih (tidak minus)
-                        $netBenar = max(0, $benarPilihan - $salahPilihan);
+                        // Hitung skor bersih (dibatasi [0, bobotSoal])
+                        $netBenar = max(0, min($totalKunci, $benarPilihan - $salahPilihan));
                         $rasio = $netBenar / $totalKunci;
 
-                        $skorDiperoleh += ($bobotSoal * $rasio);
+                        $skorDiperoleh += min($bobotSoal, $bobotSoal * $rasio);
                     }
                 }
                 // 2. PENILAIAN PILIHAN GANDA BIASA (SINGLE CHOICE)

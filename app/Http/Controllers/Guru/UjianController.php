@@ -1798,17 +1798,17 @@ class UjianController extends Controller
 
                 if ($soal->tipe_soal === 'multiple_choice') {
                     $cleanKunci = is_array($kunci)
-                        ? array_map('strtolower', array_map('trim', $kunci))
-                        : array_filter(array_map('strtolower', array_map('trim', explode(',', (string) $kunci))));
+                        ? array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim((string) $v)), $kunci))))
+                        : array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim($v)), explode(',', (string) $kunci)))));
 
-                    $jawabanArr = array_filter(array_map('strtolower', array_map('trim', explode(',', (string) $jawab->jawaban_dipilih))));
+                    $jawabanArr = array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim($v)), explode(',', (string) $jawab->jawaban_dipilih)))));
                     $totalKunci = count($cleanKunci);
 
                     if ($totalKunci > 0) {
                         $benar = count(array_intersect($jawabanArr, $cleanKunci));
                         $salah = count(array_diff($jawabanArr, $cleanKunci));
-                        $net = max(0, $benar - $salah);
-                        $skorDiperoleh += ($bobotSoal * ($net / $totalKunci));
+                        $net = max(0, min($totalKunci, $benar - $salah));
+                        $skorDiperoleh += min($bobotSoal, $bobotSoal * ($net / $totalKunci));
                     }
                 } elseif ($soal->tipe_soal === 'single_choice') {
                     $kunciTunggal = is_array($kunci) ? ($kunci[0] ?? '') : (string) $kunci;
@@ -2915,17 +2915,17 @@ class UjianController extends Controller
 
         if ($soal->tipe_soal === 'multiple_choice') {
             $cleanKunci = is_array($kunci)
-                ? array_map('strtolower', array_map('trim', $kunci))
-                : array_filter(array_map('strtolower', array_map('trim', explode(',', (string) $kunci))));
+                ? array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim((string) $v)), $kunci))))
+                : array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim($v)), explode(',', (string) $kunci)))));
 
-            $jawabanArr = array_filter(array_map('strtolower', array_map('trim', explode(',', (string) $jawab->jawaban_dipilih))));
+            $jawabanArr = array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim($v)), explode(',', (string) $jawab->jawaban_dipilih)))));
             $totalKunci = count($cleanKunci);
 
             if ($totalKunci > 0) {
                 $benar = count(array_intersect($jawabanArr, $cleanKunci));
                 $salah = count(array_diff($jawabanArr, $cleanKunci));
-                $net = max(0, $benar - $salah);
-                $skor = $bobotSoal * ($net / $totalKunci);
+                $net = max(0, min($totalKunci, $benar - $salah));
+                $skor = min($bobotSoal, $bobotSoal * ($net / $totalKunci));
                 return [
                     'skor' => $skor,
                     'is_benar' => ($benar === $totalKunci && $salah === 0),

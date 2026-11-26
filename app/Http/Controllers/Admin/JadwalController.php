@@ -161,33 +161,19 @@ class JadwalController extends Controller
     }
 
     /**
-     * Hapus Foto Jadwal Guru (Per GuruMapel atau Per Guru).
+     * Hapus Foto Jadwal Guru (Berdasarkan GuruMapel secara eksplisit untuk menghindari tabrakan ID).
      */
-    public function destroyJadwalGuru($id)
+    public function destroyJadwalGuru(GuruMapel $guruMapel)
     {
-        $guruMapel = GuruMapel::find($id);
-        if ($guruMapel) {
-            if ($guruMapel->jadwal && Storage::disk('public')->exists($guruMapel->jadwal)) {
-                Storage::disk('public')->delete($guruMapel->jadwal);
-            }
-            $guruMapel->update(['jadwal' => null]);
-            $mapelName = $guruMapel->mapel->nama_mapel ?? 'Mata Pelajaran';
-            $message = "Foto jadwal mapel {$mapelName} berhasil dihapus!";
-        } else {
-            $guru = Guru::find($id);
-            if ($guru) {
-                foreach ($guru->guruMapels as $gm) {
-                    if ($gm->jadwal && Storage::disk('public')->exists($gm->jadwal)) {
-                        Storage::disk('public')->delete($gm->jadwal);
-                    }
-                    $gm->update(['jadwal' => null]);
-                }
-            }
-            $message = "Foto jadwal guru berhasil dihapus!";
+        if ($guruMapel->jadwal && Storage::disk('public')->exists($guruMapel->jadwal)) {
+            Storage::disk('public')->delete($guruMapel->jadwal);
         }
 
+        $guruMapel->update(['jadwal' => null]);
+        $mapelName = $guruMapel->mapel->nama_mapel ?? 'Mata Pelajaran';
+
         return redirect()->route('admin.jadwal.index', ['tab' => 'guru'])
-            ->with('success', $message);
+            ->with('success', "Foto jadwal mapel {$mapelName} berhasil dihapus!");
     }
 }
 

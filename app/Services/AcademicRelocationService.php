@@ -318,6 +318,7 @@ class AcademicRelocationService
         if ($aksi === 'salin') {
             $newQuiz = $quiz->replicate();
             $newQuiz->pengampu_kelas_id = $targetPk->id;
+            $newQuiz->id_grup_kuis = (string) Str::uuid();
             $newQuiz->save();
 
             foreach ($quiz->soals as $soal) {
@@ -675,6 +676,22 @@ class AcademicRelocationService
 
             if ($hasDifferentTeacher) {
                 $materi->update(['id_grub_materi' => (string) Str::uuid()]);
+            }
+        }
+
+        // Cek Kuis pada PengampuKelas ini
+        $quizzes = Quiz::where('pengampu_kelas_id', $pk->id)
+            ->whereNotNull('id_grup_kuis')
+            ->get();
+
+        foreach ($quizzes as $quiz) {
+            $hasDifferentTeacher = Quiz::where('id_grup_kuis', $quiz->id_grup_kuis)
+                ->where('id', '!=', $quiz->id)
+                ->whereHas('pengampuKelas.guruMapel', fn ($q) => $q->where('guru_id', '!=', $currentGuruId))
+                ->exists();
+
+            if ($hasDifferentTeacher) {
+                $quiz->update(['id_grup_kuis' => (string) Str::uuid()]);
             }
         }
     }

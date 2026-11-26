@@ -385,11 +385,12 @@ class MateriController extends Controller
 
         if (empty($submittedPengampuIds)) {
             $filePath = $firstMateri->file_materi;
-            if ($filePath) {
+            Materi::where('id_grub_materi', $id_grub_materi)->delete();
+
+            if ($filePath && !Materi::where('file_materi', $filePath)->exists()) {
                 Storage::disk('local')->delete($filePath);
                 Storage::disk('public')->delete($filePath);
             }
-            Materi::where('id_grub_materi', $id_grub_materi)->delete();
 
             return $this->successResponse(null, 'Materi berhasil dihapus dari seluruh kelas.');
         }
@@ -483,7 +484,7 @@ class MateriController extends Controller
             throw $e;
         }
 
-        if ($newFilePath && $oldFilePath && $oldFilePath !== $newFilePath) {
+        if ($newFilePath && $oldFilePath && $oldFilePath !== $newFilePath && !Materi::where('file_materi', $oldFilePath)->exists()) {
             Storage::disk('local')->delete($oldFilePath);
             Storage::disk('public')->delete($oldFilePath);
         }
@@ -536,12 +537,13 @@ class MateriController extends Controller
             return $this->forbiddenResponse('Akses ditolak.');
         }
 
-        if ($firstMateri->file_materi) {
-            Storage::disk('local')->delete($firstMateri->file_materi);
-            Storage::disk('public')->delete($firstMateri->file_materi);
-        }
-
+        $filePath = $firstMateri->file_materi;
         Materi::where('id_grub_materi', $id_grub_materi)->delete();
+
+        if ($filePath && !Materi::where('file_materi', $filePath)->exists()) {
+            Storage::disk('local')->delete($filePath);
+            Storage::disk('public')->delete($filePath);
+        }
 
         return $this->successResponse(null, 'Materi berhasil dihapus.');
     }
@@ -560,10 +562,10 @@ class MateriController extends Controller
         }
 
         $daftarMapel = Mapel::forSiswa($siswa)->whereHas('pengampuKelases', function ($q) use ($kelasId) {
-            $q->where('kelas_id', $kelasId);
+            $q->currentPeriod()->where('kelas_id', $kelasId);
         })
         ->with(['pengampuKelases' => function ($q) use ($kelasId) {
-            $q->where('kelas_id', $kelasId)->with([
+            $q->currentPeriod()->where('kelas_id', $kelasId)->with([
                 'guruMapel.guru',
                 'materis',
                 'quizzes' => function ($qq) {
@@ -629,14 +631,15 @@ class MateriController extends Controller
             return $this->forbiddenResponse('Mata pelajaran ini tidak sesuai dengan agama Anda.');
         }
 
-        $hasMapelInKelas = $mapel->pengampuKelases()->where('kelas_id', $kelasId)->exists();
+        $hasMapelInKelas = $mapel->pengampuKelases()->currentPeriod()->where('kelas_id', $kelasId)->exists();
         if (!$hasMapelInKelas) {
             return $this->forbiddenResponse('Mata pelajaran ini tidak tersedia untuk kelas Anda.');
         }
 
         $materis = Materi::with(['pengampuKelas.guruMapel.guru'])
             ->whereHas('pengampuKelas', function ($q) use ($kelasId, $mapelId) {
-                $q->where('kelas_id', $kelasId)
+                $q->currentPeriod()
+                  ->where('kelas_id', $kelasId)
                   ->whereHas('guruMapel', function ($gq) use ($mapelId) {
                       $gq->where('mapel_id', $mapelId);
                   });
@@ -667,7 +670,8 @@ class MateriController extends Controller
             },
         ])
             ->whereHas('pengampuKelas', function ($q) use ($kelasId, $mapelId) {
-                $q->where('kelas_id', $kelasId)
+                $q->currentPeriod()
+                  ->where('kelas_id', $kelasId)
                   ->whereHas('guruMapel', fn ($gq) => $gq->where('mapel_id', $mapelId));
             })
             ->latest('deadline')
@@ -704,7 +708,8 @@ class MateriController extends Controller
             ->withCount('soals')
             ->whereIn('status', ['scheduled', 'published', 'completed'])
             ->whereHas('pengampuKelas', function ($q) use ($kelasId, $mapelId) {
-                $q->where('kelas_id', $kelasId)
+                $q->currentPeriod()
+                  ->where('kelas_id', $kelasId)
                   ->whereHas('guruMapel', fn ($gq) => $gq->where('mapel_id', $mapelId));
             })
             ->latest('waktu_mulai')

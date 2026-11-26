@@ -401,11 +401,12 @@ class MateriController extends Controller
         // Jika semua kelas dilepas / dicentang kosong, hapus materi ini sepenuhnya
         if (empty($submittedPengampuIds)) {
             $filePath = $firstMateri->file_materi;
-            if ($filePath) {
+            Materi::where('id_grub_materi', $id_grub_materi)->delete();
+
+            if ($filePath && !Materi::where('file_materi', $filePath)->exists()) {
                 Storage::disk('local')->delete($filePath);
                 Storage::disk('public')->delete($filePath);
             }
-            Materi::where('id_grub_materi', $id_grub_materi)->delete();
 
             return redirect()->route('guru.materi')->with('success', 'Materi berhasil dihapus dari seluruh kelas.');
         }
@@ -498,8 +499,8 @@ class MateriController extends Controller
             throw $e;
         }
 
-        // Hapus file lama hanya setelah transaksi database berhasil
-        if ($newFilePath && $oldFilePath && $oldFilePath !== $newFilePath) {
+        // Hapus file lama hanya setelah transaksi database berhasil dan tidak lagi dipakai materi lain
+        if ($newFilePath && $oldFilePath && $oldFilePath !== $newFilePath && !Materi::where('file_materi', $oldFilePath)->exists()) {
             Storage::disk('local')->delete($oldFilePath);
             Storage::disk('public')->delete($oldFilePath);
         }
@@ -543,15 +544,15 @@ class MateriController extends Controller
         $firstMateri = $materis->first();
         abort_unless($firstMateri->pengampuKelas->guruMapel->guru_id === $guru_id, 403);
 
-        // Hapus file dari storage (cukup sekali karena satu grup = satu file)
+        // Hapus semua baris materi dalam grup ini terlebih dahulu
         $filePath = $firstMateri->file_materi;
-        if ($filePath) {
+        Materi::where('id_grub_materi', $id_grub_materi)->delete();
+
+        // Hapus file dari storage hanya jika tidak lagi direferensikan oleh salinan materi lain
+        if ($filePath && !Materi::where('file_materi', $filePath)->exists()) {
             Storage::disk('local')->delete($filePath);
             Storage::disk('public')->delete($filePath);
         }
-
-        // Hapus semua baris materi dalam grup ini
-        Materi::where('id_grub_materi', $id_grub_materi)->delete();
 
         return redirect()->route('guru.materi')->with('success', 'Materi berhasil dihapus.');
     }

@@ -296,7 +296,9 @@ class TugasController extends Controller
         $bobotPerSoal = 100 / $totalSoal;
         $soalIdsDipertahankan = [];
 
-        foreach (array_values($daftarSoal) as $index => $item) {
+        $urutan = 0;
+        foreach ($daftarSoal as $originalKey => $item) {
+            $urutan++;
             $pilihan = $item['pilihan'] ?? [];
             $dataPilihan = [];
 
@@ -323,8 +325,8 @@ class TugasController extends Controller
             // Pertahankan gambar lama jika tidak upload gambar baru
             $gambarPath = $soal?->gambar;
 
-            // Ambil gambar berdasarkan index soal
-            $gambarBaru = $request->file("soal.$index.gambar");
+            // Ambil gambar berdasarkan key asli soal agar key sparse (misal 0, 2) tidak kehilangan file
+            $gambarBaru = $request->file("soal.$originalKey.gambar");
 
             if ($gambarBaru) {
                 $gambarPath = $gambarBaru->store(
@@ -340,7 +342,7 @@ class TugasController extends Controller
                 'kunci_jawaban' => strtolower($item['kunci_jawaban']),
                 'gambar' => $gambarPath,
                 'bobot' => $bobotPerSoal,
-                'urutan' => $index + 1,
+                'urutan' => $urutan,
                 'quiz_id' => null,
                 'tugas_id' => $tugas->id,
                 'ujian_id' => null,

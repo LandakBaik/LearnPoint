@@ -691,7 +691,7 @@ class QuizController extends Controller
             return $this->notFoundResponse('Data kelas siswa tidak ditemukan.');
         }
 
-        $query = Quiz::whereHas('pengampuKelas', fn ($q) => $q->where('kelas_id', $kelasId)->forSiswa($siswa))
+        $query = Quiz::whereHas('pengampuKelas', fn ($q) => $q->currentPeriod()->where('kelas_id', $kelasId)->forSiswa($siswa))
             ->where('status', 'published')
             ->with([
                 'pengampuKelas.guruMapel.mapel',
@@ -742,7 +742,7 @@ class QuizController extends Controller
         // Jika klien meminta mode petualangan (with_planets=1), sertakan planets
         if ($request->boolean('with_planets')) {
             $dbMapels = Mapel::forSiswa($siswa)
-                ->whereHas('pengampuKelases', fn ($q) => $q->where('kelas_id', $kelasId))
+                ->whereHas('pengampuKelases', fn ($q) => $q->currentPeriod()->where('kelas_id', $kelasId))
                 ->get();
             $planets = $this->adventureService->buildPlanetsCollection($allQuizzes, $dbMapels);
 
@@ -1020,13 +1020,25 @@ class QuizController extends Controller
             return $this->errorResponse('Waktu pengerjaan kuis telah kedaluwarsa.', 400);
         }
 
-        $soals = $quiz->soals;
+        $quiz->load('soals');
+        $journey = $this->adventureService->buildQuizAdventureJourney($quiz, $siswa);
+        $activeLevel = collect($journey['levels'])->firstWhere('status', 'aktif');
+        $soals = $activeLevel ? collect($activeLevel['soals']) : collect();
         $jawabanInputs = $request->input('jawaban', []);
 
         DB::transaction(function () use ($soals, $jawabanInputs, $siswa) {
             foreach ($soals as $soal) {
                 $jawabanUser = $jawabanInputs[$soal->id] ?? $jawabanInputs[(string) $soal->id] ?? null;
                 if ($jawabanUser !== null && $jawabanUser !== '') {
+                    $existing = Menjawab::where('soal_id', $soal->id)
+                        ->where('siswa_id', $siswa->id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($existing && $existing->koin_diklaim) {
+                        continue;
+                    }
+
                     $isBenar = $this->quizService->isAnswerCorrect($soal, $jawabanUser);
 
                     Menjawab::updateOrCreate(
@@ -1125,6 +1137,9 @@ class QuizController extends Controller
         $koinBaruDidapat = 0;
 
         DB::transaction(function () use ($soalsToProcess, $request, $siswa, &$jumlahBenar, &$jumlahSalah, &$koinBaruDidapat) {
+            // Lock baris siswa untuk mencegah race condition / duplikasi koin pada submit paralel
+            \App\Models\Siswa::whereKey($siswa->id)->lockForUpdate()->first();
+
             $submittedAnswers = $request->input('jawaban', []);
             foreach ($soalsToProcess as $soal) {
                 $existingAns = Menjawab::with('power')
@@ -1132,6 +1147,15 @@ class QuizController extends Controller
                     ->where('siswa_id', $siswa->id)
                     ->lockForUpdate()
                     ->first();
+
+                if ($existingAns && $existingAns->koin_diklaim) {
+                    if ($existingAns->benar) {
+                        $jumlahBenar++;
+                    } else {
+                        $jumlahSalah++;
+                    }
+                    continue;
+                }
 
                 $jawabanUser = $submittedAnswers[$soal->id] ?? $submittedAnswers[(string) $soal->id] ?? null;
 
@@ -1148,12 +1172,8 @@ class QuizController extends Controller
                     $bobotSoal = (float) ($soal->bobot ?: 10);
                     $poinDiperoleh = Menjawab::hitungPoin($bobotSoal, $isBenar, $power);
 
-                    $sudahKlaimKoin = (bool) ($existingAns?->koin_diklaim ?? false);
-                    $klaimSekarang = false;
-
-                    if (!$sudahKlaimKoin && $poinDiperoleh > 0) {
+                    if ($poinDiperoleh > 0) {
                         $koinBaruDidapat += (int) round($poinDiperoleh);
-                        $klaimSekarang = true;
                     }
 
                     if ($isBenar) {
@@ -1172,11 +1192,24 @@ class QuizController extends Controller
                             'benar'           => $isBenar,
                             'power_id'        => $powerId,
                             'poin_diperoleh'  => $poinDiperoleh,
-                            'koin_diklaim'    => $sudahKlaimKoin || $klaimSekarang,
+                            'koin_diklaim'    => true,
                         ]
                     );
                 } else {
                     $jumlahSalah++;
+                    Menjawab::updateOrCreate(
+                        [
+                            'soal_id'  => $soal->id,
+                            'siswa_id' => $siswa->id,
+                        ],
+                        [
+                            'jawaban_dipilih' => '-',
+                            'benar'           => false,
+                            'power_id'        => $existingAns?->power_id,
+                            'poin_diperoleh'  => 0,
+                            'koin_diklaim'    => true,
+                        ]
+                    );
                 }
             }
 
@@ -1193,6 +1226,7 @@ class QuizController extends Controller
         $totalAllSoal = $allQuizSoals->count();
         $answeredCount = Menjawab::where('siswa_id', $siswa->id)
             ->whereIn('soal_id', $allQuizSoals->pluck('id'))
+            ->where('koin_diklaim', true)
             ->whereNotNull('jawaban_dipilih')
             ->where('jawaban_dipilih', '!=', '')
             ->count();

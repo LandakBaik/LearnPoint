@@ -25,10 +25,10 @@ class MapelController extends Controller
 
         if ($kelasId) {
             $daftarMapel = Mapel::forSiswa($siswa)->whereHas('pengampuKelases', function ($query) use ($kelasId) {
-                $query->where('kelas_id', $kelasId);
+                $query->currentPeriod()->where('kelas_id', $kelasId);
             })
                 ->with(['pengampuKelases' => function ($query) use ($kelasId) {
-                    $query->where('kelas_id', $kelasId)
+                    $query->currentPeriod()->where('kelas_id', $kelasId)
                         ->with(['guruMapel.guru', 'materis']);
                 }, 'guruMapels.guru'])
                 ->get();
@@ -70,7 +70,7 @@ class MapelController extends Controller
             abort(403, 'Mata pelajaran ini tidak sesuai dengan agama Anda.');
         }
 
-        $hasMapelInKelas = $mapel->pengampuKelases()->where('kelas_id', $kelasId)->exists();
+        $hasMapelInKelas = $mapel->pengampuKelases()->currentPeriod()->where('kelas_id', $kelasId)->exists();
         if (!$hasMapelInKelas) {
             abort(403, 'Mata pelajaran ini tidak tersedia untuk kelas Anda.');
         }
@@ -78,21 +78,17 @@ class MapelController extends Controller
         // Ambil guru pengampu aktif pada kelas dan periode berjalan
         $pengampuAktif = $mapel->pengampuKelases()
             ->with('guruMapel.guru')
+            ->currentPeriod()
             ->where('kelas_id', $kelasId)
-            ->when($activePeriod?->id, fn ($q) => $q->where('academic_period_id', $activePeriod->id))
-            ->first()
-            ?? $mapel->pengampuKelases()
-                ->with('guruMapel.guru')
-                ->where('kelas_id', $kelasId)
-                ->latest('id')
-                ->first();
+            ->first();
 
         $namaGuruPengampu = $pengampuAktif?->guruMapel?->guru?->nama ?? 'Belum ditentukan';
 
-        // Ambil materi untuk mapel ini khusus kelas siswa
+        // Ambil materi untuk mapel ini khusus kelas siswa pada periode aktif
         $materis = Materi::with(['pengampuKelas.guruMapel.guru', 'pengampuKelas.kelas'])
             ->whereHas('pengampuKelas', function ($query) use ($kelasId, $id) {
-                $query->where('kelas_id', $kelasId)
+                $query->currentPeriod()
+                    ->where('kelas_id', $kelasId)
                     ->whereHas('guruMapel', function ($query) use ($id) {
                         $query->where('mapel_id', $id);
                     });
@@ -100,12 +96,13 @@ class MapelController extends Controller
             ->latest()
             ->get();
 
-        // Ambil tugas untuk mapel ini khusus kelas siswa
+        // Ambil tugas untuk mapel ini khusus kelas siswa pada periode aktif
         $tugases = Tugas::with(['pengampuKelas.guruMapel.guru', 'nilais' => function ($q) use ($siswa) {
             if ($siswa) $q->where('siswa_id', $siswa->id);
         }])
             ->whereHas('pengampuKelas', function ($query) use ($kelasId, $id) {
-                $query->where('kelas_id', $kelasId)
+                $query->currentPeriod()
+                    ->where('kelas_id', $kelasId)
                     ->whereHas('guruMapel', function ($query) use ($id) {
                         $query->where('mapel_id', $id);
                     });
@@ -143,7 +140,8 @@ class MapelController extends Controller
             ->whereIn('status', $statusTampil)
             ->where($filterPesertaKhusus)
             ->whereHas('pengampuKelas', function ($query) use ($kelasId, $id) {
-                $query->where('kelas_id', $kelasId)
+                $query->currentPeriod()
+                    ->where('kelas_id', $kelasId)
                     ->whereHas('guruMapel', function ($query) use ($id) {
                         $query->where('mapel_id', $id);
                     });

@@ -2402,21 +2402,25 @@ class UjianController extends Controller
         }
 
         $rawJawaban = $request->jawaban;
-        $jawabanString = is_array($rawJawaban) ? implode(',', $rawJawaban) : (string) $rawJawaban;
+        if ($soal->tipe_soal === 'multiple_choice') {
+            $cleanJawaban = is_array($rawJawaban)
+                ? array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim((string) $v)), $rawJawaban))))
+                : array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim($v)), explode(',', (string) $rawJawaban)))));
+            sort($cleanJawaban);
+            $jawabanString = implode(',', $cleanJawaban);
+        } else {
+            $jawabanString = is_array($rawJawaban) ? implode(',', $rawJawaban) : (string) $rawJawaban;
+        }
 
         $kunci = $soal->kunci_jawaban;
         $isBenar = false;
 
         if ($soal->tipe_soal === 'multiple_choice') {
             $cleanKunci = is_array($kunci)
-                ? array_map('strtolower', $kunci)
-                : array_filter(explode(',', strtolower((string) $kunci)));
-            $cleanJawaban = is_array($rawJawaban)
-                ? array_map('strtolower', $rawJawaban)
-                : array_filter(explode(',', strtolower((string) $rawJawaban)));
+                ? array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim((string) $v)), $kunci))))
+                : array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim($v)), explode(',', (string) $kunci)))));
 
             sort($cleanKunci);
-            sort($cleanJawaban);
             $isBenar = ($cleanKunci === $cleanJawaban);
         } elseif ($soal->tipe_soal === 'single_choice') {
             $isBenar = (strtolower(trim($jawabanString)) === strtolower(trim(is_array($kunci) ? ($kunci[0] ?? '') : (string) $kunci)));
@@ -2816,17 +2820,17 @@ class UjianController extends Controller
 
         if ($soal->tipe_soal === 'multiple_choice') {
             $cleanKunci = is_array($kunci)
-                ? array_map('strtolower', array_map('trim', $kunci))
-                : array_filter(array_map('strtolower', array_map('trim', explode(',', (string) $kunci))));
+                ? array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim((string) $v)), $kunci))))
+                : array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim($v)), explode(',', (string) $kunci)))));
 
-            $jawabanArr = array_filter(array_map('strtolower', array_map('trim', explode(',', (string) $jawab->jawaban_dipilih))));
+            $jawabanArr = array_values(array_unique(array_filter(array_map(fn ($v) => strtolower(trim($v)), explode(',', (string) $jawab->jawaban_dipilih)))));
             $totalKunci = count($cleanKunci);
 
             if ($totalKunci > 0) {
                 $benar = count(array_intersect($jawabanArr, $cleanKunci));
                 $salah = count(array_diff($jawabanArr, $cleanKunci));
-                $net = max(0, $benar - $salah);
-                $skor = $bobotSoal * ($net / $totalKunci);
+                $net = max(0, min($totalKunci, $benar - $salah));
+                $skor = min($bobotSoal, $bobotSoal * ($net / $totalKunci));
                 return [
                     'skor'     => $skor,
                     'is_benar' => ($benar === $totalKunci && $salah === 0),

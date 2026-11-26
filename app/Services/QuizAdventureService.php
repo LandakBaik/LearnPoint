@@ -162,6 +162,7 @@ class QuizAdventureService
                 $lvlSoalIds = $soalsInLevel->pluck('id')->toArray();
 
                 $answeredCount = 0;
+                $submittedCount = 0;
                 $correctCount = 0;
                 $bobotTotalLevel = 0.0;
                 $poinLevelRaw = 0.0;
@@ -172,6 +173,9 @@ class QuizAdventureService
                     $ans = $jawabanSiswa->get($s->id);
                     if ($ans && $ans->jawaban_dipilih !== null && $ans->jawaban_dipilih !== '') {
                         $answeredCount++;
+                        if ($ans->koin_diklaim) {
+                            $submittedCount++;
+                        }
                         if ($ans->benar) {
                             $correctCount++;
                         }
@@ -190,8 +194,8 @@ class QuizAdventureService
                     ? min(100, (int) round(($poinLevel / $bobotTotalLevel) * 100))
                     : ($countSoal > 0 ? (int) round(($correctCount / $countSoal) * 100) : 0);
 
-                // Tentukan status level (tanpa syarat nilai minimum: asal seluruh soal level selesai dijawab)
-                if (($nilai && $nilai->status === 'selesai') || ($countSoal > 0 && $answeredCount >= $countSoal)) {
+                // Tentukan status level berdasarkan jawaban yang benar-benar sudah disubmit (bukan sekadar draft)
+                if (($nilai && $nilai->status === 'selesai') || ($countSoal > 0 && $submittedCount >= $countSoal)) {
                     $status = 'selesai';
                     $progresLabel = $correctCount . '/' . $countSoal . ' Benar';
                     $arcCompletedCount++;

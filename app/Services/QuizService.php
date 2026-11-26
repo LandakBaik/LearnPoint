@@ -188,7 +188,14 @@ class QuizService
             return new EloquentCollection([$quiz]);
         }
 
-        $group = Quiz::where('id_grup_kuis', $quiz->id_grup_kuis)->get();
+        $quiz->loadMissing('pengampuKelas.guruMapel');
+        $ownerGuruId = $quiz->pengampuKelas?->guruMapel?->guru_id;
+
+        $group = Quiz::where('id_grup_kuis', $quiz->id_grup_kuis)
+            ->when($ownerGuruId, function (Builder $q) use ($ownerGuruId) {
+                $q->whereHas('pengampuKelas.guruMapel', fn (Builder $gm) => $gm->where('guru_id', $ownerGuruId));
+            })
+            ->get();
 
         return $group->isNotEmpty() ? $group : new EloquentCollection([$quiz]);
     }
