@@ -56,6 +56,10 @@ class Power extends Item
 
         // Pastikan tabel powers lama juga tersinkronisasi jika tabelnya masih ada
         if (\Illuminate\Support\Facades\Schema::hasTable('powers')) {
+            \Illuminate\Support\Facades\DB::table('powers')
+                ->where('kode', 'lucky_clover')
+                ->update(['kode' => 'pirates_compass']);
+
             foreach (self::DEFAULT_CATALOG as $item) {
                 \Illuminate\Support\Facades\DB::table('powers')->updateOrInsert(
                     ['kode' => $item['kode']],
@@ -101,16 +105,16 @@ class Power extends Item
         ],
         [
             'id' => 3,
-            'kode' => 'lucky_clover',
-            'nama' => 'Lucky Clover',
-            'tagline' => 'Petunjuk Soal (Hint)',
-            'deskripsi' => 'Membuka kartu petunjuk (Hint) analisis konsep pada soal yang sedang dibuka untuk membantu menemukan jawaban yang tepat.',
-            'detail_efek' => 'Menampilkan kartu petunjuk (Hint) langsung di bawah pertanyaan soal ini.',
+            'kode' => 'pirates_compass',
+            'nama' => 'Pirates Compass',
+            'tagline' => 'Tunjuk 1 Opsi Salah',
+            'deskripsi' => 'Kompas Bajak Laut menunjuk 1 pilihan jawaban yang pasti salah pada soal ini sehingga peluangmu menjawab benar lebih besar.',
+            'detail_efek' => 'Menunjukkan dan menandai 1 pilihan jawaban yang salah pada soal ini.',
             'tipe_efek' => 'hint',
             'rarity' => 'common',
             'bobot_gacha' => 30,
             'stok_awal' => 2,
-            'icon' => 'fa-solid fa-clover',
+            'icon' => 'fa-solid fa-compass',
             'tema_warna' => 'teal',
             'is_active' => true,
         ],

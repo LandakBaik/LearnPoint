@@ -160,7 +160,7 @@
                             </span>
                         </td>
                         <td class="py-3.5 px-4 font-bold text-blue-700">~62%</td>
-                        <td class="py-3.5 px-4">50:50 (Hapus 2 Opsi Salah), Lucky Clover (Bocoran Kata Kunci).</td>
+                        <td class="py-3.5 px-4">50:50 (Hapus 2 Opsi Salah), Pirates Compass (Tunjuk 1 Opsi Salah).</td>
                     </tr>
                 </tbody>
             </table>

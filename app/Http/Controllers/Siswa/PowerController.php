@@ -580,11 +580,22 @@ class PowerController extends Controller
                 $effect['second_chance_armed'] = true;
                 break;
 
-            case 'lucky_clover':
-                if ($strictValidation && empty(trim((string) $soal->pertanyaan))) {
-                    throw new \RuntimeException('Teks pertanyaan tidak tersedia untuk menghasilkan petunjuk.');
+            case 'pirates_compass':
+                $wrongKeys = array_values(array_filter(
+                    $optionKeys,
+                    fn($k) => $k !== $kunci
+                ));
+
+                if ($strictValidation && empty($wrongKeys)) {
+                    throw new \RuntimeException('Tidak ada pilihan jawaban salah yang dapat ditunjukkan pada soal ini.');
                 }
-                $effect['hint_text'] = $this->buildHintForSoal($soal, $pilihan, $kunci, $optionKeys);
+
+                if (!empty($wrongKeys)) {
+                    usort($wrongKeys, fn($a, $b) => strcmp(md5($soal->id . '_compass_' . $a), md5($soal->id . '_compass_' . $b)));
+                    $targetWrong = $wrongKeys[0];
+                    $effect['eliminated_options'] = [$targetWrong];
+                    $effect['hint_text'] = $this->buildCompassHintForSoal($pilihan, $targetWrong);
+                }
                 break;
 
             case 'remove_wrong_answer':
@@ -614,35 +625,23 @@ class PowerController extends Controller
     }
 
     /**
-     * Membangun teks petunjuk (Hint) analisis konsep untuk Lucky Clover.
+     * Membangun teks petunjuk Kompas Bajak Laut yang menunjuk 1 jawaban salah.
      */
-    private function buildHintForSoal(Soal $soal, array $pilihan, string $kunci, array $optionKeys): string
+    private function buildCompassHintForSoal(array $pilihan, string $wrongKey): string
     {
-        $correctText = '';
+        $wrongText = '';
         foreach ($pilihan as $k => $v) {
-            if (strtolower((string) $k) === $kunci) {
-                $correctText = trim((string) $v);
+            if (strtolower((string) $k) === $wrongKey) {
+                $wrongText = trim((string) $v);
                 break;
             }
         }
 
-        $wrongKeys = array_values(array_filter($optionKeys, fn($k) => $k !== $kunci));
-        $sampleWrong = !empty($wrongKeys) ? strtoupper($wrongKeys[0]) : null;
-
-        $clueSnippet = '';
-        if (mb_strlen($correctText) > 15) {
-            $words = preg_split('/\s+/', $correctText);
-            $preview = implode(' ', array_slice($words, 0, min(3, count($words))));
-            $clueSnippet = " Jawaban yang tepat berkaitan erat dengan konsep \"{$preview}...\".";
-        } elseif ($correctText !== '') {
-            $clueSnippet = " Fokuskan analisismu pada opsi yang bernilai paling tepat sesuai rumus/konsep dasar.";
+        if ($wrongText !== '') {
+            return "Kompas Bajak Laut menunjuk 1 jawaban yang salah: \"{$wrongText}\".";
         }
 
-        $avoidText = $sampleWrong
-            ? " Hindari terjebak pada opsi pengecoh seperti Pilihan {$sampleWrong}."
-            : '';
-
-        return "Petunjuk Lucky Clover: Perhatikan inti pertanyaan pada soal ini.{$clueSnippet}{$avoidText}";
+        return 'Kompas Bajak Laut telah menandai 1 pilihan jawaban yang salah pada soal ini.';
     }
 
     private function extractCleanKunci(Soal $soal): string

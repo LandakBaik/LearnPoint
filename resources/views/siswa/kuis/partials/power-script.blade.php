@@ -218,8 +218,22 @@ window.createLearnPointPowerSystem = function(config) {
                 qState.multiplierType = 'double_side_knife';
             } else if (powerCode === 'two_x_score' || effect.multiplier_type === 'two_x_score') {
                 qState.multiplierType = 'two_x_score';
-            } else if (powerCode === 'lucky_clover' || effect.type === 'hint') {
-                qState.hintText = effect.hint_text || 'Perhatikan konsep utama pada pertanyaan ini.';
+            } else if (powerCode === 'pirates_compass' || effect.type === 'hint') {
+                qState.hintText = effect.hint_text || 'Kompas Bajak Laut telah menandai 1 pilihan jawaban yang salah.';
+                const eliminated = Array.isArray(effect.eliminated_options) ? effect.eliminated_options : [];
+                eliminated.forEach(k => {
+                    const cleanKey = String(k).toLowerCase();
+                    if (!qState.eliminatedOptions.includes(cleanKey)) {
+                        qState.eliminatedOptions.push(cleanKey);
+                    }
+                });
+
+                const currentSelected = this.answers[soalId];
+                if (currentSelected && qState.eliminatedOptions.includes(String(currentSelected).toLowerCase())) {
+                    delete this.answers[soalId];
+                    const radioEl = document.getElementById(`opt_${soalId}_${currentSelected}`);
+                    if (radioEl) radioEl.checked = false;
+                }
             } else if (powerCode === 'remove_wrong_answer' || effect.type === 'eliminate_options') {
                 const eliminated = Array.isArray(effect.eliminated_options) ? effect.eliminated_options : [];
                 eliminated.forEach(k => {
@@ -332,8 +346,12 @@ window.createLearnPointPowerSystem = function(config) {
                 } else if (powerCode === 'two_x_score') {
                     const bobot = Number(meta.bobot || 10);
                     toastMsg = `2X Score aktif! Jawaban benar pada soal ini akan bernilai ${bobot * 2} Poin!`;
-                } else if (powerCode === 'lucky_clover') {
-                    toastMsg = `Lucky Clover aktif! Kartu petunjuk (Hint) soal telah ditampilkan di bawah pertanyaan.`;
+                } else if (powerCode === 'pirates_compass') {
+                    const elim = Array.isArray(effect.eliminated_options) ? effect.eliminated_options : [];
+                    const label = elim.length ? this.getDisplayOptionLabel(soalId, elim[0]) : '';
+                    toastMsg = label
+                        ? `Pirates Compass aktif! Pilihan ${label} ditunjukkan sebagai jawaban yang salah.`
+                        : `Pirates Compass aktif! 1 pilihan jawaban yang salah telah ditunjukkan.`;
                 } else if (powerCode === 'remove_wrong_answer') {
                     const elim = Array.isArray(effect.eliminated_options) ? effect.eliminated_options : [];
                     toastMsg = `Remove Wrong Answer aktif! Opsi ${elim.map(k => this.getDisplayOptionLabel(soalId, k)).join(' & ')} telah dieliminasi.`;

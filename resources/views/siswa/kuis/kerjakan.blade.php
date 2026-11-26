@@ -266,7 +266,7 @@
                                 </div>
                             @endif
 
-                            {{-- KARTU BANTUAN HINT (EFEK LUCKY CLOVER) --}}
+                            {{-- KARTU BANTUAN COMPASS (EFEK PIRATES COMPASS) --}}
                             <div 
                                 x-show="getQuestionHint({{ $soal->id }})" 
                                 x-cloak
@@ -274,11 +274,11 @@
                                 class="p-4 rounded-2xl bg-teal-50/90 border border-teal-200 text-teal-900 flex items-start gap-3 shadow-2xs"
                             >
                                 <div class="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 text-sm shadow-xs">
-                                    <i class="fa-solid fa-clover"></i>
+                                    <i class="fa-solid fa-compass"></i>
                                 </div>
                                 <div class="space-y-0.5 text-xs sm:text-sm">
                                     <span class="font-extrabold text-teal-800 uppercase tracking-wider text-[11px] block">
-                                        Bantuan Lucky Clover (Hint Soal)
+                                        Petunjuk Pirates Compass
                                     </span>
                                     <p class="font-semibold text-teal-900 leading-relaxed" x-text="getQuestionHint({{ $soal->id }})"></p>
                                 </div>

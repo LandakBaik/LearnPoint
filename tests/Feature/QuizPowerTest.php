@@ -193,12 +193,12 @@ class QuizPowerTest extends TestCase
      */
     public function test_siswa_dapat_melihat_daftar_power_miliknya(): void
     {
-        $powerClover = Power::where('kode', 'lucky_clover')->firstOrFail();
+        $powerCompass = Power::where('kode', 'pirates_compass')->firstOrFail();
         $powerKnife = Power::where('kode', 'double_side_knife')->firstOrFail();
 
         SiswaPower::create([
             'siswa_id' => $this->siswa->id,
-            'power_id' => $powerClover->id,
+            'power_id' => $powerCompass->id,
             'jumlah' => 4,
         ]);
 
@@ -216,7 +216,7 @@ class QuizPowerTest extends TestCase
             ->assertJsonCount(5, 'powers');
 
         $powersData = collect($response->json('powers'))->keyBy('code');
-        $this->assertSame(4, $powersData['lucky_clover']['qty']);
+        $this->assertSame(4, $powersData['pirates_compass']['qty']);
         $this->assertSame(2, $powersData['double_side_knife']['qty']);
         $this->assertSame(0, $powersData['two_x_score']['qty']);
     }
@@ -226,7 +226,7 @@ class QuizPowerTest extends TestCase
      */
     public function test_siswa_dapat_menggunakan_power_yang_dimiliki(): void
     {
-        $power = Power::where('kode', 'lucky_clover')->firstOrFail();
+        $power = Power::where('kode', 'pirates_compass')->firstOrFail();
         SiswaPower::create([
             'siswa_id' => $this->siswa->id,
             'power_id' => $power->id,
@@ -241,9 +241,10 @@ class QuizPowerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.power_code', 'lucky_clover')
+            ->assertJsonPath('data.power_code', 'pirates_compass')
             ->assertJsonPath('data.soal_id', $this->soal1->id)
-            ->assertJsonPath('data.effect.type', 'hint');
+            ->assertJsonPath('data.effect.type', 'hint')
+            ->assertJsonCount(1, 'data.effect.eliminated_options');
 
         $this->assertDatabaseHas('menjawabs', [
             'siswa_id' => $this->siswa->id,
@@ -371,7 +372,7 @@ class QuizPowerTest extends TestCase
      */
     public function test_siswa_tidak_dapat_menggunakan_power_saat_kuis_sudah_selesai(): void
     {
-        $power = Power::where('kode', 'lucky_clover')->firstOrFail();
+        $power = Power::where('kode', 'pirates_compass')->firstOrFail();
         SiswaPower::create([
             'siswa_id' => $this->siswa->id,
             'power_id' => $power->id,
@@ -576,12 +577,12 @@ class QuizPowerTest extends TestCase
      */
     public function test_power_tidak_dapat_digunakan_berulang_pada_soal_yang_sama(): void
     {
-        $powerClover = Power::where('kode', 'lucky_clover')->firstOrFail();
+        $powerCompass = Power::where('kode', 'pirates_compass')->firstOrFail();
         $powerKnife = Power::where('kode', 'double_side_knife')->firstOrFail();
 
         SiswaPower::create([
             'siswa_id' => $this->siswa->id,
-            'power_id' => $powerClover->id,
+            'power_id' => $powerCompass->id,
             'jumlah' => 3,
         ]);
 
@@ -591,17 +592,17 @@ class QuizPowerTest extends TestCase
             'jumlah' => 2,
         ]);
 
-        // Gunakan Lucky Clover pada Soal 1 -> Berhasil
+        // Gunakan Pirates Compass pada Soal 1 -> Berhasil
         $this->actingAs($this->userSiswa)
             ->postJson(route('siswa.kuis.powers.use', $this->quiz->id), [
-                'power_id' => $powerClover->id,
+                'power_id' => $powerCompass->id,
                 'soal_id' => $this->soal1->id,
             ])->assertStatus(200);
 
-        // Coba gunakan Lucky Clover lagi pada Soal 1 -> Ditolak
+        // Coba gunakan Pirates Compass lagi pada Soal 1 -> Ditolak
         $repeatSame = $this->actingAs($this->userSiswa)
             ->postJson(route('siswa.kuis.powers.use', $this->quiz->id), [
-                'power_id' => $powerClover->id,
+                'power_id' => $powerCompass->id,
                 'soal_id' => $this->soal1->id,
             ]);
 
@@ -620,10 +621,10 @@ class QuizPowerTest extends TestCase
             ->assertJsonPath('success', false)
             ->assertJsonPath('code', 'QUESTION_ALREADY_HAS_POWER');
 
-        // Pastikan jumlah Lucky Clover hanya berkurang 1x (sisa 2) dan Double Side Knife tetap utuh (sisa 2)
+        // Pastikan jumlah Pirates Compass hanya berkurang 1x (sisa 2) dan Double Side Knife tetap utuh (sisa 2)
         $this->assertDatabaseHas('inventories', [
             'siswa_id' => $this->siswa->id,
-            'item_id' => $powerClover->id,
+            'item_id' => $powerCompass->id,
             'jumlah' => 2,
         ]);
 
@@ -639,7 +640,7 @@ class QuizPowerTest extends TestCase
      */
     public function test_penggunaan_power_bersamaan_tidak_membuat_jumlah_menjadi_negatif(): void
     {
-        $power = Power::where('kode', 'lucky_clover')->firstOrFail();
+        $power = Power::where('kode', 'pirates_compass')->firstOrFail();
 
         // Stok hanya 1
         SiswaPower::create([
