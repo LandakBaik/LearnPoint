@@ -11,6 +11,19 @@ class Siswa extends Model
 
     protected $table = 'siswas';
 
+    public const MIN_ANGKATAN = 1990;
+
+    public const MIN_ENTRY_AGE = 10;
+
+    public const MAX_ENTRY_AGE = 18;
+
+    public const STATUS_OPTIONS = [
+        'aktif'    => 'Aktif',
+        'lulus'    => 'Lulus',
+        'pindah'   => 'Pindah',
+        'nonaktif' => 'Nonaktif',
+    ];
+
     public const AGAMA_OPTIONS = [
         'Islam',
         'Kristen',
@@ -19,6 +32,14 @@ class Siswa extends Model
         'Buddha',
         'Konghucu',
     ];
+
+    /**
+     * Batas atas tahun angkatan yang valid (maksimal tahun berjalan saat ini).
+     */
+    public static function maxAngkatan(): int
+    {
+        return (int) now()->format('Y');
+    }
 
     protected $fillable = [
         'nama_siswa',

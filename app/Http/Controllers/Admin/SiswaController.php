@@ -105,15 +105,32 @@ class SiswaController extends Controller
      */
     public function store(Request $request)
     {
-        $maxDate = now()->subYears(10)->format('Y-m-d');
-        $minDate = now()->subYears(16)->format('Y-m-d');
+        $minAngkatan = Siswa::MIN_ANGKATAN;
+        $maxAngkatan = Siswa::maxAngkatan();
+        $effectiveAngkatan = $request->filled('angkatan') && is_numeric($request->input('angkatan'))
+            ? (int) $request->input('angkatan')
+            : AcademicPeriod::defaultAngkatan();
+        $minBirthYear = $effectiveAngkatan - Siswa::MAX_ENTRY_AGE;
+        $maxBirthYear = $effectiveAngkatan - Siswa::MIN_ENTRY_AGE;
 
         $validated = $request->validate([
             'nama_siswa'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
             'nis'           => 'required|numeric|digits_between:4,10|unique:siswas,nis',
-            'angkatan'      => ['nullable', 'date_format:Y', 'integer', 'min:1901', 'max:2155'],
+            'angkatan'      => ['nullable', 'date_format:Y', 'integer', "min:{$minAngkatan}", "max:{$maxAngkatan}"],
+            'status'        => ['nullable', Rule::in(array_keys(Siswa::STATUS_OPTIONS))],
             'alamat'        => 'required|string',
-            'tanggal_lahir' => ['required', 'date', 'before_or_equal:' . $maxDate, 'after_or_equal:' . $minDate],
+            'tanggal_lahir' => [
+                'required',
+                'date',
+                'before_or_equal:today',
+                function (string $attribute, mixed $value, \Closure $fail) use ($effectiveAngkatan, $minBirthYear, $maxBirthYear) {
+                    $birthYear = \Carbon\Carbon::parse($value)->year;
+                    $entryAge = $effectiveAngkatan - $birthYear;
+                    if ($entryAge < Siswa::MIN_ENTRY_AGE || $entryAge > Siswa::MAX_ENTRY_AGE) {
+                        $fail("Tanggal lahir tidak sesuai dengan angkatan {$effectiveAngkatan}. Usia saat masuk harus antara " . Siswa::MIN_ENTRY_AGE . ' hingga ' . Siswa::MAX_ENTRY_AGE . " tahun (tahun lahir {$minBirthYear}–{$maxBirthYear}).");
+                    }
+                },
+            ],
             'jenis_kelamin' => 'required|in:L,P',
             'agama'         => ['nullable', Rule::in(Siswa::AGAMA_OPTIONS)],
             'wali_murid'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
@@ -124,6 +141,8 @@ class SiswaController extends Controller
             'nama_siswa.max'                => 'Nama lengkap siswa maksimal 100 karakter.',
             'nama_siswa.regex'              => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
             'angkatan.date_format'          => 'Angkatan harus berupa format tahun 4 digit (contoh: 2026).',
+            'angkatan.min'                  => "Angkatan tidak boleh kurang dari tahun {$minAngkatan}.",
+            'angkatan.max'                  => "Angkatan tidak boleh lebih dari tahun {$maxAngkatan}.",
             'wali_murid.max'                => 'Nama wali murid maksimal 100 karakter.',
             'nis.required'                  => 'NIS siswa wajib diisi.',
             'nis.numeric'                   => 'NIS siswa harus berupa angka.',
@@ -132,8 +151,7 @@ class SiswaController extends Controller
             'alamat.required'               => 'Alamat tempat tinggal wajib diisi.',
             'tanggal_lahir.required'        => 'Tanggal lahir siswa wajib diisi.',
             'tanggal_lahir.date'            => 'Format tanggal lahir tidak valid.',
-            'tanggal_lahir.before_or_equal' => 'Usia siswa minimal harus 10 tahun (tanggal lahir tidak boleh setelah ' . now()->subYears(10)->translatedFormat('d F Y') . ').',
-            'tanggal_lahir.after_or_equal'  => 'Usia siswa maksimal 16 tahun (tanggal lahir tidak boleh sebelum ' . now()->subYears(16)->translatedFormat('d F Y') . ').',
+            'tanggal_lahir.before_or_equal' => 'Tanggal lahir tidak boleh melebihi hari ini.',
             'jenis_kelamin.required'        => 'Jenis kelamin wajib dipilih.',
             'wali_murid.required'           => 'Nama wali murid wajib diisi.',
             'wali_murid.regex'              => 'Nama wali murid hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
@@ -142,6 +160,7 @@ class SiswaController extends Controller
             'nohp_wali.digits_between'      => 'Nomor HP / WhatsApp wali murid harus terdiri dari 10 hingga 13 digit angka.',
         ]);
 
+        $statusSiswa = $validated['status'] ?? 'aktif';
         $activePeriod = AcademicPeriod::current();
         $siswa = Siswa::create([
             'nama_siswa'    => $validated['nama_siswa'],
@@ -153,7 +172,7 @@ class SiswaController extends Controller
             'agama'         => $validated['agama'] ?? null,
             'wali_murid'    => $validated['wali_murid'],
             'nohp_wali'     => $validated['nohp_wali'],
-            'status'        => 'aktif',
+            'status'        => $statusSiswa,
         ]);
 
         // Jika kelas dipilih, daftarkan otomatis ke anggota_kelases pada periode aktif
@@ -174,7 +193,7 @@ class SiswaController extends Controller
                 'email'    => $autoEmail,
                 'password' => Hash::make($validated['nis']),
                 'role'     => 'siswa',
-                'status'   => 'aktif',
+                'status'   => $statusSiswa === 'aktif' ? 'aktif' : 'nonaktif',
                 'siswa_id' => $siswa->id,
             ]
         );
@@ -207,16 +226,32 @@ class SiswaController extends Controller
      */
     public function update(Request $request, Siswa $siswa)
     {
-        $maxDate = now()->subYears(10)->format('Y-m-d');
-        $minDate = now()->subYears(16)->format('Y-m-d');
+        $minAngkatan = Siswa::MIN_ANGKATAN;
+        $maxAngkatan = Siswa::maxAngkatan();
+        $effectiveAngkatan = $request->filled('angkatan') && is_numeric($request->input('angkatan'))
+            ? (int) $request->input('angkatan')
+            : ($siswa->angkatan ?? AcademicPeriod::defaultAngkatan());
+        $minBirthYear = $effectiveAngkatan - Siswa::MAX_ENTRY_AGE;
+        $maxBirthYear = $effectiveAngkatan - Siswa::MIN_ENTRY_AGE;
 
         $validated = $request->validate([
             'nama_siswa'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
             'nis'           => ['required', 'numeric', 'digits_between:4,10', Rule::unique('siswas')->ignore($siswa->id)],
-            'angkatan'      => ['nullable', 'date_format:Y', 'integer', 'min:1901', 'max:2155'],
-            'status'        => 'nullable|in:aktif,nonaktif,lulus,pindah',
+            'angkatan'      => ['nullable', 'date_format:Y', 'integer', "min:{$minAngkatan}", "max:{$maxAngkatan}"],
+            'status'        => ['nullable', Rule::in(array_keys(Siswa::STATUS_OPTIONS))],
             'alamat'        => 'required|string',
-            'tanggal_lahir' => ['required', 'date', 'before_or_equal:' . $maxDate, 'after_or_equal:' . $minDate],
+            'tanggal_lahir' => [
+                'required',
+                'date',
+                'before_or_equal:today',
+                function (string $attribute, mixed $value, \Closure $fail) use ($effectiveAngkatan, $minBirthYear, $maxBirthYear) {
+                    $birthYear = \Carbon\Carbon::parse($value)->year;
+                    $entryAge = $effectiveAngkatan - $birthYear;
+                    if ($entryAge < Siswa::MIN_ENTRY_AGE || $entryAge > Siswa::MAX_ENTRY_AGE) {
+                        $fail("Tanggal lahir tidak sesuai dengan angkatan {$effectiveAngkatan}. Usia saat masuk harus antara " . Siswa::MIN_ENTRY_AGE . ' hingga ' . Siswa::MAX_ENTRY_AGE . " tahun (tahun lahir {$minBirthYear}–{$maxBirthYear}).");
+                    }
+                },
+            ],
             'jenis_kelamin' => 'required|in:L,P',
             'agama'         => ['nullable', Rule::in(Siswa::AGAMA_OPTIONS)],
             'wali_murid'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
@@ -227,6 +262,8 @@ class SiswaController extends Controller
             'nama_siswa.max'                => 'Nama lengkap siswa maksimal 100 karakter.',
             'nama_siswa.regex'              => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
             'angkatan.date_format'          => 'Angkatan harus berupa format tahun 4 digit (contoh: 2026).',
+            'angkatan.min'                  => "Angkatan tidak boleh kurang dari tahun {$minAngkatan}.",
+            'angkatan.max'                  => "Angkatan tidak boleh lebih dari tahun {$maxAngkatan}.",
             'wali_murid.max'                => 'Nama wali murid maksimal 100 karakter.',
             'nis.required'                  => 'NIS siswa wajib diisi.',
             'nis.numeric'                   => 'NIS siswa harus berupa angka.',
@@ -235,8 +272,7 @@ class SiswaController extends Controller
             'alamat.required'               => 'Alamat tempat tinggal wajib diisi.',
             'tanggal_lahir.required'        => 'Tanggal lahir siswa wajib diisi.',
             'tanggal_lahir.date'            => 'Format tanggal lahir tidak valid.',
-            'tanggal_lahir.before_or_equal' => 'Usia siswa minimal harus 10 tahun (tanggal lahir tidak boleh setelah ' . now()->subYears(10)->translatedFormat('d F Y') . ').',
-            'tanggal_lahir.after_or_equal'  => 'Usia siswa maksimal 16 tahun (tanggal lahir tidak boleh sebelum ' . now()->subYears(16)->translatedFormat('d F Y') . ').',
+            'tanggal_lahir.before_or_equal' => 'Tanggal lahir tidak boleh melebihi hari ini.',
             'jenis_kelamin.required'        => 'Jenis kelamin wajib dipilih.',
             'wali_murid.required'           => 'Nama wali murid wajib diisi.',
             'wali_murid.regex'              => 'Nama wali murid hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
@@ -343,6 +379,9 @@ class SiswaController extends Controller
         $kelasIdx = array_search('kelas', $header) !== false ? array_search('kelas', $header) : array_search('kelas_id', $header);
         $angkatanIdx = array_search('angkatan', $header);
         $agamaIdx = array_search('agama', $header);
+        $statusIdx = array_search('status', $header);
+        $minAngkatan = Siswa::MIN_ANGKATAN;
+        $maxAngkatan = Siswa::maxAngkatan();
 
         if ($nameIdx === false || $nisIdx === false) {
             fclose($handle);
@@ -388,7 +427,19 @@ class SiswaController extends Controller
                 }
             }
 
-            // Normalisasi & validasi Tanggal Lahir (Usia 10-16 tahun)
+            // Validasi Angkatan terlebih dahulu agar bisa dipakai untuk validasi usia masuk
+            $rawAngkatanInput = $angkatanIdx !== false ? trim($row[$angkatanIdx] ?? '') : '';
+            $angkatan = AcademicPeriod::defaultAngkatan();
+            if ($rawAngkatanInput !== '') {
+                $cleanAngkatan = preg_replace('/[^0-9]/', '', $rawAngkatanInput);
+                if (strlen($cleanAngkatan) !== 4 || (int) $cleanAngkatan < $minAngkatan || (int) $cleanAngkatan > $maxAngkatan) {
+                    $rowErrors[] = "Angkatan '{$rawAngkatanInput}' tidak valid (harus tahun {$minAngkatan}–{$maxAngkatan}).";
+                } else {
+                    $angkatan = (int) $cleanAngkatan;
+                }
+            }
+
+            // Normalisasi & validasi Tanggal Lahir relatif terhadap Angkatan (Usia masuk 10-18 tahun)
             $rawTgl = $tglIdx !== false ? trim($row[$tglIdx] ?? '') : '';
             $normalizedTgl = null;
             if (empty($rawTgl)) {
@@ -399,9 +450,13 @@ class SiswaController extends Controller
                     $rowErrors[] = "Format tanggal lahir '{$rawTgl}' tidak valid.";
                 } else {
                     $birthDate = \Carbon\Carbon::parse($parsedTgl);
-                    $age = $birthDate->age;
-                    if ($age < 10 || $age > 16) {
-                        $rowErrors[] = "Tanggal lahir '{$rawTgl}' ({$parsedTgl}) tidak memenuhi syarat. Usia siswa harus antara 10 hingga 16 tahun (terdeteksi usia: {$age} tahun).";
+                    $entryAge = $angkatan - $birthDate->year;
+                    if ($birthDate->isFuture()) {
+                        $rowErrors[] = "Tanggal lahir '{$rawTgl}' tidak boleh melebihi hari ini.";
+                    } elseif ($entryAge < Siswa::MIN_ENTRY_AGE || $entryAge > Siswa::MAX_ENTRY_AGE) {
+                        $minBirthYear = $angkatan - Siswa::MAX_ENTRY_AGE;
+                        $maxBirthYear = $angkatan - Siswa::MIN_ENTRY_AGE;
+                        $rowErrors[] = "Tanggal lahir '{$rawTgl}' ({$parsedTgl}) tidak sesuai dengan angkatan {$angkatan}. Usia saat masuk harus " . Siswa::MIN_ENTRY_AGE . '–' . Siswa::MAX_ENTRY_AGE . " tahun (tahun lahir {$minBirthYear}–{$maxBirthYear}).";
                     } else {
                         $normalizedTgl = $parsedTgl;
                     }
@@ -438,10 +493,16 @@ class SiswaController extends Controller
                 }
             }
 
-            $rawAngkatan = $angkatanIdx !== false ? preg_replace('/[^0-9]/', '', trim($row[$angkatanIdx] ?? '')) : '';
-            $angkatan = (!empty($rawAngkatan) && (int) $rawAngkatan >= 2000 && (int) $rawAngkatan <= 2100)
-                ? (int) $rawAngkatan
-                : AcademicPeriod::defaultAngkatan();
+            // Status siswa (opsional, default aktif)
+            $statusSiswa = 'aktif';
+            if ($statusIdx !== false && !empty(trim($row[$statusIdx] ?? ''))) {
+                $rawStatus = strtolower(trim($row[$statusIdx]));
+                if (!array_key_exists($rawStatus, Siswa::STATUS_OPTIONS)) {
+                    $rowErrors[] = "Status '{$row[$statusIdx]}' tidak valid (pilihan: " . implode(', ', array_keys(Siswa::STATUS_OPTIONS)) . ').';
+                } else {
+                    $statusSiswa = $rawStatus;
+                }
+            }
 
             // Agama (opsional, harus sesuai daftar Siswa::AGAMA_OPTIONS jika diisi)
             $agama = null;
@@ -471,6 +532,7 @@ class SiswaController extends Controller
                     'agama'         => $agama,
                     'wali_murid'    => $wali,
                     'nohp_wali'     => $nohp,
+                    'status'        => $statusSiswa,
                     'kelas_id'      => $kelasId,
                 ];
             }
@@ -511,7 +573,7 @@ class SiswaController extends Controller
                         'email'    => $data['nis'] . '@siswa.learnpoint.sch.id',
                         'password' => Hash::make($data['nis']),
                         'role'     => 'siswa',
-                        'status'   => 'aktif',
+                        'status'   => ($data['status'] ?? 'aktif') === 'aktif' ? 'aktif' : 'nonaktif',
                         'siswa_id' => $siswa->id,
                     ]
                 );

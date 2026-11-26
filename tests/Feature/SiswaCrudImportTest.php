@@ -149,4 +149,111 @@ class SiswaCrudImportTest extends TestCase
         $this->assertStringEndsWith(',', $lines[2]);
         $this->assertStringEndsWith(',', $lines[3]);
     }
+
+    public function test_siswa_alumni_and_older_batch_students_can_be_created_and_updated(): void
+    {
+        $operator = $this->operator();
+
+        // Alumni lulus (usia sekarang > 20 thn, tapi usia saat masuk 2018 - 2005 = 13 thn)
+        $response = $this->actingAs($operator)->post(route('siswa.store'), array_merge(
+            $this->siswaPayload('20180001'),
+            [
+                'nama_siswa' => 'Alumni Lulus',
+                'angkatan' => 2018,
+                'tanggal_lahir' => '2005-06-15',
+                'status' => 'lulus',
+            ]
+        ));
+
+        $response->assertRedirect(route('siswa.index'));
+        $alumni = Siswa::where('nis', '20180001')->firstOrFail();
+        $this->assertSame(2018, $alumni->angkatan);
+        $this->assertSame('lulus', $alumni->status);
+        $this->assertDatabaseHas('users', ['siswa_id' => $alumni->id, 'status' => 'nonaktif']);
+
+        // Edit data alumni tetap berhasil tanpa ditolak validasi usia terhadap hari ini
+        $updateResponse = $this->actingAs($operator)->put(route('siswa.update', $alumni), array_merge(
+            $this->siswaPayload('20180001'),
+            [
+                'nama_siswa' => 'Alumni Lulus Diperbarui',
+                'angkatan' => 2018,
+                'tanggal_lahir' => '2005-06-15',
+                'status' => 'lulus',
+            ]
+        ));
+        $updateResponse->assertRedirect(route('siswa.index'));
+        $this->assertDatabaseHas('siswas', ['id' => $alumni->id, 'nama_siswa' => 'Alumni Lulus Diperbarui']);
+
+        // Angkatan lama yang masih aktif / belum lulus (2020 - 2007 = 13 thn)
+        $olderActiveResponse = $this->actingAs($operator)->post(route('siswa.store'), array_merge(
+            $this->siswaPayload('20200001'),
+            [
+                'nama_siswa' => 'Siswa Angkatan Lama',
+                'angkatan' => 2020,
+                'tanggal_lahir' => '2007-03-10',
+                'status' => 'aktif',
+            ]
+        ));
+        $olderActiveResponse->assertRedirect(route('siswa.index'));
+        $olderActive = Siswa::where('nis', '20200001')->firstOrFail();
+        $this->assertSame('aktif', $olderActive->status);
+        $this->assertDatabaseHas('users', ['siswa_id' => $olderActive->id, 'status' => 'aktif']);
+    }
+
+    public function test_siswa_rejects_mismatched_birth_date_and_out_of_range_angkatan(): void
+    {
+        $operator = $this->operator();
+
+        // Lahir setelah tahun angkatan (mustahil)
+        $response = $this->actingAs($operator)->post(route('siswa.store'), array_merge(
+            $this->siswaPayload('20120001'),
+            [
+                'angkatan' => 2012,
+                'tanggal_lahir' => '2016-05-01',
+            ]
+        ));
+        $response->assertSessionHasErrors('tanggal_lahir');
+
+        // Angkatan terlalu jauh di masa depan
+        $futureResponse = $this->actingAs($operator)->post(route('siswa.store'), array_merge(
+            $this->siswaPayload('20350001'),
+            [
+                'angkatan' => Siswa::maxAngkatan() + 1,
+                'tanggal_lahir' => '2012-05-01',
+            ]
+        ));
+        $futureResponse->assertSessionHasErrors('angkatan');
+    }
+
+    public function test_siswa_csv_import_supports_alumni_and_rejects_invalid_entry_age(): void
+    {
+        $operator = $this->operator();
+
+        $validAlumniCsv = implode("\n", [
+            'nama_siswa,nis,angkatan,alamat,tanggal_lahir,jenis_kelamin,wali_murid,nohp_wali,status',
+            'Alumni CSV,20181001,2018,Jl. Alumni No. 1,2005-05-10,L,Wali Alumni,081234567899,lulus',
+        ]);
+
+        $response = $this->actingAs($operator)->post(route('siswa.import-csv'), [
+            'csv_file' => UploadedFile::fake()->createWithContent('alumni.csv', $validAlumniCsv),
+        ]);
+
+        $response->assertRedirect(route('siswa.index'));
+        $alumni = Siswa::where('nis', '20181001')->firstOrFail();
+        $this->assertSame(2018, $alumni->angkatan);
+        $this->assertSame('lulus', $alumni->status);
+        $this->assertDatabaseHas('users', ['siswa_id' => $alumni->id, 'status' => 'nonaktif']);
+
+        $invalidCsv = implode("\n", [
+            'nama_siswa,nis,angkatan,alamat,tanggal_lahir,jenis_kelamin,wali_murid,nohp_wali',
+            'Siswa Salah,20181002,2018,Jl. Salah No. 2,2015-05-10,L,Wali Salah,081234567898',
+        ]);
+
+        $invalidResponse = $this->actingAs($operator)->post(route('siswa.import-csv'), [
+            'csv_file' => UploadedFile::fake()->createWithContent('invalid.csv', $invalidCsv),
+        ]);
+
+        $invalidResponse->assertSessionHas('csv_errors');
+        $this->assertDatabaseMissing('siswas', ['nis' => '20181002']);
+    }
 }

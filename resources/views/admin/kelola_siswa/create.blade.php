@@ -65,12 +65,19 @@
                 </div>
             </div>
 
-            <!-- Kelas & Angkatan (Grid 2 Kolom) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Kelas, Angkatan & Status (Grid 3 Kolom) -->
+            @php
+                $selectedAngkatan = (int) old('angkatan', \App\Models\AcademicPeriod::defaultAngkatan());
+                $maxYear = max(\App\Models\Siswa::maxAngkatan(), $selectedAngkatan);
+                $minYear = min(\App\Models\Siswa::MIN_ANGKATAN, $selectedAngkatan > 0 ? $selectedAngkatan : \App\Models\Siswa::MIN_ANGKATAN);
+                $minBirthYear = $selectedAngkatan - \App\Models\Siswa::MAX_ENTRY_AGE;
+                $maxBirthYear = $selectedAngkatan - \App\Models\Siswa::MIN_ENTRY_AGE;
+            @endphp
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                     <label for="kelas_id" class="block text-sm font-bold text-gray-700 mb-1">Kelas ({{ \App\Models\AcademicPeriod::activeTahunAjaran() }})</label>
                     <select id="kelas_id" name="kelas_id" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-gray-800">
-                        <option value="">-- Pilih Kelas --</option>
+                        <option value="">-- Tanpa Kelas / Alumni --</option>
                         @foreach($kelases as $k)
                             <option value="{{ $k->id }}" {{ old('kelas_id') == $k->id ? 'selected' : '' }}>
                                 {{ $k->nama_kelas }} (Tingkat {{ $k->tingkatan }})
@@ -84,11 +91,6 @@
 
                 <div>
                     <label for="angkatan" class="block text-sm font-bold text-gray-700 mb-1">Angkatan (Tahun Masuk)</label>
-                    @php
-                        $selectedAngkatan = (int) old('angkatan', \App\Models\AcademicPeriod::defaultAngkatan());
-                        $maxYear = max((int) date('Y') + 5, $selectedAngkatan);
-                        $minYear = min(2000, $selectedAngkatan > 0 ? $selectedAngkatan : 2000);
-                    @endphp
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -103,8 +105,21 @@
                             @endfor
                         </select>
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">Pilih tahun siswa pertama kali masuk sekolah (format tahun: YYYY).</p>
+                    <p class="text-xs text-gray-500 mt-1">Tahun masuk sekolah ({{ $minYear }}–{{ $maxYear }}).</p>
                     @error('angkatan')
+                        <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="status" class="block text-sm font-bold text-gray-700 mb-1">Status Siswa</label>
+                    <select id="status" name="status" class="w-full px-4 py-2.5 rounded-xl border @error('status') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-gray-800">
+                        @foreach(\App\Models\Siswa::STATUS_OPTIONS as $statusVal => $statusLabel)
+                            <option value="{{ $statusVal }}" {{ old('status', 'aktif') === $statusVal ? 'selected' : '' }}>{{ $statusLabel }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Pilih "Lulus" untuk data alumni.</p>
+                    @error('status')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror
                 </div>
@@ -142,13 +157,13 @@
                         type="date" 
                         id="tanggal_lahir" 
                         name="tanggal_lahir" 
-                        min="{{ now()->subYears(16)->format('Y-m-d') }}"
-                        max="{{ now()->subYears(10)->format('Y-m-d') }}"
+                        min="{{ $minBirthYear }}-01-01"
+                        max="{{ $maxBirthYear }}-12-31"
                         value="{{ old('tanggal_lahir') }}" 
                         required 
                         class="w-full px-4 py-2.5 rounded-xl border @error('tanggal_lahir') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
-                    <p class="text-xs text-gray-500 mt-1">Usia siswa harus antara 10 hingga 16 tahun.</p>
+                    <p id="tanggal_lahir_hint" class="text-xs text-gray-500 mt-1">Usia masuk {{ \App\Models\Siswa::MIN_ENTRY_AGE }}–{{ \App\Models\Siswa::MAX_ENTRY_AGE }} tahun (lahir {{ $minBirthYear }}–{{ $maxBirthYear }} untuk angkatan {{ $selectedAngkatan }}).</p>
                     @error('tanggal_lahir')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror
@@ -225,7 +240,7 @@
                         <span class="font-bold text-emerald-900">Username: NIS</span> &bull; 
                         <span class="font-bold text-emerald-900">Password: NIS</span> &bull; 
                         <span class="font-bold text-emerald-900">Email: NIS@siswa.learnpoint.sch.id</span> &bull; 
-                        <span class="font-bold text-emerald-800">Status: Aktif</span>
+                        <span class="font-bold text-emerald-800">Status Akun: Mengikuti Status Siswa (Aktif / Nonaktif)</span>
                     </p>
                 </div>
             </div>
@@ -243,4 +258,30 @@
     </div>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const angkatanEl = document.getElementById('angkatan');
+    const tglEl = document.getElementById('tanggal_lahir');
+    const hintEl = document.getElementById('tanggal_lahir_hint');
+    if (!angkatanEl || !tglEl) return;
+
+    const minAge = {{ \App\Models\Siswa::MIN_ENTRY_AGE }};
+    const maxAge = {{ \App\Models\Siswa::MAX_ENTRY_AGE }};
+
+    function syncBirthDateBounds() {
+        const angkatan = parseInt(angkatanEl.value, 10);
+        if (!angkatan) return;
+        const minYear = angkatan - maxAge;
+        const maxYear = angkatan - minAge;
+        tglEl.min = `${minYear}-01-01`;
+        tglEl.max = `${maxYear}-12-31`;
+        if (hintEl) {
+            hintEl.textContent = `Usia masuk ${minAge}–${maxAge} tahun (lahir ${minYear}–${maxYear} untuk angkatan ${angkatan}).`;
+        }
+    }
+
+    angkatanEl.addEventListener('change', syncBirthDateBounds);
+});
+</script>
 @endsection
