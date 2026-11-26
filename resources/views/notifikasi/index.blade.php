@@ -39,7 +39,7 @@
                         @if(auth()->user()->isGuru())
                             Pantau kiriman tugas siswa, peringatan pengumpulan terlambat, serta aktivitas evaluasi kelas secara langsung.
                         @else
-                            Pantau tugas baru, modul ajar, rilis nilai evaluasi, dan pengumuman sekolah secara terpadu.
+                            Pantau tugas baru, modul ajar, jadwal ujian, pengingat deadline, dan rilis nilai evaluasi secara terpadu.
                         @endif
                     </p>
 
@@ -63,19 +63,30 @@
             </div>
 
             <!-- Top Header Actions -->
-            <div class="flex items-center gap-2.5 shrink-0 self-start md:self-center">
+            <div class="flex items-center gap-2 shrink-0 self-start md:self-center flex-wrap">
                 @if(($unreadCount ?? 0) > 0)
                     <form action="{{ route('notifikasi.mark-all-read') }}" method="POST">
                         @csrf
-                        <button type="submit" class="px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold backdrop-blur-sm border border-white/20 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer">
+                        <button type="submit" class="px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold backdrop-blur-sm border border-white/20 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <span>Tandai Semua Dibaca</span>
                         </button>
                     </form>
                 @endif
 
+                @if(($readCount ?? 0) > 0)
+                    <form action="{{ route('notifikasi.clear-read') }}" method="POST" data-confirm="Hapus semua notifikasi yang sudah dibaca? Notifikasi yang belum dibaca tetap aman.">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold backdrop-blur-sm border border-white/20 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer" title="Hapus hanya yang sudah dibaca">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            <span>Hapus Sudah Dibaca</span>
+                        </button>
+                    </form>
+                @endif
+
                 @if(($totalCount ?? 0) > 0)
-                    <form action="{{ route('notifikasi.clear-all') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus seluruh riwayat notifikasi?');">
+                    <form action="{{ route('notifikasi.clear-all') }}" method="POST" data-confirm="Apakah Anda yakin ingin menghapus seluruh riwayat notifikasi (termasuk yang belum dibaca)?">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="px-3.5 py-2.5 rounded-xl bg-rose-500/80 hover:bg-rose-600 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer" title="Bersihkan Semua Notifikasi">
@@ -107,6 +118,12 @@
                     <span class="px-1.5 py-0.5 rounded-md text-[10px] {{ ($filter ?? '') === 'belum_dibaca' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800' }}">{{ $unreadCount ?? 0 }}</span>
                 </a>
 
+                <a href="{{ route('notifikasi.index', ['filter' => 'materi', 'search' => request('search')]) }}"
+                   class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 {{ ($filter ?? '') === 'materi' ? 'bg-teal-600 text-white shadow-xs' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80' }}">
+                    <span>Materi</span>
+                    <span class="px-1.5 py-0.5 rounded-md text-[10px] {{ ($filter ?? '') === 'materi' ? 'bg-white/20 text-white' : 'bg-teal-100 text-teal-800' }}">{{ $materiCount ?? 0 }}</span>
+                </a>
+
                 <a href="{{ route('notifikasi.index', ['filter' => 'tugas', 'search' => request('search')]) }}"
                    class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 {{ ($filter ?? '') === 'tugas' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80' }}">
                     <span>Tugas</span>
@@ -117,6 +134,12 @@
                    class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 {{ ($filter ?? '') === 'evaluasi' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80' }}">
                     <span>Kuis &amp; Ujian</span>
                     <span class="px-1.5 py-0.5 rounded-md text-[10px] {{ ($filter ?? '') === 'evaluasi' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700' }}">{{ $evaluasiCount ?? 0 }}</span>
+                </a>
+
+                <a href="{{ route('notifikasi.index', ['filter' => 'pengingat', 'search' => request('search')]) }}"
+                   class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 {{ ($filter ?? '') === 'pengingat' ? 'bg-purple-600 text-white shadow-xs' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80' }}">
+                    <span>Pengingat</span>
+                    <span class="px-1.5 py-0.5 rounded-md text-[10px] {{ ($filter ?? '') === 'pengingat' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800' }}">{{ $pengingatCount ?? 0 }}</span>
                 </a>
             </div>
 
@@ -149,14 +172,34 @@
     <!-- Notifications List Container -->
     <div class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
         @if($notifikasis->count() > 0)
+            @php $lastDateGroup = null; @endphp
             <div class="divide-y divide-gray-100">
                 @foreach($notifikasis as $notif)
                     @php
                         $isUnread = !$notif->is_read;
                         $tipe = $notif->tipe ?? 'info';
 
+                        // Date Grouping (Hari Ini, Kemarin, Minggu Ini, Lebih Lama)
+                        $createdAt = $notif->created_at;
+                        $dateGroup = 'Lebih Lama';
+                        if ($createdAt) {
+                            if ($createdAt->isToday()) {
+                                $dateGroup = 'Hari Ini';
+                            } elseif ($createdAt->isYesterday()) {
+                                $dateGroup = 'Kemarin';
+                            } elseif ($createdAt->greaterThanOrEqualTo(now()->startOfWeek())) {
+                                $dateGroup = 'Minggu Ini';
+                            }
+                        }
+
                         // Styling and icons based on type
                         $typeConfig = match($tipe) {
+                            'tugas_baru' => [
+                                'iconBg' => 'bg-sky-50 text-sky-600 border-sky-200',
+                                'badge'  => 'bg-sky-50 text-sky-700 border-sky-200',
+                                'label'  => 'Tugas Baru',
+                                'icon'   => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+                            ],
                             'tugas_terlambat' => [
                                 'iconBg' => 'bg-rose-50 text-rose-600 border-rose-200',
                                 'badge'  => 'bg-rose-50 text-rose-700 border-rose-200',
@@ -169,6 +212,12 @@
                                 'label'  => 'Pengumpulan Tugas',
                                 'icon'   => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
                             ],
+                            'kuis_baru' => [
+                                'iconBg' => 'bg-violet-50 text-violet-600 border-violet-200',
+                                'badge'  => 'bg-violet-50 text-violet-700 border-violet-200',
+                                'label'  => 'Kuis Baru',
+                                'icon'   => 'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+                            ],
                             'kuis_selesai' => [
                                 'iconBg' => 'bg-emerald-50 text-emerald-600 border-emerald-200',
                                 'badge'  => 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -178,13 +227,19 @@
                             'ujian_baru', 'ujian_selesai' => [
                                 'iconBg' => 'bg-indigo-50 text-indigo-600 border-indigo-200',
                                 'badge'  => 'bg-indigo-50 text-indigo-700 border-indigo-200',
-                                'label'  => 'Ujian & Evaluasi',
+                                'label'  => $tipe === 'ujian_selesai' ? 'Ujian Selesai' : 'Ujian Baru',
                                 'icon'   => 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
                             ],
-                            'nilai_tugas' => [
+                            'ujian_remidi' => [
+                                'iconBg' => 'bg-orange-50 text-orange-600 border-orange-200',
+                                'badge'  => 'bg-orange-50 text-orange-700 border-orange-200',
+                                'label'  => 'Remidi / Susulan',
+                                'icon'   => 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15',
+                            ],
+                            'nilai_tugas', 'nilai_ujian' => [
                                 'iconBg' => 'bg-blue-50 text-blue-600 border-blue-200',
                                 'badge'  => 'bg-blue-50 text-blue-700 border-blue-200',
-                                'label'  => 'Nilai Diberikan',
+                                'label'  => $tipe === 'nilai_ujian' ? 'Nilai Ujian' : 'Nilai Tugas',
                                 'icon'   => 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z',
                             ],
                             'materi_baru' => [
@@ -192,6 +247,16 @@
                                 'badge'  => 'bg-teal-50 text-teal-700 border-teal-200',
                                 'label'  => 'Materi Pembelajaran',
                                 'icon'   => 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
+                            ],
+                            'pengingat_deadline', 'pengingat_ujian', 'pengingat_koreksi' => [
+                                'iconBg' => 'bg-purple-50 text-purple-600 border-purple-200',
+                                'badge'  => 'bg-purple-50 text-purple-700 border-purple-200',
+                                'label'  => match($tipe) {
+                                    'pengingat_deadline' => 'Pengingat Deadline',
+                                    'pengingat_ujian'    => 'Pengingat Jadwal',
+                                    default              => 'Pengingat Koreksi',
+                                },
+                                'icon'   => 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9',
                             ],
                             default => [
                                 'iconBg' => 'bg-blue-50 text-blue-600 border-blue-100',
@@ -201,6 +266,13 @@
                             ],
                         };
                     @endphp
+
+                    @if($dateGroup !== $lastDateGroup)
+                        @php $lastDateGroup = $dateGroup; @endphp
+                        <div class="px-5 sm:px-6 py-2.5 bg-slate-50/90 border-b border-gray-100">
+                            <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">{{ $dateGroup }}</span>
+                        </div>
+                    @endif
 
                     <div class="p-5 sm:p-6 transition-all flex flex-col sm:flex-row sm:items-start justify-between gap-4 {{ $isUnread ? 'bg-blue-50/25 border-l-4 border-l-blue-600' : 'hover:bg-slate-50/60' }} group">
                         
@@ -257,23 +329,21 @@
                                 </a>
                             @endif
 
-                            <!-- Toggle Read Form -->
-                            <form action="{{ route('notifikasi.toggle', $notif->id) }}" method="POST">
-                                @csrf
-                                @method('PATCH')
-                                <button type="submit"
-                                        class="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
-                                        title="{{ $isUnread ? 'Tandai sudah dibaca' : 'Tandai belum dibaca' }}">
-                                    @if($isUnread)
+                            @if($isUnread)
+                                <!-- Mark as Read Form -->
+                                <form action="{{ route('notifikasi.toggle', $notif->id) }}" method="POST">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit"
+                                            class="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                                            title="Tandai sudah dibaca">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                    @else
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                    @endif
-                                </button>
-                            </form>
+                                    </button>
+                                </form>
+                            @endif
 
                             <!-- Delete Form -->
-                            <form action="{{ route('notifikasi.destroy', $notif->id) }}" method="POST">
+                            <form action="{{ route('notifikasi.destroy', $notif->id) }}" method="POST" data-confirm="Apakah Anda yakin ingin menghapus notifikasi ini?">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit"

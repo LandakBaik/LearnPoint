@@ -707,7 +707,8 @@ class AcademicRelocationService
         string $judul,
         string $url
     ): void {
-        $mapelBaru = $targetPk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+        $mapel = $targetPk->guruMapel?->mapel;
+        $mapelBaru = $mapel?->nama_mapel ?? 'Mata Pelajaran';
 
         if ((int) $sourcePk->kelas_id === (int) $targetPk->kelas_id) {
             // Kelas sama -> cukup update pesan pada notifikasi yang sudah ada
@@ -731,7 +732,14 @@ class AcademicRelocationService
             "Guru telah menerbitkan aktivitas pembelajaran pada mata pelajaran {$mapelBaru}.",
             $tipeNotif,
             $url,
-            $referensiId
+            $referensiId,
+            [
+                'resource_type' => str_replace('_baru', '', $tipeNotif),
+                'resource_id'   => $referensiId,
+                'mapel_id'      => $mapel?->id,
+                'kelas_id'      => $targetPk->kelas_id,
+            ],
+            $mapel?->target_agama
         );
     }
 }

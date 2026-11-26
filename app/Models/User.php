@@ -63,6 +63,10 @@ class User extends Authenticatable
         return $this->belongsTo(Siswa::class, 'siswa_id');
     }
 
+    protected ?int $cachedUnreadNotifikasiCount = null;
+
+    protected ?\Illuminate\Database\Eloquent\Collection $cachedHeaderNotifikasis = null;
+
     public function notifikasi()
     {
         return $this->hasMany(Notifikasi::class, 'user_id');
@@ -70,7 +74,29 @@ class User extends Authenticatable
 
     public function unreadNotifikasiCount(): int
     {
-        return $this->notifikasi()->where('is_read', false)->count();
+        if ($this->cachedUnreadNotifikasiCount === null) {
+            $this->cachedUnreadNotifikasiCount = $this->notifikasi()->where('is_read', false)->count();
+        }
+
+        return $this->cachedUnreadNotifikasiCount;
+    }
+
+    public function headerNotifikasis(int $limit = 5): \Illuminate\Database\Eloquent\Collection
+    {
+        if ($this->cachedHeaderNotifikasis === null) {
+            $this->cachedHeaderNotifikasis = $this->notifikasi()
+                ->latest()
+                ->take($limit)
+                ->get();
+        }
+
+        return $this->cachedHeaderNotifikasis;
+    }
+
+    public function clearNotifikasiCache(): void
+    {
+        $this->cachedUnreadNotifikasiCount = null;
+        $this->cachedHeaderNotifikasis = null;
     }
 
     public function absensi()

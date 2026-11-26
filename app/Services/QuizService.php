@@ -242,7 +242,10 @@ class QuizService
             $this->deleteSoalImage($soal->gambar, $soal->id);
         }
 
+        $quizId = $quiz->id;
         $quiz->delete();
+
+        Notifikasi::hapusByReferensi(['kuis_baru', 'kuis_selesai', 'pengingat_ujian'], $quizId);
     }
 
     /**
@@ -413,7 +416,8 @@ class QuizService
             return;
         }
 
-        $mapelNama = $quiz->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+        $mapel = $quiz->pengampuKelas?->guruMapel?->mapel;
+        $mapelNama = $mapel?->nama_mapel ?? 'Mata Pelajaran';
         $jadwalInfo = $quiz->waktu_selesai
             ? ' Batas pengerjaan: ' . $quiz->waktu_selesai->locale('id')->translatedFormat('d M Y, H:i') . ' WIB.'
             : ' Kuis ini dapat dikerjakan sesuai petualangan yang tersedia.';
@@ -424,7 +428,15 @@ class QuizService
             "Guru telah menerbitkan kuis petualangan untuk mata pelajaran {$mapelNama}.{$jadwalInfo}",
             'kuis_baru',
             route('siswa.kuis.show', $quiz->id),
-            $quiz->id
+            $quiz->id,
+            [
+                'resource_type' => 'quiz',
+                'resource_id'   => $quiz->id,
+                'quiz_id'       => $quiz->id,
+                'mapel_id'      => $mapel?->id,
+                'kelas_id'      => $kelasId,
+            ],
+            $mapel?->target_agama
         );
     }
 
@@ -513,14 +525,22 @@ class QuizService
             ? "Siswa {$namaSiswa} ({$namaKelas}) telah menyelesaikan kuis petualangan '{$quiz->judul}' dengan nilai {$extraPayload['nilai']}."
             : "Siswa {$namaSiswa} ({$namaKelas}) telah menyelesaikan seluruh level kuis '{$quiz->judul}'.";
 
-        Notifikasi::kirim(
+        Notifikasi::kirimAtauRollupKeGuru(
             $guruUser->id,
             "Kuis Selesai Dikerjakan: {$quiz->judul}",
             $message,
             'kuis_selesai',
             route('guru.kuis.show', $quiz->id),
             $quiz->id,
-            array_merge(['siswa_id' => $siswa->id, 'quiz_id' => $quiz->id], $extraPayload)
+            $namaSiswa,
+            $quiz->judul,
+            'Menyelesaikan Kuis',
+            array_merge([
+                'resource_type' => 'quiz',
+                'resource_id'   => $quiz->id,
+                'siswa_id'      => $siswa->id,
+                'quiz_id'       => $quiz->id,
+            ], $extraPayload)
         );
     }
 }

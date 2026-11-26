@@ -360,17 +360,22 @@ class TugasController extends Controller
                 $isLate = $status === 'telat';
                 $namaSiswa = $siswa->nama_siswa ?? Auth::user()->name;
                 $namaKelas = $tugas->pengampuKelas?->kelas?->nama_kelas ?? 'Kelas';
-                Notifikasi::kirim(
+                Notifikasi::kirimAtauRollupKeGuru(
                     $guruUser->id,
                     ($isLate ? 'Pengumpulan Tugas Terlambat: ' : 'Tugas Pilihan Ganda Dikumpulkan: ') . $tugas->judul,
                     "Siswa {$namaSiswa} ({$namaKelas}) telah mengumpulkan tugas pilihan ganda '{$tugas->judul}'.",
                     $isLate ? 'tugas_terlambat' : 'tugas_dikumpulkan',
                     route('guru.tugas.show', $tugas->id),
                     $tugas->id,
+                    $namaSiswa,
+                    $tugas->judul,
+                    $isLate ? 'Mengumpulkan Tugas Terlambat' : 'Mengumpulkan Tugas',
                     [
-                        'tugas_id' => $tugas->id,
-                        'siswa_id' => $siswa->id,
-                        'is_late' => $isLate,
+                        'resource_type' => 'tugas',
+                        'resource_id'   => $tugas->id,
+                        'tugas_id'      => $tugas->id,
+                        'siswa_id'      => $siswa->id,
+                        'is_late'       => $isLate,
                     ]
                 );
             }
@@ -441,17 +446,22 @@ class TugasController extends Controller
             $isLate = $status === 'telat';
             $namaSiswa = $siswa->nama_siswa ?? Auth::user()->name;
             $namaKelas = $tugas->pengampuKelas?->kelas?->nama_kelas ?? 'Kelas';
-            Notifikasi::kirim(
+            Notifikasi::kirimAtauRollupKeGuru(
                 $guruUser->id,
                 ($isLate ? 'Pengumpulan Tugas Terlambat: ' : 'Pengumpulan Tugas Masuk: ') . $tugas->judul,
                 "Siswa {$namaSiswa} ({$namaKelas}) telah mengumpulkan tugas '{$tugas->judul}'" . ($isLate ? ' melewati batas deadline.' : '.'),
                 $isLate ? 'tugas_terlambat' : 'tugas_dikumpulkan',
                 route('guru.tugas.show', $tugas->id),
                 $tugas->id,
+                $namaSiswa,
+                $tugas->judul,
+                $isLate ? 'Mengumpulkan Tugas Terlambat' : 'Mengumpulkan Tugas',
                 [
-                    'tugas_id' => $tugas->id,
-                    'siswa_id' => $siswa->id,
-                    'is_late' => $isLate,
+                    'resource_type' => 'tugas',
+                    'resource_id'   => $tugas->id,
+                    'tugas_id'      => $tugas->id,
+                    'siswa_id'      => $siswa->id,
+                    'is_late'       => $isLate,
                 ]
             );
         }

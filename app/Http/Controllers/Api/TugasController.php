@@ -624,7 +624,8 @@ class TugasController extends Controller
         foreach ($hasilTugas as $item) {
             $tugas = $item['tugas'];
             $pengampu = $item['pengampu'];
-            $mapelNama = $pengampu->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+            $mapel = $pengampu->guruMapel?->mapel;
+            $mapelNama = $mapel?->nama_mapel ?? 'Mata Pelajaran';
 
             Notifikasi::kirimKeKelas(
                 $pengampu->kelas_id,
@@ -632,7 +633,15 @@ class TugasController extends Controller
                 "Guru telah menerbitkan tugas baru untuk mata pelajaran {$mapelNama}. Batas pengumpulan: {$deadlineFormatted} WIB.",
                 'tugas_baru',
                 route('siswa.tugas.show', $tugas->id),
-                $tugas->id
+                $tugas->id,
+                [
+                    'resource_type' => 'tugas',
+                    'resource_id'   => $tugas->id,
+                    'tugas_id'      => $tugas->id,
+                    'mapel_id'      => $mapel?->id,
+                    'kelas_id'      => $pengampu->kelas_id,
+                ],
+                $mapel?->target_agama
             );
         }
 
@@ -741,10 +750,17 @@ class TugasController extends Controller
         $fileLama = $tugas->file_lampiran;
         $gambarSoals = $tugas->soals->pluck('gambar')->filter()->all();
 
+        $tugasId = $tugas->id;
+
         DB::transaction(function () use ($tugas) {
             Soal::where('tugas_id', $tugas->id)->delete();
             $tugas->delete();
         });
+
+        Notifikasi::hapusByReferensi(
+            ['tugas_baru', 'tugas_dikumpulkan', 'tugas_terlambat', 'nilai_tugas', 'pengingat_deadline'],
+            $tugasId
+        );
 
         foreach ($gambarSoals as $g) {
             if (!Soal::where('gambar', $g)->exists() && Storage::disk('public')->exists($g)) {
@@ -810,8 +826,11 @@ class TugasController extends Controller
                 route('siswa.tugas.show', $pengumpulan->tugas_id),
                 $pengumpulan->tugas_id,
                 [
-                    'nilai' => $request->nilai,
-                    'tugas_id' => $pengumpulan->tugas_id
+                    'resource_type' => 'tugas',
+                    'resource_id'   => $pengumpulan->tugas_id,
+                    'tugas_id'      => $pengumpulan->tugas_id,
+                    'mapel_id'      => $pengumpulan->tugas?->pengampuKelas?->guruMapel?->mapel_id,
+                    'nilai'         => $request->nilai,
                 ]
             );
         }
@@ -1128,14 +1147,24 @@ class TugasController extends Controller
             if ($guruUser) {
                 $namaSiswa = $siswa->nama_siswa ?? $request->user()->name;
                 $namaKelas = $tugas->pengampuKelas?->kelas?->nama_kelas ?? 'Kelas';
-                Notifikasi::kirim(
+                Notifikasi::kirimAtauRollupKeGuru(
                     $guruUser->id,
                     ($isLate ? "Pengumpulan Tugas Terlambat: " : "Tugas Pilihan Ganda Dikumpulkan: ") . $tugas->judul,
                     "Siswa {$namaSiswa} ({$namaKelas}) telah menyelesaikan tugas pilihan ganda '{$tugas->judul}' dengan nilai {$pengumpulan->nilai}.",
                     $isLate ? 'tugas_terlambat' : 'tugas_dikumpulkan',
                     route('guru.tugas.show', $tugas->id),
                     $tugas->id,
-                    ['siswa_id' => $siswa->id, 'tugas_id' => $tugas->id, 'nilai' => $pengumpulan->nilai, 'is_late' => $isLate]
+                    $namaSiswa,
+                    $tugas->judul,
+                    $isLate ? 'Mengumpulkan Tugas Terlambat' : 'Mengumpulkan Tugas',
+                    [
+                        'resource_type' => 'tugas',
+                        'resource_id'   => $tugas->id,
+                        'siswa_id'      => $siswa->id,
+                        'tugas_id'      => $tugas->id,
+                        'nilai'         => $pengumpulan->nilai,
+                        'is_late'       => $isLate,
+                    ]
                 );
             }
 
@@ -1197,14 +1226,23 @@ class TugasController extends Controller
             $namaKelas = $tugas->pengampuKelas?->kelas?->nama_kelas
                 ?? 'Kelas';
 
-            Notifikasi::kirim(
+            Notifikasi::kirimAtauRollupKeGuru(
                 $guruUser->id,
                 ($isLate ? "Pengumpulan Tugas Terlambat: " : "Pengumpulan Tugas Masuk: ") . $tugas->judul,
                 "Siswa {$namaSiswa} ({$namaKelas}) telah mengumpulkan tugas '{$tugas->judul}'" . ($isLate ? ' melewati batas deadline.' : '.'),
                 $isLate ? 'tugas_terlambat' : 'tugas_dikumpulkan',
                 route('guru.tugas.show', $tugas->id),
                 $tugas->id,
-                ['siswa_id' => $siswa->id, 'tugas_id' => $tugas->id, 'is_late' => $isLate]
+                $namaSiswa,
+                $tugas->judul,
+                $isLate ? 'Mengumpulkan Tugas Terlambat' : 'Mengumpulkan Tugas',
+                [
+                    'resource_type' => 'tugas',
+                    'resource_id'   => $tugas->id,
+                    'siswa_id'      => $siswa->id,
+                    'tugas_id'      => $tugas->id,
+                    'is_late'       => $isLate,
+                ]
             );
         }
 

@@ -46,10 +46,13 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // Notifikasi Interaktif
     Route::get('/notifikasi', [NotifikasiController::class, 'index']);
+    Route::get('/notifikasi/preview', [NotifikasiController::class, 'preview']);
+    Route::get('/notifikasi/counts', [NotifikasiController::class, 'counts']);
     Route::patch('/notifikasi/{notifikasi}/toggle', [NotifikasiController::class, 'toggleRead']);
     Route::post('/notifikasi/{notifikasi}/read', [NotifikasiController::class, 'markAsRead']);
     Route::post('/notifikasi/mark-all-read', [NotifikasiController::class, 'markAllRead']);
     Route::post('/notifikasi/tandai-semua-dibaca', [NotifikasiController::class, 'markAllRead']);
+    Route::delete('/notifikasi/read', [NotifikasiController::class, 'clearRead']);
     Route::delete('/notifikasi/{notifikasi}', [NotifikasiController::class, 'destroy']);
     Route::delete('/notifikasi', [NotifikasiController::class, 'clearAll']);
 

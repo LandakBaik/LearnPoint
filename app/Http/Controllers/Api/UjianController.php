@@ -390,19 +390,11 @@ class UjianController extends Controller
             }
         });
 
-        if ($action === 'publish') {
+        if (in_array($action, ['publish', 'schedule'], true)) {
+            $notifService = app(\App\Services\UjianNotifikasiService::class);
             foreach ($createdUjians as $u) {
-                $pk = $pengampuKelases->firstWhere('id', $u->pengampu_kelas_id);
-                if ($pk) {
-                    $mapelNama = $pk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
-                    Notifikasi::kirimKeKelas(
-                        $pk->kelas_id,
-                        "Ujian Baru Dipublikasikan: {$u->judul}",
-                        "Ujian evaluasi {$mapelNama} telah dipublikasikan dan dapat diakses sesuai jadwal.",
-                        'ujian_baru',
-                        route('siswa.dashboard'),
-                        $u->id
-                    );
+                if (in_array($u->status, ['published', 'scheduled'], true)) {
+                    $notifService->notifyUjianPublished($u, $u->status === 'scheduled');
                 }
             }
         }
@@ -585,6 +577,8 @@ class UjianController extends Controller
             }
         });
 
+        app(\App\Services\UjianNotifikasiService::class)->cleanupOnDelete($ujianIds->all());
+
         foreach ($gambarSoal as $gambar) {
             if (!Soal::where('gambar', $gambar)->exists() && Storage::disk('public')->exists($gambar)) {
                 Storage::disk('public')->delete($gambar);
@@ -638,20 +632,10 @@ class UjianController extends Controller
             }
         });
 
-        if ($targetStatus === 'published') {
+        if (in_array($targetStatus, ['published', 'scheduled'], true)) {
+            $notifService = app(\App\Services\UjianNotifikasiService::class);
             foreach ($grupUjians as $anggota) {
-                $kelasId = $anggota->pengampuKelas?->kelas_id;
-                if ($kelasId) {
-                    $mapelNama = $anggota->pengampuKelas?->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
-                    Notifikasi::kirimKeKelas(
-                        $kelasId,
-                        "Ujian Baru Dipublikasikan: {$anggota->judul}",
-                        "Ujian evaluasi {$mapelNama} telah dipublikasikan dan dapat diakses sesuai jadwal.",
-                        'ujian_baru',
-                        route('siswa.dashboard'),
-                        $anggota->id
-                    );
-                }
+                $notifService->notifyUjianPublished($anggota->fresh(), $targetStatus === 'scheduled');
             }
         }
 
@@ -697,6 +681,10 @@ class UjianController extends Controller
             'token'            => $ujian->token ?: ('S' . $sesi . '-' . strtoupper(Str::random(4))),
             'dipublikasi_at'   => $status === 'published' ? ($ujian->dipublikasi_at ?? now()) : null,
         ]);
+
+        if (in_array($status, ['published', 'scheduled'], true)) {
+            app(\App\Services\UjianNotifikasiService::class)->notifyUjianPublished($ujian->fresh(), $status === 'scheduled');
+        }
 
         return $this->successResponse($ujian, 'Ujian berhasil dijadwalkan.');
     }
@@ -1459,6 +1447,12 @@ class UjianController extends Controller
 
         $hasilRekalkulasi = $this->rekalkulasiNilaiSiswa($targetUjianId, $validated['siswa_id']);
 
+        app(\App\Services\UjianNotifikasiService::class)->notifyNilaiUjianSiswa(
+            $targetUjianId,
+            (int) $validated['siswa_id'],
+            (float) $hasilRekalkulasi['nilai_akhir']
+        );
+
         return $this->successResponse([
             'skor_disimpan' => $skorValid,
             'nilai_akhir'   => $hasilRekalkulasi['nilai_akhir'],
@@ -1640,6 +1634,13 @@ class UjianController extends Controller
                 $createdUjians[] = $ujianBaru;
             }
         });
+
+        $notifService = app(\App\Services\UjianNotifikasiService::class);
+        foreach ($createdUjians as $u) {
+            if (in_array($u->status, ['published', 'scheduled'], true)) {
+                $notifService->notifyUjianPublished($u, $u->status === 'scheduled');
+            }
+        }
 
         return $this->createdResponse(
             count($createdUjians) === 1 ? $createdUjians[0] : $createdUjians,
@@ -2614,7 +2615,7 @@ class UjianController extends Controller
             }
         }
 
-        $result = DB::transaction(function () use ($ujian, $siswaId, $sesi) {
+        $result = DB::transaction(function () use ($ujian, $siswa, $siswaId, $sesi) {
             $soals = $ujian->soals;
             $soalIds = $soals->pluck('id');
 
@@ -2706,6 +2707,13 @@ class UjianController extends Controller
                     );
                 }
             }
+
+            app(\App\Services\UjianNotifikasiService::class)->notifyUjianSelesaiKeGuru(
+                $ujian,
+                $siswa,
+                (float) $nilaiAkhir,
+                $adaEssay
+            );
 
             return [
                 'seleksi_id'   => $sesi->id,

@@ -24,7 +24,7 @@ class NotifikasiController extends Controller
             $keyword = $request->search;
             $query->where(function ($q) use ($keyword) {
                 $q->where('judul', 'like', "%{$keyword}%")
-                  ->orWhere('pesan', 'like', "%{$keyword}%");
+                    ->orWhere('pesan', 'like', "%{$keyword}%");
             });
         }
 
@@ -33,26 +33,37 @@ class NotifikasiController extends Controller
         if ($filter === 'belum_dibaca') {
             $query->where('is_read', false);
         } elseif ($filter === 'tugas') {
-            $query->whereIn('tipe', ['tugas_dikumpulkan', 'tugas_terlambat', 'tugas_baru', 'nilai_tugas']);
+            $query->whereIn('tipe', Notifikasi::TIPE_TUGAS);
         } elseif ($filter === 'evaluasi') {
-            $query->whereIn('tipe', ['kuis_selesai', 'ujian_selesai', 'kuis_baru', 'ujian_baru']);
+            $query->whereIn('tipe', Notifikasi::TIPE_EVALUASI);
+        } elseif ($filter === 'materi') {
+            $query->whereIn('tipe', Notifikasi::TIPE_MATERI);
+        } elseif ($filter === 'pengingat') {
+            $query->whereIn('tipe', Notifikasi::TIPE_PENGINGAT);
         }
 
         $notifikasis = $query->paginate(15)->withQueryString();
 
-        // Badge Counts
-        $totalCount    = $user->notifikasi()->count();
-        $unreadCount   = $user->notifikasi()->where('is_read', false)->count();
-        $tugasCount    = $user->notifikasi()->whereIn('tipe', ['tugas_dikumpulkan', 'tugas_terlambat', 'tugas_baru', 'nilai_tugas'])->count();
-        $evaluasiCount = $user->notifikasi()->whereIn('tipe', ['kuis_selesai', 'ujian_selesai', 'kuis_baru', 'ujian_baru'])->count();
+        // Badge Counts dalam 1 query agregat
+        $counts = Notifikasi::countsForUser($user->id);
+        $totalCount     = $counts['total'];
+        $unreadCount    = $counts['unread'];
+        $readCount      = max(0, $totalCount - $unreadCount);
+        $tugasCount     = $counts['tugas'];
+        $evaluasiCount  = $counts['evaluasi'];
+        $materiCount    = $counts['materi'];
+        $pengingatCount = $counts['pengingat'];
 
         return view('notifikasi.index', compact(
             'notifikasis',
             'filter',
             'totalCount',
             'unreadCount',
+            'readCount',
             'tugasCount',
-            'evaluasiCount'
+            'evaluasiCount',
+            'materiCount',
+            'pengingatCount'
         ));
     }
 
@@ -74,22 +85,20 @@ class NotifikasiController extends Controller
     }
 
     /**
-     * Toggle read / unread status for a single notification.
+     * Mark a single notification as read (one-way).
      */
     public function toggleRead(Notifikasi $notifikasi)
     {
         abort_unless($notifikasi->user_id === auth()->id(), 403);
 
-        if ($notifikasi->is_read) {
-            $notifikasi->markAsUnread();
-            $message = 'Notifikasi ditandai sebagai belum dibaca.';
-        } else {
+        if (!$notifikasi->is_read) {
             $notifikasi->markAsRead();
-            $message = 'Notifikasi berhasil ditandai sebagai dibaca.';
         }
 
+        $message = 'Notifikasi berhasil ditandai sebagai dibaca.';
+
         if (request()->wantsJson()) {
-            return response()->json(['success' => true, 'is_read' => $notifikasi->is_read, 'message' => $message]);
+            return response()->json(['success' => true, 'is_read' => true, 'message' => $message]);
         }
 
         return back()->with('success', $message);
@@ -106,6 +115,7 @@ class NotifikasiController extends Controller
                 'is_read' => true,
                 'read_at' => now(),
             ]);
+            $user->clearNotifikasiCache();
         }
 
         if ($request->wantsJson()) {
@@ -128,6 +138,25 @@ class NotifikasiController extends Controller
     }
 
     /**
+     * Delete only read notifications for current user.
+     */
+    public function clearRead(Request $request)
+    {
+        $user = auth()->user();
+        $deleted = 0;
+
+        if ($user) {
+            $deleted = $user->notifikasi()->where('is_read', true)->delete();
+            $user->clearNotifikasiCache();
+        }
+
+        return redirect()->route('notifikasi.index')
+            ->with('success', $deleted > 0
+                ? "{$deleted} notifikasi yang sudah dibaca berhasil dihapus."
+                : 'Tidak ada notifikasi yang sudah dibaca untuk dihapus.');
+    }
+
+    /**
      * Delete all notifications for current user.
      */
     public function clearAll(Request $request)
@@ -135,6 +164,7 @@ class NotifikasiController extends Controller
         $user = auth()->user();
         if ($user) {
             $user->notifikasi()->delete();
+            $user->clearNotifikasiCache();
         }
 
         return redirect()->route('notifikasi.index')

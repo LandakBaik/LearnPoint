@@ -659,6 +659,10 @@ class UjianController extends Controller
                         'tugas_id' => null,
                     ]);
                 }
+
+                if (in_array($status, ['published', 'scheduled'], true)) {
+                    app(\App\Services\UjianNotifikasiService::class)->notifyUjianPublished($ujian, $status === 'scheduled');
+                }
             }
         });
 
@@ -1264,6 +1268,11 @@ class UjianController extends Controller
                     }
                 });
 
+                $notifService = app(\App\Services\UjianNotifikasiService::class);
+                foreach ($grupUjians as $anggota) {
+                    $notifService->notifyUjianPublished($anggota->fresh(), false);
+                }
+
                 return back()->with('success', 'Waktu mulai telah tiba. Ujian langsung dipublikasikan (Live) untuk semua kelas.');
             }
 
@@ -1294,6 +1303,11 @@ class UjianController extends Controller
                 }
             });
 
+            $notifService = app(\App\Services\UjianNotifikasiService::class);
+            foreach ($grupUjians as $anggota) {
+                $notifService->notifyUjianPublished($anggota->fresh(), true);
+            }
+
             return back()->with('success', 'Ujian berhasil dijadwalkan dan akan aktif otomatis pada jadwal.');
         }
 
@@ -1323,6 +1337,11 @@ class UjianController extends Controller
                 ]);
             }
         });
+
+        $notifService = app(\App\Services\UjianNotifikasiService::class);
+        foreach ($grupUjians as $anggota) {
+            $notifService->notifyUjianPublished($anggota->fresh(), false);
+        }
 
         return back()->with('success', 'Ujian berhasil dipublikasikan dan sekarang dapat dikerjakan siswa.');
     }
@@ -1552,6 +1571,8 @@ class UjianController extends Controller
                 $anggota->delete();
             }
         });
+
+        app(\App\Services\UjianNotifikasiService::class)->cleanupOnDelete($ujianIds->all());
 
         // Hapus file gambar hanya jika tidak lagi dipakai oleh soal duplikat/remidi lain.
         foreach ($gambarSoal as $gambar) {
@@ -2708,6 +2729,12 @@ class UjianController extends Controller
         // 2. Hitung ulang Nilai Akhir siswa (PG + Essay) & sinkronkan ke ujian induk jika remidi/susulan
         $hasilRekalkulasi = $this->rekalkulasiNilaiSiswa($validated['ujian_id'], $validated['siswa_id']);
 
+        app(\App\Services\UjianNotifikasiService::class)->notifyNilaiUjianSiswa(
+            (int) $validated['ujian_id'],
+            (int) $validated['siswa_id'],
+            (float) $hasilRekalkulasi['nilai_akhir']
+        );
+
         return response()->json([
             'status' => 'success',
             'skor_disimpan' => $skorValid,
@@ -2869,6 +2896,13 @@ class UjianController extends Controller
                         $soalBaru->ujian_id = $ujianBaru->id;
                         $soalBaru->save();
                     }
+                }
+
+                if (in_array($statusBaru, ['published', 'scheduled'], true)) {
+                    app(\App\Services\UjianNotifikasiService::class)->notifyUjianPublished(
+                        $ujianBaru,
+                        $statusBaru === 'scheduled'
+                    );
                 }
             }
         });

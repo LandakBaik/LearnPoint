@@ -468,8 +468,9 @@ class TugasController extends Controller
         foreach ($hasilTugas as $item) {
             $tugas = $item['tugas'];
             $pengampu = $item['pengampu'];
+            $mapel = $pengampu->guruMapel?->mapel;
 
-            $mapelNama = $pengampu->guruMapel?->mapel?->nama_mapel
+            $mapelNama = $mapel?->nama_mapel
                 ?? 'Mata Pelajaran';
 
             Notifikasi::kirimKeKelas(
@@ -478,7 +479,15 @@ class TugasController extends Controller
                 "Guru telah menerbitkan tugas baru untuk mata pelajaran {$mapelNama}. Batas pengumpulan: {$deadlineFormatted} WIB.",
                 'tugas_baru',
                 route('siswa.tugas.show', $tugas->id),
-                $tugas->id
+                $tugas->id,
+                [
+                    'resource_type' => 'tugas',
+                    'resource_id'   => $tugas->id,
+                    'tugas_id'      => $tugas->id,
+                    'mapel_id'      => $mapel?->id,
+                    'kelas_id'      => $pengampu->kelas_id,
+                ],
+                $mapel?->target_agama
             );
         }
 
@@ -792,11 +801,18 @@ class TugasController extends Controller
         $fileLama = $tugas->file_lampiran;
         $gambarSoals = $tugas->soals()->pluck('gambar')->filter()->all();
 
+        $tugasId = $tugas->id;
+
         DB::transaction(function () use ($tugas) {
             Soal::where('tugas_id', $tugas->id)->delete();
 
             $tugas->delete();
         });
+
+        Notifikasi::hapusByReferensi(
+            ['tugas_baru', 'tugas_dikumpulkan', 'tugas_terlambat', 'nilai_tugas', 'pengingat_deadline'],
+            $tugasId
+        );
 
         foreach ($gambarSoals as $gambar) {
             if (!Soal::where('gambar', $gambar)->exists() && Storage::disk('public')->exists($gambar)) {

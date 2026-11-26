@@ -322,8 +322,9 @@ class MateriController extends Controller
         foreach ($validPengampu as $pkId) {
             $pk = PengampuKelas::with('guruMapel.mapel')->find($pkId);
             if ($pk) {
+                $mapel = $pk->guruMapel?->mapel;
                 $mapelId = $pk->guruMapel?->mapel_id;
-                $mapelNama = $pk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+                $mapelNama = $mapel?->nama_mapel ?? 'Mata Pelajaran';
                 $targetUrl = $mapelId ? route('siswa.mapel.show', $mapelId) : route('siswa.mapel');
                 Notifikasi::kirimKeKelas(
                     $pk->kelas_id,
@@ -331,7 +332,14 @@ class MateriController extends Controller
                     "Guru telah membagikan materi pembelajaran baru untuk mata pelajaran {$mapelNama}.",
                     'materi_baru',
                     $targetUrl,
-                    $mapelId
+                    $mapelId,
+                    [
+                        'resource_type'  => 'materi',
+                        'resource_id'    => $mapelId,
+                        'mapel_id'       => $mapelId,
+                        'id_grub_materi' => $idGrubMateri,
+                    ],
+                    $mapel?->target_agama
                 );
             }
         }
@@ -492,8 +500,9 @@ class MateriController extends Controller
         foreach ($addedIds as $pkId) {
             $pk = PengampuKelas::with('guruMapel.mapel')->find($pkId);
             if ($pk) {
+                $mapel = $pk->guruMapel?->mapel;
                 $mapelId = $pk->guruMapel?->mapel_id;
-                $mapelNama = $pk->guruMapel?->mapel?->nama_mapel ?? 'Mata Pelajaran';
+                $mapelNama = $mapel?->nama_mapel ?? 'Mata Pelajaran';
                 $targetUrl = $mapelId ? route('siswa.mapel.show', $mapelId) : route('siswa.mapel');
                 Notifikasi::kirimKeKelas(
                     $pk->kelas_id,
@@ -501,7 +510,14 @@ class MateriController extends Controller
                     "Guru telah membagikan materi pembelajaran baru untuk mata pelajaran {$mapelNama}.",
                     'materi_baru',
                     $targetUrl,
-                    $mapelId
+                    $mapelId,
+                    [
+                        'resource_type'  => 'materi',
+                        'resource_id'    => $mapelId,
+                        'mapel_id'       => $mapelId,
+                        'id_grub_materi' => $id_grub_materi,
+                    ],
+                    $mapel?->target_agama
                 );
             }
         }
@@ -539,6 +555,10 @@ class MateriController extends Controller
 
         $filePath = $firstMateri->file_materi;
         Materi::where('id_grub_materi', $id_grub_materi)->delete();
+
+        Notifikasi::where('tipe', 'materi_baru')
+            ->where('data->id_grub_materi', $id_grub_materi)
+            ->delete();
 
         if ($filePath && !Materi::where('file_materi', $filePath)->exists()) {
             Storage::disk('local')->delete($filePath);

@@ -78,18 +78,8 @@
 
         <!-- Header Actions (Notifications & Profile) -->
         <div class="flex items-center gap-4 lg:gap-6">
-            <!-- Notification Icon with Badge -->
-            <a href="{{ route('notifikasi.index') }}" aria-label="Notifikasi" class="relative text-slate-600 hover:text-slate-800 transition">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                    <path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" stroke-linecap="round" stroke-linejoin="round"></path>
-                </svg>
-                @php
-                    $unreadNotifs = auth()->user()?->unreadNotifikasiCount() ?? 0;
-                @endphp
-                @if($unreadNotifs > 0)
-                    <span class="absolute -top-1 -right-1 bg-[#EF4444] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">{{ $unreadNotifs }}</span>
-                @endif
-            </a>
+            <!-- Notification Dropdown with Badge -->
+            @include('layouts.partials.notifikasi-dropdown', ['variant' => 'siswa'])
 
             <!-- User Profile Dropdown Pill -->
             <div class="relative" x-data="{ profileOpen: false }" @click.outside="profileOpen = false">
@@ -209,6 +199,31 @@
                     confirmButtonColor: '#f59e0b'
                 });
             @endif
+
+            // Global Confirmation Handler for Forms with data-confirm
+            document.addEventListener('submit', function (e) {
+                const form = e.target;
+                const confirmMessage = form.getAttribute('data-confirm');
+                if (confirmMessage && !form.dataset.confirmed) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: 'Konfirmasi Tindakan',
+                        text: confirmMessage,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#ef4444',
+                        cancelButtonColor: '#64748b',
+                        confirmButtonText: 'Ya, Lanjutkan!',
+                        cancelButtonText: 'Batal',
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.dataset.confirmed = 'true';
+                            form.submit();
+                        }
+                    });
+                }
+            });
         });
     </script>
 

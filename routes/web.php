@@ -66,6 +66,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/notifikasi/{notifikasi}/baca', [NotifikasiController::class, 'readAndRedirect'])->name('notifikasi.read');
     Route::patch('/notifikasi/{notifikasi}/toggle', [NotifikasiController::class, 'toggleRead'])->name('notifikasi.toggle');
     Route::post('/notifikasi/tandai-semua-dibaca', [NotifikasiController::class, 'markAllRead'])->name('notifikasi.mark-all-read');
+    Route::delete('/notifikasi-dibaca', [NotifikasiController::class, 'clearRead'])->name('notifikasi.clear-read');
     Route::delete('/notifikasi/{notifikasi}', [NotifikasiController::class, 'destroy'])->name('notifikasi.destroy');
     Route::delete('/notifikasi-semua', [NotifikasiController::class, 'clearAll'])->name('notifikasi.clear-all');
 

@@ -205,6 +205,7 @@ class DashboardController extends Controller
                 'total_kuis'         => $totalKuis,
                 'total_ujian'        => $totalUjian,
                 'perlu_dinilai'      => $perluDinilaiCount,
+                'unread_notif_count' => $user->unreadNotifikasiCount(),
             ],
             'guru_mapels'           => $guruMapels,
             'perlu_dinilai_tugases' => $perluDinilaiTugases,

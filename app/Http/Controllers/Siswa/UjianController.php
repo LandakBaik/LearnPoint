@@ -638,7 +638,7 @@ class UjianController extends Controller
                 ->with('error', 'Ujian sedang tidak aktif.');
         }
 
-        return DB::transaction(function () use ($ujian, $siswaId, $sesi) {
+        return DB::transaction(function () use ($ujian, $siswa, $siswaId, $sesi) {
             $soals = $ujian->soals;
             $soalIds = $soals->pluck('id');
 
@@ -777,6 +777,13 @@ class UjianController extends Controller
                  );
              }
          }
+
+            app(\App\Services\UjianNotifikasiService::class)->notifyUjianSelesaiKeGuru(
+                $ujian,
+                $siswa,
+                (float) $nilaiAkhir,
+                $adaEssay
+            );
 
             // JIKA KELUAR DARI TOMBOL KELUAR -> ARAHKAN KE DASHBOARD
             // Ganti baris pengecekan tersebut menjadi:
