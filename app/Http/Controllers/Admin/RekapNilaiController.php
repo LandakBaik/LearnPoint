@@ -6,11 +6,24 @@ use App\Http\Controllers\Controller;
 use App\Models\Siswa;
 use App\Services\RekapNilaiService;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RekapNilaiController extends Controller
 {
+    private const FILTER_KEYS = [
+        'academic_period_id',
+        'kelas_id',
+        'mapel_id',
+        'status',
+        'search',
+        'mode',
+        'hitung_kosong',
+        'sort_by',
+        'sort_dir',
+    ];
+
     public function __construct(
         protected RekapNilaiService $rekapNilaiService
     ) {}
@@ -20,14 +33,29 @@ class RekapNilaiController extends Controller
      */
     public function index(Request $request)
     {
-        $data = $this->rekapNilaiService->buildAdminRekap($request->only([
-            'academic_period_id',
-            'kelas_id',
-            'mapel_id',
-            'status',
-            'search',
-            'mode',
-        ]));
+        $data = $this->rekapNilaiService->buildAdminRekap($request->only(self::FILTER_KEYS));
+
+        $perPage = (int) $request->input('per_page', 25);
+        if (!in_array($perPage, [15, 25, 50, 100], true)) {
+            $perPage = 25;
+        }
+
+        $allFilteredRows = $data['rows'];
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $paginatedRows = new LengthAwarePaginator(
+            $allFilteredRows->forPage($currentPage, $perPage)->values(),
+            $allFilteredRows->count(),
+            $perPage,
+            $currentPage,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
+
+        $data['filteredTotal'] = $allFilteredRows->count();
+        $data['rows'] = $paginatedRows;
+        $data['perPage'] = $perPage;
 
         return view('admin.rekap_nilai.index', $data);
     }
@@ -40,8 +68,22 @@ class RekapNilaiController extends Controller
         $periodId = $request->filled('academic_period_id')
             ? (int) $request->input('academic_period_id')
             : null;
+        $hitungKosong = (string) $request->input('hitung_kosong', 'abaikan');
 
-        $data = $this->rekapNilaiService->buildSiswaDetail($siswa, $periodId);
+        $data = $this->rekapNilaiService->buildSiswaDetail($siswa, $periodId, $hitungKosong, 'rata');
+
+        $returnFilters = array_filter(
+            $request->only(array_merge(self::FILTER_KEYS, ['per_page', 'page'])),
+            fn ($v) => $v !== null && $v !== ''
+        );
+        if (!isset($returnFilters['academic_period_id']) && $data['selectedPeriodId']) {
+            $returnFilters['academic_period_id'] = $data['selectedPeriodId'];
+        }
+        if (!isset($returnFilters['kelas_id']) && $data['kelas']?->id) {
+            $returnFilters['kelas_id'] = $data['kelas']->id;
+        }
+
+        $data['returnFilters'] = $returnFilters;
 
         return view('admin.rekap_nilai.detail_siswa', $data);
     }
@@ -51,14 +93,7 @@ class RekapNilaiController extends Controller
      */
     public function exportPdf(Request $request)
     {
-        $data = $this->rekapNilaiService->buildAdminRekap($request->only([
-            'academic_period_id',
-            'kelas_id',
-            'mapel_id',
-            'status',
-            'search',
-            'mode',
-        ]));
+        $data = $this->rekapNilaiService->buildAdminRekap($request->only(self::FILTER_KEYS));
 
         $periodSlug = Str::slug(
             ($data['selectedPeriod']?->tahun_ajaran ?? 'periode') . '-' . ($data['selectedPeriod']?->semester ?? '')
@@ -84,20 +119,14 @@ class RekapNilaiController extends Controller
      */
     public function exportCsv(Request $request): StreamedResponse
     {
-        $data = $this->rekapNilaiService->buildAdminRekap($request->only([
-            'academic_period_id',
-            'kelas_id',
-            'mapel_id',
-            'status',
-            'search',
-            'mode',
-        ]));
+        $data = $this->rekapNilaiService->buildAdminRekap($request->only(self::FILTER_KEYS));
 
         $periodSlug = Str::slug(
             ($data['selectedPeriod']?->tahun_ajaran ?? 'periode') . '-' . ($data['selectedPeriod']?->semester ?? '')
         );
         $kelasSlug = $data['selectedKelas'] ? Str::slug($data['selectedKelas']->nama_kelas) : 'semua-kelas';
-        $filename = "Rekap-Nilai-Keseluruhan-{$kelasSlug}-{$periodSlug}.csv";
+        $modeLabel = $data['mode'] === 'leger' ? 'Leger-Nilai' : 'Rekap-Nilai-Keseluruhan';
+        $filename = "{$modeLabel}-{$kelasSlug}-{$periodSlug}.csv";
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -109,13 +138,21 @@ class RekapNilaiController extends Controller
             // UTF-8 BOM agar Excel membaca karakter dengan benar
             fwrite($handle, "\xEF\xBB\xBF");
 
+            $safe = static function ($value): string {
+                $str = (string) $value;
+                if ($str !== '' && in_array($str[0], ['=', '+', '-', '@'], true) && !is_numeric($str)) {
+                    return "'" . $str;
+                }
+
+                return $str;
+            };
+
             if ($data['mode'] === 'leger' && $data['legerMapels']->isNotEmpty()) {
                 $headerRow = ['No', 'Peringkat', 'NIS', 'Nama Siswa', 'Kelas'];
                 foreach ($data['legerMapels'] as $pk) {
                     $headerRow[] = ($pk->guruMapel?->mapel?->nama_mapel ?? 'Mapel') . ' (KKM ' . (int) ($pk->guruMapel?->mapel?->kkm ?? 75) . ')';
                 }
                 $headerRow[] = 'Rata-rata Akhir';
-                $headerRow[] = 'Predikat';
                 $headerRow[] = 'Mapel Tuntas';
                 $headerRow[] = 'Status';
                 fputcsv($handle, $headerRow);
@@ -124,9 +161,9 @@ class RekapNilaiController extends Controller
                     $csvRow = [
                         $index + 1,
                         $row['peringkat'] ?? '-',
-                        $row['nis'],
-                        $row['nama_siswa'],
-                        $row['nama_kelas'],
+                        $safe($row['nis']),
+                        $safe($row['nama_siswa']),
+                        $safe($row['nama_kelas']),
                     ];
 
                     foreach ($data['legerMapels'] as $pk) {
@@ -142,7 +179,6 @@ class RekapNilaiController extends Controller
                     }
 
                     $csvRow[] = $row['nilai_akhir'] !== null ? number_format($row['nilai_akhir'], 2, '.', '') : '-';
-                    $csvRow[] = $row['predikat'];
                     $csvRow[] = "{$row['mapel_tuntas']}/{$row['mapel_wajib']}";
                     $csvRow[] = match ($row['status_ketuntasan']) {
                         'tuntas' => 'Tuntas',
@@ -166,8 +202,8 @@ class RekapNilaiController extends Controller
                     'Rata-rata Ujian',
                     'Ujian Selesai',
                     'Nilai Akhir Keseluruhan',
-                    'Predikat',
                     'Mapel Tuntas',
+                    'Mapel Belum Tuntas',
                     'Status Ketuntasan',
                 ]);
 
@@ -175,9 +211,9 @@ class RekapNilaiController extends Controller
                     fputcsv($handle, [
                         $index + 1,
                         $row['peringkat'] ?? '-',
-                        $row['nis'],
-                        $row['nama_siswa'],
-                        $row['nama_kelas'],
+                        $safe($row['nis']),
+                        $safe($row['nama_siswa']),
+                        $safe($row['nama_kelas']),
                         $row['rata_tugas'] !== null ? number_format($row['rata_tugas'], 2, '.', '') : '-',
                         "{$row['tugas_dinilai']}/{$row['tugas_total']}",
                         $row['rata_kuis'] !== null ? number_format($row['rata_kuis'], 2, '.', '') : '-',
@@ -185,8 +221,8 @@ class RekapNilaiController extends Controller
                         $row['rata_ujian'] !== null ? number_format($row['rata_ujian'], 2, '.', '') : '-',
                         "{$row['ujian_dinilai']}/{$row['ujian_total']}",
                         $row['nilai_akhir'] !== null ? number_format($row['nilai_akhir'], 2, '.', '') : '-',
-                        $row['predikat'],
                         "{$row['mapel_tuntas']}/{$row['mapel_wajib']}",
+                        !empty($row['mapel_belum_tuntas_list']) ? $safe(implode(', ', $row['mapel_belum_tuntas_list'])) : '-',
                         match ($row['status_ketuntasan']) {
                             'tuntas' => 'Tuntas',
                             'belum_tuntas' => 'Belum Tuntas',
@@ -208,8 +244,9 @@ class RekapNilaiController extends Controller
         $periodId = $request->filled('academic_period_id')
             ? (int) $request->input('academic_period_id')
             : null;
+        $hitungKosong = (string) $request->input('hitung_kosong', 'abaikan');
 
-        $data = $this->rekapNilaiService->buildSiswaDetail($siswa, $periodId);
+        $data = $this->rekapNilaiService->buildSiswaDetail($siswa, $periodId, $hitungKosong, 'rata');
 
         $namaSlug = Str::slug($siswa->nama_siswa ?? ('siswa-' . $siswa->id));
         $periodSlug = Str::slug(

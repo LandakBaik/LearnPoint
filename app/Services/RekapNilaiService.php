@@ -19,24 +19,88 @@ use Illuminate\Support\Collection;
 class RekapNilaiService
 {
     /**
-     * Hitung predikat nilai berdasarkan skor dan KKM.
+     * Hitung batas interval predikat secara proporsional berdasarkan KKM.
+     *
+     * @return array{kkm: float, c_max: float, b_min: float, b_max: float, a_min: float}
+     */
+    public static function predikatThreshold(float $kkm = 75.0): array
+    {
+        $kkm = max(0.0, min(100.0, $kkm));
+        $interval = (100.0 - $kkm) / 3.0;
+        $bMin = round($kkm + $interval, 2);
+        $aMin = round($kkm + ($interval * 2.0), 2);
+
+        return [
+            'kkm' => $kkm,
+            'b_min' => $bMin,
+            'a_min' => $aMin,
+        ];
+    }
+
+    /**
+     * Hitung predikat nilai berdasarkan skor dan KKM secara proporsional.
+     * Nilai di bawah KKM selalu mendapat predikat D.
      */
     public static function hitungPredikat(?float $nilai, float $kkm = 75.0): string
     {
         if ($nilai === null) {
             return '-';
         }
-        if ($nilai >= 90.0) {
+        if ($nilai < $kkm) {
+            return 'D';
+        }
+        if ($kkm >= 100.0) {
             return 'A';
         }
-        if ($nilai >= 80.0) {
+
+        $threshold = self::predikatThreshold($kkm);
+        if ($nilai >= $threshold['a_min']) {
+            return 'A';
+        }
+        if ($nilai >= $threshold['b_min']) {
             return 'B';
         }
-        if ($nilai >= $kkm) {
-            return 'C';
+
+        return 'C';
+    }
+
+    /**
+     * Hitung nilai akhir mapel dari 3 komponen (Tugas, Kuis, Ujian) sesuai metode perhitungan.
+     */
+    public static function hitungNilaiAkhirKomponen(
+        ?float $rataTugas,
+        ?float $rataKuis,
+        ?float $rataUjian,
+        string $metodeHitung = 'rata'
+    ): ?float {
+        if ($metodeHitung === 'bobot') {
+            $bobotMap = [
+                'tugas' => ['val' => $rataTugas, 'weight' => 30.0],
+                'kuis' => ['val' => $rataKuis, 'weight' => 20.0],
+                'ujian' => ['val' => $rataUjian, 'weight' => 50.0],
+            ];
+
+            $weightedSum = 0.0;
+            $totalWeight = 0.0;
+
+            foreach ($bobotMap as $item) {
+                if ($item['val'] !== null) {
+                    $weightedSum += $item['val'] * $item['weight'];
+                    $totalWeight += $item['weight'];
+                }
+            }
+
+            return $totalWeight > 0 ? round($weightedSum / $totalWeight, 2) : null;
         }
 
-        return 'D';
+        $komponenAktif = array_values(array_filter(
+            [$rataTugas, $rataKuis, $rataUjian],
+            fn ($v) => $v !== null
+        ));
+
+        return count($komponenAktif) > 0
+            ? round(array_sum($komponenAktif) / count($komponenAktif), 2)
+            : null;
     }
 
     /**
@@ -49,6 +113,10 @@ class RekapNilaiService
      *     status?: string|null,
      *     search?: string|null,
      *     mode?: string|null,
+     *     hitung_kosong?: string|null,
+     *     metode_hitung?: string|null,
+     *     sort_by?: string|null,
+     *     sort_dir?: string|null,
      * }  $filters
      */
     public function buildAdminRekap(array $filters = []): array
@@ -112,6 +180,27 @@ class RekapNilaiService
             $mode = 'ringkasan';
         }
 
+        $hitungKosong = $filters['hitung_kosong'] ?? 'abaikan';
+        if (!in_array($hitungKosong, ['abaikan', 'nol'], true)) {
+            $hitungKosong = 'abaikan';
+        }
+
+        $metodeHitung = $filters['metode_hitung'] ?? 'rata';
+        if (!in_array($metodeHitung, ['rata', 'bobot'], true)) {
+            $metodeHitung = 'rata';
+        }
+
+        $allowedSorts = ['peringkat', 'nilai_akhir', 'nama_siswa', 'nis', 'nama_kelas', 'rata_tugas', 'rata_kuis', 'rata_ujian'];
+        $sortBy = $filters['sort_by'] ?? 'peringkat';
+        if (!in_array($sortBy, $allowedSorts, true)) {
+            $sortBy = 'peringkat';
+        }
+
+        $sortDir = strtolower((string) ($filters['sort_dir'] ?? ($sortBy === 'nilai_akhir' ? 'desc' : 'asc')));
+        if (!in_array($sortDir, ['asc', 'desc'], true)) {
+            $sortDir = 'asc';
+        }
+
         // Filter pengampu berdasarkan mapel jika dipilih
         $pengampus = $selectedMapelId
             ? $allPengampus->filter(fn ($p) => (int) $p->guruMapel->mapel_id === $selectedMapelId)->values()
@@ -132,20 +221,6 @@ class RekapNilaiService
             $anggotaList = $anggotaList->filter(
                 fn ($a) => $selectedMapel->isAccessibleBySiswa($a->siswa)
             )->values();
-        }
-
-        // Pencarian siswa berdasarkan nama atau NIS
-        if ($search !== '') {
-            $needle = mb_strtolower($search);
-            $anggotaList = $anggotaList->filter(function ($a) use ($needle) {
-                $nama = mb_strtolower((string) ($a->siswa->nama_siswa ?? $a->siswa->user?->name ?? ''));
-                $nis = mb_strtolower((string) ($a->siswa->nis ?? ''));
-                $kelas = mb_strtolower((string) ($a->kelas->nama_kelas ?? ''));
-
-                return str_contains($nama, $needle)
-                    || str_contains($nis, $needle)
-                    || str_contains($kelas, $needle);
-            })->values();
         }
 
         $pengampuIds = $pengampus->pluck('id')->all();
@@ -177,7 +252,7 @@ class RekapNilaiService
                     $q->where('jenis_ujian', 'reguler')->orWhereNull('jenis_ujian');
                 })
                 ->whereIn('status', ['published', 'completed', 'unpublished'])
-                ->select('id', 'judul', 'kkm', 'pengampu_kelas_id')
+                ->select('id', 'judul', 'pengampu_kelas_id')
                 ->get();
             $ujianByPengampu = $ujians->groupBy('pengampu_kelas_id');
 
@@ -226,7 +301,7 @@ class RekapNilaiService
                 ->values()
             : collect();
 
-        // Hitung baris rekap per siswa
+        // Hitung baris rekap per siswa (sebelum filter search agar peringkat & KPI tetap akurat)
         $rows = $anggotaList->map(function ($anggota) use (
             $pengampuByKelas,
             $tugasByPengampu,
@@ -235,7 +310,9 @@ class RekapNilaiService
             $nilaiTugasBySiswa,
             $nilaiQuizBySiswa,
             $seleksiUjianBySiswa,
-            $selectedMapel
+            $selectedMapel,
+            $hitungKosong,
+            $metodeHitung
         ) {
             $siswa = $anggota->siswa;
             $kelas = $anggota->kelas;
@@ -265,6 +342,7 @@ class RekapNilaiService
             $mapelTuntasCount = 0;
             $mapelBelumTuntasCount = 0;
             $mapelDinilaiCount = 0;
+            $mapelBelumTuntasList = [];
 
             foreach ($pengampuKelasList as $pk) {
                 $mapel = $pk->guruMapel->mapel;
@@ -301,6 +379,9 @@ class RekapNilaiService
                         $pkTugasVals[] = $val;
                         $allTugasScores[] = $val;
                         $totalTugasDinilai++;
+                    } elseif ($hitungKosong === 'nol') {
+                        $pkTugasVals[] = 0.0;
+                        $allTugasScores[] = 0.0;
                     }
                 }
                 $rataTugasMapel = count($pkTugasVals) > 0
@@ -318,6 +399,9 @@ class RekapNilaiService
                         $pkQuizVals[] = $val;
                         $allQuizScores[] = $val;
                         $totalQuizDinilai++;
+                    } elseif ($hitungKosong === 'nol') {
+                        $pkQuizVals[] = 0.0;
+                        $allQuizScores[] = 0.0;
                     }
                 }
                 $rataQuizMapel = count($pkQuizVals) > 0
@@ -335,21 +419,22 @@ class RekapNilaiService
                         $pkUjianVals[] = $val;
                         $allUjianScores[] = $val;
                         $totalUjianDinilai++;
+                    } elseif ($hitungKosong === 'nol') {
+                        $pkUjianVals[] = 0.0;
+                        $allUjianScores[] = 0.0;
                     }
                 }
                 $rataUjianMapel = count($pkUjianVals) > 0
                     ? round(array_sum($pkUjianVals) / count($pkUjianVals), 2)
                     : null;
 
-                // Nilai akhir mapel = rata-rata komponen yang memiliki nilai
-                $komponenAktif = array_values(array_filter(
-                    [$rataTugasMapel, $rataQuizMapel, $rataUjianMapel],
-                    fn ($v) => $v !== null
-                ));
-
-                $nilaiAkhirMapel = count($komponenAktif) > 0
-                    ? round(array_sum($komponenAktif) / count($komponenAktif), 2)
-                    : null;
+                // Nilai akhir mapel berdasarkan metode hitung (rata-rata setara atau berbobot)
+                $nilaiAkhirMapel = self::hitungNilaiAkhirKomponen(
+                    $rataTugasMapel,
+                    $rataQuizMapel,
+                    $rataUjianMapel,
+                    $metodeHitung
+                );
 
                 $statusMapel = 'belum_ada';
                 $isTuntas = null;
@@ -364,6 +449,7 @@ class RekapNilaiService
                         $isTuntas = false;
                         $statusMapel = 'belum_tuntas';
                         $mapelBelumTuntasCount++;
+                        $mapelBelumTuntasList[] = $mapel->nama_mapel;
                     }
                 }
 
@@ -433,6 +519,7 @@ class RekapNilaiService
                 'status_ketuntasan' => $statusKeseluruhan,
                 'mapel_tuntas' => $mapelTuntasCount,
                 'mapel_belum_tuntas' => $mapelBelumTuntasCount,
+                'mapel_belum_tuntas_list' => $mapelBelumTuntasList,
                 'mapel_dinilai' => $mapelDinilaiCount,
                 'mapel_wajib' => $totalMapelWajib,
                 'mapel_scores' => $mapelScores,
@@ -440,7 +527,7 @@ class RekapNilaiService
             ];
         });
 
-        // Urutkan berdasarkan nilai_akhir tertinggi (null di bawah), lalu nama A-Z, lalu beri peringkat
+        // Urutkan berdasarkan nilai_akhir tertinggi (null di bawah), lalu nama A-Z, lalu beri peringkat (Standard Competition Ranking untuk nilai seri)
         $rankedRows = $rows
             ->sort(function ($a, $b) {
                 $na = $a['nilai_akhir'];
@@ -462,23 +549,23 @@ class RekapNilaiService
             })
             ->values();
 
-        $rankCounter = 0;
-        $rankedRows = $rankedRows->map(function ($row) use (&$rankCounter) {
+        $position = 0;
+        $lastScore = null;
+        $currentRank = 0;
+        $rankedRows = $rankedRows->map(function ($row) use (&$position, &$lastScore, &$currentRank) {
             if ($row['nilai_akhir'] !== null) {
-                $rankCounter++;
-                $row['peringkat'] = $rankCounter;
+                $position++;
+                if ($lastScore === null || abs($lastScore - $row['nilai_akhir']) > 0.001) {
+                    $currentRank = $position;
+                    $lastScore = $row['nilai_akhir'];
+                }
+                $row['peringkat'] = $currentRank;
             }
 
             return $row;
         });
 
-        // Statistik KPI sebelum filter status agar tetap akurat, atau sesudah filter status?
-        // Lebih intuitif jika KPI mengikuti seluruh siswa dalam filter periode/kelas/mapel/search,
-        // lalu tabel disaring sesuai tab status ketuntasan.
-        $filteredRows = $selectedStatus === 'semua'
-            ? $rankedRows
-            : $rankedRows->where('status_ketuntasan', $selectedStatus)->values();
-
+        // KPI, distribusi predikat, rekap per kelas & per mapel dihitung pada scope periode/kelas/mapel (tidak terdistorsi oleh search/status)
         $nilaiValid = $rankedRows->pluck('nilai_akhir')->filter(fn ($v) => $v !== null);
         $tugasValid = $rankedRows->pluck('rata_tugas')->filter(fn ($v) => $v !== null);
         $kuisValid = $rankedRows->pluck('rata_kuis')->filter(fn ($v) => $v !== null);
@@ -510,6 +597,19 @@ class RekapNilaiService
             'siswa_terendah' => $lowestStudent['nama_siswa'] ?? null,
         ];
 
+        $distribusiPredikat = [
+            'A' => $rankedRows->where('predikat', 'A')->count(),
+            'B' => $rankedRows->where('predikat', 'B')->count(),
+            'C' => $rankedRows->where('predikat', 'C')->count(),
+            'D' => $rankedRows->where('predikat', 'D')->count(),
+            '-' => $rankedRows->where('predikat', '-')->count(),
+        ];
+
+        $avgKkmScope = $selectedMapel
+            ? (float) ($selectedMapel->kkm ?? 75)
+            : ($rankedRows->isNotEmpty() ? round((float) $rankedRows->avg('kkm_acuan'), 2) : 75.0);
+        $predikatThreshold = self::predikatThreshold($avgKkmScope);
+
         // Ringkasan rata-rata per kelas (berguna ketika filter Semua Kelas)
         $rekapPerKelas = $rankedRows
             ->groupBy('kelas_id')
@@ -535,6 +635,106 @@ class RekapNilaiService
             ->sortBy([['tingkatan', 'asc'], ['nama_kelas', 'asc']])
             ->values();
 
+        // Ringkasan performa per mata pelajaran (berguna ketika filter Semua Mata Pelajaran)
+        $rekapPerMapel = collect();
+        if (!$selectedMapel && $rankedRows->isNotEmpty()) {
+            $mapelBucket = [];
+            foreach ($rankedRows as $row) {
+                foreach ($row['mapel_scores'] as $mId => $cell) {
+                    if (!$cell['accessible']) {
+                        continue;
+                    }
+                    if (!isset($mapelBucket[$mId])) {
+                        $mapelBucket[$mId] = [
+                            'mapel_id' => $mId,
+                            'nama_mapel' => $cell['nama_mapel'],
+                            'kkm' => $cell['kkm'],
+                            'total_siswa' => 0,
+                            'siswa_dinilai' => 0,
+                            'jumlah_tuntas' => 0,
+                            'scores' => [],
+                        ];
+                    }
+                    $mapelBucket[$mId]['total_siswa']++;
+                    if ($cell['nilai_akhir'] !== null) {
+                        $mapelBucket[$mId]['siswa_dinilai']++;
+                        $mapelBucket[$mId]['scores'][] = $cell['nilai_akhir'];
+                        if ($cell['tuntas']) {
+                            $mapelBucket[$mId]['jumlah_tuntas']++;
+                        }
+                    }
+                }
+            }
+
+            $rekapPerMapel = collect($mapelBucket)
+                ->map(function (array $item) {
+                    $dinilai = $item['siswa_dinilai'];
+                    $scores = $item['scores'];
+
+                    return [
+                        'mapel_id' => $item['mapel_id'],
+                        'nama_mapel' => $item['nama_mapel'],
+                        'kkm' => $item['kkm'],
+                        'total_siswa' => $item['total_siswa'],
+                        'siswa_dinilai' => $dinilai,
+                        'jumlah_tuntas' => $item['jumlah_tuntas'],
+                        'persen_tuntas' => $dinilai > 0 ? round(($item['jumlah_tuntas'] / $dinilai) * 100, 1) : 0,
+                        'rata_nilai' => count($scores) > 0 ? round(array_sum($scores) / count($scores), 2) : null,
+                    ];
+                })
+                ->sortBy(fn ($m) => strtolower((string) $m['nama_mapel']))
+                ->values();
+        }
+
+        // Terapkan filter status & pencarian SETELAH ranking agar peringkat asli siswa tetap terjaga
+        $filteredRows = $rankedRows;
+        if ($selectedStatus !== 'semua') {
+            $filteredRows = $filteredRows->where('status_ketuntasan', $selectedStatus)->values();
+        }
+
+        if ($search !== '') {
+            $needle = mb_strtolower($search);
+            $filteredRows = $filteredRows->filter(function ($r) use ($needle) {
+                return str_contains(mb_strtolower((string) $r['nama_siswa']), $needle)
+                    || str_contains(mb_strtolower((string) $r['nis']), $needle)
+                    || str_contains(mb_strtolower((string) $r['nama_kelas']), $needle);
+            })->values();
+        }
+
+        // Terapkan sorting fleksibel pada hasil tabel
+        $filteredRows = $filteredRows->sort(function ($a, $b) use ($sortBy, $sortDir) {
+            $dir = $sortDir === 'desc' ? -1 : 1;
+
+            if (in_array($sortBy, ['nama_siswa', 'nis', 'nama_kelas'], true)) {
+                $cmp = strcasecmp((string) $a[$sortBy], (string) $b[$sortBy]);
+                if ($cmp !== 0) {
+                    return $cmp * $dir;
+                }
+
+                return strcasecmp((string) $a['nama_siswa'], (string) $b['nama_siswa']);
+            }
+
+            $va = $a[$sortBy];
+            $vb = $b[$sortBy];
+
+            // Nilai null selalu ditaruh di bawah agar rapi
+            if ($va === null && $vb === null) {
+                return strcasecmp((string) $a['nama_siswa'], (string) $b['nama_siswa']);
+            }
+            if ($va === null) {
+                return 1;
+            }
+            if ($vb === null) {
+                return -1;
+            }
+
+            if (abs((float) $va - (float) $vb) > 0.001) {
+                return ($va <=> $vb) * $dir;
+            }
+
+            return strcasecmp((string) $a['nama_siswa'], (string) $b['nama_siswa']);
+        })->values();
+
         return [
             'periods' => $periods,
             'selectedPeriod' => $selectedPeriod,
@@ -548,19 +748,37 @@ class RekapNilaiService
             'selectedStatus' => $selectedStatus,
             'search' => $search,
             'mode' => $mode,
+            'hitungKosong' => $hitungKosong,
+            'metodeHitung' => $metodeHitung,
+            'sortBy' => $sortBy,
+            'sortDir' => $sortDir,
             'legerMapels' => $legerMapels,
             'rows' => $filteredRows,
             'allRowsCount' => $totalSiswa,
             'summary' => $summary,
+            'distribusiPredikat' => $distribusiPredikat,
+            'predikatThreshold' => $predikatThreshold,
             'rekapPerKelas' => $rekapPerKelas,
+            'rekapPerMapel' => $rekapPerMapel,
         ];
     }
 
     /**
      * Membangun transkrip detail nilai seorang siswa pada periode akademik tertentu.
      */
-    public function buildSiswaDetail(Siswa $siswa, ?int $academicPeriodId = null): array
-    {
+    public function buildSiswaDetail(
+        Siswa $siswa,
+        ?int $academicPeriodId = null,
+        string $hitungKosong = 'abaikan',
+        string $metodeHitung = 'rata'
+    ): array {
+        if (!in_array($hitungKosong, ['abaikan', 'nol'], true)) {
+            $hitungKosong = 'abaikan';
+        }
+        if (!in_array($metodeHitung, ['rata', 'bobot'], true)) {
+            $metodeHitung = 'rata';
+        }
+
         $periods = AcademicPeriod::orderByDesc('tahun_ajaran')
             ->orderByRaw("CASE WHEN semester = 'genap' THEN 2 ELSE 1 END DESC")
             ->get();
@@ -628,7 +846,16 @@ class RekapNilaiService
                 ? SeleksiUjian::where('siswa_id', $siswa->id)->whereIn('ujian_id', $allUjianIds)->get()->keyBy('ujian_id')
                 : collect();
 
-            $detailMapels = $pengampus->map(function ($pk) use ($tugases, $quizzes, $ujians, $nilaiTugasMap, $nilaiQuizMap, $seleksiUjianMap) {
+            $detailMapels = $pengampus->map(function ($pk) use (
+                $tugases,
+                $quizzes,
+                $ujians,
+                $nilaiTugasMap,
+                $nilaiQuizMap,
+                $seleksiUjianMap,
+                $hitungKosong,
+                $metodeHitung
+            ) {
                 $mapel = $pk->guruMapel->mapel;
                 $guru = $pk->guruMapel->guru;
                 $kkm = (float) ($mapel->kkm ?? 75);
@@ -682,16 +909,23 @@ class RekapNilaiService
                     ];
                 })->values();
 
-                $tugasVals = $tugasItems->pluck('nilai')->filter(fn ($v) => $v !== null);
-                $quizVals = $quizItems->pluck('nilai')->filter(fn ($v) => $v !== null);
-                $ujianVals = $ujianItems->pluck('nilai_akhir')->filter(fn ($v) => $v !== null);
+                $tugasVals = $hitungKosong === 'nol'
+                    ? $tugasItems->map(fn ($item) => $item['nilai'] ?? 0.0)
+                    : $tugasItems->pluck('nilai')->filter(fn ($v) => $v !== null);
+
+                $quizVals = $hitungKosong === 'nol'
+                    ? $quizItems->map(fn ($item) => $item['nilai'] ?? 0.0)
+                    : $quizItems->pluck('nilai')->filter(fn ($v) => $v !== null);
+
+                $ujianVals = $hitungKosong === 'nol'
+                    ? $ujianItems->map(fn ($item) => $item['nilai_akhir'] ?? 0.0)
+                    : $ujianItems->pluck('nilai_akhir')->filter(fn ($v) => $v !== null);
 
                 $rataTugas = $tugasVals->isNotEmpty() ? round($tugasVals->avg(), 2) : null;
                 $rataKuis = $quizVals->isNotEmpty() ? round($quizVals->avg(), 2) : null;
                 $rataUjian = $ujianVals->isNotEmpty() ? round($ujianVals->avg(), 2) : null;
 
-                $komponen = array_values(array_filter([$rataTugas, $rataKuis, $rataUjian], fn ($v) => $v !== null));
-                $nilaiAkhir = count($komponen) > 0 ? round(array_sum($komponen) / count($komponen), 2) : null;
+                $nilaiAkhir = self::hitungNilaiAkhirKomponen($rataTugas, $rataKuis, $rataUjian, $metodeHitung);
 
                 $status = 'belum_ada';
                 if ($nilaiAkhir !== null) {
@@ -728,6 +962,9 @@ class RekapNilaiService
             'periods' => $periods,
             'selectedPeriod' => $selectedPeriod,
             'selectedPeriodId' => $selectedPeriodId,
+            'hitungKosong' => $hitungKosong,
+            'metodeHitung' => $metodeHitung,
+            'predikatThreshold' => self::predikatThreshold($rataKkm),
             'detailMapels' => $detailMapels,
             'summary' => [
                 'total_mapel' => $detailMapels->count(),

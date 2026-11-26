@@ -90,7 +90,6 @@
                 <th style="width: 52px;">Kuis</th>
                 <th style="width: 52px;">Ujian</th>
                 <th style="width: 58px;">Akhir</th>
-                <th style="width: 36px;">Pred</th>
                 <th style="width: 68px;">Status</th>
             </tr>
         </thead>
@@ -107,7 +106,6 @@
                     <td class="text-center font-bold {{ $dm['status'] === 'tuntas' ? 'hijau' : ($dm['status'] === 'belum_tuntas' ? 'merah' : 'abu') }}">
                         {{ $dm['nilai_akhir'] !== null ? number_format($dm['nilai_akhir'], 2) : '-' }}
                     </td>
-                    <td class="text-center font-bold">{{ $dm['predikat'] }}</td>
                     <td class="text-center">
                         @if($dm['status'] === 'tuntas')
                             <span class="hijau">Tuntas</span>
@@ -120,7 +118,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="10" class="text-center abu">Belum ada mata pelajaran pada periode ini.</td>
+                    <td colspan="9" class="text-center abu">Belum ada mata pelajaran pada periode ini.</td>
                 </tr>
             @endforelse
         </tbody>
@@ -128,10 +126,13 @@
 
     <div class="summary-box">
         <strong>Ringkasan Capaian:</strong>
-        Rata-rata Keseluruhan: <strong>{{ $summary['rata_keseluruhan'] !== null ? number_format($summary['rata_keseluruhan'], 2) : '-' }}</strong>
-        (Predikat <strong>{{ $summary['predikat'] }}</strong>) |
+        Rata-rata Keseluruhan: <strong>{{ $summary['rata_keseluruhan'] !== null ? number_format($summary['rata_keseluruhan'], 2) : '-' }}</strong> |
         Mapel Tuntas: <strong>{{ $summary['mapel_tuntas'] }}/{{ $summary['total_mapel'] }}</strong> |
         Belum Tuntas: <strong>{{ $summary['mapel_belum_tuntas'] }}</strong>
+        <div style="margin-top: 5px; font-size: 9px; color: #475569;">
+            Item Belum Dinilai: {{ ($hitungKosong ?? 'abaikan') === 'nol' ? 'Dihitung 0' : 'Diabaikan' }}
+            | Ketuntasan mengacu pada KKM masing-masing mata pelajaran.
+        </div>
     </div>
 </body>
 </html>

@@ -1,14 +1,18 @@
+@php
+    $isDenseLeger = $mode === 'leger' && $legerMapels->count() > 10;
+    $isVeryDenseLeger = $mode === 'leger' && $legerMapels->count() > 14;
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <title>Perekapan Nilai Keseluruhan - LearnPoint</title>
     <style>
-        @page { margin: 14mm 12mm; }
+        @page { margin: {{ $isDenseLeger ? '10mm 8mm' : '14mm 12mm' }}; }
         * { box-sizing: border-box; }
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 10px;
+            font-size: {{ $isVeryDenseLeger ? '8px' : ($isDenseLeger ? '9px' : '10px') }};
             color: #1e293b;
             margin: 0;
             padding: 0;
@@ -22,19 +26,20 @@
         .kop h1 { font-size: 14px; margin: 0; text-transform: uppercase; letter-spacing: 0.4px; }
         .kop h2 { font-size: 12px; margin: 3px 0 2px; color: #334155; }
         .kop p { font-size: 9.5px; margin: 0; color: #64748b; }
-        .meta { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px; }
+        .meta { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 9.5px; }
         .meta td { padding: 2px 4px; vertical-align: top; }
-        table.data { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+        table.data { width: 100%; border-collapse: collapse; margin-bottom: 12px; table-layout: {{ $isDenseLeger ? 'fixed' : 'auto' }}; }
         table.data th, table.data td {
             border: 1px solid #94a3b8;
-            padding: 4px 5px;
+            padding: {{ $isVeryDenseLeger ? '3px 2px' : ($isDenseLeger ? '3px 3px' : '4px 5px') }};
             vertical-align: middle;
+            word-wrap: break-word;
         }
         table.data th {
             background-color: #f1f5f9;
             font-weight: bold;
             text-align: center;
-            font-size: 9px;
+            font-size: {{ $isVeryDenseLeger ? '7.5px' : ($isDenseLeger ? '8px' : '9px') }};
             text-transform: uppercase;
         }
         .text-center { text-align: center; }
@@ -43,7 +48,7 @@
         .hijau { color: #059669; font-weight: bold; }
         .merah { color: #dc2626; font-weight: bold; }
         .abu { color: #64748b; }
-        .footer-note { font-size: 9px; color: #475569; margin-top: 6px; }
+        .footer-note { font-size: 8.5px; color: #475569; margin-top: 6px; line-height: 1.45; }
     </style>
 </head>
 <body @if(!empty($autoPrint)) onload="window.print()" @endif>
@@ -84,8 +89,7 @@
                             <span style="font-weight: normal; font-size: 8px;">(KKM {{ (int) ($pk->guruMapel->mapel->kkm ?? 75) }})</span>
                         </th>
                     @endforeach
-                    <th style="width: 48px;">Rata2</th>
-                    <th style="width: 34px;">Pred</th>
+                    <th style="width: 52px;">Rata2</th>
                 </tr>
             </thead>
             <tbody>
@@ -112,11 +116,10 @@
                         <td class="text-center font-bold">
                             {{ $row['nilai_akhir'] !== null ? number_format($row['nilai_akhir'], 2) : '-' }}
                         </td>
-                        <td class="text-center font-bold">{{ $row['predikat'] }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="{{ 6 + $legerMapels->count() }}" class="text-center abu">Tidak ada data nilai.</td>
+                        <td colspan="{{ 5 + $legerMapels->count() }}" class="text-center abu">Tidak ada data nilai.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -134,7 +137,6 @@
                     <th style="width: 68px;">Rata Kuis</th>
                     <th style="width: 68px;">Rata Ujian</th>
                     <th style="width: 68px;">Nilai Akhir</th>
-                    <th style="width: 40px;">Pred</th>
                     <th style="width: 82px;">Ketuntasan</th>
                 </tr>
             </thead>
@@ -161,7 +163,6 @@
                         <td class="text-center font-bold {{ $row['status_ketuntasan'] === 'tuntas' ? 'hijau' : ($row['status_ketuntasan'] === 'belum_tuntas' ? 'merah' : 'abu') }}">
                             {{ $row['nilai_akhir'] !== null ? number_format($row['nilai_akhir'], 2) : '-' }}
                         </td>
-                        <td class="text-center font-bold">{{ $row['predikat'] }}</td>
                         <td class="text-center">
                             @if($row['status_ketuntasan'] === 'tuntas')
                                 <span class="hijau">Tuntas</span>
@@ -174,7 +175,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="11" class="text-center abu">Tidak ada data nilai.</td>
+                        <td colspan="10" class="text-center abu">Tidak ada data nilai.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -182,8 +183,11 @@
     @endif
 
     <div class="footer-note">
-        <strong>Keterangan:</strong> Nilai Akhir dihitung dari rata-rata komponen penilaian yang telah memiliki nilai (Tugas, Kuis, Ujian).
-        Predikat: A (≥ 90), B (80–89.99), C (KKM–79.99), D (&lt; KKM). N/A menandakan mapel khusus agama yang tidak diikuti siswa.
+        <strong>Keterangan:</strong>
+        Nilai Akhir dihitung dari rata-rata komponen penilaian (Tugas, Kuis, Ujian).
+        Item Belum Dinilai: {{ ($hitungKosong ?? 'abaikan') === 'nol' ? 'Dihitung 0' : 'Diabaikan' }}.
+        Status ketuntasan per mata pelajaran mengacu pada nilai KKM masing-masing mata pelajaran.
+        N/A menandakan mapel khusus agama yang tidak diikuti siswa.
     </div>
 </body>
 </html>
