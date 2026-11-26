@@ -167,6 +167,8 @@
                         name="nohp_wali"
                         inputmode="numeric"
                         pattern="[0-9]*"
+                        minlength="10"
+                        maxlength="13"
                         value="{{ old('nohp_wali', $siswa->nohp_wali) }}"
                         required
                         class="w-full px-4 py-2.5 rounded-xl border @error('nohp_wali') border-rose-400 bg-rose-50/30 @else border-gray-200 bg-gray-50/50 @enderror text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"

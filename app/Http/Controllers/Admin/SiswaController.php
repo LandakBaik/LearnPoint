@@ -103,7 +103,7 @@ class SiswaController extends Controller
             'jenis_kelamin' => 'required|in:L,P',
             'agama'         => ['nullable', Rule::in(Siswa::AGAMA_OPTIONS)],
             'wali_murid'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
-            'nohp_wali'     => 'required|numeric|digits_between:8,20',
+            'nohp_wali'     => 'required|numeric|digits_between:10,13',
             'kelas_id'      => 'nullable|exists:kelases,id',
         ], [
             'wali_murid.regex'              => 'Nama wali murid hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
@@ -114,7 +114,7 @@ class SiswaController extends Controller
             'tanggal_lahir.before_or_equal' => 'Usia siswa minimal harus 10 tahun (tanggal lahir tidak boleh setelah ' . now()->subYears(10)->translatedFormat('d F Y') . ').',
             'tanggal_lahir.after_or_equal'  => 'Usia siswa maksimal 16 tahun (tanggal lahir tidak boleh sebelum ' . now()->subYears(16)->translatedFormat('d F Y') . ').',
             'nohp_wali.numeric'             => 'Nomor telepon / WhatsApp wali murid harus berupa angka.',
-            'nohp_wali.digits_between'      => 'Nomor telepon wali murid harus terdiri dari 8 hingga 20 digit angka.',
+            'nohp_wali.digits_between'      => 'Nomor telepon wali murid harus terdiri dari 10 hingga 13 digit angka.',
         ]);
 
         $activePeriod = AcademicPeriod::current();
@@ -195,7 +195,7 @@ class SiswaController extends Controller
             'jenis_kelamin' => 'required|in:L,P',
             'agama'         => ['nullable', Rule::in(Siswa::AGAMA_OPTIONS)],
             'wali_murid'    => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
-            'nohp_wali'     => 'required|numeric|digits_between:8,20',
+            'nohp_wali'     => 'required|numeric|digits_between:10,13',
             'kelas_id'      => 'nullable|exists:kelases,id',
         ], [
             'wali_murid.regex'              => 'Nama wali murid hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
@@ -206,7 +206,7 @@ class SiswaController extends Controller
             'tanggal_lahir.before_or_equal' => 'Usia siswa minimal harus 10 tahun (tanggal lahir tidak boleh setelah ' . now()->subYears(10)->translatedFormat('d F Y') . ').',
             'tanggal_lahir.after_or_equal'  => 'Usia siswa maksimal 16 tahun (tanggal lahir tidak boleh sebelum ' . now()->subYears(16)->translatedFormat('d F Y') . ').',
             'nohp_wali.numeric'             => 'Nomor telepon / WhatsApp wali murid harus berupa angka.',
-            'nohp_wali.digits_between'      => 'Nomor telepon wali murid harus terdiri dari 8 hingga 20 digit angka.',
+            'nohp_wali.digits_between'      => 'Nomor telepon wali murid harus terdiri dari 10 hingga 13 digit angka.',
         ]);
 
         $updatePayload = array_diff_key($validated, ['kelas_id' => true]);

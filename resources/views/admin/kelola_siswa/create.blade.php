@@ -170,6 +170,8 @@
                         name="nohp_wali" 
                         inputmode="numeric"
                         pattern="[0-9]*"
+                        minlength="10"
+                        maxlength="13"
                         value="{{ old('nohp_wali') }}" 
                         required 
                         placeholder="Contoh: 081234567890 (Hanya angka)"
@@ -178,7 +180,7 @@
                     @error('nohp_wali')
                         <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror
-                    <p class="text-xs text-gray-400 mt-1">Nomor telepon harus berupa karakter angka (8-20 digit).</p>
+                    <p class="text-xs text-gray-400 mt-1">Nomor telepon harus berupa karakter angka (10-13 digit).</p>
                 </div>
             </div>
 
