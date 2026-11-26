@@ -19,55 +19,80 @@
         </div>
     </div>
 
-    <!-- 4 Highlight Stat Cards -->
+    <!-- 4 Highlight Stat Cards (Clickable Filters) -->
+    @php $tingkatAktif = (string) request('tingkatan', ''); @endphp
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Total Kelas -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+        <a href="{{ route('kelas.index', request()->except(['page', 'tingkatan'])) }}"
+           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $tingkatAktif === '' ? 'bg-blue-50/40 border-2 border-blue-600 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-blue-200 shadow-2xs hover:shadow-xs' }}">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Kelas</span>
-                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $tingkatAktif === '' ? 'text-blue-700' : 'text-slate-400' }}">
+                    @if($tingkatAktif === '')
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                    @endif
+                    Total Kelas
+                </span>
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h.01M9 16h.01M9 12h.01M9 8h.01M15 16h.01M15 12h.01M15 8h.01"/></svg>
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $totalKelas ?? $kelases->total() }}</div>
-            <div class="text-[11px] font-medium text-slate-500 mt-1">Kelas aktif</div>
-        </div>
+            <div class="text-[11px] font-medium text-slate-500 mt-1">Semua kelas aktif</div>
+        </a>
 
         <!-- Tingkat 7 -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+        <a href="{{ route('kelas.index', array_merge(request()->except('page'), ['tingkatan' => '7'])) }}"
+           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $tingkatAktif === '7' ? 'bg-emerald-50/40 border-2 border-emerald-500 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-emerald-200 shadow-2xs hover:shadow-xs' }}">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Tingkat 7</span>
-                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $tingkatAktif === '7' ? 'text-emerald-700' : 'text-slate-400' }}">
+                    @if($tingkatAktif === '7')
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    @endif
+                    Tingkat 7
+                </span>
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <span class="font-black text-sm">VII</span>
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $countTingkat7 ?? 0 }}</div>
             <div class="text-[11px] font-medium text-slate-500 mt-1">Kelas kelas 7</div>
-        </div>
+        </a>
 
         <!-- Tingkat 8 -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+        <a href="{{ route('kelas.index', array_merge(request()->except('page'), ['tingkatan' => '8'])) }}"
+           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $tingkatAktif === '8' ? 'bg-amber-50/40 border-2 border-amber-500 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-amber-200 shadow-2xs hover:shadow-xs' }}">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Tingkat 8</span>
-                <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $tingkatAktif === '8' ? 'text-amber-700' : 'text-slate-400' }}">
+                    @if($tingkatAktif === '8')
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    @endif
+                    Tingkat 8
+                </span>
+                <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <span class="font-black text-sm">VIII</span>
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $countTingkat8 ?? 0 }}</div>
             <div class="text-[11px] font-medium text-slate-500 mt-1">Kelas kelas 8</div>
-        </div>
+        </a>
 
         <!-- Tingkat 9 -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all relative overflow-hidden group">
+        <a href="{{ route('kelas.index', array_merge(request()->except('page'), ['tingkatan' => '9'])) }}"
+           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $tingkatAktif === '9' ? 'bg-purple-50/40 border-2 border-purple-500 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-purple-200 shadow-2xs hover:shadow-xs' }}">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Tingkat 9</span>
-                <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $tingkatAktif === '9' ? 'text-purple-700' : 'text-slate-400' }}">
+                    @if($tingkatAktif === '9')
+                        <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                    @endif
+                    Tingkat 9
+                </span>
+                <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                     <span class="font-black text-sm">IX</span>
                 </div>
             </div>
             <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $countTingkat9 ?? 0 }}</div>
             <div class="text-[11px] font-medium text-slate-500 mt-1">Kelas kelas 9</div>
-        </div>
+        </a>
     </div>
 
     <!-- Filter & Search Card -->

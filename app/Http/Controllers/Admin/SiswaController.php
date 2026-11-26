@@ -106,15 +106,23 @@ class SiswaController extends Controller
             'nohp_wali'     => 'required|numeric|digits_between:10,13',
             'kelas_id'      => 'nullable|exists:kelases,id',
         ], [
-            'wali_murid.regex'              => 'Nama wali murid hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nama_siswa.required'           => 'Nama lengkap siswa wajib diisi.',
             'nama_siswa.regex'              => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nis.required'                  => 'NIS siswa wajib diisi.',
             'nis.numeric'                   => 'NIS siswa harus berupa angka.',
             'nis.digits_between'            => 'NIS siswa harus terdiri dari 4 hingga 10 digit angka.',
             'nis.unique'                    => 'NIS ini sudah terdaftar untuk siswa lain.',
+            'alamat.required'               => 'Alamat tempat tinggal wajib diisi.',
+            'tanggal_lahir.required'        => 'Tanggal lahir siswa wajib diisi.',
+            'tanggal_lahir.date'            => 'Format tanggal lahir tidak valid.',
             'tanggal_lahir.before_or_equal' => 'Usia siswa minimal harus 10 tahun (tanggal lahir tidak boleh setelah ' . now()->subYears(10)->translatedFormat('d F Y') . ').',
             'tanggal_lahir.after_or_equal'  => 'Usia siswa maksimal 16 tahun (tanggal lahir tidak boleh sebelum ' . now()->subYears(16)->translatedFormat('d F Y') . ').',
-            'nohp_wali.numeric'             => 'Nomor telepon / WhatsApp wali murid harus berupa angka.',
-            'nohp_wali.digits_between'      => 'Nomor telepon wali murid harus terdiri dari 10 hingga 13 digit angka.',
+            'jenis_kelamin.required'        => 'Jenis kelamin wajib dipilih.',
+            'wali_murid.required'           => 'Nama wali murid wajib diisi.',
+            'wali_murid.regex'              => 'Nama wali murid hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nohp_wali.required'            => 'Nomor HP / WhatsApp wali murid wajib diisi.',
+            'nohp_wali.numeric'             => 'Nomor HP / WhatsApp wali murid harus berupa angka.',
+            'nohp_wali.digits_between'      => 'Nomor HP / WhatsApp wali murid harus terdiri dari 10 hingga 13 digit angka.',
         ]);
 
         $activePeriod = AcademicPeriod::current();
@@ -198,15 +206,23 @@ class SiswaController extends Controller
             'nohp_wali'     => 'required|numeric|digits_between:10,13',
             'kelas_id'      => 'nullable|exists:kelases,id',
         ], [
-            'wali_murid.regex'              => 'Nama wali murid hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nama_siswa.required'           => 'Nama lengkap siswa wajib diisi.',
             'nama_siswa.regex'              => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nis.required'                  => 'NIS siswa wajib diisi.',
             'nis.numeric'                   => 'NIS siswa harus berupa angka.',
             'nis.digits_between'            => 'NIS siswa harus terdiri dari 4 hingga 10 digit angka.',
             'nis.unique'                    => 'NIS ini sudah terdaftar untuk siswa lain.',
+            'alamat.required'               => 'Alamat tempat tinggal wajib diisi.',
+            'tanggal_lahir.required'        => 'Tanggal lahir siswa wajib diisi.',
+            'tanggal_lahir.date'            => 'Format tanggal lahir tidak valid.',
             'tanggal_lahir.before_or_equal' => 'Usia siswa minimal harus 10 tahun (tanggal lahir tidak boleh setelah ' . now()->subYears(10)->translatedFormat('d F Y') . ').',
             'tanggal_lahir.after_or_equal'  => 'Usia siswa maksimal 16 tahun (tanggal lahir tidak boleh sebelum ' . now()->subYears(16)->translatedFormat('d F Y') . ').',
-            'nohp_wali.numeric'             => 'Nomor telepon / WhatsApp wali murid harus berupa angka.',
-            'nohp_wali.digits_between'      => 'Nomor telepon wali murid harus terdiri dari 10 hingga 13 digit angka.',
+            'jenis_kelamin.required'        => 'Jenis kelamin wajib dipilih.',
+            'wali_murid.required'           => 'Nama wali murid wajib diisi.',
+            'wali_murid.regex'              => 'Nama wali murid hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'nohp_wali.required'            => 'Nomor HP / WhatsApp wali murid wajib diisi.',
+            'nohp_wali.numeric'             => 'Nomor HP / WhatsApp wali murid harus berupa angka.',
+            'nohp_wali.digits_between'      => 'Nomor HP / WhatsApp wali murid harus terdiri dari 10 hingga 13 digit angka.',
         ]);
 
         $updatePayload = array_diff_key($validated, ['kelas_id' => true]);
