@@ -218,26 +218,6 @@
                     confirmButtonText: 'Tutup & Perbaiki CSV',
                     width: '32rem'
                 });
-            @elseif(isset($errors) && $errors->any())
-                @php
-                    $errList = $errors->all();
-                    $errHtml = '<div style="text-align: left; font-size: 13px; background-color: #fff1f2; padding: 14px 16px; border-radius: 12px; border: 1px solid #fecdd3; max-height: 240px; overflow-y: auto; color: #9f1239;">';
-                    $errHtml .= '<div style="font-weight: 700; margin-bottom: 8px; color: #881337;"><i class=\"fa-solid fa-circle-exclamation mr-1\"></i> Mohon periksa kesalahan input berikut:</div>';
-                    $errHtml .= '<ul style="list-style-type: disc; padding-left: 18px; margin: 0; line-height: 1.6;">';
-                    foreach ($errList as $err) {
-                        $errHtml .= '<li style="margin-bottom: 4px;">' . e($err) . '</li>';
-                    }
-                    $errHtml .= '</ul></div>';
-                @endphp
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal Menyimpan Data!',
-                    text: 'Terdapat data yang belum sesuai ketentuan atau melebihi batas.',
-                    html: {!! json_encode($errHtml) !!},
-                    confirmButtonColor: '#e11d48',
-                    confirmButtonText: 'Tutup & Perbaiki',
-                    width: '32rem'
-                });
             @elseif(session('error'))
                 Swal.fire({
                     icon: 'error',

@@ -140,7 +140,8 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        <th class="py-3.5 px-4 sm:px-6">Pengguna</th>
+                        <th class="py-3.5 px-4 sm:px-6 w-12">No</th>
+                        <th class="py-3.5 px-4">Pengguna</th>
                         <th class="py-3.5 px-4">Username & Email</th>
                         <th class="py-3.5 px-4">Peran (Role)</th>
                         <th class="py-3.5 px-4">Status Akun</th>
@@ -151,7 +152,10 @@
                 <tbody class="divide-y divide-slate-100 text-xs">
                     @forelse($users as $user)
                         <tr class="hover:bg-slate-50/60 transition-colors {{ ($user->status ?? 'aktif') === 'nonaktif' ? 'bg-slate-50/40 opacity-75' : '' }}">
-                            <td class="py-3.5 px-4 sm:px-6">
+                            <td class="py-3.5 px-4 sm:px-6 font-semibold text-slate-500">
+                                {{ ($users->firstItem() ?? 1) + $loop->index }}
+                            </td>
+                            <td class="py-3.5 px-4">
                                 <div class="flex items-center gap-3">
                                     <div class="w-9 h-9 rounded-xl {{ ($user->status ?? 'aktif') === 'nonaktif' ? 'bg-slate-200 text-slate-600' : 'bg-blue-50 text-blue-600 border border-blue-100/60' }} flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
                                         {{ strtoupper(substr($user->name, 0, 2)) }}
@@ -244,7 +248,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="py-12 text-center text-slate-400">
+                            <td colspan="7" class="py-12 text-center text-slate-400">
                                 <div class="max-w-xs mx-auto text-center space-y-2">
                                     <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>

@@ -144,7 +144,8 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-slate-50/70 border-b border-slate-200/60 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        <th class="py-3.5 px-4 sm:px-6">Nama &amp; NUPTK</th>
+                        <th class="py-3.5 px-4 sm:px-6 w-12">No</th>
+                        <th class="py-3.5 px-4">Nama &amp; NUPTK</th>
                         <th class="py-3.5 px-4">Status Data</th>
                         <th class="py-3.5 px-4">Akun Pengguna</th>
                         <th class="py-3.5 px-4">Wali Kelas</th>
@@ -155,7 +156,10 @@
                 <tbody class="divide-y divide-slate-100 text-xs sm:text-sm">
                     @forelse($gurus as $guru)
                         <tr class="hover:bg-slate-50/60 transition-colors {{ ($guru->status ?? 'aktif') === 'nonaktif' ? 'bg-slate-50/60 opacity-75' : '' }}">
-                            <td class="py-4 px-4 sm:px-6">
+                            <td class="py-4 px-4 sm:px-6 font-semibold text-slate-500">
+                                {{ ($gurus->firstItem() ?? 1) + $loop->index }}
+                            </td>
+                            <td class="py-4 px-4">
                                 <div class="flex items-center gap-3">
                                     <div class="w-9 h-9 rounded-xl {{ ($guru->status ?? 'aktif') === 'nonaktif' ? 'bg-slate-200 text-slate-600' : 'bg-blue-50 text-blue-600 border border-blue-100/60' }} flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
                                         {{ strtoupper(substr($guru->nama, 0, 2)) }}
@@ -266,7 +270,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="py-12 text-center text-slate-400">
+                            <td colspan="7" class="py-12 text-center text-slate-400">
                                 <div class="max-w-xs mx-auto text-center space-y-2">
                                     <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

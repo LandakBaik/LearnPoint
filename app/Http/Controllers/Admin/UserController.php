@@ -73,18 +73,22 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'      => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s\.,]+$/u'],
-            'username'  => 'required|string|max:50|unique:users,username|alpha_dash',
+            'name'      => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
+            'username'  => 'required|string|max:25|unique:users,username|alpha_dash',
             'email'     => ['required', 'string', 'email:rfc', 'regex:/^[^@\s]+@[^@\s]+\.[^@\s]+$/', 'max:255', 'unique:users,email'],
-            'password'  => 'required|string|min:8',
+            'password'  => 'required|string|min:8|max:100',
             'role'      => 'required|in:operator,guru,siswa,kepala_sekolah',
             'status'    => 'nullable|in:aktif,nonaktif',
             'guru_id'   => 'nullable|exists:gurus,id|unique:users,guru_id',
             'siswa_id'  => 'nullable|exists:siswas,id|unique:users,siswa_id',
         ], [
-            'name.regex'  => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
-            'email.regex' => 'Format email harus valid dan wajib menyertakan simbol @ serta nama domain.',
-            'email.email' => 'Format email tidak valid.',
+            'name.regex'     => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'name.max'       => 'Nama lengkap maksimal 100 karakter.',
+            'username.max'   => 'Username maksimal 25 karakter.',
+            'password.min'   => 'Password minimal 8 karakter.',
+            'password.max'   => 'Password maksimal 100 karakter.',
+            'email.regex'    => 'Format email harus valid dan wajib menyertakan simbol @ serta nama domain.',
+            'email.email'    => 'Format email tidak valid.',
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
@@ -125,18 +129,22 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
-            'name'      => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s\.,]+$/u'],
-            'username'  => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('users')->ignore($user->id)],
+            'name'      => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z\s\.,]+$/u'],
+            'username'  => ['required', 'string', 'max:25', 'alpha_dash', Rule::unique('users')->ignore($user->id)],
             'email'     => ['required', 'string', 'email:rfc', 'regex:/^[^@\s]+@[^@\s]+\.[^@\s]+$/', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'password'  => 'nullable|string|min:8',
+            'password'  => 'nullable|string|min:8|max:100',
             'role'      => 'required|in:operator,guru,siswa,kepala_sekolah',
             'status'    => 'nullable|in:aktif,nonaktif',
             'guru_id'   => ['nullable', 'exists:gurus,id', Rule::unique('users', 'guru_id')->ignore($user->id)],
             'siswa_id'  => ['nullable', 'exists:siswas,id', Rule::unique('users', 'siswa_id')->ignore($user->id)],
         ], [
-            'name.regex'  => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
-            'email.regex' => 'Format email harus valid dan wajib menyertakan simbol @ serta nama domain.',
-            'email.email' => 'Format email tidak valid.',
+            'name.regex'     => 'Nama hanya boleh berisi huruf, spasi, koma (,), dan titik (.).',
+            'name.max'       => 'Nama lengkap maksimal 100 karakter.',
+            'username.max'   => 'Username maksimal 25 karakter.',
+            'password.min'   => 'Password minimal 8 karakter.',
+            'password.max'   => 'Password maksimal 100 karakter.',
+            'email.regex'    => 'Format email harus valid dan wajib menyertakan simbol @ serta nama domain.',
+            'email.email'    => 'Format email tidak valid.',
         ]);
 
         if (Auth::id() === $user->id) {

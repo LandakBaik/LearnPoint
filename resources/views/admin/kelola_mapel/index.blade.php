@@ -112,7 +112,8 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        <th class="py-3.5 px-4 sm:px-6">Mata Pelajaran</th>
+                        <th class="py-3.5 px-4 sm:px-6 w-12">No</th>
+                        <th class="py-3.5 px-4">Mata Pelajaran</th>
                         <th class="py-3.5 px-4">Tipe Mapel</th>
                         <th class="py-3.5 px-4">Tema Planet (Asset)</th>
                         <th class="py-3.5 px-4">Nilai KKM Minimal</th>
@@ -133,7 +134,10 @@
                                 };
                         @endphp
                         <tr class="hover:bg-slate-50/60 transition-colors">
-                            <td class="py-3.5 px-4 sm:px-6">
+                            <td class="py-3.5 px-4 sm:px-6 font-semibold text-slate-500">
+                                {{ ($mapels->firstItem() ?? 1) + $loop->index }}
+                            </td>
+                            <td class="py-3.5 px-4">
                                 <div class="flex items-center gap-3">
                                     <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 font-bold flex items-center justify-center shrink-0">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
@@ -190,7 +194,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="py-12 text-center text-slate-400">
+                            <td colspan="7" class="py-12 text-center text-slate-400">
                                 <div class="max-w-xs mx-auto text-center space-y-2">
                                     <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>

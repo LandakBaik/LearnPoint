@@ -3,7 +3,7 @@
 @section('title', 'Edit Akun Pengguna')
 
 @section('content')
-<div class="max-w-3xl mx-auto space-y-6" x-data="{ selectedRole: '{{ old('role', $user->role) }}' }">
+<div class="max-w-3xl mx-auto space-y-6" x-data="{ selectedRole: '{{ old('role', $user->role) }}', passwordLength: 0 }">
 
     <!-- Header Navigation -->
     <div class="flex items-center gap-3">
@@ -18,7 +18,7 @@
 
     <!-- Form Card -->
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-6 sm:p-8">
-        <form action="{{ route('users.update', $user->id) }}" method="POST" class="space-y-6">
+        <form action="{{ route('users.update', $user->id) }}" method="POST" class="space-y-6" @submit="if (passwordLength > 100) { $event.preventDefault(); Swal.fire({ icon: 'warning', title: 'Password Terlalu Panjang', text: 'Password maksimal 100 karakter (saat ini ' + passwordLength + ' karakter).', confirmButtonColor: '#2563eb', confirmButtonText: 'Mengerti' }); }">
             @csrf
             @method('PUT')
 
@@ -31,10 +31,11 @@
                     name="name" 
                     value="{{ old('name', $user->name) }}" 
                     required 
+                    maxlength="100"
                     oninput="this.value = this.value.replace(/[^a-zA-Z\s\.,]/g, '')"
                     class="w-full px-4 py-2.5 rounded-xl border @error('name') border-rose-400 bg-rose-50/30 @else border-slate-200 bg-slate-50/50 @enderror text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800"
                 >
-                <p class="text-[11px] text-slate-400 mt-1">Hanya boleh berisi huruf, spasi, koma (,), dan titik (.).</p>
+                <p class="text-[11px] text-slate-400 mt-1">Hanya boleh berisi huruf, spasi, koma (,), dan titik (.) (maks. 100 karakter).</p>
                 @error('name')
                     <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                 @enderror
@@ -50,6 +51,7 @@
                         name="username" 
                         value="{{ old('username', $user->username) }}" 
                         required 
+                        maxlength="25"
                         class="w-full px-4 py-2.5 rounded-xl border @error('username') border-rose-400 bg-rose-50/30 @else border-slate-200 bg-slate-50/50 @enderror text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800"
                     >
                     @error('username')
@@ -75,14 +77,22 @@
 
             <!-- Password (Opsional) -->
             <div>
-                <label for="password" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Password Baru (Opsional)</label>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label for="password" class="block text-xs font-bold uppercase tracking-wider text-slate-700">Password Baru (Opsional)</label>
+                    <span class="text-[11px] font-medium" :class="passwordLength > 100 ? 'text-rose-600 font-bold' : 'text-slate-400'" x-text="passwordLength + '/100'"></span>
+                </div>
                 <input 
                     type="password" 
                     id="password" 
                     name="password" 
-                    placeholder="Kosongkan jika tidak ingin mengubah password"
+                    @input="passwordLength = $event.target.value.length"
+                    placeholder="Kosongkan jika tidak ingin mengubah password (min. 8, maks. 100 karakter)"
+                    :class="passwordLength > 100 ? 'border-rose-400 bg-rose-50/30 focus:ring-rose-500/20 focus:border-rose-500' : ''"
                     class="w-full px-4 py-2.5 rounded-xl border @error('password') border-rose-400 bg-rose-50/30 @else border-slate-200 bg-slate-50/50 @enderror text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800"
                 >
+                <p x-show="passwordLength > 100" x-cloak class="text-xs font-semibold text-rose-600 mt-1.5">
+                    Peringatan: Password melebihi batas maksimal 100 karakter (<span x-text="passwordLength"></span>/100).
+                </p>
                 <p class="text-[11px] text-slate-400 mt-1">Hanya isi kolom ini jika Anda ingin mereset password pengguna ini.</p>
                 @error('password')
                     <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
