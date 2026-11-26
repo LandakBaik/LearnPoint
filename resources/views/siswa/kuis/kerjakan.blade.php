@@ -300,6 +300,7 @@
 
                             @php
                                 $pilihanMap = $soal->pilihan_shuffled ?? $soal->pilihan;
+                                $displayLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
                             @endphp
 
                             @if(is_array($pilihanMap) && count($pilihanMap) > 0)
@@ -307,6 +308,7 @@
                                     @foreach($pilihanMap as $optKey => $optVal)
                                         @php
                                             $optKeyLower = strtolower((string) $optKey);
+                                            $displayLetter = $displayLetters[$loop->index] ?? strtoupper((string) $optKey);
                                         @endphp
                                         <div class="option-card relative">
                                             <input 
@@ -338,7 +340,7 @@
                                                                 ? 'border-blue-600 bg-blue-600 text-white'
                                                                 : 'border-slate-300 text-slate-600 group-hover:border-blue-500 group-hover:text-blue-600')"
                                                     >
-                                                        {{ $optKey }}
+                                                        {{ $displayLetter }}
                                                     </span>
 
                                                     <span 

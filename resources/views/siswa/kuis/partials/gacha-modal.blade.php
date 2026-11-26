@@ -125,61 +125,87 @@
         class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
         role="dialog"
     >
-        <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" @click="resultModalOpen = false"></div>
+        <div class="fixed inset-0 bg-slate-950/75 backdrop-blur-xs" @click="resultModalOpen = false"></div>
 
-        <div class="relative w-full max-w-2xl bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8 z-10 space-y-5 overflow-hidden my-6 text-center">
+        <div class="relative w-full max-w-2xl bg-white rounded-2xl border border-slate-200 shadow-2xl z-10 overflow-hidden my-6">
             
-            <div class="space-y-1">
-                <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shadow-xs">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+            {{-- Header --}}
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50/70">
+                <div class="flex items-center gap-2.5">
+                    <span class="px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200/70" x-text="lastPullResults.length + 'x Tarikan'"></span>
+                    <h3 class="text-base font-extrabold text-slate-900 tracking-tight">Ringkasan Hasil Gacha</h3>
                 </div>
-                <h3 class="text-xl font-black text-slate-900 tracking-tight">Selamat! Hasil Gacha Kamu:</h3>
-                <p class="text-xs text-slate-500 font-medium">Item telah otomatis ditambahkan ke Tas Power & Koleksi Banner-mu.</p>
+                <span class="text-xs text-slate-400 font-medium hidden sm:inline">Tersimpan ke Tas Power</span>
             </div>
 
-            {{-- Grid Item Hasil Gacha --}}
-            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 max-h-[50vh] overflow-y-auto p-1">
-                <template x-for="(res, idx) in lastPullResults" :key="idx">
-                    <div class="rounded-2xl border p-3 flex flex-col items-center justify-between text-center gap-2 bg-slate-50/80 shadow-2xs hover:scale-102 transition">
-                        <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-lg shadow-2xs border border-slate-200 text-blue-600">
-                            <i :class="res.power.icon"></i>
-                        </div>
-                        <div>
-                            <span class="text-[9px] font-black uppercase tracking-wider block"
-                                  :class="res.power.rarity === 'epic' ? 'text-amber-600' : (res.power.rarity === 'rare' ? 'text-emerald-600' : 'text-blue-600')" 
-                                  x-text="res.power.rarity"></span>
-                            <h4 class="text-xs font-black text-slate-800 line-clamp-1 leading-snug" x-text="res.power.nama"></h4>
-                            <span class="text-[10px] font-bold text-slate-400 block">+1 (Total: <span x-text="res.power.new_qty"></span>)</span>
-                        </div>
+            <div class="p-6 space-y-5">
+                {{-- Banner GIF Baru jika didapat --}}
+                <template x-if="wonBannersInLastPull.length > 0">
+                    <div class="space-y-2.5">
+                        <template x-for="(wb, bIdx) in wonBannersInLastPull" :key="bIdx">
+                            <div class="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200 text-left flex items-center gap-3.5">
+                                <div class="w-11 h-11 rounded-lg bg-amber-100 border border-amber-200 text-amber-700 flex items-center justify-center text-lg shrink-0">
+                                    <i class="fa-solid fa-image"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                                        Banner Baru Terbuka
+                                    </span>
+                                    <h4 class="text-sm font-extrabold text-slate-900 truncate" x-text="wb.nama"></h4>
+                                    <p class="text-xs text-slate-600 line-clamp-1" x-text="wb.deskripsi"></p>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </template>
-            </div>
 
-            {{-- Jackpot Banner GIF jika beruntung dapat --}}
-            <template x-if="wonBannersInLastPull.length > 0">
-                <div class="space-y-2 pt-2">
-                    <template x-for="(wb, bIdx) in wonBannersInLastPull" :key="bIdx">
-                        <div class="p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 border-2 border-amber-300 text-left flex items-center gap-4 animate-pulse">
-                            <div class="w-12 h-12 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xl shrink-0 shadow-md shadow-amber-500/20">
-                                <i class="fa-solid fa-crown"></i>
+                {{-- Grid Item Hasil Gacha --}}
+                <div 
+                    class="grid gap-2.5 max-h-[50vh] overflow-y-auto pr-1"
+                    :class="lastPullResults.length === 1 ? 'grid-cols-1 max-w-xs mx-auto' : 'grid-cols-2 sm:grid-cols-5'"
+                >
+                    <template x-for="(res, idx) in lastPullResults" :key="idx">
+                        <div 
+                            class="relative rounded-xl border bg-white p-3 flex flex-col justify-between gap-2.5 overflow-hidden"
+                            :class="res.power.rarity === 'epic' ? 'border-amber-300' : (res.power.rarity === 'rare' ? 'border-emerald-300' : 'border-slate-200')"
+                        >
+                            <div 
+                                class="absolute top-0 inset-x-0 h-1"
+                                :class="res.power.rarity === 'epic' ? 'bg-amber-400' : (res.power.rarity === 'rare' ? 'bg-emerald-400' : 'bg-blue-500')"
+                            ></div>
+
+                            <div class="flex items-center justify-between gap-1 pt-1">
+                                <span class="text-[9px] font-extrabold uppercase tracking-wider"
+                                      :class="res.power.rarity === 'epic' ? 'text-amber-600' : (res.power.rarity === 'rare' ? 'text-emerald-600' : 'text-slate-500')" 
+                                      x-text="res.power.rarity"></span>
+                                <span class="text-[10px] font-bold text-slate-400">+1</span>
                             </div>
-                            <div class="flex-1 min-w-0">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white uppercase tracking-wider">
-                                    JACKPOT BANNER GIF BARU!
-                                </span>
-                                <h4 class="text-sm font-extrabold text-slate-900 mt-0.5 truncate" x-text="wb.nama"></h4>
-                                <p class="text-xs text-slate-600 line-clamp-1" x-text="wb.deskripsi"></p>
+
+                            <div class="flex flex-col items-center text-center gap-1.5 py-1">
+                                <div 
+                                    class="w-10 h-10 rounded-lg flex items-center justify-center text-base border"
+                                    :class="res.power.rarity === 'epic' ? 'bg-amber-50 border-amber-200 text-amber-600' : (res.power.rarity === 'rare' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-blue-50 border-blue-100 text-blue-600')"
+                                >
+                                    <i :class="res.power.icon"></i>
+                                </div>
+                                <h4 class="text-xs font-bold text-slate-800 line-clamp-2 leading-snug" x-text="res.power.nama"></h4>
+                            </div>
+
+                            <div class="text-[10px] font-semibold text-slate-400 text-center border-t border-slate-100 pt-1.5">
+                                Total: <span class="text-slate-600 font-bold" x-text="res.power.new_qty"></span>
                             </div>
                         </div>
                     </template>
                 </div>
-            </template>
+            </div>
 
-            <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-3 text-xs">
-                <div class="font-bold text-slate-600">
-                    Sisa Koin: <span class="text-amber-600 font-extrabold" x-text="koin"></span>
+            <div class="px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between gap-3 text-xs">
+                <div class="flex items-center gap-1.5 font-semibold text-slate-600">
+                    <i class="fa-solid fa-coins text-amber-500"></i>
+                    <span>Sisa Koin:</span>
+                    <span class="text-slate-900 font-extrabold" x-text="koin"></span>
                 </div>
-                <button type="button" @click="resultModalOpen = false" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold transition cursor-pointer">
+                <button type="button" @click="resultModalOpen = false" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition cursor-pointer">
                     Selesai
                 </button>
             </div>

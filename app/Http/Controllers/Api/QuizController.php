@@ -439,6 +439,14 @@ class QuizController extends Controller
             'd' => trim((string) $request->input('pilihan.d', '')),
         ];
 
+        $normalizedPilihan = array_map(
+            static fn ($val) => mb_strtolower($val),
+            array_values($pilihanFormatted)
+        );
+        if (count($normalizedPilihan) !== count(array_unique($normalizedPilihan))) {
+            return $this->errorResponse('Pilihan jawaban tidak boleh ada yang sama.', 422);
+        }
+
         $kunci = $validated['kunci_jawaban'];
         if (is_array($kunci)) {
             $kunci = strtolower(trim((string) ($kunci[0] ?? 'a')));
@@ -543,6 +551,14 @@ class QuizController extends Controller
             'c' => trim((string) $request->input('pilihan.c', $soal->pilihan['c'] ?? '')),
             'd' => trim((string) $request->input('pilihan.d', $soal->pilihan['d'] ?? '')),
         ];
+
+        $normalizedPilihan = array_map(
+            static fn ($val) => mb_strtolower($val),
+            array_values($pilihanFormatted)
+        );
+        if (count($normalizedPilihan) !== count(array_unique($normalizedPilihan))) {
+            return $this->errorResponse('Pilihan jawaban (A, B, C, dan D) tidak boleh ada yang sama agar tidak ambigu.', 422);
+        }
 
         $kunci = $validated['kunci_jawaban'];
         if (is_array($kunci)) {
