@@ -33,12 +33,11 @@
             </a>
         </nav>
 
-        {{-- 2. Hero Card: Kuis Petualangan (Mengikuti Banner Aktif Dashboard) --}}
-        <div class="relative overflow-hidden rounded-[28px] p-8 md:p-10 border transition-all duration-300 {{ $activeBannerUrl }}">
-            {{-- Background GIF jika menggunakan custom banner --}}
+        {{-- 2. Hero Banner: Pure GIF Banner (Ukuran sama dengan Dashboard) --}}
+        <div class="relative overflow-hidden rounded-[26px] p-7 md:p-9 border transition-all duration-300 min-h-[280px] md:min-h-[320px] {{ $activeBannerUrl ? 'border-slate-700/80 shadow-none' : 'bg-gradient-to-r from-[#EBF4FF] via-[#EDF6FF] to-[#DCEEFE] border-blue-100 shadow-sm' }}">
+            {{-- Background GIF murni tanpa overlay agar terlihat jelas --}}
             @if(!empty($activeBannerUrl))
                 <img src="{{ $activeBannerUrl }}" alt="{{ $activeBanner['nama'] }}" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0">
-                <div class="absolute inset-0 bg-gradient-to-r from-slate-950/75 via-slate-950/45 to-slate-950/35 z-0 pointer-events-none"></div>
             @endif
 
             {{-- Tombol Aksi di Pojok Kanan Atas: Ubah Banner --}}
@@ -53,109 +52,16 @@
                     <span class="hidden sm:inline">Ubah Banner</span>
                 </button>
             </div>
+        </div>
 
-            <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 pt-4 md:pt-0">
-                <div class="max-w-xl">
-                    <h1 class="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight {{ $isDarkTheme && $activeBannerUrl ? 'text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]' : 'text-slate-900' }}">
-                        Kuis Petualangan
-                    </h1>
-                    <p class="text-sm md:text-base mt-2.5 leading-relaxed font-medium {{ $isDarkTheme && $activeBannerUrl ? 'text-slate-100 drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]' : 'text-slate-600' }}">
-                        Kamu adalah pengembara antar galaksi yang suka menolong<br>
-                        Bantu kami menyelamatkan dunia
-                    </p>
-                </div>
-
-                {{-- Top 3 Leaderboard Podium Profile Circles (Kiri: Top 2, Tengah: Top 1, Kanan: Top 3) --}}
-                <div class="relative flex items-end justify-center gap-2.5 md:gap-3.5 shrink-0 select-none pt-4">
-                    {{-- TOP 2 (KIRI) --}}
-                    @if(isset($top2) && $top2)
-                        <div class="flex flex-col items-center group relative -mr-1 z-10 transition-transform hover:scale-105" title="Peringkat 2: {{ $top2->name }} ({{ number_format($top2->skor ?? 0, 0) }} XP)">
-                            <div class="relative">
-                                <div class="w-16 h-16 md:w-18 md:h-18 rounded-full border-2 border-white shadow-md overflow-hidden bg-slate-300 flex items-center justify-center ring-2 ring-slate-200">
-                                    @if(!empty($top2->foto))
-                                        <img src="{{ asset('storage/' . $top2->foto) }}" alt="{{ $top2->name }}" class="w-full h-full object-cover">
-                                    @else
-                                        <img src="https://ui-avatars.com/api/?name={{ urlencode($top2->name) }}&background=64748B&color=fff&size=160&bold=true" alt="{{ $top2->name }}" class="w-full h-full object-cover">
-                                    @endif
-                                </div>
-                                <!-- Badge Rank 2 -->
-                                <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-200 text-slate-800 border-2 border-white font-black text-[10px] flex items-center justify-center shadow-xs">
-                                    2
-                                </div>
-                            </div>
-                            <span class="text-[11px] font-bold mt-1.5 max-w-[70px] truncate text-center {{ $isDarkTheme && $activeBannerUrl ? 'text-white drop-shadow-xs' : 'text-slate-700' }}">
-                                {{ explode(' ', trim($top2->name))[0] }}
-                            </span>
-                            <span class="text-[9px] font-semibold {{ $isDarkTheme && $activeBannerUrl ? 'text-slate-300' : 'text-slate-400' }}">Top 2</span>
-                        </div>
-                    @else
-                        {{-- Top 2 Kosong: Tampilkan shape bulat abu-abu polos sesuai mockup --}}
-                        <div class="flex flex-col items-center relative -mr-1 z-10">
-                            <div class="w-16 h-16 md:w-18 md:h-18 rounded-full bg-[#7E7E7E] shadow-xs"></div>
-                        </div>
-                    @endif
-
-                    {{-- TOP 1 (TENGAH - LEBIH TINGGI & BESAR) --}}
-                    @if(isset($top1) && $top1)
-                        <div class="flex flex-col items-center group relative z-20 -mb-1 transition-transform hover:scale-105" title="Peringkat 1: {{ $top1->name }} ({{ number_format($top1->skor ?? 0, 0) }} XP)">
-                            <div class="relative">
-                                <!-- Mahkota Emas Top 1 -->
-                                <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 text-amber-500 text-sm drop-shadow-xs animate-bounce">
-                                    <i class="fa-solid fa-crown"></i>
-                                </div>
-                                <div class="w-20 h-20 md:w-22 md:h-22 rounded-full border-3 border-amber-300 shadow-lg overflow-hidden bg-blue-100 flex items-center justify-center ring-4 ring-amber-100/70">
-                                    @if(!empty($top1->foto))
-                                        <img src="{{ asset('storage/' . $top1->foto) }}" alt="{{ $top1->name }}" class="w-full h-full object-cover">
-                                    @else
-                                        <img src="https://ui-avatars.com/api/?name={{ urlencode($top1->name) }}&background=2563EB&color=fff&size=160&bold=true" alt="{{ $top1->name }}" class="w-full h-full object-cover">
-                                    @endif
-                                </div>
-                                <!-- Badge Rank 1 -->
-                                <div class="absolute -bottom-1.5 -right-1 w-7 h-7 rounded-full bg-amber-400 text-amber-950 border-2 border-white font-black text-xs flex items-center justify-center shadow-xs">
-                                    1
-                                </div>
-                            </div>
-                            <span class="text-xs font-black mt-1.5 max-w-[85px] truncate text-center {{ $isDarkTheme && $activeBannerUrl ? 'text-white drop-shadow-xs' : 'text-slate-900' }}">
-                                {{ explode(' ', trim($top1->name))[0] }}
-                            </span>
-                            <span class="text-[10px] font-bold {{ $isDarkTheme && $activeBannerUrl ? 'text-amber-300' : 'text-amber-600' }}">Juara 1</span>
-                        </div>
-                    @else
-                        {{-- Top 1 Kosong: Tampilkan shape bulat abu-abu polos tengah sesuai mockup --}}
-                        <div class="flex flex-col items-center relative z-20 -mb-3">
-                            <div class="w-20 h-20 md:w-22 md:h-22 rounded-full bg-[#7E7E7E] shadow-xs"></div>
-                        </div>
-                    @endif
-
-                    {{-- TOP 3 (KANAN) --}}
-                    @if(isset($top3) && $top3)
-                        <div class="flex flex-col items-center group relative -ml-1 z-10 transition-transform hover:scale-105" title="Peringkat 3: {{ $top3->name }} ({{ number_format($top3->skor ?? 0, 0) }} XP)">
-                            <div class="relative">
-                                <div class="w-16 h-16 md:w-18 md:h-18 rounded-full border-2 border-white shadow-md overflow-hidden bg-amber-100 flex items-center justify-center ring-2 ring-amber-200/60">
-                                    @if(!empty($top3->foto))
-                                        <img src="{{ asset('storage/' . $top3->foto) }}" alt="{{ $top3->name }}" class="w-full h-full object-cover">
-                                    @else
-                                        <img src="https://ui-avatars.com/api/?name={{ urlencode($top3->name) }}&background=D97706&color=fff&size=160&bold=true" alt="{{ $top3->name }}" class="w-full h-full object-cover">
-                                    @endif
-                                </div>
-                                <!-- Badge Rank 3 -->
-                                <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-amber-700 text-white border-2 border-white font-black text-[10px] flex items-center justify-center shadow-xs">
-                                    3
-                                </div>
-                            </div>
-                            <span class="text-[11px] font-bold mt-1.5 max-w-[70px] truncate text-center {{ $isDarkTheme && $activeBannerUrl ? 'text-white drop-shadow-xs' : 'text-slate-700' }}">
-                                {{ explode(' ', trim($top3->name))[0] }}
-                            </span>
-                            <span class="text-[9px] font-semibold {{ $isDarkTheme && $activeBannerUrl ? 'text-slate-300' : 'text-slate-400' }}">Top 3</span>
-                        </div>
-                    @else
-                        {{-- Top 3 Kosong: Tampilkan shape bulat abu-abu polos sesuai mockup --}}
-                        <div class="flex flex-col items-center relative -ml-1 z-10">
-                            <div class="w-16 h-16 md:w-18 md:h-18 rounded-full bg-[#7E7E7E] shadow-xs"></div>
-                        </div>
-                    @endif
-                </div>
-            </div>
+        {{-- Judul & Deskripsi Kuis Petualangan (Di luar banner) --}}
+        <div class="pt-1">
+            <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight leading-tight text-slate-900">
+                Kuis Petualangan
+            </h1>
+            <p class="text-sm md:text-base mt-1.5 leading-relaxed font-medium text-slate-600">
+                Kamu adalah pengembara antar galaksi yang suka menolong. Bantu kami menyelamatkan dunia!
+            </p>
         </div>
 
         {{-- 3. Section Title, Panduan & Tombol Peti Gacha --}}
@@ -321,7 +227,7 @@
             </div>
         </div>
 
-        {{-- 3. Two-Column Layout: Tahapan Penyelamatan vs Target & Leaderboard --}}
+        {{-- 3. Two-Column Layout: Tahapan Penyelamatan vs Target & Tips --}}
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
 
             {{-- Kolom Kiri: Tahapan Penyelamatan (60%) --}}
@@ -431,7 +337,7 @@
                 </div>
             </div>
 
-            {{-- Kolom Kanan: Target Penyelamatan, Leaderboard & Tips (40%) --}}
+            {{-- Kolom Kanan: Target Penyelamatan & Tips (40%) --}}
             <div class="lg:col-span-5 xl:col-span-4 space-y-5">
 
                 {{-- 1. Card: Target Penyelamatan --}}
@@ -476,33 +382,7 @@
                     @endif
                 </div>
 
-                {{-- 2. Card: Leaderboard --}}
-                <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-3">
-                    <div class="flex items-center gap-2 font-extrabold text-slate-900 text-sm">
-                        <i class="fa-solid fa-medal text-amber-500"></i>
-                        <span>Leaderboard</span>
-                    </div>
-
-                    <div class="space-y-2">
-                        @forelse($leaderboard as $lb)
-                            <div class="{{ $lb['is_user'] ? 'bg-[#EFF6FF] border border-blue-200/60' : 'bg-[#F8FAFC]' }} rounded-xl px-4 py-2.5 flex items-center gap-3 transition">
-                                <div class="w-8 h-8 rounded-full {{ $lb['bg'] }} {{ $lb['text'] }} font-bold text-xs flex items-center justify-center shrink-0">
-                                    {{ $lb['initials'] }}
-                                </div>
-                                <span class="text-xs {{ $lb['is_user'] ? 'font-extrabold text-blue-900' : 'font-semibold text-slate-700' }} truncate">
-                                    {{ $lb['name'] }}
-                                </span>
-                            </div>
-                        @empty
-                            <div class="py-5 text-center text-xs text-slate-400">
-                                <i class="fa-solid fa-trophy text-slate-300 text-xl mb-1.5 block"></i>
-                                <span>Belum ada data peringkat</span>
-                            </div>
-                        @endforelse
-                    </div>
-                </div>
-
-                {{-- 3. Card: Tips Pill Box --}}
+                {{-- 2. Card: Tips Pill Box --}}
                 <div class="bg-[#EFF4FF] border border-[#DBE7FE] rounded-2xl p-4 text-xs text-[#2A4374] flex items-start gap-2.5 shadow-2xs">
                     <i class="fa-regular fa-lightbulb text-indigo-500 mt-0.5 text-sm shrink-0"></i>
                     <div class="leading-relaxed">

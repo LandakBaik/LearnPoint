@@ -8,7 +8,6 @@ use App\Models\Nilai;
 use App\Models\Quiz;
 use App\Models\Siswa;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class QuizAdventureService
 {
@@ -482,95 +481,6 @@ class QuizAdventureService
         }
 
         return $zonas;
-    }
-
-    /**
-     * Mengambil Top 3 Leaderboard berdasarkan akumulasi nilai kuis yang telah diselesaikan.
-     */
-    public function getTopThreeLeaderboard(): Collection
-    {
-        $rows = Nilai::whereNotNull('quiz_id')
-            ->where('status', 'selesai')
-            ->select('siswa_id', DB::raw('SUM(nilai) as total_skor'))
-            ->groupBy('siswa_id')
-            ->orderByDesc('total_skor')
-            ->take(3)
-            ->get();
-
-        if ($rows->isEmpty()) {
-            return collect();
-        }
-
-        $siswas = Siswa::with('user')
-            ->whereIn('id', $rows->pluck('siswa_id'))
-            ->get()
-            ->keyBy('id');
-
-        $topThree = collect();
-        foreach ($rows as $index => $item) {
-            $siswaModel = $siswas->get($item->siswa_id);
-            if (!$siswaModel) {
-                continue;
-            }
-
-            $name = $siswaModel->nama_siswa ?? $siswaModel->user?->name ?? 'Siswa';
-            $foto = $siswaModel->foto ?? $siswaModel->user?->foto ?? null;
-            $initials = strtoupper(substr(explode(' ', trim($name))[0] ?? 'S', 0, 2));
-
-            $topThree->push((object) [
-                'rank' => $index + 1,
-                'name' => $name,
-                'skor' => (int) $item->total_skor,
-                'foto' => $foto,
-                'initials' => $initials,
-            ]);
-        }
-
-        return $topThree;
-    }
-
-    /**
-     * Mengambil daftar peringkat (Leaderboard) sektor untuk ditampilkan pada halaman misi planet.
-     */
-    public function getSectorLeaderboard(?Siswa $currentSiswa, int $limit = 5): Collection
-    {
-        $realScores = Nilai::whereNotNull('quiz_id')
-            ->where('status', 'selesai')
-            ->select('siswa_id', DB::raw('MAX(nilai) as top_skor'))
-            ->groupBy('siswa_id')
-            ->orderByDesc('top_skor')
-            ->take($limit)
-            ->get();
-
-        if ($realScores->isEmpty()) {
-            return collect();
-        }
-
-        $siswas = Siswa::whereIn('id', $realScores->pluck('siswa_id'))
-            ->get()
-            ->keyBy('id');
-
-        $leaderboard = collect();
-        foreach ($realScores as $rs) {
-            $sModel = $siswas->get($rs->siswa_id);
-            if (!$sModel) {
-                continue;
-            }
-
-            $sName = $sModel->nama_siswa ?? 'Siswa';
-            $isCurUser = ($currentSiswa && (int) $rs->siswa_id === (int) $currentSiswa->id);
-            $initials = strtoupper(substr(explode(' ', trim($sName))[0] ?? 'S', 0, 2));
-
-            $leaderboard->push([
-                'initials' => $initials,
-                'name' => $isCurUser ? explode(' ', trim($sName))[0] . ' (Kamu)' : $sName,
-                'bg' => $isCurUser ? 'bg-[#1D4ED8]' : 'bg-blue-100',
-                'text' => $isCurUser ? 'text-white' : 'text-[#2563EB]',
-                'is_user' => $isCurUser,
-            ]);
-        }
-
-        return $leaderboard;
     }
 
     /**

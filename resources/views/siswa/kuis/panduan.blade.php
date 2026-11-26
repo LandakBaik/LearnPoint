@@ -104,7 +104,7 @@
                 </div>
                 <h3 class="text-sm font-extrabold text-slate-800">Klaim XP & Koin Hadiah</h3>
                 <p class="text-xs text-slate-500 leading-relaxed">
-                    Raih skor maksimal, bintang kelulusan, peringkat leaderboard kelas, serta koin yang dapat ditukarkan di gacha antariksa!
+                    Raih skor maksimal, bintang kelulusan, serta koin yang dapat ditukarkan di gacha antariksa!
                 </p>
             </div>
         </div>

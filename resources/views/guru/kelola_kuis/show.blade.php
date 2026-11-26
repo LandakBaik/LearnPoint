@@ -165,6 +165,31 @@
                 options: options
             };
             this.showEditSoalModal = true;
+        },
+
+        hasDuplicateOptions(options) {
+            if (!Array.isArray(options)) return false;
+            const seen = new Set();
+            for (const opt of options) {
+                const val = String(opt?.text ?? '').trim().toLowerCase();
+                if (!val) continue;
+                if (seen.has(val)) return true;
+                seen.add(val);
+            }
+            return false;
+        },
+
+        validateSoalOptions(event, options) {
+            if (this.hasDuplicateOptions(options)) {
+                event.preventDefault();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Pilihan Jawaban Sama',
+                    text: 'Pilihan jawaban tidak boleh ada yang sama.'
+                });
+                return false;
+            }
+            return true;
         }
     }">
 
@@ -693,6 +718,7 @@
                 </div>
 
                 <form method="POST" action="{{ route('guru.kuis.soal.store', $quiz) }}" enctype="multipart/form-data"
+                    @submit="validateSoalOptions($event, addSoalData.options)"
                     class="p-6 overflow-y-auto space-y-4">
                     @csrf
                     <input type="hidden" name="tipe_soal" value="single_choice">
@@ -761,6 +787,12 @@
                             </template>
                         </div>
 
+                        <div x-show="hasDuplicateOptions(addSoalData.options)" x-cloak
+                            class="mt-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-600 flex items-center gap-2">
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                            <span>Pilihan jawaban tidak boleh ada yang sama agar tidak ambigu.</span>
+                        </div>
+
                         <div class="mt-2 text-right">
                             <span class="text-[11px] text-slate-400">
                                 * Pilih radio button lingkaran di sebelah huruf opsi untuk menetapkan kunci jawaban yang benar.
@@ -808,6 +840,7 @@
                 </div>
 
                 <form method="POST" :action="'/guru/kuis/{{ $quiz->id }}/soal/' + editSoalData.id"
+                    @submit="validateSoalOptions($event, editSoalData.options)"
                     enctype="multipart/form-data" class="p-6 overflow-y-auto space-y-4">
                     @csrf
                     @method('PUT')
@@ -894,6 +927,12 @@
                                         class="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-100 outline-none transition">
                                 </div>
                             </template>
+                        </div>
+
+                        <div x-show="hasDuplicateOptions(editSoalData.options)" x-cloak
+                            class="mt-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-600 flex items-center gap-2">
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                            <span>Pilihan jawaban tidak boleh ada yang sama agar tidak ambigu.</span>
                         </div>
 
                         <div class="mt-2 text-right">

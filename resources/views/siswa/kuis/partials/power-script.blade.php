@@ -336,7 +336,7 @@ window.createLearnPointPowerSystem = function(config) {
                     toastMsg = `Lucky Clover aktif! Kartu petunjuk (Hint) soal telah ditampilkan di bawah pertanyaan.`;
                 } else if (powerCode === 'remove_wrong_answer') {
                     const elim = Array.isArray(effect.eliminated_options) ? effect.eliminated_options : [];
-                    toastMsg = `Remove Wrong Answer aktif! Opsi ${elim.map(k => String(k).toUpperCase()).join(' & ')} telah dieliminasi.`;
+                    toastMsg = `Remove Wrong Answer aktif! Opsi ${elim.map(k => this.getDisplayOptionLabel(soalId, k)).join(' & ')} telah dieliminasi.`;
                 } else if (powerCode === 'second_chance' && !qState.secondChanceUsed) {
                     toastMsg = `Perisai Second Chance siaga! Jika pilihan pertamamu salah, kamu dapat memilih ulang.`;
                 }
@@ -437,10 +437,23 @@ window.createLearnPointPowerSystem = function(config) {
             this.showPowerToast(
                 'saved',
                 'Second Chance Melindungimu!',
-                customMessage || `Pilihan ${String(wrongOptionKey).toUpperCase()} kurang tepat! Perisai Second Chance menahan kesalahanmu—silakan pilih jawaban lain!`,
+                customMessage || `Pilihan ${this.getDisplayOptionLabel(soalId, wrongOptionKey)} kurang tepat! Perisai Second Chance menahan kesalahanmu—silakan pilih jawaban lain!`,
                 'Kesempatan ke-2',
                 'fa-solid fa-shield-heart'
             );
+        },
+
+        getDisplayOptionLabel(soalId, optKey) {
+            const keys = this.powerQuestionsMeta?.[soalId]?.optionKeys;
+            const normalized = String(optKey || '').toLowerCase();
+            if (Array.isArray(keys)) {
+                const idx = keys.indexOf(normalized);
+                if (idx >= 0) {
+                    const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+                    return letters[idx] || normalized.toUpperCase();
+                }
+            }
+            return normalized.toUpperCase();
         },
 
         isOptionEliminated(soalId, optKey) {

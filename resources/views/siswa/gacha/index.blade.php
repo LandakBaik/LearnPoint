@@ -94,21 +94,20 @@
         animation: cardPopIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
     }
 
-    /* Rarity Card Gradients */
+    /* Rarity Card Surfaces (Clean, Restrained, Non-Slop) */
     .rarity-epic-card {
-        background: linear-gradient(145deg, #1e1b4b 0%, #312e81 40%, #d97706 100%);
-        border-color: #f59e0b;
-        box-shadow: 0 0 25px rgba(245, 158, 11, 0.35);
+        background: #131B2E;
+        border-color: rgba(245, 158, 11, 0.55);
+        box-shadow: 0 8px 24px -8px rgba(245, 158, 11, 0.25);
     }
     .rarity-rare-card {
-        background: linear-gradient(145deg, #064e3b 0%, #065f46 50%, #10b981 100%);
-        border-color: #34d399;
-        box-shadow: 0 0 20px rgba(52, 211, 153, 0.3);
+        background: #111D29;
+        border-color: rgba(52, 211, 153, 0.45);
+        box-shadow: 0 8px 24px -8px rgba(16, 185, 129, 0.18);
     }
     .rarity-common-card {
-        background: linear-gradient(145deg, #0f172a 0%, #1e293b 60%, #3b82f6 100%);
-        border-color: #60a5fa;
-        box-shadow: 0 0 15px rgba(96, 165, 250, 0.25);
+        background: #111827;
+        border-color: rgba(148, 163, 184, 0.25);
     }
 </style>
 @endpush
@@ -564,7 +563,7 @@
     </div>
 
     {{-- ========================================================================= --}}
-    {{-- MODAL POP-UP ANIMASI & HASIL WISH (GENSHIN IMPACT REVEAL SCREEN)         --}}
+    {{-- MODAL HASIL WISH                                                          --}}
     {{-- ========================================================================= --}}
     <div 
         x-show="showResultModal" 
@@ -572,94 +571,111 @@
         class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
         role="dialog"
     >
-        {{-- Backdrop Gelap Berbintang --}}
-        <div class="fixed inset-0 bg-slate-950/90 backdrop-blur-md" @click="showResultModal = false"></div>
+        <div class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm" @click="showResultModal = false"></div>
 
-        <div class="relative w-full max-w-4xl bg-slate-900 border-2 border-slate-700/80 rounded-[36px] shadow-2xl p-6 sm:p-10 z-10 space-y-6 my-6 overflow-hidden text-center">
+        <div class="relative w-full max-w-4xl bg-[#0B1120] border border-slate-800 rounded-2xl shadow-2xl z-10 my-6 overflow-hidden">
             
-            {{-- Header Hasil Reveal --}}
-            <div class="space-y-1">
-                <div class="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-tr from-amber-400 to-yellow-300 text-amber-950 flex items-center justify-center text-3xl shadow-lg shadow-amber-400/20">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+            {{-- Header Bar --}}
+            <div class="px-6 py-4 sm:px-8 sm:py-5 border-b border-slate-800/90 flex items-center justify-between gap-4 bg-[#0F172A]">
+                <div class="flex items-center gap-3">
+                    <span class="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30" x-text="wishResults.length + 'x Wish'"></span>
+                    <h3 class="text-base sm:text-lg font-extrabold text-white tracking-tight">
+                        Ringkasan Perolehan
+                    </h3>
                 </div>
-                <h3 class="text-2xl sm:text-3xl font-black text-white tracking-tight pt-2">
-                    Hasil Pemanggilan Wish
-                </h3>
-                <p class="text-xs sm:text-sm text-slate-400 font-medium">
-                    Item Power & Banner berhasil didapatkan dan langsung tersimpan di akunmu!
-                </p>
+                <span class="text-xs text-slate-400 font-medium hidden sm:inline">
+                    Otomatis masuk ke inventori
+                </span>
             </div>
 
-            {{-- Grid Kartu Hasil Gacha (1x atau 10x) dengan Staggered Animation --}}
-            <div 
-                class="grid gap-3.5 max-h-[55vh] overflow-y-auto p-2"
-                :class="wishResults.length === 1 ? 'grid-cols-1 max-w-xs mx-auto' : 'grid-cols-2 sm:grid-cols-5'"
-            >
-                <template x-for="(item, idx) in wishResults" :key="idx">
-                    <div 
-                        class="rounded-3xl border-2 p-4 flex flex-col items-center justify-between text-center gap-3 transition-transform hover:scale-105 duration-200 animate-card-reveal"
-                        :style="'animation-delay: ' + (idx * 80) + 'ms'"
-                        :class="item.power.rarity === 'epic' ? 'rarity-epic-card' : (item.power.rarity === 'rare' ? 'rarity-rare-card' : 'rarity-common-card')"
-                    >
-                        {{-- Icon Power --}}
-                        <div class="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-2xl text-white shadow-inner">
-                            <i :class="item.power.icon"></i>
-                        </div>
-
-                        {{-- Metadata Power --}}
-                        <div class="space-y-0.5">
-                            <span 
-                                class="text-[10px] font-black uppercase tracking-wider block"
-                                :class="item.power.rarity === 'epic' ? 'text-amber-300' : (item.power.rarity === 'rare' ? 'text-emerald-300' : 'text-blue-300')"
-                                x-text="item.power.rarity"
-                            ></span>
-                            <h4 class="text-xs sm:text-sm font-black text-white line-clamp-1" x-text="item.power.nama"></h4>
-                            <span class="text-[11px] font-extrabold text-white/70 block">+1 Item</span>
-                        </div>
-
-                        {{-- Tagline --}}
-                        <div class="text-[9px] font-semibold text-white/60 line-clamp-1 border-t border-white/10 pt-1.5 w-full" x-text="item.power.tagline"></div>
+            <div class="p-6 sm:p-8 space-y-6">
+                {{-- Banner GIF Baru (jika didapat) --}}
+                <template x-if="wonBanners.length > 0">
+                    <div class="space-y-3">
+                        <template x-for="(wb, bIdx) in wonBanners" :key="bIdx">
+                            <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-400/40 flex flex-col sm:flex-row sm:items-center gap-4 animate-card-reveal">
+                                <template x-if="wb.gif_url">
+                                    <img :src="'/' + wb.gif_url.replace(/^\/+/, '')" :alt="wb.nama" class="w-full sm:w-36 h-20 object-cover rounded-lg border border-amber-400/40 shrink-0">
+                                </template>
+                                <template x-if="!wb.gif_url">
+                                    <div class="w-14 h-14 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-300 flex items-center justify-center text-xl shrink-0">
+                                        <i class="fa-solid fa-image"></i>
+                                    </div>
+                                </template>
+                                <div class="flex-1 min-w-0 text-left">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                                            Banner Baru Terbuka
+                                        </span>
+                                    </div>
+                                    <h4 class="text-base font-extrabold text-white mt-0.5 truncate" x-text="wb.nama"></h4>
+                                    <p class="text-xs text-slate-300 line-clamp-2 mt-0.5" x-text="wb.deskripsi"></p>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </template>
-            </div>
 
-            {{-- Banner JACKPOT Reveal jika dapat Banner GIF --}}
-            <template x-if="wonBanners.length > 0">
-                <div class="space-y-3 pt-2">
-                    <template x-for="(wb, bIdx) in wonBanners" :key="bIdx">
-                        <div class="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-500/20 via-yellow-500/25 to-amber-500/20 border-2 border-amber-400 text-left flex flex-col sm:flex-row sm:items-center gap-4 shadow-xl animate-card-reveal">
-                            <template x-if="wb.gif_url">
-                                <img :src="'/' + wb.gif_url.replace(/^\/+/, '')" :alt="wb.nama" class="w-full sm:w-28 h-20 object-cover rounded-2xl border border-amber-300/60 shrink-0 shadow-md">
-                            </template>
-                            <template x-if="!wb.gif_url">
-                                <div class="w-14 h-14 rounded-2xl bg-amber-400 text-amber-950 flex items-center justify-center text-2xl shrink-0 shadow-lg shadow-amber-400/40">
-                                    <i class="fa-solid fa-crown"></i>
-                                </div>
-                            </template>
-                            <div class="flex-1 min-w-0">
-                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-amber-950 uppercase tracking-wider">
-                                    JACKPOT! BANNER GIF BARU
+                {{-- Grid Kartu Hasil (1x atau 10x) --}}
+                <div 
+                    class="grid gap-3 max-h-[52vh] overflow-y-auto pr-1"
+                    :class="wishResults.length === 1 ? 'grid-cols-1 max-w-sm mx-auto' : 'grid-cols-2 sm:grid-cols-5'"
+                >
+                    <template x-for="(item, idx) in wishResults" :key="idx">
+                        <div 
+                            class="relative rounded-xl border p-3.5 flex flex-col justify-between gap-3 transition-colors duration-150 animate-card-reveal overflow-hidden"
+                            :style="'animation-delay: ' + (idx * 65) + 'ms'"
+                            :class="item.power.rarity === 'epic' ? 'rarity-epic-card' : (item.power.rarity === 'rare' ? 'rarity-rare-card' : 'rarity-common-card')"
+                        >
+                            {{-- Top Rarity Accent Bar --}}
+                            <div 
+                                class="absolute top-0 inset-x-0 h-1"
+                                :class="item.power.rarity === 'epic' ? 'bg-amber-400' : (item.power.rarity === 'rare' ? 'bg-emerald-400' : 'bg-blue-400')"
+                            ></div>
+
+                            {{-- Top Row: Rarity & Qty --}}
+                            <div class="flex items-center justify-between gap-2 pt-1">
+                                <span 
+                                    class="text-[10px] font-extrabold uppercase tracking-wider"
+                                    :class="item.power.rarity === 'epic' ? 'text-amber-300' : (item.power.rarity === 'rare' ? 'text-emerald-300' : 'text-slate-400')"
+                                    x-text="item.power.rarity"
+                                ></span>
+                                <span class="px-1.5 py-0.5 rounded bg-slate-800/90 text-[10px] font-bold text-slate-300 border border-slate-700/80">
+                                    +1
                                 </span>
-                                <h4 class="text-base sm:text-lg font-black text-white mt-1 truncate" x-text="wb.nama"></h4>
-                                <p class="text-xs text-amber-200 line-clamp-2" x-text="wb.deskripsi"></p>
                             </div>
+
+                            {{-- Center: Icon & Name --}}
+                            <div class="flex flex-col items-center text-center gap-2 py-1">
+                                <div 
+                                    class="w-12 h-12 rounded-xl flex items-center justify-center text-xl border"
+                                    :class="item.power.rarity === 'epic' ? 'bg-amber-500/15 border-amber-400/30 text-amber-300' : (item.power.rarity === 'rare' ? 'bg-emerald-500/15 border-emerald-400/30 text-emerald-300' : 'bg-slate-800 border-slate-700 text-blue-300')"
+                                >
+                                    <i :class="item.power.icon"></i>
+                                </div>
+                                <h4 class="text-xs sm:text-[13px] font-bold text-white leading-snug line-clamp-2" x-text="item.power.nama"></h4>
+                            </div>
+
+                            {{-- Bottom: Tagline --}}
+                            <div class="text-[10px] text-slate-400 text-center leading-relaxed border-t border-slate-800 pt-2 line-clamp-2" x-text="item.power.tagline"></div>
                         </div>
                     </template>
                 </div>
-            </template>
+            </div>
 
             {{-- Footer Action Modal --}}
-            <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-4 text-xs font-bold text-slate-400">
-                <div class="flex items-center gap-1.5">
+            <div class="px-6 py-4 sm:px-8 border-t border-slate-800/90 bg-[#0F172A] flex items-center justify-between gap-4 text-xs">
+                <div class="flex items-center gap-2 text-slate-400 font-semibold">
+                    <i class="fa-solid fa-coins text-amber-400"></i>
                     <span>Sisa Koin:</span>
-                    <strong class="text-amber-400 font-black text-sm" x-text="koin"></strong>
+                    <strong class="text-white font-extrabold text-sm" x-text="koin"></strong>
                 </div>
                 <button 
                     type="button" 
                     @click="showResultModal = false; window.location.reload();"
-                    class="px-8 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold transition cursor-pointer shadow-lg shadow-blue-600/30"
+                    class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition cursor-pointer"
                 >
-                    Selesai & Tutup
+                    Selesai
                 </button>
             </div>
         </div>

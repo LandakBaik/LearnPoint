@@ -414,9 +414,13 @@ class QuizController extends Controller
             $pilihanFormatted[$k] = trim((string) $val);
         }
 
+        if ($this->hasDuplicatePilihan($pilihanFormatted)) {
+            return back()->withInput()->with('error', 'Pilihan jawaban tidak boleh ada yang sama.');
+        }
+
         $kunci = strtolower(trim((string) $validated['kunci_jawaban']));
         if (!in_array($kunci, $validKeys)) {
-            return back()->withInput()->with('error', 'Kunci jawaban yang dipilih harus salah satu dari opsi A, B, C, atau D.');
+            return back()->withInput()->with('error', 'Kunci jawaban harus salah satu dari A, B, C, atau D.');
         }
 
         $groupQuizzes = $this->quizService->getGroupQuizzes($quiz);
@@ -471,6 +475,19 @@ class QuizController extends Controller
     }
 
     /**
+     * Memeriksa apakah ada teks pilihan jawaban yang duplikat (case-insensitive).
+     */
+    private function hasDuplicatePilihan(array $pilihan): bool
+    {
+        $normalized = array_map(
+            static fn ($val) => mb_strtolower(trim((string) $val)),
+            array_values($pilihan)
+        );
+
+        return count($normalized) !== count(array_unique($normalized));
+    }
+
+    /**
      * Memperbarui butir soal kuis.
      */
     public function updateSoal(Request $request, Quiz $quiz, Soal $soal)
@@ -509,6 +526,10 @@ class QuizController extends Controller
                 return back()->withInput()->with('error', 'Semua 4 opsi pilihan jawaban (A, B, C, dan D) wajib diisi.');
             }
             $pilihanFormatted[$k] = trim((string) $val);
+        }
+
+        if ($this->hasDuplicatePilihan($pilihanFormatted)) {
+            return back()->withInput()->with('error', 'Pilihan jawaban (A, B, C, dan D) tidak boleh ada yang sama agar tidak ambigu.');
         }
 
         $kunci = strtolower(trim((string) $validated['kunci_jawaban']));
