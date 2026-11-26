@@ -199,11 +199,28 @@
             </div>
 
             <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                @php
+                    $avgAkt = $ambangKeaktifan['rata_rata'] ?? 0;
+                    $minSangat = $ambangKeaktifan['min_sangat_aktif'] ?? 1;
+                    $maxKurang = $ambangKeaktifan['max_kurang_aktif'] ?? 0;
+                    $minAktif = $maxKurang + 1;
+                    $maxAktif = max($minAktif, $minSangat - 1);
+                @endphp
                 <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-                    <span class="font-bold text-slate-600">Indikator:</span>
-                    <span class="px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200/70 text-emerald-700 font-bold">Sangat Aktif (≥10)</span>
-                    <span class="px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200/70 text-blue-700 font-bold">Aktif (≥3)</span>
-                    <span class="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/70 text-amber-700 font-bold">Kurang Aktif (1–2)</span>
+                    <span class="font-bold text-slate-600">Rata-rata Guru: <strong class="text-slate-900">{{ number_format($avgAkt, 1) }}</strong></span>
+                    @if($avgAkt > 0)
+                        <span class="px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200/70 text-emerald-700 font-bold" title="Lebih dari 25% di atas rata-rata (> {{ number_format($ambangKeaktifan['batas_atas'], 1) }})">
+                            Sangat Aktif (≥{{ $minSangat }})
+                        </span>
+                        <span class="px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200/70 text-blue-700 font-bold" title="Di sekitar rata-rata (±25%)">
+                            Aktif ({{ $minAktif === $maxAktif ? $minAktif : $minAktif . '–' . $maxAktif }})
+                        </span>
+                        @if($maxKurang >= 1)
+                            <span class="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/70 text-amber-700 font-bold" title="Lebih dari 25% di bawah rata-rata (< {{ number_format($ambangKeaktifan['batas_bawah'], 1) }})">
+                                Kurang Aktif ({{ $maxKurang === 1 ? '1' : '1–' . $maxKurang }})
+                            </span>
+                        @endif
+                    @endif
                     <span class="px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200/70 text-rose-700 font-bold">Belum Aktif (0)</span>
                 </div>
 

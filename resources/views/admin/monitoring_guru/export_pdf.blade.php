@@ -125,6 +125,8 @@
 
     <div class="footer-note">
         <strong>Keterangan:</strong> Total Aktivitas = Materi + Tugas + Kuis Published + Ujian Aktif/Selesai.
+        Kategori Keaktifan dihitung relatif terhadap rata-rata keseluruhan guru ({{ number_format($ambangKeaktifan['rata_rata'] ?? 0, 1) }} aktivitas):
+        Sangat Aktif (&gt; +25% di atas rata-rata), Aktif (sekitar rata-rata ±25%), Kurang Aktif (&lt; -25% di bawah rata-rata), Belum Aktif (0).
         Kolom Menunggu menunjukkan jumlah pengumpulan tugas (tgs) dan jawaban essay ujian (esy) yang belum dikoreksi guru.
     </div>
 </body>

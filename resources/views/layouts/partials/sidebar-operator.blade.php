@@ -70,9 +70,9 @@
             <span>Dashboard</span>
         </a>
 
-        <!-- Category: MANAJEMEN AKUN & DATA -->
-        <div class="pt-4 pb-1.5 px-3">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Manajemen Akun &amp; Data</span>
+        <!-- Category: MANAJEMEN PENGGUNA -->
+        <div class="pt-4 mt-2 pb-1.5 px-3 border-t border-slate-100">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Manajemen Pengguna</span>
         </div>
 
         <!-- Kelola Akun -->
@@ -105,6 +105,21 @@
             <span>Data Siswa</span>
         </a>
 
+        <!-- Category: AKADEMIK & KURIKULUM -->
+        <div class="pt-4 mt-2 pb-1.5 px-3 border-t border-slate-100">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Akademik &amp; Kurikulum</span>
+        </div>
+
+        <!-- Tahun Ajaran & Kenaikan Kelas -->
+        @php $isPeriod = request()->routeIs('admin.tahun-ajaran.*'); @endphp
+        <a href="{{ route('admin.tahun-ajaran.index') }}"
+           class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm transition-colors group {{ $isPeriod ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs border border-blue-100/60' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50 font-medium' }}">
+            <svg class="w-5 h-5 {{ $isPeriod ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-600' }} transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+            <span>Tahun Ajaran</span>
+        </a>
+
         <!-- Kelola Kelas -->
         @php $isKelas = request()->routeIs('kelas.*'); @endphp
         <a href="{{ route('kelas.index') }}"
@@ -115,11 +130,6 @@
             <span>Kelola Kelas</span>
         </a>
 
-        <!-- Category: AKADEMIK & JADWAL -->
-        <div class="pt-4 pb-1.5 px-3">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Akademik &amp; Jadwal</span>
-        </div>
-
         <!-- Mata Pelajaran -->
         @php $isMapel = request()->routeIs('mapel.*'); @endphp
         <a href="{{ route('mapel.index') }}"
@@ -129,6 +139,21 @@
             </svg>
             <span>Mata Pelajaran</span>
         </a>
+
+        <!-- Kelola Jadwal -->
+        @php $isJadwal = request()->routeIs('admin.jadwal.*'); @endphp
+        <a href="{{ route('admin.jadwal.index') }}"
+           class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm transition-colors group {{ $isJadwal ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs border border-blue-100/60' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50 font-medium' }}">
+            <svg class="w-5 h-5 {{ $isJadwal ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-600' }} transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+            <span>Kelola Jadwal</span>
+        </a>
+
+        <!-- Category: LAPORAN & MONITORING -->
+        <div class="pt-4 mt-2 pb-1.5 px-3 border-t border-slate-100">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Laporan &amp; Monitoring</span>
+        </div>
 
         <!-- Perekapan Nilai Keseluruhan -->
         @php $isRekapNilai = request()->routeIs('admin.rekap-nilai.*'); @endphp
@@ -148,26 +173,6 @@
                 <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round"></path>
             </svg>
             <span>Monitoring Guru</span>
-        </a>
-
-        <!-- Kelola Jadwal (Foto) -->
-        @php $isJadwal = request()->routeIs('admin.jadwal.*'); @endphp
-        <a href="{{ route('admin.jadwal.index') }}"
-           class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm transition-colors group {{ $isJadwal ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs border border-blue-100/60' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50 font-medium' }}">
-            <svg class="w-5 h-5 {{ $isJadwal ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-600' }} transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
-            </svg>
-            <span>Kelola Jadwal (Foto)</span>
-        </a>
-
-        <!-- Tahun Ajaran & Kenaikan Kelas -->
-        @php $isPeriod = request()->routeIs('admin.tahun-ajaran.*'); @endphp
-        <a href="{{ route('admin.tahun-ajaran.index') }}"
-           class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm transition-colors group {{ $isPeriod ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs border border-blue-100/60' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50 font-medium' }}">
-            <svg class="w-5 h-5 {{ $isPeriod ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-600' }} transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"></path>
-            </svg>
-            <span>Tahun Ajaran</span>
         </a>
     </nav>
 </div>

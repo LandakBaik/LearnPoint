@@ -20,21 +20,87 @@ use Carbon\Carbon;
 class MonitoringGuruService
 {
     /**
-     * Tentukan kategori tingkat keaktifan guru berdasarkan total aktivitas pembelajaran.
+     * Hitung ambang batas kategori keaktifan relatif terhadap rata-rata keseluruhan guru (±25%).
+     *
+     * @return array{rata_rata: float, batas_bawah: float, batas_atas: float, min_sangat_aktif: int, max_kurang_aktif: int}
      */
-    public static function hitungKategoriKeaktifan(int $totalAktivitas, int $materi, int $tugas, int $kuisPublished, int $ujianPublished): string
+    public static function hitungAmbangKeaktifan(float $rataRata): array
     {
-        if ($totalAktivitas === 0) {
+        $rataRata = max(0.0, round($rataRata, 2));
+        $batasBawah = round($rataRata * 0.75, 2);
+        $batasAtas = round($rataRata * 1.25, 2);
+
+        return [
+            'rata_rata' => $rataRata,
+            'batas_bawah' => $batasBawah,
+            'batas_atas' => $batasAtas,
+            'min_sangat_aktif' => (int) floor($batasAtas) + 1,
+            'max_kurang_aktif' => max(0, (int) ceil($batasBawah) - 1),
+        ];
+    }
+
+    /**
+     * Tentukan kategori tingkat keaktifan guru berdasarkan perbandingan terhadap rata-rata keseluruhan guru:
+     * - 0 aktivitas               => belum_aktif
+     * - > rata-rata + 25%         => sangat_aktif (cukup jauh di atas rata-rata)
+     * - < rata-rata - 25%         => kurang_aktif (cukup jauh di bawah rata-rata)
+     * - di sekitar rata-rata ±25% => aktif
+     */
+    public static function hitungKategoriKeaktifan(int $totalAktivitas, float $rataRata): string
+    {
+        if ($totalAktivitas <= 0) {
             return 'belum_aktif';
         }
-        if ($totalAktivitas >= 10 || ($materi >= 2 && $tugas >= 2 && ($kuisPublished + $ujianPublished) >= 1)) {
-            return 'sangat_aktif';
-        }
-        if ($totalAktivitas >= 3) {
+        if ($rataRata <= 0.0) {
             return 'aktif';
         }
 
-        return 'kurang_aktif';
+        $batasBawah = round($rataRata * 0.75, 2);
+        $batasAtas = round($rataRata * 1.25, 2);
+
+        if ($totalAktivitas > $batasAtas) {
+            return 'sangat_aktif';
+        }
+        if ($totalAktivitas < $batasBawah) {
+            return 'kurang_aktif';
+        }
+
+        return 'aktif';
+    }
+
+    /**
+     * Hitung rata-rata total aktivitas keseluruhan guru pada periode akademik tertentu.
+     */
+    protected function hitungRataRataAktivitasPeriode(?int $academicPeriodId): float
+    {
+        $totalGuru = Guru::count();
+        if ($totalGuru <= 0) {
+            return 0.0;
+        }
+
+        $pengampuIds = PengampuKelas::query()
+            ->when($academicPeriodId, fn ($q) => $q->where('academic_period_id', $academicPeriodId))
+            ->whereHas('guruMapel', fn ($q) => $q->whereHas('guru')->whereHas('mapel'))
+            ->whereHas('kelas')
+            ->pluck('id')
+            ->all();
+
+        if (empty($pengampuIds)) {
+            return 0.0;
+        }
+
+        $totalMateri = Materi::whereIn('pengampu_kelas_id', $pengampuIds)->count();
+        $totalTugas = Tugas::whereIn('pengampu_kelas_id', $pengampuIds)->count();
+        $totalKuisPub = Quiz::whereIn('pengampu_kelas_id', $pengampuIds)
+            ->where('status', 'published')
+            ->count();
+        $totalUjianAktif = Ujian::whereIn('pengampu_kelas_id', $pengampuIds)
+            ->whereIn('status', ['published', 'completed', 'scheduled'])
+            ->count();
+
+        $totalAktivitas = $totalMateri + $totalTugas + $totalKuisPub + $totalUjianAktif;
+
+        return round($totalAktivitas / $totalGuru, 2);
     }
 
     /**
@@ -102,16 +168,6 @@ class MonitoringGuruService
             $gurus = Guru::with(['user', 'kelas'])
                 ->orderBy('nama')
                 ->get();
-        }
-
-        if ($search !== '') {
-            $needle = mb_strtolower($search);
-            $gurus = $gurus->filter(function ($g) use ($needle) {
-                $nama = mb_strtolower((string) ($g->nama ?? $g->user?->name ?? ''));
-                $nuptk = mb_strtolower((string) ($g->nuptk ?? ''));
-
-                return str_contains($nama, $needle) || str_contains($nuptk, $needle);
-            })->values();
         }
 
         $pengampuByGuru = $pengampus->groupBy(fn ($p) => $p->guruMapel->guru_id);
@@ -314,13 +370,6 @@ class MonitoringGuruService
             }
 
             $totalAktivitas = $jumlahMateri + $jumlahTugas + $jumlahKuisPublished + $jumlahUjianAktifSelesai;
-            $kategoriKeaktifan = self::hitungKategoriKeaktifan(
-                $totalAktivitas,
-                $jumlahMateri,
-                $jumlahTugas,
-                $jumlahKuisPublished,
-                $jumlahUjianAktifSelesai
-            );
 
             $persenKoreksiTugas = $totalPengumpulanTugas > 0
                 ? round(($tugasSudahDinilai / $totalPengumpulanTugas) * 100, 1)
@@ -355,15 +404,38 @@ class MonitoringGuruService
                 'jumlah_ujian_draft' => $jumlahUjianDraft,
                 'essay_menunggu_koreksi' => $essayMenungguKoreksi,
                 'total_aktivitas' => $totalAktivitas,
-                'kategori_keaktifan' => $kategoriKeaktifan,
+                'kategori_keaktifan' => 'belum_aktif',
                 'aktivitas_terakhir' => $latestActivityAt,
             ];
         })->sortByDesc('total_aktivitas')->values();
 
-        // Filter berdasarkan kategori keaktifan
-        $filteredRows = $selectedKeaktifan === 'semua'
-            ? $rows
-            : $rows->where('kategori_keaktifan', $selectedKeaktifan)->values();
+        // Hitung rata-rata aktivitas keseluruhan guru, lalu tetapkan kategori keaktifan relatif (±25% dari rata-rata)
+        $rataRataAktivitas = $rows->isNotEmpty()
+            ? round((float) $rows->avg('total_aktivitas'), 2)
+            : 0.0;
+        $ambangKeaktifan = self::hitungAmbangKeaktifan($rataRataAktivitas);
+
+        $rows = $rows->map(function (array $row) use ($rataRataAktivitas) {
+            $row['kategori_keaktifan'] = self::hitungKategoriKeaktifan(
+                $row['total_aktivitas'],
+                $rataRataAktivitas
+            );
+
+            return $row;
+        });
+
+        // Terapkan filter kategori keaktifan & pencarian SETELAH kategori dihitung agar rata-rata tetap akurat
+        $filteredRows = $rows;
+        if ($selectedKeaktifan !== 'semua') {
+            $filteredRows = $filteredRows->where('kategori_keaktifan', $selectedKeaktifan)->values();
+        }
+        if ($search !== '') {
+            $needle = mb_strtolower($search);
+            $filteredRows = $filteredRows->filter(function (array $r) use ($needle) {
+                return str_contains(mb_strtolower((string) $r['nama_guru']), $needle)
+                    || str_contains(mb_strtolower((string) $r['nuptk']), $needle);
+            })->values();
+        }
 
         // KPI Summary
         $totalGuru = $rows->count();
@@ -381,6 +453,7 @@ class MonitoringGuruService
             'guru_aktif' => $guruAktif,
             'guru_kurang_aktif' => $guruKurangAktif,
             'guru_belum_aktif' => $guruBelumAktif,
+            'rata_rata_aktivitas' => $rataRataAktivitas,
             'total_materi' => $rows->sum('jumlah_materi'),
             'total_tugas' => $rows->sum('jumlah_tugas'),
             'total_kuis_published' => $rows->sum('jumlah_kuis_published'),
@@ -412,6 +485,7 @@ class MonitoringGuruService
             'rows' => $filteredRows,
             'allRowsCount' => $totalGuru,
             'summary' => $summary,
+            'ambangKeaktifan' => $ambangKeaktifan,
         ];
     }
 
@@ -618,6 +692,8 @@ class MonitoringGuruService
         $totalKuisPub = $detailPengampus->sum('jumlah_kuis_published');
         $totalUjianAktif = $detailPengampus->sum('jumlah_ujian_aktif');
         $totalAktivitas = $totalMateri + $totalTugas + $totalKuisPub + $totalUjianAktif;
+        $rataRataAktivitas = $this->hitungRataRataAktivitasPeriode($selectedPeriodId);
+        $ambangKeaktifan = self::hitungAmbangKeaktifan($rataRataAktivitas);
 
         return [
             'guru' => $guru,
@@ -626,6 +702,7 @@ class MonitoringGuruService
             'selectedPeriodId' => $selectedPeriodId,
             'detailPengampus' => $detailPengampus,
             'detailMapels' => $detailMapels,
+            'ambangKeaktifan' => $ambangKeaktifan,
             'summary' => [
                 'total_mapel' => $detailMapels->count(),
                 'total_kelas_mapel' => $detailPengampus->count(),
@@ -638,13 +715,8 @@ class MonitoringGuruService
                 'total_pengumpulan_tugas' => $detailPengampus->sum('total_pengumpulan_tugas'),
                 'tugas_menunggu_dinilai' => $detailPengampus->sum('tugas_menunggu_dinilai'),
                 'total_aktivitas' => $totalAktivitas,
-                'kategori_keaktifan' => self::hitungKategoriKeaktifan(
-                    $totalAktivitas,
-                    $totalMateri,
-                    $totalTugas,
-                    $totalKuisPub,
-                    $totalUjianAktif
-                ),
+                'rata_rata_aktivitas' => $rataRataAktivitas,
+                'kategori_keaktifan' => self::hitungKategoriKeaktifan($totalAktivitas, $rataRataAktivitas),
             ],
         ];
     }

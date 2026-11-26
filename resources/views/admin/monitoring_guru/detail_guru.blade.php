@@ -85,6 +85,7 @@
                 <div class="text-center pr-4 border-r border-slate-200">
                     <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Aktivitas</div>
                     <div class="text-2xl sm:text-3xl font-black text-slate-900 mt-0.5">{{ $summary['total_aktivitas'] }}</div>
+                    <div class="text-[10px] font-medium text-slate-400 mt-0.5">Rata-rata guru: {{ number_format($summary['rata_rata_aktivitas'] ?? 0, 1) }}</div>
                 </div>
                 <div class="text-center">
                     <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Keaktifan</div>
