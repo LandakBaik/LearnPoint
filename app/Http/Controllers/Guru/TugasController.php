@@ -94,7 +94,7 @@ class TugasController extends Controller
         ));
     }
 
-    // 2. Menampilkan halaman tambah tugas (bukan popup)
+    // 2. Menampilkan halaman tambah tugas 
     public function create(Request $request)
     {
         $user = $request->user();
@@ -126,7 +126,7 @@ class TugasController extends Controller
         ));
     }
 
-    // 3. Menampilkan halaman edit tugas (bukan popup)
+    // 3. Menampilkan halaman edit tugas
     public function edit(Request $request, string $id)
     {
         $user = $request->user();
