@@ -52,7 +52,7 @@ class Menjawab extends Model
      * berdasarkan bobot dasar, kebenaran jawaban, dan Power yang digunakan.
      *
      * Rumus Sesuai Spesifikasi Teknis:
-     * 1. Tanpa Power (atau lucky_clover / remove_wrong_answer / second_chance):
+     * 1. Tanpa Power (atau pirates_compass / remove_wrong_answer / second_chance):
      *    - Benar: bobot
      *    - Salah: 0
      * 2. Menggunakan two_x_score:

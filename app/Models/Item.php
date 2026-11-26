@@ -78,20 +78,20 @@ class Item extends Model
         ],
         [
             'id' => 3,
-            'kode' => 'lucky_clover',
-            'nama' => 'Lucky Clover',
+            'kode' => 'pirates_compass',
+            'nama' => 'Pirates Compass',
             'kategori' => 'power',
-            'deskripsi' => 'Membuka petunjuk atau kata kunci penting dari materi yang berkaitan dengan pertanyaan soal ini.',
+            'deskripsi' => 'Kompas Bajak Laut menunjuk 1 pilihan jawaban yang pasti salah pada soal ini sehingga peluangmu menjawab benar lebih besar.',
             'rarity' => 'common',
             'bobot_gacha' => 25,
             'is_stackable' => true,
-            'asset_url' => 'fa-solid fa-clover',
+            'asset_url' => 'fa-solid fa-compass',
             'atribut' => [
-                'tagline' => 'Dapatkan Petunjuk Soal',
+                'tagline' => 'Tunjuk 1 Opsi Salah',
                 'tipe_efek' => 'hint',
                 'stok_awal' => 2,
-                'detail_efek' => 'Menampilkan bocoran materi atau kata kunci pembantu jawaban.',
-                'icon' => 'fa-solid fa-clover',
+                'detail_efek' => 'Menunjukkan dan menandai 1 pilihan jawaban yang salah pada soal ini.',
+                'icon' => 'fa-solid fa-compass',
                 'tema_warna' => 'teal',
             ],
             'is_active' => true,
@@ -454,6 +454,8 @@ class Item extends Model
      */
     public static function ensureDefaultCatalog(): void
     {
+        static::where('kode', 'lucky_clover')->update(['kode' => 'pirates_compass']);
+
         foreach (self::DEFAULT_ITEMS as $item) {
             static::updateOrCreate(
                 ['kode' => $item['kode']],

@@ -266,7 +266,7 @@
                                 </div>
                             @endif
 
-                            {{-- KARTU BANTUAN HINT (EFEK LUCKY CLOVER) --}}
+                            {{-- KARTU BANTUAN COMPASS (EFEK PIRATES COMPASS) --}}
                             <div 
                                 x-show="getQuestionHint({{ $soal->id }})" 
                                 x-cloak
@@ -274,11 +274,11 @@
                                 class="p-4 rounded-2xl bg-teal-50/90 border border-teal-200 text-teal-900 flex items-start gap-3 shadow-2xs"
                             >
                                 <div class="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 text-sm shadow-xs">
-                                    <i class="fa-solid fa-clover"></i>
+                                    <i class="fa-solid fa-compass"></i>
                                 </div>
                                 <div class="space-y-0.5 text-xs sm:text-sm">
                                     <span class="font-extrabold text-teal-800 uppercase tracking-wider text-[11px] block">
-                                        Bantuan Lucky Clover (Hint Soal)
+                                        Petunjuk Pirates Compass
                                     </span>
                                     <p class="font-semibold text-teal-900 leading-relaxed" x-text="getQuestionHint({{ $soal->id }})"></p>
                                 </div>
@@ -300,6 +300,7 @@
 
                             @php
                                 $pilihanMap = $soal->pilihan_shuffled ?? $soal->pilihan;
+                                $displayLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
                             @endphp
 
                             @if(is_array($pilihanMap) && count($pilihanMap) > 0)
@@ -307,6 +308,7 @@
                                     @foreach($pilihanMap as $optKey => $optVal)
                                         @php
                                             $optKeyLower = strtolower((string) $optKey);
+                                            $displayLetter = $displayLetters[$loop->index] ?? strtoupper((string) $optKey);
                                         @endphp
                                         <div class="option-card relative">
                                             <input 
@@ -338,7 +340,7 @@
                                                                 ? 'border-blue-600 bg-blue-600 text-white'
                                                                 : 'border-slate-300 text-slate-600 group-hover:border-blue-500 group-hover:text-blue-600')"
                                                     >
-                                                        {{ $optKey }}
+                                                        {{ $displayLetter }}
                                                     </span>
 
                                                     <span 

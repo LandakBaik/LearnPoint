@@ -13,9 +13,10 @@
     @endphp
     <section class="relative overflow-hidden rounded-[26px] p-7 md:p-9 border transition-all duration-300 min-h-[280px] md:min-h-[320px] flex flex-col justify-between {{ $activeBannerUrl ? 'border-slate-700/80 shadow-none' : 'bg-gradient-to-r from-[#EBF4FF] via-[#EDF6FF] to-[#DCEEFE] border-blue-100 shadow-sm' }}" data-purpose="welcome-banner">
         
-        {{-- Background GIF jika menggunakan custom banner (Tampil jernih, tajam, penuh tanpa lapisan shadow) --}}
+        {{-- Background GIF jika menggunakan custom banner --}}
         @if(!empty($activeBannerUrl))
             <img src="{{ $activeBannerUrl }}" alt="{{ $activeBanner['nama'] }}" class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-0">
+            <div class="absolute inset-0 pointer-events-none z-0 {{ $isDarkTheme ? 'bg-gradient-to-r from-black/75 via-black/45 to-black/15' : 'bg-gradient-to-r from-white/80 via-white/45 to-transparent' }}"></div>
         @endif
 
         {{-- Tombol Aksi di Pojok Kanan Atas: Ganti Banner --}}
@@ -31,59 +32,59 @@
             </button>
         </div>
 
-        <div class="relative z-10 max-w-2xl my-auto">
-            <div class="flex items-center gap-2 mb-2">
+        <div class="relative z-10 max-w-3xl my-auto">
+            <div class="flex items-center gap-2 mb-3">
                 @if(!empty($activeBannerUrl))
-                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/40 text-white backdrop-blur-md border border-white/20 shadow-xs flex items-center gap-1.5">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                        <i class="fa-solid fa-sparkles text-amber-300 text-[10px]"></i>
+                    <span class="px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-black/40 text-white backdrop-blur-md border border-white/20 shadow-xs flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        <i class="fa-solid fa-sparkles text-amber-300 text-xs"></i>
                         {{ $activeBanner['nama'] }}
                     </span>
                 @endif
             </div>
 
-            <h1 class="text-2xl md:text-[30px] font-black tracking-tight mb-3 {{ $isDarkTheme && $activeBannerUrl ? 'text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]' : 'text-[#0F2851]' }}">
+            <h1 class="text-3xl md:text-4xl font-black tracking-tight mb-4 {{ $isDarkTheme && $activeBannerUrl ? 'text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]' : 'text-[#0F2851]' }}">
                 Selamat Datang, {{ $siswa->nama_siswa ?? auth()->user()->name }}!
             </h1>
 
             <!-- Student Meta Badges -->
-            <div class="flex flex-wrap items-center gap-2 text-sm font-semibold mb-3 {{ $isDarkTheme && $activeBannerUrl ? 'text-slate-100' : 'text-[#475569]' }}">
+            <div class="flex flex-wrap items-center gap-2.5 text-[15px] md:text-base font-semibold mb-4 {{ $isDarkTheme && $activeBannerUrl ? 'text-slate-100' : 'text-[#475569]' }}">
                 <!-- Class Meta -->
-                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl {{ $activeBannerUrl ? 'bg-black/35 backdrop-blur-sm border border-white/10 text-white' : '' }}">
-                    <svg class="w-4 h-4 {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-300' : 'text-[#2563EB]' }}" fill="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl {{ $activeBannerUrl ? 'bg-black/35 backdrop-blur-sm border border-white/10 text-white' : '' }}">
+                    <svg class="w-5 h-5 {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-300' : 'text-[#2563EB]' }}" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 3L1 9L12 15L21 10.09V17H23V9M5 13.18V17.18C5 19.94 8.13 22 12 22C15.87 22 19 19.94 19 17.18V13.18L12 17L5 13.18Z"></path>
                     </svg>
                     <span>Kelas: <strong class="font-bold {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-200' : 'text-[#2563EB]' }}">{{ $kelas->nama_kelas ?? 'Belum Ditempatkan' }}</strong></span>
                 </div>
 
                 <!-- Generation & Academic Period Meta -->
-                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl {{ $activeBannerUrl ? 'bg-black/35 backdrop-blur-sm border border-white/10 text-white' : '' }}">
-                    <svg class="w-4 h-4 {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-300' : 'text-[#2563EB]' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl {{ $activeBannerUrl ? 'bg-black/35 backdrop-blur-sm border border-white/10 text-white' : '' }}">
+                    <svg class="w-5 h-5 {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-300' : 'text-[#2563EB]' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
                     </svg>
                     <span>Angkatan: <strong class="font-bold {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-200' : 'text-[#2563EB]' }}">{{ $siswa->angkatan ?? (\App\Models\AcademicPeriod::defaultAngkatan()) }}</strong></span>
                 </div>
 
-                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl {{ $activeBannerUrl ? 'bg-black/35 backdrop-blur-sm border border-white/10 text-white' : '' }}">
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl {{ $activeBannerUrl ? 'bg-black/35 backdrop-blur-sm border border-white/10 text-white' : '' }}">
                     <span>TA: <strong class="font-bold {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-200' : 'text-[#2563EB]' }}">{{ $tahunAjaran ?? \App\Models\AcademicPeriod::activeTahunAjaran() }} • {{ $semester ?? ucfirst(\App\Models\AcademicPeriod::activeSemester()) }}</strong></span>
                 </div>
 
                 <!-- Student ID Meta -->
-                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl {{ $activeBannerUrl ? 'bg-black/35 backdrop-blur-sm border border-white/10 text-white' : '' }}">
-                    <svg class="w-4 h-4 {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-300' : 'text-[#2563EB]' }}" fill="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl {{ $activeBannerUrl ? 'bg-black/35 backdrop-blur-sm border border-white/10 text-white' : '' }}">
+                    <svg class="w-5 h-5 {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-300' : 'text-[#2563EB]' }}" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
                     </svg>
                     <span>NIS: <strong class="font-bold {{ $isDarkTheme && $activeBannerUrl ? 'text-blue-200' : 'text-[#2563EB]' }}">{{ $siswa->nis ?? '-' }}</strong></span>
                 </div>
 
                 {{-- Koin Siswa --}}
-                <a href="{{ route('siswa.gacha') }}" class="flex items-center gap-1.5 px-3 py-1 rounded-xl font-bold transition hover:scale-105 active:scale-95 cursor-pointer {{ $activeBannerUrl ? 'bg-black/40 backdrop-blur-sm border border-amber-400/30 text-amber-300 shadow-sm' : 'text-amber-600' }}" title="Buka Halaman Wish & Gacha">
+                <a href="{{ route('siswa.gacha') }}" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-bold transition hover:scale-105 active:scale-95 cursor-pointer {{ $activeBannerUrl ? 'bg-black/40 backdrop-blur-sm border border-amber-400/30 text-amber-300 shadow-sm' : 'text-amber-600' }}" title="Buka Halaman Wish & Gacha">
                     <i class="fa-solid fa-coins text-amber-400"></i>
                     <span>{{ number_format($siswa->koin ?? 0, 0, ',', '.') }} Koin</span>
                 </a>
             </div>
 
-            <p class="text-sm font-medium {{ $isDarkTheme && $activeBannerUrl ? 'text-slate-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]' : 'text-slate-500' }}">
+            <p class="text-base md:text-lg font-medium {{ $isDarkTheme && $activeBannerUrl ? 'text-slate-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]' : 'text-slate-500' }}">
                 Terus semangat belajar dan raih cita-citamu!
             </p>
         </div>

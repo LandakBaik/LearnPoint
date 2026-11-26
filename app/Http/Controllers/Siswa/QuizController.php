@@ -81,11 +81,6 @@ class QuizController extends Controller
             }) ?? $planets->first();
         }
 
-        $topThree = $this->adventureService->getTopThreeLeaderboard();
-        $top1 = $topThree->get(0);
-        $top2 = $topThree->get(1);
-        $top3 = $topThree->get(2);
-
         // Jika planet dipilih: Tampilkan Mode 2 (Tahapan Penyelamatan & Target)
         if ($selectedPlanet) {
             $quizzesInPlanet = $allQuizzes->filter(
@@ -127,8 +122,6 @@ class QuizController extends Controller
                 $activeZona = $zonas->firstWhere('status', 'belum_dikerjakan') ?? $zonas->first();
             }
 
-            $leaderboard = $this->adventureService->getSectorLeaderboard($siswa);
-
             return view('siswa.kuis.index', [
                 'viewMode'       => 'mission',
                 'siswa'          => $siswa,
@@ -139,12 +132,8 @@ class QuizController extends Controller
                 'progresSektor'  => $progresSektor,
                 'energi'         => $energi,
                 'xp'             => $xp,
-                'leaderboard'    => $leaderboard,
                 'tips'           => $selectedPlanet->tips,
                 'kelas'          => $kelas,
-                'top1'           => $top1,
-                'top2'           => $top2,
-                'top3'           => $top3,
             ]);
         }
 
@@ -154,9 +143,6 @@ class QuizController extends Controller
             'siswa'    => $siswa,
             'planets'  => $planets,
             'kelas'    => $kelas,
-            'top1'     => $top1,
-            'top2'     => $top2,
-            'top3'     => $top3,
         ]);
     }
 

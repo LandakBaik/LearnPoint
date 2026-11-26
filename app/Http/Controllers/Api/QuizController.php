@@ -439,6 +439,14 @@ class QuizController extends Controller
             'd' => trim((string) $request->input('pilihan.d', '')),
         ];
 
+        $normalizedPilihan = array_map(
+            static fn ($val) => mb_strtolower($val),
+            array_values($pilihanFormatted)
+        );
+        if (count($normalizedPilihan) !== count(array_unique($normalizedPilihan))) {
+            return $this->errorResponse('Pilihan jawaban tidak boleh ada yang sama.', 422);
+        }
+
         $kunci = $validated['kunci_jawaban'];
         if (is_array($kunci)) {
             $kunci = strtolower(trim((string) ($kunci[0] ?? 'a')));
@@ -543,6 +551,14 @@ class QuizController extends Controller
             'c' => trim((string) $request->input('pilihan.c', $soal->pilihan['c'] ?? '')),
             'd' => trim((string) $request->input('pilihan.d', $soal->pilihan['d'] ?? '')),
         ];
+
+        $normalizedPilihan = array_map(
+            static fn ($val) => mb_strtolower($val),
+            array_values($pilihanFormatted)
+        );
+        if (count($normalizedPilihan) !== count(array_unique($normalizedPilihan))) {
+            return $this->errorResponse('Pilihan jawaban (A, B, C, dan D) tidak boleh ada yang sama agar tidak ambigu.', 422);
+        }
 
         $kunci = $validated['kunci_jawaban'];
         if (is_array($kunci)) {
@@ -663,7 +679,7 @@ class QuizController extends Controller
     }
 
     /**
-     * SISWA: Menampilkan daftar kuis terpublikasi untuk kelas siswa beserta data Planet & Leaderboard.
+     * SISWA: Menampilkan daftar kuis terpublikasi untuk kelas siswa beserta data Planet.
      */
     public function siswaIndex(Request $request)
     {
@@ -723,20 +739,16 @@ class QuizController extends Controller
             ];
         });
 
-        // Jika klien meminta mode petualangan (with_planets=1), sertakan planets & leaderboard
+        // Jika klien meminta mode petualangan (with_planets=1), sertakan planets
         if ($request->boolean('with_planets')) {
             $dbMapels = Mapel::forSiswa($siswa)
                 ->whereHas('pengampuKelases', fn ($q) => $q->where('kelas_id', $kelasId))
                 ->get();
             $planets = $this->adventureService->buildPlanetsCollection($allQuizzes, $dbMapels);
-            $topThree = $this->adventureService->getTopThreeLeaderboard();
-            $leaderboard = $this->adventureService->getSectorLeaderboard($siswa);
 
             return $this->successResponse([
-                'quizzes'     => $quizzes,
-                'planets'     => $planets,
-                'top_three'   => $topThree,
-                'leaderboard' => $leaderboard,
+                'quizzes' => $quizzes,
+                'planets' => $planets,
             ]);
         }
 
