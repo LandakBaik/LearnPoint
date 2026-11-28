@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Guru\JadwalController as GuruJadwalController;
 use App\Http\Controllers\Guru\MateriController as GuruMateriController;
 use App\Http\Controllers\Guru\QuizController as GuruQuizController;
+use App\Http\Controllers\Guru\RekapNilaiController as GuruRekapNilaiController;
 use App\Http\Controllers\Guru\RelokasiAktivitasController as GuruRelokasiAktivitasController;
 use App\Http\Controllers\Guru\TugasController as GuruTugasController;
 use App\Http\Controllers\Guru\UjianController as GuruUjianController;
@@ -204,6 +205,18 @@ Route::middleware(['auth', 'active'])->group(function () {
             ->name('guru.relokasi.index');
         Route::post('/guru/relokasi', [GuruRelokasiAktivitasController::class, 'relocate'])
             ->name('guru.relokasi.store');
+
+        // Perekapan Nilai (Khusus Mapel & Kelas yang Diampu Guru)
+        Route::get('/guru/rekap-nilai', [GuruRekapNilaiController::class, 'index'])
+            ->name('guru.rekap-nilai.index');
+        Route::get('/guru/rekap-nilai/export-pdf', [GuruRekapNilaiController::class, 'exportPdf'])
+            ->name('guru.rekap-nilai.export-pdf');
+        Route::get('/guru/rekap-nilai/export-csv', [GuruRekapNilaiController::class, 'exportCsv'])
+            ->name('guru.rekap-nilai.export-csv');
+        Route::get('/guru/rekap-nilai/siswa/{siswa}', [GuruRekapNilaiController::class, 'showSiswa'])
+            ->name('guru.rekap-nilai.siswa');
+        Route::get('/guru/rekap-nilai/siswa/{siswa}/pdf', [GuruRekapNilaiController::class, 'exportSiswaPdf'])
+            ->name('guru.rekap-nilai.siswa.pdf');
     });
 
     // ==========================================

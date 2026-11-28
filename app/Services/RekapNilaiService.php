@@ -104,7 +104,15 @@ class RekapNilaiService
     }
 
     /**
-     * Membangun data perekapan nilai keseluruhan untuk Admin (dan reusable untuk role lain).
+     * Membangun data perekapan nilai khusus untuk Guru (hanya memantau mapel & kelas yang diampu).
+     */
+    public function buildGuruRekap(int $guruId, array $filters = []): array
+    {
+        return $this->buildAdminRekap($filters, $guruId);
+    }
+
+    /**
+     * Membangun data perekapan nilai keseluruhan untuk Admin (dan reusable untuk role Guru).
      *
      * @param  array{
      *     academic_period_id?: int|string|null,
@@ -119,7 +127,7 @@ class RekapNilaiService
      *     sort_dir?: string|null,
      * }  $filters
      */
-    public function buildAdminRekap(array $filters = []): array
+    public function buildAdminRekap(array $filters = [], ?int $guruId = null): array
     {
         $periods = AcademicPeriod::orderByDesc('tahun_ajaran')
             ->orderByRaw("CASE WHEN semester = 'genap' THEN 2 ELSE 1 END DESC")
@@ -133,36 +141,82 @@ class RekapNilaiService
         $selectedPeriod = $periods->firstWhere('id', $selectedPeriodId) ?? $activePeriod;
         $selectedPeriodId = $selectedPeriod?->id;
 
-        $kelasList = Kelas::with('guru')
-            ->orderBy('tingkatan')
-            ->orderBy('nama_kelas')
-            ->get();
+        if ($guruId !== null) {
+            // Scope khusus Guru: hanya pengampu, mapel, dan kelas yang benar-benar diampu guru pada periode ini
+            $guruPengampusForPeriod = PengampuKelas::with(['guruMapel.mapel', 'guruMapel.guru', 'kelas.guru'])
+                ->whereHas('guruMapel', fn ($q) => $q->where('guru_id', $guruId))
+                ->when($selectedPeriodId, fn ($q) => $q->where('academic_period_id', $selectedPeriodId))
+                ->get()
+                ->filter(fn ($p) => $p->guruMapel?->mapel && $p->kelas)
+                ->values();
 
-        $selectedKelasId = !empty($filters['kelas_id']) ? (int) $filters['kelas_id'] : null;
-        $selectedKelas = $selectedKelasId ? $kelasList->firstWhere('id', $selectedKelasId) : null;
+            // Daftar semua mapel yang diampu guru pada periode ini (selalu lengkap agar guru bebas berpindah mapel)
+            $mapelList = $guruPengampusForPeriod
+                ->map(fn ($p) => $p->guruMapel->mapel)
+                ->unique('id')
+                ->sortBy('nama_mapel')
+                ->values();
 
-        // Ambil pengampu kelas untuk periode (dan kelas jika dipilih)
-        $pengampuQuery = PengampuKelas::with(['guruMapel.mapel', 'guruMapel.guru', 'kelas'])
-            ->when($selectedPeriodId, fn ($q) => $q->where('academic_period_id', $selectedPeriodId))
-            ->when($selectedKelasId, fn ($q) => $q->where('kelas_id', $selectedKelasId));
+            $selectedMapelId = !empty($filters['mapel_id']) ? (int) $filters['mapel_id'] : null;
+            $selectedMapel = $selectedMapelId ? $mapelList->firstWhere('id', $selectedMapelId) : null;
+            if (!$selectedMapel && $mapelList->isNotEmpty()) {
+                $selectedMapel = $mapelList->first();
+            }
+            $selectedMapelId = $selectedMapel?->id;
 
-        $allPengampus = $pengampuQuery->get()
-            ->filter(fn ($p) => $p->guruMapel?->mapel && $p->kelas)
-            ->values();
+            // Daftar kelas yang diampu guru untuk mapel terpilih
+            $pengampusBySelectedMapel = $selectedMapelId
+                ? $guruPengampusForPeriod->filter(fn ($p) => (int) $p->guruMapel->mapel_id === $selectedMapelId)->values()
+                : $guruPengampusForPeriod;
 
-        // Daftar mapel unik yang tersedia pada filter periode (+ kelas) saat ini
-        $mapelList = $allPengampus
-            ->map(fn ($p) => $p->guruMapel->mapel)
-            ->unique('id')
-            ->sortBy('nama_mapel')
-            ->values();
+            $kelasList = $pengampusBySelectedMapel
+                ->map(fn ($p) => $p->kelas)
+                ->unique('id')
+                ->sortBy([['tingkatan', 'asc'], ['nama_kelas', 'asc']])
+                ->values();
 
-        if ($mapelList->isEmpty()) {
-            $mapelList = Mapel::orderBy('nama_mapel')->get();
+            $selectedKelasId = !empty($filters['kelas_id']) ? (int) $filters['kelas_id'] : null;
+            $selectedKelas = $selectedKelasId ? $kelasList->firstWhere('id', $selectedKelasId) : null;
+            if (!$selectedKelas && $kelasList->isNotEmpty()) {
+                $selectedKelas = $kelasList->first();
+            }
+            $selectedKelasId = $selectedKelas?->id;
+
+            $allPengampus = $selectedKelasId
+                ? $guruPengampusForPeriod->where('kelas_id', $selectedKelasId)->values()
+                : $guruPengampusForPeriod;
+        } else {
+            $kelasList = Kelas::with('guru')
+                ->orderBy('tingkatan')
+                ->orderBy('nama_kelas')
+                ->get();
+
+            $selectedKelasId = !empty($filters['kelas_id']) ? (int) $filters['kelas_id'] : null;
+            $selectedKelas = $selectedKelasId ? $kelasList->firstWhere('id', $selectedKelasId) : null;
+
+            // Ambil pengampu kelas untuk periode (dan kelas jika dipilih)
+            $pengampuQuery = PengampuKelas::with(['guruMapel.mapel', 'guruMapel.guru', 'kelas'])
+                ->when($selectedPeriodId, fn ($q) => $q->where('academic_period_id', $selectedPeriodId))
+                ->when($selectedKelasId, fn ($q) => $q->where('kelas_id', $selectedKelasId));
+
+            $allPengampus = $pengampuQuery->get()
+                ->filter(fn ($p) => $p->guruMapel?->mapel && $p->kelas)
+                ->values();
+
+            // Daftar mapel unik yang tersedia pada filter periode (+ kelas) saat ini
+            $mapelList = $allPengampus
+                ->map(fn ($p) => $p->guruMapel->mapel)
+                ->unique('id')
+                ->sortBy('nama_mapel')
+                ->values();
+
+            if ($mapelList->isEmpty()) {
+                $mapelList = Mapel::orderBy('nama_mapel')->get();
+            }
+
+            $selectedMapelId = !empty($filters['mapel_id']) ? (int) $filters['mapel_id'] : null;
+            $selectedMapel = $selectedMapelId ? $mapelList->firstWhere('id', $selectedMapelId) : null;
         }
-
-        $selectedMapelId = !empty($filters['mapel_id']) ? (int) $filters['mapel_id'] : null;
-        $selectedMapel = $selectedMapelId ? $mapelList->firstWhere('id', $selectedMapelId) : null;
 
         $selectedStatus = $filters['status'] ?? 'semua';
         if (!in_array($selectedStatus, ['semua', 'tuntas', 'belum_tuntas', 'belum_ada'], true)) {
@@ -207,14 +261,30 @@ class RekapNilaiService
             : $allPengampus;
 
         // Ambil anggota kelas untuk periode (dan kelas jika dipilih)
-        $anggotaQuery = AnggotaKelas::with(['siswa.user', 'kelas'])
-            ->when($selectedPeriodId, fn ($q) => $q->where('academic_period_id', $selectedPeriodId))
-            ->when($selectedKelasId, fn ($q) => $q->where('kelas_id', $selectedKelasId))
-            ->whereHas('siswa');
+        if ($guruId !== null) {
+            $allowedKelasIds = $pengampus->pluck('kelas_id')->unique()->values()->all();
+            if (empty($allowedKelasIds)) {
+                $anggotaList = collect();
+            } else {
+                $anggotaQuery = AnggotaKelas::with(['siswa.user', 'kelas'])
+                    ->when($selectedPeriodId, fn ($q) => $q->where('academic_period_id', $selectedPeriodId))
+                    ->whereIn('kelas_id', $allowedKelasIds)
+                    ->whereHas('siswa');
 
-        $anggotaList = $anggotaQuery->get()
-            ->unique(fn ($a) => $a->siswa_id . '-' . $a->kelas_id)
-            ->values();
+                $anggotaList = $anggotaQuery->get()
+                    ->unique(fn ($a) => $a->siswa_id . '-' . $a->kelas_id)
+                    ->values();
+            }
+        } else {
+            $anggotaQuery = AnggotaKelas::with(['siswa.user', 'kelas'])
+                ->when($selectedPeriodId, fn ($q) => $q->where('academic_period_id', $selectedPeriodId))
+                ->when($selectedKelasId, fn ($q) => $q->where('kelas_id', $selectedKelasId))
+                ->whereHas('siswa');
+
+            $anggotaList = $anggotaQuery->get()
+                ->unique(fn ($a) => $a->siswa_id . '-' . $a->kelas_id)
+                ->values();
+        }
 
         // Jika filter mapel khusus agama dipilih, saring siswa yang berhak mengikuti mapel tersebut
         if ($selectedMapel && filled($selectedMapel->target_agama)) {
@@ -527,6 +597,11 @@ class RekapNilaiService
             ];
         });
 
+        // Khusus Guru: hanya tampilkan siswa yang mengikuti minimal 1 mapel yang diampu guru
+        if ($guruId !== null) {
+            $rows = $rows->filter(fn ($r) => ($r['mapel_wajib'] ?? 0) > 0)->values();
+        }
+
         // Urutkan berdasarkan nilai_akhir tertinggi (null di bawah), lalu nama A-Z, lalu beri peringkat (Standard Competition Ranking untuk nilai seri)
         $rankedRows = $rows
             ->sort(function ($a, $b) {
@@ -764,13 +839,84 @@ class RekapNilaiService
     }
 
     /**
+     * Cek apakah seorang guru berhak melihat rekap detail seorang siswa
+     * (siswa berada di kelas yang diampu oleh guru tersebut).
+     */
+    public function guruCanAccessSiswa(int $guruId, Siswa $siswa, ?int $academicPeriodId = null): bool
+    {
+        $pengampuQuery = PengampuKelas::whereHas('guruMapel', fn ($q) => $q->where('guru_id', $guruId));
+
+        if ($academicPeriodId) {
+            $kelasIdsInPeriod = (clone $pengampuQuery)
+                ->where('academic_period_id', $academicPeriodId)
+                ->pluck('kelas_id')
+                ->unique()
+                ->all();
+
+            if (!empty($kelasIdsInPeriod)) {
+                $existsInPeriod = AnggotaKelas::where('siswa_id', $siswa->id)
+                    ->where('academic_period_id', $academicPeriodId)
+                    ->whereIn('kelas_id', $kelasIdsInPeriod)
+                    ->exists();
+
+                if ($existsInPeriod) {
+                    return true;
+                }
+            }
+        }
+
+        // Fallback: izinkan jika siswa berada di kelas yang pernah diampu guru pada periode mana pun
+        // (berguna saat guru mengganti dropdown periode di halaman detail siswa).
+        $allGuruPairs = $pengampuQuery->get(['kelas_id', 'academic_period_id']);
+        if ($allGuruPairs->isEmpty()) {
+            return false;
+        }
+
+        $anggotaPairs = AnggotaKelas::where('siswa_id', $siswa->id)
+            ->get(['kelas_id', 'academic_period_id']);
+
+        foreach ($anggotaPairs as $ap) {
+            $matched = $allGuruPairs->contains(function ($gp) use ($ap) {
+                if ((int) $gp->kelas_id !== (int) $ap->kelas_id) {
+                    return false;
+                }
+                if ($gp->academic_period_id && $ap->academic_period_id) {
+                    return (int) $gp->academic_period_id === (int) $ap->academic_period_id;
+                }
+
+                return true;
+            });
+
+            if ($matched) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Membangun transkrip detail nilai seorang siswa khusus untuk mapel yang diampu guru tertentu.
+     */
+    public function buildGuruSiswaDetail(
+        int $guruId,
+        Siswa $siswa,
+        ?int $academicPeriodId = null,
+        string $hitungKosong = 'abaikan',
+        string $metodeHitung = 'rata'
+    ): array {
+        return $this->buildSiswaDetail($siswa, $academicPeriodId, $hitungKosong, $metodeHitung, $guruId);
+    }
+
+    /**
      * Membangun transkrip detail nilai seorang siswa pada periode akademik tertentu.
      */
     public function buildSiswaDetail(
         Siswa $siswa,
         ?int $academicPeriodId = null,
         string $hitungKosong = 'abaikan',
-        string $metodeHitung = 'rata'
+        string $metodeHitung = 'rata',
+        ?int $guruId = null
     ): array {
         if (!in_array($hitungKosong, ['abaikan', 'nol'], true)) {
             $hitungKosong = 'abaikan';
@@ -802,6 +948,7 @@ class RekapNilaiService
             $pengampus = PengampuKelas::with(['guruMapel.mapel', 'guruMapel.guru'])
                 ->where('kelas_id', $kelas->id)
                 ->when($selectedPeriodId, fn ($q) => $q->where('academic_period_id', $selectedPeriodId))
+                ->when($guruId !== null, fn ($q) => $q->whereHas('guruMapel', fn ($gm) => $gm->where('guru_id', $guruId)))
                 ->get()
                 ->filter(fn ($p) => $p->guruMapel?->mapel && $p->guruMapel->mapel->isAccessibleBySiswa($siswa))
                 ->sortBy(fn ($p) => strtolower((string) $p->guruMapel->mapel->nama_mapel))

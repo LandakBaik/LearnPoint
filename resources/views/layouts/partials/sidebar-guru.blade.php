@@ -32,7 +32,7 @@
                 ? strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1))
                 : strtoupper(substr(auth()->user()->name ?? 'G', 0, 2));
         @endphp
-        <div class="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 flex items-center gap-3 hover:bg-slate-100/60 transition-colors cursor-pointer group">
+        <a href="{{ route('profile.show') }}" class="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 flex items-center gap-3 hover:bg-slate-100/60 transition-colors group">
             <div class="w-9 h-9 rounded-lg bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs shrink-0">
                 {{ $initials }}
             </div>
@@ -49,7 +49,7 @@
                     {{ auth()->user()->email }}
                 </p>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- Main Navigation Links Guru -->
@@ -71,7 +71,7 @@
         </a>
 
         <!-- Category: PEMBELAJARAN -->
-        <div class="pt-4 pb-1.5 px-3">
+        <div class="pt-4 mt-2 pb-1.5 px-3 border-t border-slate-100">
             <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pembelajaran</span>
         </div>
 
@@ -115,10 +115,20 @@
             <span>Ujian</span>
         </a>
 
-        <!-- Category: AKADEMIK & LAINNYA -->
-        <div class="pt-4 pb-1.5 px-3">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Akademik &amp; Lainnya</span>
+        <!-- Category: PENILAIAN & AKADEMIK -->
+        <div class="pt-4 mt-2 pb-1.5 px-3 border-t border-slate-100">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Penilaian &amp; Akademik</span>
         </div>
+
+        <!-- Rekap Nilai -->
+        @php $isRekapNilai = request()->routeIs('guru.rekap-nilai.*'); @endphp
+        <a href="{{ route('guru.rekap-nilai.index') }}"
+           class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm transition-colors group {{ $isRekapNilai ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs border border-blue-100/60' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50 font-medium' }}">
+            <svg class="w-5 h-5 {{ $isRekapNilai ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-600' }} transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+            <span>Rekap Nilai</span>
+        </a>
 
         <!-- Jadwal -->
         @php $isJadwal = request()->routeIs('guru.jadwal'); @endphp
@@ -127,7 +137,7 @@
             <svg class="w-5 h-5 {{ $isJadwal ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-600' }} transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                 <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
             </svg>
-            <span>Jadwal</span>
+            <span>Jadwal Mengajar</span>
         </a>
 
         <!-- Relokasi Mapel & Kelas -->
@@ -139,6 +149,11 @@
             </svg>
             <span>Relokasi Mapel/Kelas</span>
         </a>
+
+        <!-- Category: AKUN & NOTIFIKASI -->
+        <div class="pt-4 mt-2 pb-1.5 px-3 border-t border-slate-100">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Akun &amp; Notifikasi</span>
+        </div>
 
         <!-- Notifikasi -->
         @php $isNotifikasi = request()->routeIs('notifikasi.index'); @endphp
