@@ -21,8 +21,8 @@
     [x-cloak] { display: none !important; }
 </style>
 
-<div class="min-h-screen bg-slate-50">
-    <div class="space-y-4 text-slate-900"
+<div class="max-w-7xl mx-auto">
+    <div class="space-y-6 text-slate-900"
         x-data="detailPengumpulanUpload(@js($daftarSiswa->values()))">
 
         {{-- Breadcrumb dan deadline --}}

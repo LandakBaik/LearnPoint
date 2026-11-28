@@ -66,10 +66,10 @@
 <div class="space-y-6 max-w-7xl mx-auto">
 
     <!-- Header & Action Buttons -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div class="min-w-0 flex-1">
             <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Rekap Nilai</h1>
-            <p class="text-sm text-slate-500 mt-1">
+            <p class="text-sm text-slate-500 mt-1 leading-relaxed">
                 Akumulasi nilai Tugas, Kuis, dan Ujian pada kelas &amp; mata pelajaran yang Anda ampu — Periode <strong class="text-slate-700">{{ $selectedPeriod?->label ?? 'Aktif' }}</strong>
                 @if($selectedKelas)
                     • Kelas <strong class="text-slate-700">{{ $selectedKelas->nama_kelas }}</strong>
@@ -79,17 +79,57 @@
                 @endif
             </p>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
+            <!-- Filter Tahun Ajaran (Kanan Atas, Default Tahun Ajaran Aktif) -->
+            <form method="GET" action="{{ route('guru.rekap-nilai.index') }}" class="m-0 shrink-0">
+                @if($mode !== 'ringkasan')
+                    <input type="hidden" name="mode" value="{{ $mode }}">
+                @endif
+                @if($perPage !== 25)
+                    <input type="hidden" name="per_page" value="{{ $perPage }}">
+                @endif
+                @if($hitungKosong !== 'abaikan')
+                    <input type="hidden" name="hitung_kosong" value="{{ $hitungKosong }}">
+                @endif
+                @if($sortBy !== 'peringkat')
+                    <input type="hidden" name="sort_by" value="{{ $sortBy }}">
+                @endif
+                @if($sortBy !== 'peringkat' || $sortDir !== 'asc')
+                    <input type="hidden" name="sort_dir" value="{{ $sortDir }}">
+                @endif
+                <div class="relative inline-flex items-center">
+                    <span class="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center text-blue-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </span>
+                    <select id="academic_period_id" name="academic_period_id" onchange="this.form.submit()"
+                            aria-label="Pilih Tahun Ajaran"
+                            class="h-10 appearance-none pl-9 pr-8 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 text-xs font-bold rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer whitespace-nowrap">
+                        @foreach($periods as $period)
+                            <option value="{{ $period->id }}" {{ (int) $selectedPeriodId === (int) $period->id ? 'selected' : '' }}>
+                                {{ $period->label }} {{ $period->is_active ? '(Aktif)' : '' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <span class="pointer-events-none absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </span>
+                </div>
+            </form>
+
             <a href="{{ route('guru.rekap-nilai.export-csv', $exportParams) }}"
-               class="inline-flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 text-xs font-bold rounded-xl shadow-2xs transition-all">
-                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+               class="h-10 inline-flex items-center justify-center gap-2 px-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 text-xs font-bold rounded-xl shadow-sm transition-all whitespace-nowrap shrink-0">
+                <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
                 <span>Export CSV</span>
             </a>
             <a href="{{ route('guru.rekap-nilai.export-pdf', $exportParams) }}"
-               class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+               class="h-10 inline-flex items-center justify-center gap-2 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow-md transition-all whitespace-nowrap shrink-0">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                 </svg>
                 <span>Export PDF</span>
@@ -98,91 +138,93 @@
     </div>
 
     <!-- 4 Highlight Stat Cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Total Siswa (Klik untuk Semua Status) -->
         <a href="{{ route('guru.rekap-nilai.index', array_merge($queryParams, ['status' => null, 'page' => null])) }}"
-           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $selectedStatus === 'semua' ? 'bg-blue-50/40 border-2 border-blue-600 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-blue-200 shadow-2xs hover:shadow-xs' }}">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $selectedStatus === 'semua' ? 'text-blue-700' : 'text-slate-400' }}">
-                    @if($selectedStatus === 'semua')
-                        <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-                    @endif
-                    Total Siswa
-                </span>
-                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+           class="group rounded-2xl p-4 sm:p-5 transition-all duration-200 block {{ $selectedStatus === 'semua' ? 'bg-blue-50/40 border-2 border-blue-600 shadow-sm' : 'bg-white border border-slate-200/80 hover:border-blue-200 shadow-sm hover:shadow-md' }}">
+            <span class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $selectedStatus === 'semua' ? 'text-blue-700' : 'text-slate-500' }}">
+                @if($selectedStatus === 'semua')
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                @endif
+                Total Siswa
+            </span>
+            <div class="mt-2.5 flex items-center justify-between gap-2">
+                <div class="text-2xl font-extrabold text-slate-900 leading-tight">{{ $summary['total_siswa'] }}</div>
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100/80 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                     </svg>
                 </div>
             </div>
-            <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $summary['total_siswa'] }}</div>
-            <div class="text-[11px] font-medium text-slate-500 mt-1">
-                Dinilai: {{ $summary['siswa_dinilai'] }} • Belum ada: {{ $summary['jumlah_belum_ada'] }}
-            </div>
+            <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">
+                Dinilai: {{ $summary['siswa_dinilai'] }} &bull; Belum ada: {{ $summary['jumlah_belum_ada'] }}
+            </p>
         </a>
 
         <!-- Rata-rata Nilai -->
-        <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs relative overflow-hidden">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Rata-Rata Nilai</span>
-                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <div class="group rounded-2xl p-4 sm:p-5 bg-white border border-slate-200/80 hover:border-indigo-200 shadow-sm hover:shadow-md transition-all duration-200">
+            <span class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 text-slate-500">
+                Rata-Rata Nilai
+            </span>
+            <div class="mt-2.5 flex items-center justify-between gap-2">
+                <div class="text-2xl font-extrabold text-slate-900 leading-tight">
+                    {{ $summary['rata_keseluruhan'] !== null ? number_format($summary['rata_keseluruhan'], 2) : '—' }}
+                </div>
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200/60 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                     </svg>
                 </div>
             </div>
-            <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                {{ $summary['rata_keseluruhan'] !== null ? number_format($summary['rata_keseluruhan'], 2) : '—' }}
-            </div>
-            <div class="text-[11px] font-medium text-slate-500 mt-1">
-                Tgs {{ $summary['rata_tugas'] !== null ? number_format($summary['rata_tugas'], 1) : '-' }} • Kuis {{ $summary['rata_kuis'] !== null ? number_format($summary['rata_kuis'], 1) : '-' }} • Ujian {{ $summary['rata_ujian'] !== null ? number_format($summary['rata_ujian'], 1) : '-' }}
-            </div>
+            <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">
+                Tgs {{ $summary['rata_tugas'] !== null ? number_format($summary['rata_tugas'], 1) : '-' }} &bull; Kuis {{ $summary['rata_kuis'] !== null ? number_format($summary['rata_kuis'], 1) : '-' }} &bull; Ujian {{ $summary['rata_ujian'] !== null ? number_format($summary['rata_ujian'], 1) : '-' }}
+            </p>
         </div>
 
         <!-- Tingkat Ketuntasan (Klik untuk Filter Tuntas) -->
         <a href="{{ route('guru.rekap-nilai.index', array_merge($queryParams, ['status' => 'tuntas', 'page' => null])) }}"
-           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $selectedStatus === 'tuntas' ? 'bg-emerald-50/40 border-2 border-emerald-500 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-emerald-200 shadow-2xs hover:shadow-xs' }}">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $selectedStatus === 'tuntas' ? 'text-emerald-700' : 'text-slate-400' }}">
-                    @if($selectedStatus === 'tuntas')
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    @endif
-                    Ketuntasan
-                </span>
-                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+           class="group rounded-2xl p-4 sm:p-5 transition-all duration-200 block {{ $selectedStatus === 'tuntas' ? 'bg-emerald-50/40 border-2 border-emerald-500 shadow-sm' : 'bg-white border border-slate-200/80 hover:border-emerald-200 shadow-sm hover:shadow-md' }}">
+            <span class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $selectedStatus === 'tuntas' ? 'text-emerald-700' : 'text-slate-500' }}">
+                @if($selectedStatus === 'tuntas')
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                @endif
+                Ketuntasan
+            </span>
+            <div class="mt-2.5 flex items-center justify-between gap-2">
+                <div class="text-2xl font-extrabold text-slate-900 leading-tight">{{ $summary['persen_tuntas'] }}%</div>
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/60 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
             </div>
-            <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $summary['persen_tuntas'] }}%</div>
-            <div class="text-[11px] font-medium text-slate-500 mt-1">
-                <span class="text-emerald-700 font-semibold">{{ $summary['jumlah_tuntas'] }} Tuntas</span> • {{ $summary['jumlah_belum_tuntas'] }} Belum
-            </div>
+            <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">
+                <span class="text-emerald-700 font-semibold">{{ $summary['jumlah_tuntas'] }} Tuntas</span> &bull; {{ $summary['jumlah_belum_tuntas'] }} Belum
+            </p>
         </a>
 
         <!-- Belum Tuntas (Klik untuk Filter Belum Tuntas) -->
         <a href="{{ route('guru.rekap-nilai.index', array_merge($queryParams, ['status' => 'belum_tuntas', 'page' => null])) }}"
-           class="p-5 rounded-2xl transition-all duration-200 relative overflow-hidden group block {{ $selectedStatus === 'belum_tuntas' ? 'bg-rose-50/40 border-2 border-rose-500 shadow-xs' : 'bg-white border border-slate-200/80 hover:border-rose-200 shadow-2xs hover:shadow-xs' }}">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $selectedStatus === 'belum_tuntas' ? 'text-rose-700' : 'text-slate-400' }}">
-                    @if($selectedStatus === 'belum_tuntas')
-                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                    @endif
-                    Belum Tuntas
-                </span>
-                <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+           class="group rounded-2xl p-4 sm:p-5 transition-all duration-200 block {{ $selectedStatus === 'belum_tuntas' ? 'bg-rose-50/40 border-2 border-rose-500 shadow-sm' : 'bg-white border border-slate-200/80 hover:border-rose-200 shadow-sm hover:shadow-md' }}">
+            <span class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $selectedStatus === 'belum_tuntas' ? 'text-rose-700' : 'text-slate-500' }}">
+                @if($selectedStatus === 'belum_tuntas')
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                @endif
+                Belum Tuntas
+            </span>
+            <div class="mt-2.5 flex items-center justify-between gap-2">
+                <div class="text-2xl font-extrabold text-slate-900 leading-tight">{{ $summary['jumlah_belum_tuntas'] }}</div>
+                <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 border border-rose-200/60 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
                 </div>
             </div>
-            <div class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ $summary['jumlah_belum_tuntas'] }}</div>
-            <div class="text-[11px] font-medium text-slate-500 mt-1">
-                Tertinggi: {{ $summary['nilai_tertinggi'] !== null ? number_format($summary['nilai_tertinggi'], 1) : '-' }} • Min: {{ $summary['nilai_terendah'] !== null ? number_format($summary['nilai_terendah'], 1) : '-' }}
-            </div>
+            <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">
+                Tertinggi: {{ $summary['nilai_tertinggi'] !== null ? number_format($summary['nilai_tertinggi'], 1) : '-' }} &bull; Min: {{ $summary['nilai_terendah'] !== null ? number_format($summary['nilai_terendah'], 1) : '-' }}
+            </p>
         </a>
-    </div>
+    </section>
 
     <!-- Pilih Mata Pelajaran & Kelas (Sederhana & Bersih) -->
     @if($mapelList->isNotEmpty())
@@ -267,8 +309,9 @@
     @endif
 
     <!-- Filter & Search Card -->
-    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm">
         <form method="GET" action="{{ route('guru.rekap-nilai.index') }}" class="space-y-4">
+            <input type="hidden" name="academic_period_id" value="{{ $selectedPeriodId }}">
             <input type="hidden" name="mode" value="{{ $mode }}">
             <input type="hidden" name="per_page" value="{{ $perPage }}">
             @if($selectedKelasId)
@@ -282,7 +325,7 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
                 <!-- Cari Siswa -->
-                <div class="lg:col-span-4 relative">
+                <div class="lg:col-span-5 relative">
                     <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -302,20 +345,8 @@
                     @endif
                 </div>
 
-                <!-- Periode Akademik -->
-                <div class="lg:col-span-2">
-                    <select id="academic_period_id" name="academic_period_id" onchange="this.form.submit()"
-                            class="w-full py-2.5 px-3 text-xs rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 font-semibold">
-                        @foreach($periods as $period)
-                            <option value="{{ $period->id }}" {{ (int) $selectedPeriodId === (int) $period->id ? 'selected' : '' }}>
-                                {{ $period->label }} {{ $period->is_active ? '(Aktif)' : '' }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
                 <!-- Status Ketuntasan -->
-                <div class="lg:col-span-2">
+                <div class="lg:col-span-3">
                     <select id="status" name="status" onchange="this.form.submit()"
                             class="w-full py-2.5 px-3 text-xs rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 font-semibold">
                         <option value="semua" {{ $selectedStatus === 'semua' ? 'selected' : '' }}>Semua Status</option>

@@ -4,7 +4,7 @@
 
 @section('content')
 <div
-    class="space-y-6 text-slate-900"
+    class="space-y-6 max-w-7xl mx-auto text-slate-900"
     x-data="{
         searchQuery: '',
         selectedStatus: 'semua',
@@ -17,32 +17,34 @@
 
     {{-- HEADER --}}
     <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-            <div class="flex items-center gap-2.5">
+        <div class="flex items-start sm:items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0 shadow-sm">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+            </div>
+            <div>
                 <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
                     Daftar Tugas
                 </h1>
+                <p class="mt-0.5 text-sm text-slate-500">
+                    Kelola penugasan, pengumpulan, dan penilaian siswa secara terpusat.
+                </p>
             </div>
-
-            <p class="mt-1 text-sm text-slate-500">
-                Kelola penugasan, pengumpulan, dan penilaian siswa secara terpusat.
-            </p>
         </div>
 
         <a
             href="{{ route('guru.tugas.create') }}"
-            class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition duration-200 hover:bg-blue-700 hover:shadow-md active:scale-[0.98]">
-
+            class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow-md active:scale-[0.98] shrink-0">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
             </svg>
-
-            Tambah Tugas
+            <span>Tambah Tugas</span>
         </a>
     </div>
 
     {{-- RINGKASAN --}}
-    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <section class="grid grid-cols-2 gap-4 lg:grid-cols-4">
 
         {{-- TOTAL TUGAS --}}
         <button
@@ -52,45 +54,26 @@
             deadlineFilter = false;
         "
             :class="selectedStatus === 'semua' && !deadlineFilter
-            ? 'border-blue-400 ring-2 ring-blue-100'
-            : 'border-slate-200 hover:border-blue-300'"
-            class="w-full rounded-xl border bg-white p-3 text-left shadow-sm transition hover:shadow-md">
-
-            <div class="flex items-center justify-between gap-2">
-
-                {{-- INFORMASI --}}
-                <div class="min-w-0 flex-1">
-                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        Total Tugas
-                    </p>
-
-                    <p class="mt-1 text-xl font-extrabold text-slate-900">
-                        {{ $totalTugas ?? 0 }}
-                    </p>
-
-                    <p class="mt-1 flex items-center gap-1.5 text-[10px] text-slate-500">
-                        <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
-                        Seluruh penugasan
-                    </p>
-                </div>
-
-                {{-- ICON KANAN --}}
-                <div class="flex shrink-0 flex-col items-center gap-1.5">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 01-2-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                    </div>
-
-                    <svg class="h-3.5 w-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 5l7 7-7 7" />
+            ? 'bg-blue-50/40 border-2 border-blue-600 shadow-sm'
+            : 'bg-white border border-slate-200/80 hover:border-blue-200 shadow-sm hover:shadow-md'"
+            class="group w-full rounded-2xl p-4 sm:p-5 text-left transition-all duration-200 cursor-pointer block">
+            <span
+                class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+                :class="selectedStatus === 'semua' && !deadlineFilter ? 'text-blue-700' : 'text-slate-500'">
+                <span x-show="selectedStatus === 'semua' && !deadlineFilter" class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                Total Tugas
+            </span>
+            <div class="mt-2.5 flex items-center justify-between gap-2">
+                <div class="text-2xl font-extrabold text-slate-900 leading-tight">{{ $totalTugas ?? 0 }}</div>
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100/80 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                 </div>
             </div>
+            <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">Seluruh penugasan</p>
         </button>
-
 
         {{-- TUGAS AKTIF --}}
         <button
@@ -100,44 +83,26 @@
             deadlineFilter = false;
         "
             :class="selectedStatus === 'aktif' && !deadlineFilter
-            ? 'border-indigo-400 ring-2 ring-indigo-100'
-            : 'border-slate-200 hover:border-indigo-300'"
-            class="w-full rounded-xl border bg-white p-3 text-left shadow-sm transition hover:shadow-md">
-
-            <div class="flex items-center justify-between gap-2">
-
-                {{-- INFORMASI --}}
-                <div class="min-w-0 flex-1">
-                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        Tugas Aktif
-                    </p>
-
-                    <p class="mt-1 text-xl font-extrabold text-slate-900">
-                        {{ $totalAktif ?? 0 }}
-                    </p>
-
-                    <p class="mt-1 flex items-center gap-1.5 text-[10px] text-slate-500">
-                        <span class="h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
-                        Belum melewati deadline
-                    </p>
-                </div>
-
-                <div class="flex shrink-0 flex-col items-center gap-1.5">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-
-                    <svg class="h-3.5 w-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 5l7 7-7 7" />
+            ? 'bg-indigo-50/40 border-2 border-indigo-600 shadow-sm'
+            : 'bg-white border border-slate-200/80 hover:border-indigo-200 shadow-sm hover:shadow-md'"
+            class="group w-full rounded-2xl p-4 sm:p-5 text-left transition-all duration-200 cursor-pointer block">
+            <span
+                class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+                :class="selectedStatus === 'aktif' && !deadlineFilter ? 'text-indigo-700' : 'text-slate-500'">
+                <span x-show="selectedStatus === 'aktif' && !deadlineFilter" class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                Tugas Aktif
+            </span>
+            <div class="mt-2.5 flex items-center justify-between gap-2">
+                <div class="text-2xl font-extrabold text-slate-900 leading-tight">{{ $totalAktif ?? 0 }}</div>
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200/60 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
             </div>
+            <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">Belum melewati deadline</p>
         </button>
-
 
         {{-- PERLU DINILAI --}}
         <button
@@ -147,45 +112,26 @@
             deadlineFilter = false;
         "
             :class="selectedStatus === 'perlu_dinilai' && !deadlineFilter
-            ? 'border-rose-400 ring-2 ring-rose-100'
-            : 'border-slate-200 hover:border-rose-300'"
-            class="w-full rounded-xl border bg-white p-3 text-left shadow-sm transition hover:shadow-md">
-
-            <div class="flex items-center justify-between gap-2">
-
-                {{-- INFORMASI --}}
-                <div class="min-w-0 flex-1">
-                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        Perlu Dinilai
-                    </p>
-
-                    <p class="mt-1 text-xl font-extrabold text-slate-900">
-                        {{ $perluDinilai ?? 0 }}
-                    </p>
-
-                    <p class="mt-1 flex items-center gap-1.5 text-[10px] text-slate-500">
-                        <span class="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
-                        Pengumpulan menunggu nilai
-                    </p>
-                </div>
-
-                {{-- ICON KANAN --}}
-                <div class="flex shrink-0 flex-col items-center gap-1.5">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 11-2.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                    </div>
-
-                    <svg class="h-3.5 w-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 5l7 7-7 7" />
+            ? 'bg-rose-50/40 border-2 border-rose-500 shadow-sm'
+            : 'bg-white border border-slate-200/80 hover:border-rose-200 shadow-sm hover:shadow-md'"
+            class="group w-full rounded-2xl p-4 sm:p-5 text-left transition-all duration-200 cursor-pointer block">
+            <span
+                class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+                :class="selectedStatus === 'perlu_dinilai' && !deadlineFilter ? 'text-rose-700' : 'text-slate-500'">
+                <span x-show="selectedStatus === 'perlu_dinilai' && !deadlineFilter" class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                Perlu Dinilai
+            </span>
+            <div class="mt-2.5 flex items-center justify-between gap-2">
+                <div class="text-2xl font-extrabold text-slate-900 leading-tight">{{ $perluDinilai ?? 0 }}</div>
+                <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 border border-rose-200/60 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                 </div>
             </div>
+            <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">Menunggu penilaian</p>
         </button>
-
 
         {{-- DEADLINE TERDEKAT --}}
         <button
@@ -195,67 +141,51 @@
             selectedStatus = 'semua';
         "
             :class="deadlineFilter
-            ? 'border-amber-400 ring-2 ring-amber-100'
-            : 'border-slate-200 hover:border-amber-300'"
-            class="w-full rounded-xl border bg-white p-3 text-left shadow-sm transition hover:shadow-md">
+            ? 'bg-amber-50/40 border-2 border-amber-500 shadow-sm'
+            : 'bg-white border border-slate-200/80 hover:border-amber-200 shadow-sm hover:shadow-md'"
+            class="group w-full rounded-2xl p-4 sm:p-5 text-left transition-all duration-200 cursor-pointer block">
+            <span
+                class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+                :class="deadlineFilter ? 'text-amber-700' : 'text-slate-500'">
+                <span x-show="deadlineFilter" class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                Deadline Terdekat
+            </span>
+            <div class="mt-2.5 flex items-center justify-between gap-2">
+                <div
+                    class="text-2xl font-extrabold text-slate-900 leading-tight"
+                    x-effect="
+                    $nextTick(() => {
+                        const sekarang = Math.floor(Date.now() / 1000);
+                        const batas = sekarang + 86400;
 
-            <div class="flex items-center justify-between gap-2">
+                        const jumlah = [...$refs.daftarTugas.querySelectorAll('article')]
+                            .filter(card => {
+                                const deadline = Number(card.dataset.deadline);
 
-                {{-- INFORMASI --}}
-                <div class="min-w-0 flex-1">
-                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        Deadline Terdekat
-                    </p>
+                                return card.getClientRects().length > 0 &&
+                                    deadline >= sekarang &&
+                                    deadline <= batas;
+                            }).length;
 
-                    <p
-                        class="mt-1 text-xl font-extrabold text-slate-900"
-                        x-effect="
-                        $nextTick(() => {
-                            const sekarang = Math.floor(Date.now() / 1000);
-                            const batas = sekarang + 86400;
-
-                            const jumlah = [...$refs.daftarTugas.querySelectorAll('article')]
-                                .filter(card => {
-                                    const deadline = Number(card.dataset.deadline);
-
-                                    return card.getClientRects().length > 0 &&
-                                        deadline >= sekarang &&
-                                        deadline <= batas;
-                                }).length;
-
-                            $el.textContent = jumlah;
-                        });
-                    ">
-                        {{ $deadlineTerdekat ?? 0 }}
-                    </p>
-
-                    <p class="mt-1 flex items-center gap-1.5 text-[10px] text-slate-500">
-                        <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-                        Segera berakhir
-                    </p>
+                        $el.textContent = jumlah;
+                    });
+                ">
+                    {{ $deadlineTerdekat ?? 0 }}
                 </div>
-
-                {{-- ICON KANAN --}}
-                <div class="flex shrink-0 flex-col items-center gap-1.5">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                    </div>
-
-                    <svg class="h-3.5 w-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 5l7 7-7 7" />
+                <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-200/60 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                 </div>
             </div>
+            <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">Berakhir dalam 24 jam</p>
         </button>
 
-    </div>
+    </section>
 
     {{-- FILTER DAN PENCARIAN --}}
-    <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div class="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-sm">
 
         {{-- FILTER STATUS --}}
         <div class="flex items-center gap-2 overflow-x-auto pb-1">
@@ -263,42 +193,42 @@
             <button
                 type="button"
                 @click="selectedStatus = 'semua'; deadlineFilter = false"
-                :class="selectedStatus === 'semua' && !deadlineFilter ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'"
-                class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-bold transition">
+                :class="selectedStatus === 'semua' && !deadlineFilter ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'"
+                class="whitespace-nowrap rounded-xl px-3.5 py-2 text-xs font-semibold transition cursor-pointer">
                 Semua Tugas
             </button>
 
             <button
                 type="button"
                 @click="selectedStatus = 'aktif'; deadlineFilter = false"
-                :class="selectedStatus === 'aktif' && !deadlineFilter ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'"
-                class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition">
+                :class="selectedStatus === 'aktif' && !deadlineFilter ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'"
+                class="whitespace-nowrap rounded-xl px-3.5 py-2 text-xs font-semibold transition cursor-pointer">
                 Tugas Aktif
             </button>
 
             <button
                 type="button"
                 @click="selectedStatus = 'perlu_dinilai'; deadlineFilter = false"
-                :class="selectedStatus === 'perlu_dinilai' && !deadlineFilter ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'"
-                class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition">
+                :class="selectedStatus === 'perlu_dinilai' && !deadlineFilter ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'"
+                class="whitespace-nowrap rounded-xl px-3.5 py-2 text-xs font-semibold transition cursor-pointer">
                 Perlu Dinilai
             </button>
 
             <button
                 type="button"
                 @click="selectedStatus = 'selesai'; deadlineFilter = false"
-                :class="selectedStatus === 'selesai' && !deadlineFilter ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'"
-                class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition">
+                :class="selectedStatus === 'selesai' && !deadlineFilter ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'"
+                class="whitespace-nowrap rounded-xl px-3.5 py-2 text-xs font-semibold transition cursor-pointer">
                 Riwayat / Selesai
             </button>
         </div>
 
         {{-- PENCARIAN DAN FILTER --}}
-        <div class="flex flex-col items-center gap-3 md:flex-row">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
 
             {{-- PENCARIAN --}}
-            <div class="group relative w-full min-w-0 flex-1">
-                <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+            <div class="relative lg:col-span-4">
+                <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
@@ -308,15 +238,14 @@
                     x-model="searchQuery"
                     type="text"
                     placeholder="Cari tugas berdasarkan judul..."
-                    class="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-4 text-xs font-medium text-slate-700 placeholder:text-slate-400 transition focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100">
+                    class="w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 transition focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100">
             </div>
 
-            {{-- FILTER KELAS, MAPEL, DAN SORTING --}}
-            <div class="flex w-full shrink-0 items-center justify-end gap-3 md:w-auto">
-
+            {{-- FILTER KELAS --}}
+            <div class="lg:col-span-3">
                 <select
                     x-model="selectedKelas"
-                    class="h-10 w-full cursor-pointer rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-600 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100">
+                    class="w-full cursor-pointer rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-sm text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 transition">
 
                     <option value="">Semua Kelas</option>
 
@@ -326,10 +255,13 @@
                     </option>
                     @endforeach
                 </select>
+            </div>
 
+            {{-- FILTER MAPEL --}}
+            <div class="lg:col-span-3">
                 <select
                     x-model="selectedMapel"
-                    class="h-10 w-full cursor-pointer rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-600 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100">
+                    class="w-full cursor-pointer rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-sm text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 transition">
 
                     <option value="">Semua Mata Pelajaran</option>
 
@@ -339,65 +271,64 @@
                     </option>
                     @endforeach
                 </select>
+            </div>
 
-                <div class="flex gap-2">
+            {{-- SORTING & RESET --}}
+            <div class="lg:col-span-2 flex items-center gap-2">
+                <select
+                    x-model="sortBy"
+                    @change="
+                        const container = $refs.daftarTugas;
+                        const cards = [...container.querySelectorAll(':scope > article')];
 
-                    <select
-                        x-model="sortBy"
-                        @change="
+                        cards.sort((a, b) => {
+                            const A = Number(a.dataset.created);
+                            const B = Number(b.dataset.created);
+                            const D1 = Number(a.dataset.deadline);
+                            const D2 = Number(b.dataset.deadline);
+
+                            return sortBy === 'terbaru' ? B - A :
+                                   sortBy === 'terlama' ? A - B : D1 - D2;
+                        });
+
+                        cards.forEach(card => container.appendChild(card));
+                    "
+                    class="min-w-0 flex-1 cursor-pointer rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-sm text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 transition">
+
+                    <option value="terbaru">Terbaru</option>
+                    <option value="terlama">Terlama</option>
+                    <option value="deadline">Deadline Terdekat</option>
+                </select>
+
+                {{-- RESET FILTER --}}
+                <button
+                    @click="
+                        searchQuery = '';
+                        selectedKelas = '';
+                        selectedMapel = '';
+                        selectedStatus = 'semua';
+                        deadlineFilter = false;
+                        sortBy = 'terbaru';
+
+                        $nextTick(() => {
                             const container = $refs.daftarTugas;
                             const cards = [...container.querySelectorAll(':scope > article')];
 
-                            cards.sort((a, b) => {
-                                const A = Number(a.dataset.created);
-                                const B = Number(b.dataset.created);
-                                const D1 = Number(a.dataset.deadline);
-                                const D2 = Number(b.dataset.deadline);
-
-                                return sortBy === 'terbaru' ? B - A :
-                                       sortBy === 'terlama' ? A - B : D1 - D2;
-                            });
+                            cards.sort((a, b) =>
+                                Number(b.dataset.created) - Number(a.dataset.created)
+                            );
 
                             cards.forEach(card => container.appendChild(card));
-                        "
-                        class="h-10 min-w-0 flex-1 cursor-pointer rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-600 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100">
+                        });
+                    "
+                    type="button"
+                    title="Reset Filter"
+                    class="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 cursor-pointer">
 
-                        <option value="terbaru">Terbaru</option>
-                        <option value="terlama">Terlama</option>
-                        <option value="deadline">Deadline Terdekat</option>
-                    </select>
-
-                    {{-- RESET FILTER --}}
-                    <button
-                        @click="
-                            searchQuery = '';
-                            selectedKelas = '';
-                            selectedMapel = '';
-                            selectedStatus = 'semua';
-                            deadlineFilter = false;
-                            sortBy = 'terbaru';
-
-                            $nextTick(() => {
-                                const container = $refs.daftarTugas;
-                                const cards = [...container.querySelectorAll(':scope > article')];
-
-                                cards.sort((a, b) =>
-                                    Number(b.dataset.created) - Number(a.dataset.created)
-                                );
-
-                                cards.forEach(card => container.appendChild(card));
-                            });
-                        "
-                        type="button"
-                        title="Reset Filter"
-                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-indigo-100 hover:bg-indigo-50 hover:text-indigo-700">
-
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                    </button>
-
-                </div>
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
@@ -728,22 +659,30 @@
             @empty
 
             {{-- EMPTY STATE --}}
-            <div class="rounded-2xl border border-slate-200/80 bg-white px-6 py-16 text-center shadow-sm">
+            <div class="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
 
-                <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500">
-                    <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                            d="M9 5H7a2 2  0 00-2 2v12a2 2  0 002 2h10a2 2  0 002-2V7a2 2  0 00-2-2h-2M9 5a2 2  0 002 2h2a2 2  0 002-2M9 5a2 2  0 012-2h2a2 2  0 al2 2m-6 9l2 2 4-4" />
+                <div class="mx-auto mb-3.5 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-100 shadow-sm">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                     </svg>
                 </div>
 
-                <p class="text-base font-bold text-slate-800">
+                <p class="text-sm font-bold text-slate-800">
                     Belum Ada Data Tugas
                 </p>
 
-                <p class="mt-1 text-xs text-slate-400">
+                <p class="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
                     Tugas yang Anda buat akan ditampilkan di sini.
                 </p>
+
+                <a href="{{ route('guru.tugas.create') }}"
+                    class="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Tambah Tugas Pertama
+                </a>
             </div>
 
             @endforelse
@@ -751,9 +690,9 @@
         </div>
 
         {{-- JUMLAH TUGAS --}}
-        <div class="rounded-2xl border border-slate-200/80 bg-white p-5 text-sm text-slate-500 shadow-sm">
+        <div class="rounded-2xl border border-slate-200/80 bg-white px-6 py-4 text-xs text-slate-500 shadow-sm">
             Menampilkan
-            <strong class="text-slate-900" x-text="visibleTaskCount"></strong>
+            <strong class="font-bold text-slate-900" x-text="visibleTaskCount"></strong>
             tugas
         </div>
 

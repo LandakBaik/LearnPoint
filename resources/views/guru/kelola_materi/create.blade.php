@@ -3,7 +3,7 @@
 @section('title', 'Tambah Materi Pembelajaran')
 
 @section('content')
-<div class="space-y-6" x-data="{
+<div class="space-y-6 max-w-7xl mx-auto" x-data="{
     mapelData: {{ Js::from(array_values($mapelData)) }},
     selectedMapel: '{{ old('mapel_id') }}',
     selectedTingkatan: '{{ old('tingkatan') }}',
@@ -63,19 +63,24 @@
 
     <!-- Header Title & Action Button -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Tambah Materi</h1>
-            <p class="text-sm text-gray-500 mt-1">Unggah file materi baru untuk dibagikan ke siswa.</p>
+        <div class="flex items-start sm:items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0 shadow-sm">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Tambah Materi</h1>
+                <p class="text-sm text-slate-500 mt-0.5">Unggah file materi baru untuk dibagikan ke siswa.</p>
+            </div>
         </div>
-        <div>
-            <a href="{{ route('guru.materi') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors shadow-sm cursor-pointer">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                Kembali
-            </a>
-        </div>
+        <a href="{{ route('guru.materi') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold text-sm hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm cursor-pointer shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            Kembali
+        </a>
     </div>
 
-    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
         <form action="{{ route('guru.materi.store') }}" method="POST" enctype="multipart/form-data" class="p-6 sm:p-8 space-y-6">
             @csrf
 

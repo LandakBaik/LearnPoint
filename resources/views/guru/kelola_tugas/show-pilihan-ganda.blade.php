@@ -3,7 +3,7 @@
 @section('title', 'Detail Pengumpulan Pilihan Ganda')
 
 @section('content')
-<div class="space-y-5 text-slate-800">
+<div class="space-y-6 max-w-7xl mx-auto text-slate-800">
 
     {{-- Breadcrumb dan Status Tugas --}}
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

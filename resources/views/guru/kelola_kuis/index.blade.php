@@ -3,7 +3,7 @@
 @section('title', 'Kuis Pembelajaran')
 
 @section('content')
-<div class="space-y-6" x-data="{
+<div class="space-y-6 max-w-7xl mx-auto" x-data="{
     showModal: false,
     showEditModal: false,
     selectedQuizzes: [],
@@ -183,9 +183,9 @@
     ========================================================== --}}
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-start sm:items-center gap-3.5">
-            <div class="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0 shadow-xs">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            <div class="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                 </svg>
             </div>
             <div>
@@ -193,7 +193,7 @@
                     Kuis Petualangan
                 </h1>
                 <p class="mt-0.5 text-sm text-slate-500">
-                    Sistem kuis bertema petualangan.
+                    Kelola kuis interaktif bertema petualangan, arc kesulitan, dan level soal.
                 </p>
             </div>
         </div>
@@ -201,7 +201,7 @@
         <button
             @click="showModal = true"
             type="button"
-            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:scale-[0.98] transition shadow-xs hover:shadow cursor-pointer shrink-0"
+            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:scale-[0.98] transition-all shadow-sm hover:shadow-md cursor-pointer shrink-0"
         >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
@@ -215,7 +215,7 @@
     {{-- =========================================================
         PANEL INFORMASI STRUKTUR PETUALANGAN
     ========================================================== --}}
-    <div class="bg-gradient-to-r from-blue-50/90 via-sky-50/50 to-blue-50/40 border border-blue-100 rounded-2xl p-5 sm:p-6 shadow-xs relative overflow-hidden">
+    <div class="bg-gradient-to-r from-blue-50/90 via-sky-50/50 to-blue-50/40 border border-blue-100 rounded-2xl p-5 sm:p-6 shadow-sm relative overflow-hidden">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div class="space-y-2">
                 <div class="flex items-center gap-2">
@@ -230,15 +230,15 @@
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1 text-xs text-slate-600">
-                    <div class="flex items-start gap-2 bg-white/70 backdrop-blur-xs p-2.5 rounded-xl border border-blue-100/70">
+                    <div class="flex items-start gap-2 bg-white/70 backdrop-blur-sm p-2.5 rounded-xl border border-blue-100/70">
                         <span class="font-bold text-blue-600 shrink-0">1.</span>
                         <span>Maksimal <strong>3 Tingkat Kesulitan</strong>: Mudah, Sedang, dan Sulit (dapat disesuaikan).</span>
                     </div>
-                    <div class="flex items-start gap-2 bg-white/70 backdrop-blur-xs p-2.5 rounded-xl border border-blue-100/70">
+                    <div class="flex items-start gap-2 bg-white/70 backdrop-blur-sm p-2.5 rounded-xl border border-blue-100/70">
                         <span class="font-bold text-blue-600 shrink-0">2.</span>
                         <span>Setiap tingkat kesulitan memiliki <strong>5 Level</strong> tantangan berurutan.</span>
                     </div>
-                    <div class="flex items-start gap-2 bg-white/70 backdrop-blur-xs p-2.5 rounded-xl border border-blue-100/70">
+                    <div class="flex items-start gap-2 bg-white/70 backdrop-blur-sm p-2.5 rounded-xl border border-blue-100/70">
                         <span class="font-bold text-blue-600 shrink-0">3.</span>
                         <span>Tiap level dapat berisi <strong>maksimal 5 butir soal</strong> pilihan ganda.</span>
                     </div>
@@ -247,15 +247,15 @@
 
             <div class="flex items-center gap-2 shrink-0 flex-wrap pt-2 lg:pt-0 border-t lg:border-t-0 border-blue-100">
                 <span class="text-xs font-semibold text-slate-500 mr-1">Tingkat Kesulitan:</span>
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold shadow-xs">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold shadow-sm">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                     Mudah
                 </span>
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold shadow-xs">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold shadow-sm">
                     <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                     Sedang
                 </span>
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold shadow-xs">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold shadow-sm">
                     <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                     Sulit
                 </span>
@@ -266,68 +266,91 @@
     {{-- =========================================================
         STATISTIK CARDS
     ========================================================== --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+    @php
+        $kuisStatusAktif = request('status', '');
+    @endphp
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {{-- Total Kuis --}}
-        <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-sm hover:border-slate-300 transition-all flex items-center justify-between">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Total Kuis</p>
-                <h3 class="text-3xl font-extrabold text-slate-900">{{ $totalKuis }}</h3>
-                <p class="text-[11px] text-slate-400 mt-1">Petualangan dibuat</p>
+        <a href="{{ route('guru.kuis.index', request()->except(['status', 'page'])) }}"
+            class="group rounded-2xl p-4 sm:p-5 transition-all duration-200 block {{ $kuisStatusAktif === '' ? 'bg-blue-50/40 border-2 border-blue-600 shadow-sm' : 'bg-white border border-slate-200/80 hover:border-blue-200 shadow-sm hover:shadow-md' }}">
+            <span class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $kuisStatusAktif === '' ? 'text-blue-700' : 'text-slate-500' }}">
+                @if ($kuisStatusAktif === '')
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                @endif
+                Total Kuis
+            </span>
+            <div class="mt-2.5 flex items-center justify-between gap-2">
+                <div class="text-2xl font-extrabold text-slate-900 leading-tight">{{ $totalKuis }}</div>
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200/60 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
+                </div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                </svg>
-            </div>
-        </div>
+            <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">Petualangan dibuat</p>
+        </a>
 
         {{-- Status Draf --}}
-        <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-sm hover:border-slate-300 transition-all flex items-center justify-between">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Status Draf</p>
-                <h3 class="text-3xl font-extrabold text-amber-600">{{ $totalDraft }}</h3>
-                <p class="text-[11px] text-slate-400 mt-1">Masih dalam penyusunan</p>
+        <a href="{{ route('guru.kuis.index', array_merge(request()->except('page'), ['status' => 'draft'])) }}"
+            class="group rounded-2xl p-4 sm:p-5 transition-all duration-200 block {{ $kuisStatusAktif === 'draft' ? 'bg-amber-50/40 border-2 border-amber-500 shadow-sm' : 'bg-white border border-slate-200/80 hover:border-amber-200 shadow-sm hover:shadow-md' }}">
+            <span class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $kuisStatusAktif === 'draft' ? 'text-amber-700' : 'text-slate-500' }}">
+                @if ($kuisStatusAktif === 'draft')
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                @endif
+                Status Draf
+            </span>
+            <div class="mt-2.5 flex items-center justify-between gap-2">
+                <div class="text-2xl font-extrabold text-slate-900 leading-tight">{{ $totalDraft }}</div>
+                <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-200/60 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                </div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                </svg>
-            </div>
-        </div>
+            <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">Masih dalam penyusunan</p>
+        </a>
 
         {{-- Diterbitkan --}}
-        <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-sm hover:border-slate-300 transition-all flex items-center justify-between">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Diterbitkan</p>
-                <h3 class="text-3xl font-extrabold text-emerald-600">{{ $totalPublished }}</h3>
-                <p class="text-[11px] text-slate-400 mt-1">Siap diakses siswa</p>
+        <a href="{{ route('guru.kuis.index', array_merge(request()->except('page'), ['status' => 'published'])) }}"
+            class="group rounded-2xl p-4 sm:p-5 transition-all duration-200 block {{ $kuisStatusAktif === 'published' ? 'bg-emerald-50/40 border-2 border-emerald-500 shadow-sm' : 'bg-white border border-slate-200/80 hover:border-emerald-200 shadow-sm hover:shadow-md' }}">
+            <span class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 {{ $kuisStatusAktif === 'published' ? 'text-emerald-700' : 'text-slate-500' }}">
+                @if ($kuisStatusAktif === 'published')
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                @endif
+                Diterbitkan
+            </span>
+            <div class="mt-2.5 flex items-center justify-between gap-2">
+                <div class="text-2xl font-extrabold text-slate-900 leading-tight">{{ $totalPublished }}</div>
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/60 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-            </div>
-        </div>
+            <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">Siap diakses siswa</p>
+        </a>
 
         {{-- Total Soal --}}
-        <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-sm hover:border-slate-300 transition-all flex items-center justify-between">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Total Soal</p>
-                <h3 class="text-3xl font-extrabold text-blue-600">{{ $totalSoal }}</h3>
-                <p class="text-[11px] text-slate-400 mt-1">Maks 5 soal per level</p>
+        <div class="group rounded-2xl p-4 sm:p-5 bg-white border border-slate-200/80 hover:border-blue-200 shadow-sm hover:shadow-md transition-all duration-200">
+            <span class="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 text-slate-500">
+                Total Soal
+            </span>
+            <div class="mt-2.5 flex items-center justify-between gap-2">
+                <div class="text-2xl font-extrabold text-slate-900 leading-tight">{{ $totalSoal }}</div>
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100/80 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center shrink-0">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-            </div>
+            <p class="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-400 truncate">Maks 5 soal per level</p>
         </div>
-    </div>
+    </section>
 
     {{-- =========================================================
         FILTER & SEARCH
     ========================================================== --}}
-    <div class="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs">
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-sm">
         <form method="GET" action="{{ route('guru.kuis.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
             {{-- Search --}}
             <div class="relative lg:col-span-4">
@@ -387,7 +410,7 @@
             <div class="lg:col-span-2 flex items-center gap-2">
                 <button
                     type="submit"
-                    class="flex-1 py-2.5 px-4 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 active:scale-[0.98] transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                    class="flex-1 py-2.5 px-4 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 active:scale-[0.98] transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
@@ -415,7 +438,7 @@
     ========================================================== --}}
     @if($quizzes->count() > 0)
         {{-- Toolbar Seleksi Massal --}}
-        <div class="flex items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div class="flex items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm">
             <div class="flex items-center gap-3">
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input
@@ -438,7 +461,7 @@
                 <button
                     type="button"
                     @click="confirmBulkDelete()"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition shadow-xs cursor-pointer"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition shadow-sm cursor-pointer"
                 >
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     <span>Hapus (<span x-text="selectedQuizzes.length"></span>) Kuis Terpilih</span>
@@ -454,7 +477,7 @@
                     $soalTotal = $quiz->soals_count ?? $quiz->soals->count();
                 @endphp
                 <div
-                    class="rounded-2xl border p-5 sm:p-6 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                    class="rounded-2xl border p-5 sm:p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group"
                     :class="selectedQuizzes.includes({{ $quiz->id }}) ? 'border-blue-500 ring-2 ring-blue-100 bg-blue-50/10' : 'border-slate-200/80 bg-white hover:border-blue-200'"
                 >
                     <div class="space-y-3.5">
@@ -591,7 +614,7 @@
                     <div class="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
                         <a
                             href="{{ route('guru.kuis.show', $quiz) }}"
-                            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 active:scale-[0.98] transition shadow-xs"
+                            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 active:scale-[0.98] transition shadow-sm"
                         >
                             <span>Kelola Arc & Level</span>
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -662,9 +685,9 @@
             {{ $quizzes->links() }}
         </div>
     @else
-        <div class="bg-white rounded-2xl border border-dashed border-slate-200 p-12 text-center shadow-xs">
-            <div class="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-white rounded-2xl border border-dashed border-slate-200 px-6 py-14 text-center shadow-sm">
+            <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center mx-auto mb-3.5 shadow-sm">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                 </svg>
             </div>
@@ -674,7 +697,7 @@
                     Tidak ditemukan kuis petualangan yang cocok dengan kriteria pencarian atau filter yang Anda terapkan.
                 </p>
                 <div class="mt-5">
-                    <a href="{{ route('guru.kuis.index') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-semibold transition shadow-xs">
+                    <a href="{{ route('guru.kuis.index') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-semibold transition shadow-sm">
                         <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                         </svg>
@@ -689,7 +712,7 @@
                 <button
                     @click="showModal = true"
                     type="button"
-                    class="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:scale-[0.98] transition shadow-xs cursor-pointer"
+                    class="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:scale-[0.98] transition shadow-sm cursor-pointer"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
@@ -707,7 +730,7 @@
         x-show="showModal"
         x-cloak
         style="display: none;"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 sm:p-6 overflow-hidden"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 sm:p-6 overflow-hidden"
     >
         <div
             @click.away="showModal = false"
@@ -1000,7 +1023,7 @@
                     </button>
                     <button
                         type="submit"
-                        class="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:scale-[0.98] transition shadow-xs cursor-pointer"
+                        class="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:scale-[0.98] transition shadow-sm cursor-pointer"
                     >
                         Simpan & Kelola Level
                     </button>
@@ -1016,7 +1039,7 @@
         x-show="showEditModal"
         x-cloak
         style="display: none;"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 sm:p-6 overflow-hidden"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 sm:p-6 overflow-hidden"
     >
         <div
             @click.away="showEditModal = false"
@@ -1249,7 +1272,7 @@
                     </button>
                     <button
                         type="submit"
-                        class="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:scale-[0.98] transition shadow-xs cursor-pointer"
+                        class="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:scale-[0.98] transition shadow-sm cursor-pointer"
                     >
                         Simpan Perubahan
                     </button>
@@ -1285,7 +1308,7 @@
     >
         <div class="bg-slate-900/95 backdrop-blur-md text-white rounded-2xl shadow-2xl p-4 flex items-center justify-between gap-4 border border-slate-700/80">
             <div class="flex items-center gap-3">
-                <span class="w-8 h-8 rounded-xl bg-blue-600 text-white text-xs font-black flex items-center justify-center shrink-0 shadow-xs" x-text="selectedQuizzes.length"></span>
+                <span class="w-8 h-8 rounded-xl bg-blue-600 text-white text-xs font-black flex items-center justify-center shrink-0 shadow-sm" x-text="selectedQuizzes.length"></span>
                 <div>
                     <p class="text-xs font-bold text-white leading-tight">
                         <span x-text="selectedQuizzes.length"></span> Kuis Terpilih
@@ -1305,7 +1328,7 @@
                 <button
                     type="button"
                     @click="confirmBulkDelete()"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white text-xs font-bold transition shadow-sm cursor-pointer"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
