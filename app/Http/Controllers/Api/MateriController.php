@@ -712,6 +712,16 @@ class MateriController extends Controller
                 ];
             });
 
+        // Selaraskan statistik banner mobile dengan halaman detail mapel web:
+        // hanya nilai tugas yang telah diberikan guru yang dihitung.
+        $totalTugas = $tugases->count();
+        $tugasSelesai = $tugases->where('is_submitted', true)->count();
+        $nilaiTugasDinilai = $tugases
+            ->pluck('nilai')
+            ->filter(fn ($nilai) => $nilai !== null)
+            ->map(fn ($nilai) => (float) $nilai);
+        $jumlahTugasDinilai = $nilaiTugasDinilai->count();
+
         // Ujian pada mapel ini (selaras dengan UjianController@siswaIndex)
         $siswaId = $siswa?->id;
         $ujians = \App\Models\Ujian::with([
@@ -794,6 +804,17 @@ class MateriController extends Controller
             'materis' => $materis,
             'tugases' => $tugases,
             'ujians' => $ujians,
+            'statistik_tugas' => [
+                'total_tugas' => $totalTugas,
+                'tugas_selesai' => $tugasSelesai,
+                'persen_tugas' => $totalTugas > 0
+                    ? (int) round(($tugasSelesai / $totalTugas) * 100)
+                    : 0,
+                'jumlah_tugas_dinilai' => $jumlahTugasDinilai,
+                'rata_rata_nilai_tugas' => $jumlahTugasDinilai > 0
+                    ? round($nilaiTugasDinilai->avg(), 1)
+                    : null,
+            ],
         ]);
     }
 }

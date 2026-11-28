@@ -275,16 +275,6 @@
                         </span>
                     </div>
                 </div>
-            </div>
-                    <div class="flex items-center gap-3 text-[11px] text-gray-500 pt-1">
-                        <span class="inline-flex items-center gap-1">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Tersedia
-                        </span>
-                        <span class="inline-flex items-center gap-1">
-                            <span class="w-2 h-2 rounded-full bg-gray-400"></span> Sudah diajar guru ini
-                        </span>
-                    </div>
-                </div>
                 <p class="text-[11px] text-gray-500">Pilih Mapel dan centang satu atau lebih Kelas yang tersedia untuk menambahkan tugas mengajar baru saat menekan tombol simpan.</p>
             </div>
 
