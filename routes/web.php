@@ -38,6 +38,9 @@ use App\Http\Controllers\Siswa\QuizController as SiswaQuizController;
 use App\Http\Controllers\Siswa\TugasController as SiswaTugasController;
 use App\Http\Controllers\Siswa\UjianController as SiswaUjianController;
 
+// Kepala Sekolah Controllers
+use App\Http\Controllers\KepalaSekolah\MonitoringGuruController;
+
 Route::get('/', function () {
     if (Auth::check()) {
         return redirect()->route('dashboard');
@@ -324,6 +327,50 @@ Route::middleware(['auth', 'active'])->group(function () {
     // Fitur Kepala Sekolah
     // ==========================================
     Route::middleware(['role:kepala_sekolah'])->group(function () {
-        Route::get('/kepala-sekolah/dashboard', [DashboardController::class, 'kepalaSekolahDashboard'])->name('kepala_sekolah.dashboard');
+
+        // Dashboard Kepala Sekolah
+        Route::get('/kepala-sekolah/dashboard', [DashboardController::class, 'kepalaSekolahDashboard'])
+            ->name('kepala_sekolah.dashboard');
+
+        // Monitoring Aktivitas Guru
+        Route::prefix('kepala-sekolah/monitoring-guru')
+            ->controller(\App\Http\Controllers\KepalaSekolah\MonitoringGuruController::class)
+            ->group(function () {
+
+                Route::get('/', 'index')
+                    ->name('kepala_sekolah.monitoring-guru.index');
+
+                Route::get('/export-csv', 'exportCsv')
+                    ->name('kepala_sekolah.monitoring-guru.export-csv');
+
+                Route::get('/export-pdf', 'exportPdf')
+                    ->name('kepala_sekolah.monitoring-guru.export-pdf');
+
+                Route::get('/guru/{guru}/pdf', 'exportGuruPdf')
+                    ->name('kepala_sekolah.monitoring-guru.guru.pdf');
+
+                Route::get('/guru/{guru}', 'showGuru')
+                    ->name('kepala_sekolah.monitoring-guru.guru');
+            });
     });
+
+
+    Route::prefix('kepala-sekolah/rekap-nilai')
+        ->controller(\App\Http\Controllers\KepalaSekolah\RekapNilaiController::class)
+        ->group(function () {
+            Route::get('/', 'index')
+                ->name('kepala_sekolah.rekap-nilai.index');
+
+            Route::get('/export-csv', 'exportCsv')
+                ->name('kepala_sekolah.rekap-nilai.export-csv');
+
+            Route::get('/export-pdf', 'exportPdf')
+                ->name('kepala_sekolah.rekap-nilai.export-pdf');
+
+            Route::get('/siswa/{siswa}/pdf', 'exportSiswaPdf')
+                ->name('kepala_sekolah.rekap-nilai.siswa.pdf');
+
+            Route::get('/siswa/{siswa}', 'showSiswa')
+                ->name('kepala_sekolah.rekap-nilai.siswa');
+        });
 });

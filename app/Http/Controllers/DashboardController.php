@@ -14,6 +14,7 @@ use App\Models\Nilai;
 use App\Models\SeleksiUjian;
 use App\Models\User;
 use App\Services\RekapNilaiService;
+use App\Services\MonitoringGuruService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -284,7 +285,7 @@ class DashboardController extends Controller
                 ->first();
 
             if (!$tugasTerbaru) {
-                $tugasTerbaru = Tugas::whereHas('pengampuKelas', fn ($q) => $q->currentPeriod()->where('kelas_id', $kelasId)->forSiswa($siswa))
+                $tugasTerbaru = Tugas::whereHas('pengampuKelas', fn($q) => $q->currentPeriod()->where('kelas_id', $kelasId)->forSiswa($siswa))
                     ->whereDoesntHave('nilais', function ($q) use ($siswaId) {
                         $q->where('siswa_id', $siswaId);
                     })
@@ -348,9 +349,9 @@ class DashboardController extends Controller
 
         $statistikPeriods = !empty($statistikPeriodIds)
             ? \App\Models\AcademicPeriod::whereIn('id', $statistikPeriodIds)
-                ->orderByDesc('tahun_ajaran')
-                ->orderByRaw("CASE WHEN semester = 'genap' THEN 2 ELSE 1 END DESC")
-                ->get()
+            ->orderByDesc('tahun_ajaran')
+            ->orderByRaw("CASE WHEN semester = 'genap' THEN 2 ELSE 1 END DESC")
+            ->get()
             : collect([$activePeriod])->filter();
 
         $requestedPeriodId = $request->filled('period_id') ? (int) $request->input('period_id') : null;
@@ -410,13 +411,81 @@ class DashboardController extends Controller
     /**
      * Halaman Dashboard Kepala Sekolah.
      */
-    public function kepalaSekolahDashboard()
-    {
+    public function kepalaSekolahDashboard(
+        RekapNilaiService $rekapNilaiService,
+        MonitoringGuruService $monitoringGuruService
+    ) {
+        $user = Auth::user();
+
+        if (!$user || $user->role !== 'kepala_sekolah') {
+            return redirect()->route('dashboard');
+        }
+
+        // ==========================================
+        // 1. STATISTIK UMUM SEKOLAH
+        // ==========================================
         $totalSiswa = Siswa::count();
         $totalGuru = Guru::count();
         $totalKelas = Kelas::count();
         $totalMapel = Mapel::count();
 
-        return view('kepala_sekolah.dashboard', compact('totalSiswa', 'totalGuru', 'totalKelas', 'totalMapel'));
+        // ==========================================
+        // 2. REKAP AKADEMIK
+        // ==========================================
+        $rekapAkademik = $rekapNilaiService->buildAdminRekap([
+            'mode' => 'ringkasan',
+            'hitung_kosong' => 'abaikan',
+            'metode_hitung' => 'rata',
+        ]);
+
+        $summary = $rekapAkademik['summary'] ?? [];
+
+        $rataRataSekolah = (float) ($summary['rata_keseluruhan'] ?? 0);
+        $jumlahSiswaDinilai = (int) ($summary['siswa_dinilai'] ?? 0);
+        $jumlahTuntas = (int) ($summary['jumlah_tuntas'] ?? 0);
+        $jumlahBelumTuntas = (int) ($summary['jumlah_belum_tuntas'] ?? 0);
+        $jumlahBelumAdaNilai = (int) ($summary['jumlah_belum_ada'] ?? 0);
+        $persenTuntas = (float) ($summary['persen_tuntas'] ?? 0);
+
+        // Performa akademik setiap kelas
+        $rekapPerKelas = collect($rekapAkademik['rekapPerKelas'] ?? [])
+            ->sortBy('nama_kelas')
+            ->values();
+
+        // ==========================================
+        // 3. MONITORING AKTIVITAS GURU
+        // ==========================================
+        $monitoringGuru = $monitoringGuruService->buildAdminMonitoring();
+
+        $monitoringGuruSummary = $monitoringGuru['summary'] ?? [];
+
+        // Ambil maksimal 10 guru dengan aktivitas tertinggi
+        $monitoringGuruRows = collect($monitoringGuru['rows'] ?? [])
+            ->take(10)
+            ->values();
+
+        $periodeMonitoringGuru = $monitoringGuru['selectedPeriod'] ?? null;
+
+        // ==========================================
+        // 4. TAMPILKAN DASHBOARD
+        // ==========================================
+        return view('kepala_sekolah.dashboard', compact(
+            'totalSiswa',
+            'totalGuru',
+            'totalKelas',
+            'totalMapel',
+
+            'rataRataSekolah',
+            'jumlahSiswaDinilai',
+            'jumlahTuntas',
+            'jumlahBelumTuntas',
+            'jumlahBelumAdaNilai',
+            'persenTuntas',
+            'rekapPerKelas',
+
+            'monitoringGuruSummary',
+            'monitoringGuruRows',
+            'periodeMonitoringGuru'
+        ));
     }
 }
